@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "https://jereprograma.com/api", // Cambiado a la URL del backend en producción
+  baseURL: "https://jereprograma.com", // Cambiado a la URL del backend en producción
   headers: {
     "Content-Type": "application/json",
   },
