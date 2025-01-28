@@ -1,0 +1,72 @@
+@import "tailwindcss";
+
+/* 1) Definición del tema con @theme */
+@theme {
+  /* Tipografías */
+  --font-sans: "Inter", sans-serif;
+  --font-serif: "Merriweather", serif;
+  --font-display: "Poppins", sans-serif;
+  --font-body: ui-sans-serif, system-ui, sans-serif;
+  --font-title: "Satoshi", sans-serif;
+
+  /* Colores (se convierten en bg-primary, text-primary, etc.) */
+  --color-primary: #3b82f6; /* Azul Tailwind por defecto */
+  --color-secondary: #6b7280; /* Gris Tailwind 500 aprox */
+  --color-accent: #f43f5e; /* Rosa / Red-ish */
+
+  /* Bordes y Espaciado */
+  --radius-lg: 0.75rem;
+  --spacing-4: 1rem;
+  --spacing-6: 1.5rem;
+
+  /* Animaciones / Easing */
+  --ease-snappy: cubic-bezier(0.2, 0, 0.3, 1);
+
+  /* Breakpoints propios adicionales */
+  --breakpoint-xs: 475px;
+  --breakpoint-3xl: 1920px;
+  --breakpoint-lg: 64rem;
+}
+
+/* 2) Estilos base globales */
+@layer base {
+  body {
+    /* Color de fondo claro/oscuro y fuente por defecto */
+    @apply bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200 font-body;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply font-title;
+  }
+}
+
+/* 3) Estilos de componentes globales */
+@layer components {
+  /* Título de página */
+  .titulo-pagina {
+    @apply text-3xl font-bold mb-6 text-center;
+  }
+
+  /* Botones genéricos */
+  .botones {
+    @apply inline-block px-4 py-2 rounded-lg font-semibold transition-colors;
+  }
+
+  .botones-primario {
+    /* Usamos nuestras variables de color definidas en @theme: bg-primary => #3b82f6 */
+    @apply bg-primary text-white hover:bg-primary/90;
+  }
+
+  .botones-secundario {
+    /* Lo mismo para bg-secondary => #6b7280 */
+    @apply bg-secondary text-white hover:bg-secondary/90;
+  }
+
+  /* Layout del <main> */
+  main {
+    /* Reemplazamos margin-top:4rem => mt-16 (equivale a 4rem en la escala por defecto) */
+    @apply mt-16 p-4;
+  }
+}

@@ -1,0 +1,54 @@
+/* navStyles.css */
+@import "tailwindcss";
+
+@layer components {
+  /* Barra superior (header) */
+  .header {
+    @apply flex items-center justify-between px-4 py-2 bg-white dark:bg-gray-800 shadow;
+  }
+  .header-logo {
+    @apply text-xl font-bold text-black dark:text-white tracking-wide;
+  }
+  .header-menu-btn {
+    @apply p-2 text-gray-600 dark:text-gray-200 lg:hidden;
+  }
+
+  /* Barra lateral */
+  .sidebar {
+    /* Por defecto oculta a la izquierda */
+    @apply fixed top-0 left-0 h-full w-64 bg-gray-100 dark:bg-gray-900
+           transform -translate-x-full
+           transition-transform duration-300 ease-in-out
+           z-40;
+  }
+  /* Cuando está abierta */
+  .sidebar-open {
+    @apply translate-x-0;
+  }
+
+  /* Navegación dentro de la barra lateral */
+  .sidebar-nav {
+    @apply flex flex-col mt-8;
+  }
+  /* Estilos de los enlaces */
+  .sidebar-link {
+    @apply px-4 py-2 text-gray-700 dark:text-gray-300
+           hover:bg-gray-200 dark:hover:bg-gray-700
+           transition-colors;
+  }
+
+  /* Fondo oscurecido para overlay al abrir menú en mobile */
+  .overlay {
+    @apply fixed inset-0 bg-black/50 z-30;
+  }
+
+  /* En pantallas grandes, la barra lateral siempre abierta */
+  @screen lg {
+    .sidebar {
+      @apply relative translate-x-0;
+    }
+    .overlay {
+      @apply hidden;
+    }
+  }
+}
