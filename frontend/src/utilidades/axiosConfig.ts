@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://localhost:8080",
+  baseURL: "https://jereprograma.com/api", // Cambiado a la URL del backend en producción
   headers: {
     "Content-Type": "application/json",
   },
@@ -21,29 +21,33 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
+
       try {
-        // Intentamos refrescar usando el refreshToken
         const refreshToken = localStorage.getItem("refreshToken");
         if (!refreshToken) {
           throw new Error("No refreshToken en localStorage");
         }
 
-        // Ojo: servidor recibe el token como string en el body
+        // Solicita un nuevo token de acceso con el refreshToken
         const { data } = await axios.post(
-          "http://localhost:8080/api/login/refresh",
-          refreshToken,
+          "https://jereprograma.com/api/login/refresh",
+          {}, // Enviar un body vacío si se envía el refreshToken en el encabezado
           {
-            headers: { "Content-Type": "text/plain" },
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${refreshToken}`,
+            },
           }
         );
 
-        // data = { accessToken, refreshToken }
+        // Guarda los nuevos tokens en localStorage
         localStorage.setItem("accessToken", data.accessToken);
         localStorage.setItem("refreshToken", data.refreshToken);
 
-        // Reintentamos la request original con el nuevo accessToken
+        // Reintenta la solicitud original con el nuevo token de acceso
         originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
         return api(originalRequest);
       } catch (refreshError) {
@@ -52,6 +56,7 @@ api.interceptors.response.use(
         window.location.href = "/login";
       }
     }
+
     return Promise.reject(error);
   }
 );
