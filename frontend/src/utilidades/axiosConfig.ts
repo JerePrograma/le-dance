@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "https://jereprograma.com/api", // Cambiado a la URL del backend en producción
+  baseURL: "https://jereprograma.com", // Cambiado a la URL del backend en producción
   headers: {
     "Content-Type": "application/json",
   },
@@ -9,12 +9,9 @@ const api = axios.create({
 
 // Interceptor para inyectar el accessToken
 api.interceptors.request.use((config) => {
-  const publicEndpoints = ["/api/roles"];
-  if (!publicEndpoints.some((endpoint) => config.url?.includes(endpoint))) {
-    const accessToken = localStorage.getItem("accessToken");
-    if (accessToken) {
-      config.headers.Authorization = `Bearer ${accessToken}`;
-    }
+  const accessToken = localStorage.getItem("accessToken");
+  if (accessToken) {
+    config.headers.Authorization = `Bearer ${accessToken}`;
   }
   return config;
 });
