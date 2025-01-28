@@ -11,7 +11,6 @@ const inscripcionesApi = {
 
   // Lista por alumno
   listarInscripcionesPorAlumno: async (alumnoId: number) => {
-    // Por ejemplo: GET /api/inscripciones?alumnoId=...
     const response = await api.get(`/api/inscripciones?alumnoId=${alumnoId}`);
     return response.data as InscripcionResponse[];
   },
@@ -24,11 +23,21 @@ const inscripcionesApi = {
     return response.data;
   },
 
-  // ...
+  // Actualizar (nuevo método)
+  actualizarInscripcion: async (
+    id: number,
+    request: InscripcionRequest
+  ): Promise<InscripcionResponse> => {
+    const response = await api.put(`/api/inscripciones/${id}`, request);
+    return response.data;
+  },
+
+  // Eliminar
   eliminarInscripcion: async (id: number) => {
     await api.delete(`/api/inscripciones/${id}`);
   },
 
+  // Obtener por ID
   obtenerInscripcionPorId: async (id: number): Promise<InscripcionResponse> => {
     const response = await api.get(`/api/inscripciones/${id}`);
     return response.data;
