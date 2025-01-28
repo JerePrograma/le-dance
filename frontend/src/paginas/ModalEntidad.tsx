@@ -44,7 +44,7 @@ const ModalEntidad = <T extends object>({
         <h2>{`Gestión de ${entidad}`}</h2>
         <button className="modal-cerrar" onClick={cerrarModal}>
           Cerrar
-        </Boton>
+        </button>
         {loading ? (
           <p>Cargando...</p>
         ) : (
