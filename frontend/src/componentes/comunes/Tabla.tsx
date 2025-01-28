@@ -1,7 +1,8 @@
 interface TablaProps {
   encabezados: string[];
-  datos: Record<string, any>[];
-  acciones?: (fila: Record<string, any>) => JSX.Element; // Función opcional para acciones
+  datos: any[];
+  acciones?: (fila: any) => JSX.Element;
+  extraRender?: (fila: any) => JSX.Element[]; // Añade esta línea
 }
 
 const Tabla: React.FC<TablaProps> = ({ encabezados, datos, acciones }) => {
@@ -22,7 +23,7 @@ const Tabla: React.FC<TablaProps> = ({ encabezados, datos, acciones }) => {
             key={index}
             className="border-t border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
           >
-            {Object.entries(fila).map(([key, valor], idx) => (
+            {Object.entries(fila).map(([valor], idx) => (
               <td key={idx} className="p-4">
                 {valor}
               </td>

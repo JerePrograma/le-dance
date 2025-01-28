@@ -28,6 +28,11 @@ const inscripcionesApi = {
   eliminarInscripcion: async (id: number) => {
     await api.delete(`/api/inscripciones/${id}`);
   },
+
+  obtenerInscripcionPorId: async (id: number): Promise<InscripcionResponse> => {
+    const response = await api.get(`/api/inscripciones/${id}`);
+    return response.data;
+  },
 };
 
 export default inscripcionesApi;
