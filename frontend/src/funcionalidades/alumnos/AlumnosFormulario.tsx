@@ -50,7 +50,7 @@ const AlumnosFormulario: React.FC = () => {
     AlumnoListadoResponse[]
   >([]);
 
-  const buscarAlumnosPorNombre = async (nombre: string) => {
+  const buscarAlumnosPorNombre = useCallback(async (nombre: string) => {
     if (nombre.length < 2) {
       setSugerenciasAlumnos([]);
       return;
@@ -63,16 +63,17 @@ const AlumnosFormulario: React.FC = () => {
       console.error("Error al buscar alumnos:", error);
       setSugerenciasAlumnos([]);
     }
-  };
+  }, []);
+
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
       if (nombreBusqueda.length >= 2) {
         buscarAlumnosPorNombre(nombreBusqueda);
       }
-    }, 300); // Espera 300ms antes de hacer la solicitud
+    }, 300);
 
-    return () => clearTimeout(delayDebounceFn); // Limpia el timeout si el usuario sigue escribiendo
-  }, [nombreBusqueda]);
+    return () => clearTimeout(delayDebounceFn);
+  }, [nombreBusqueda, buscarAlumnosPorNombre]);
 
   const handleSeleccionarAlumno = async (
     id: number,
@@ -291,12 +292,17 @@ const AlumnosFormulario: React.FC = () => {
                 }
                 className="sugerencia-item"
               >
-                {alumno.nombre} {alumno.apellido}
+                <strong>{alumno.nombre}</strong> {alumno.apellido}
               </li>
             ))}
           </ul>
         )}
       </div>
+      {nombreBusqueda && (
+        <button onClick={() => setNombreBusqueda("")} className="limpiar-boton">
+          Limpiar
+        </button>
+      )}
 
       <fieldset className="form-fieldset">
         <legend>Datos Personales</legend>
@@ -511,7 +517,7 @@ const AlumnosFormulario: React.FC = () => {
         </p>
       )}
 
-      {mensaje && <p className="form-mensaje">{mensaje}</p>}
+      {mensaje && <p className="form-mensaje form-mensaje-error">{mensaje}</p>}
     </div>
   );
 };
