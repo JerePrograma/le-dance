@@ -53,7 +53,8 @@ public class AlumnoControlador {
 
 
     @GetMapping("/buscar")
-    public ResponseEntity<List<AlumnoListadoResponse>> buscarPorNombre(@RequestParam String nombre) {
+    public ResponseEntity<List<AlumnoResponse>> buscarPorNombre(@RequestParam String nombre) {
         return ResponseEntity.ok(alumnoServicio.buscarPorNombre(nombre));
     }
+
 }

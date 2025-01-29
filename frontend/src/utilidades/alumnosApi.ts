@@ -36,7 +36,9 @@ const alumnosApi = {
   },
 
   buscarPorNombre: async (nombre: string): Promise<AlumnoListadoResponse[]> => {
-    const response = await api.get(`/api/alumnos/buscar?nombre=${nombre}`);
+    const response = await api.get(
+      `/api/alumnos/buscar?nombre=${encodeURIComponent(nombre)}`
+    );
     return response.data;
   },
 };

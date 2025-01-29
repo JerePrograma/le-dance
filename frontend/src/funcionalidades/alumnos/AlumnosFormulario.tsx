@@ -55,7 +55,6 @@ const AlumnosFormulario: React.FC = () => {
       setSugerenciasAlumnos([]);
       return;
     }
-
     try {
       const response = await alumnosApi.buscarPorNombre(nombre);
       setSugerenciasAlumnos(response);
