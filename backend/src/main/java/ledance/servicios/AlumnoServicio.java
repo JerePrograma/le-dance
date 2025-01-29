@@ -87,4 +87,14 @@ public class AlumnoServicio {
                 .collect(Collectors.toList());
     }
 
+    public List<AlumnoListadoResponse> buscarPorNombre(String nombre) {
+        return alumnoRepositorio.findByNombreContainingIgnoreCase(nombre).stream()
+                .map(alumno -> new AlumnoListadoResponse(
+                        alumno.getId(),
+                        alumno.getNombre(),
+                        alumno.getApellido()
+                ))
+                .collect(Collectors.toList());
+    }
+
 }

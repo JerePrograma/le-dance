@@ -42,6 +42,11 @@ export interface AlumnoResponse {
   cuotaTotal?: number;
 }
 
+export interface AlumnoListadoResponse {
+  id: number;
+  nombre: string;
+  apellido: string;
+}
 // ========================================================
 // DISCIPLINA
 // ========================================================

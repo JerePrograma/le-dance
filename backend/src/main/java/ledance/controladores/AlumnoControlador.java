@@ -50,4 +50,11 @@ public class AlumnoControlador {
     public ResponseEntity<List<AlumnoListadoResponse>> obtenerListadoAlumnosSimplificado() {
         return ResponseEntity.ok(alumnoServicio.listarAlumnosSimplificado());
     }
+
+    @GetMapping("/buscar")
+    public ResponseEntity<List<AlumnoListadoResponse>> buscarAlumnosPorNombre(@RequestParam String nombre) {
+        List<AlumnoListadoResponse> alumnos = alumnoServicio.buscarPorNombre(nombre);
+        return ResponseEntity.ok(alumnos);
+    }
+
 }

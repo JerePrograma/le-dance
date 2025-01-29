@@ -1,6 +1,10 @@
 // /src/utilidades/alumnosApi.ts
 import api from "./axiosConfig";
-import { AlumnoRequest, AlumnoResponse } from "../types/types";
+import {
+  AlumnoListadoResponse,
+  AlumnoRequest,
+  AlumnoResponse,
+} from "../types/types";
 
 const alumnosApi = {
   listarAlumnos: async (): Promise<AlumnoResponse[]> => {
@@ -28,6 +32,11 @@ const alumnosApi = {
 
   eliminarAlumno: async (id: number): Promise<string> => {
     const response = await api.delete(`/api/alumnos/${id}`);
+    return response.data;
+  },
+
+  buscarPorNombre: async (nombre: string): Promise<AlumnoListadoResponse[]> => {
+    const response = await api.get(`/api/alumnos/buscar?nombre=${nombre}`);
     return response.data;
   },
 };

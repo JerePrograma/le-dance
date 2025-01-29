@@ -5,6 +5,7 @@ import inscripcionesApi from "../../utilidades/inscripcionesApi";
 import Boton from "../../componentes/comunes/Boton";
 import Tabla from "../../componentes/comunes/Tabla";
 import {
+  AlumnoListadoResponse,
   AlumnoRequest,
   AlumnoResponse,
   InscripcionResponse,
@@ -43,6 +44,49 @@ const AlumnosFormulario: React.FC = () => {
   // Hooks de routing
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+
+  const [nombreBusqueda, setNombreBusqueda] = useState("");
+  const [sugerenciasAlumnos, setSugerenciasAlumnos] = useState<
+    AlumnoListadoResponse[]
+  >([]);
+
+  const buscarAlumnosPorNombre = async (nombre: string) => {
+    if (nombre.length < 2) {
+      setSugerenciasAlumnos([]);
+      return;
+    }
+
+    try {
+      const response = await alumnosApi.buscarPorNombre(nombre);
+      setSugerenciasAlumnos(response);
+    } catch (error) {
+      console.error("Error al buscar alumnos:", error);
+      setSugerenciasAlumnos([]);
+    }
+  };
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      if (nombreBusqueda.length >= 2) {
+        buscarAlumnosPorNombre(nombreBusqueda);
+      }
+    }, 300); // Espera 300ms antes de hacer la solicitud
+
+    return () => clearTimeout(delayDebounceFn); // Limpia el timeout si el usuario sigue escribiendo
+  }, [nombreBusqueda]);
+
+  const handleSeleccionarAlumno = async (
+    id: number,
+    nombreCompleto: string
+  ) => {
+    setNombreBusqueda(nombreCompleto);
+    await handleBuscar(id.toString()); // Esperar a que se complete la búsqueda antes de limpiar sugerencias
+    setSugerenciasAlumnos([]);
+  };
+  useEffect(() => {
+    if (nombreBusqueda.length < 2) {
+      setSugerenciasAlumnos([]);
+    }
+  }, [nombreBusqueda]);
 
   // ================================
   // CARGAR ALUMNO
@@ -219,6 +263,39 @@ const AlumnosFormulario: React.FC = () => {
           className="form-input"
         />
         <Boton onClick={() => handleBuscar(idBusqueda)}>Buscar</Boton>
+      </div>
+      {/* Nueva búsqueda por nombre con sugerencias */}
+      <div className="form-busqueda">
+        <label htmlFor="nombreBusqueda">Buscar por Nombre:</label>
+        <input
+          type="text"
+          id="nombreBusqueda"
+          value={nombreBusqueda}
+          onChange={(e) => {
+            setNombreBusqueda(e.target.value);
+            buscarAlumnosPorNombre(e.target.value);
+          }}
+          className="form-input"
+        />
+        {/* Sugerencias dinámicas */}
+        {sugerenciasAlumnos.length > 0 && (
+          <ul className="sugerencias-lista">
+            {sugerenciasAlumnos.map((alumno) => (
+              <li
+                key={alumno.id}
+                onClick={() =>
+                  handleSeleccionarAlumno(
+                    alumno.id,
+                    `${alumno.nombre} ${alumno.apellido}`
+                  )
+                }
+                className="sugerencia-item"
+              >
+                {alumno.nombre} {alumno.apellido}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <fieldset className="form-fieldset">
