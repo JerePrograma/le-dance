@@ -87,12 +87,8 @@ public class AlumnoServicio {
                 .collect(Collectors.toList());
     }
 
-    public List<AlumnoResponse> buscarPorNombre(String nombre) {
-        return alumnoRepositorio.buscarPorNombreCompleto(nombre)
-                .stream()
-                .map(alumnoMapper::toDTO)
-                .collect(Collectors.toList());
+    public List<AlumnoListadoResponse> buscarPorNombre(String nombre) {
+        return alumnoRepositorio.buscarPorNombreCompleto(nombre);
     }
-
 
 }

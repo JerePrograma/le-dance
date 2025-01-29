@@ -78,10 +78,12 @@ const AlumnosFormulario: React.FC = () => {
     id: number,
     nombreCompleto: string
   ) => {
-    setNombreBusqueda(nombreCompleto);
-    await handleBuscar(id.toString()); // Esperar a que se complete la búsqueda antes de limpiar sugerencias
-    setSugerenciasAlumnos([]);
+    setNombreBusqueda(nombreCompleto); // Se muestra el nombre completo en el campo
+    setIdBusqueda(id.toString()); // Se actualiza el campo de búsqueda por ID
+    await handleBuscar(id.toString()); // Carga la ficha completa del alumno
+    setSugerenciasAlumnos([]); // Limpia las sugerencias
   };
+
   useEffect(() => {
     if (nombreBusqueda.length < 2) {
       setSugerenciasAlumnos([]);
@@ -297,6 +299,7 @@ const AlumnosFormulario: React.FC = () => {
           </ul>
         )}
       </div>
+
       {nombreBusqueda && (
         <button onClick={() => setNombreBusqueda("")} className="limpiar-boton">
           Limpiar
