@@ -45,6 +45,11 @@ public class InscripcionControlador {
         return ResponseEntity.ok(inscripcionServicio.actualizarInscripcion(id, request));
     }
 
+    @GetMapping("/detalles")
+    public ResponseEntity<List<InscripcionResponse>> listarDetalles() {
+        return ResponseEntity.ok(inscripcionServicio.listarInscripciones());
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<String> eliminar(@PathVariable Long id) {
         inscripcionServicio.eliminarInscripcion(id);

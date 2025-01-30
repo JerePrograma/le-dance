@@ -60,4 +60,12 @@ public class AsistenciaServicio {
                 .map(asistenciaMapper::toResponseDTO)
                 .collect(Collectors.toList());
     }
+
+    public List<String> generarReporteAsistencias() {
+        List<Object[]> resultados = asistenciaRepositorio.obtenerAsistenciasPorAlumnoYDisciplina();
+
+        return resultados.stream()
+                .map(r -> "Alumno: " + r[0] + " | Disciplina: " + r[1] + " | Asistencias: " + r[2])
+                .collect(Collectors.toList());
+    }
 }

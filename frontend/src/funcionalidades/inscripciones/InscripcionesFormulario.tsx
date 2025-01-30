@@ -127,7 +127,25 @@ const InscripcionesFormulario: React.FC = () => {
     e: React.ChangeEvent<HTMLSelectElement>
   ) => {
     const val = e.target.value === "" ? undefined : Number(e.target.value);
-    setInscripcionForm((prev) => ({ ...prev, bonificacionId: val }));
+
+    setInscripcionForm((prev) => {
+      let costoFinal = prev.costoParticular;
+
+      if (val) {
+        const bonificacionSeleccionada = bonificaciones.find(
+          (b) => b.id === val
+        );
+        if (bonificacionSeleccionada) {
+          costoFinal =
+            prev.costoParticular -
+            (prev.costoParticular *
+              bonificacionSeleccionada.porcentajeDescuento) /
+              100;
+        }
+      }
+
+      return { ...prev, bonificacionId: val, costoParticular: costoFinal };
+    });
   };
 
   // ======================================

@@ -44,4 +44,9 @@ public class AsistenciaControlador {
         List<AsistenciaResponseDTO> asistencias = asistenciaServicio.obtenerAsistenciasPorFechaYDisciplina(fecha, disciplinaId);
         return ResponseEntity.ok(asistencias);
     }
+
+    @GetMapping("/reporte")
+    public ResponseEntity<List<String>> obtenerReporteAsistencias() {
+        return ResponseEntity.ok(asistenciaServicio.generarReporteAsistencias());
+    }
 }

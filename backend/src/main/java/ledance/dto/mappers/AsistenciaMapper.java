@@ -1,7 +1,9 @@
 package ledance.dto.mappers;
 
 import ledance.dto.request.AsistenciaRequest;
+import ledance.dto.response.AlumnoListadoResponse;
 import ledance.dto.response.AsistenciaResponseDTO;
+import ledance.dto.response.DisciplinaSimpleResponse;
 import ledance.entidades.Asistencia;
 import ledance.entidades.Disciplina;
 import ledance.entidades.Alumno;
@@ -16,10 +18,18 @@ public class AsistenciaMapper {
                 asistencia.getFecha(),
                 asistencia.getPresente(),
                 asistencia.getObservacion(),
-                asistencia.getAlumno().getId(),
-                asistencia.getDisciplina().getId()
+                new AlumnoListadoResponse(
+                        asistencia.getAlumno().getId(),
+                        asistencia.getAlumno().getNombre(),
+                        asistencia.getAlumno().getApellido()
+                ),
+                new DisciplinaSimpleResponse(
+                        asistencia.getDisciplina().getId(),
+                        asistencia.getDisciplina().getNombre()
+                )
         );
     }
+
 
     public Asistencia toEntity(AsistenciaRequest requestDTO, Disciplina disciplina, Alumno alumno) {
         Asistencia asistencia = new Asistencia();

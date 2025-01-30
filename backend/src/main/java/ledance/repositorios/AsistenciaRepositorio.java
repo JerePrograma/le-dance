@@ -2,6 +2,7 @@ package ledance.repositorios;
 
 import ledance.entidades.Asistencia;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
@@ -16,4 +17,8 @@ public interface AsistenciaRepositorio extends JpaRepository<Asistencia, Long> {
     boolean existsByAlumnoIdAndFecha(Long aLong, LocalDate fecha);
 
     List<Asistencia> findByActivoTrue();
+
+    @Query("SELECT a.alumno.nombre, a.disciplina.nombre, COUNT(a) FROM Asistencia a " +
+            "WHERE a.presente = true GROUP BY a.alumno.nombre, a.disciplina.nombre")
+    List<Object[]> obtenerAsistenciasPorAlumnoYDisciplina();
 }

@@ -1,6 +1,9 @@
 package ledance.servicios;
 
 import ledance.dto.request.InscripcionRequest;
+import ledance.dto.response.AlumnoListadoResponse;
+import ledance.dto.response.BonificacionResponse;
+import ledance.dto.response.DisciplinaSimpleResponse;
 import ledance.dto.response.InscripcionResponse;
 import ledance.entidades.Alumno;
 import ledance.entidades.Bonificacion;
@@ -40,23 +43,30 @@ public class InscripcionServicio {
                 .orElseThrow(() -> new IllegalArgumentException("Disciplina no encontrada."));
 
         Bonificacion bonif = null;
+        Double costoFinal = request.costoParticular(); // Costo base
+
         if (request.bonificacionId() != null) {
             bonif = bonificacionRepositorio.findById(request.bonificacionId())
-                    .orElseThrow(() -> new IllegalArgumentException("Bonificacion no encontrada."));
+                    .orElseThrow(() -> new IllegalArgumentException("Bonificación no encontrada."));
+
+            // Aplicar el descuento de la bonificación
+            if (bonif.getPorcentajeDescuento() != null && bonif.getPorcentajeDescuento() > 0) {
+                costoFinal = costoFinal - (costoFinal * bonif.getPorcentajeDescuento() / 100);
+            }
         }
 
         Inscripcion inscripcion = new Inscripcion();
         inscripcion.setAlumno(alumno);
         inscripcion.setDisciplina(disciplina);
         inscripcion.setBonificacion(bonif);
-        inscripcion.setCostoParticular(request.costoParticular());
+        inscripcion.setCostoParticular(costoFinal);
         inscripcion.setNotas(request.notas());
 
-        // Guardar
+        // Guardar inscripción
         Inscripcion guardada = inscripcionRepositorio.save(inscripcion);
-
         return toResponse(guardada);
     }
+
 
     public InscripcionResponse obtenerPorId(Long id) {
         Inscripcion ins = inscripcionRepositorio.findById(id)
@@ -71,38 +81,42 @@ public class InscripcionServicio {
     }
 
     public InscripcionResponse actualizarInscripcion(Long id, InscripcionRequest request) {
-        Inscripcion ins = inscripcionRepositorio.findById(id)
+        Inscripcion inscripcion = inscripcionRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Inscripción no encontrada."));
 
-        // Actualizar datos
-        if (!ins.getAlumno().getId().equals(request.alumnoId())) {
-            // Podrías permitir o no cambiar el alumno.
+        if (!inscripcion.getAlumno().getId().equals(request.alumnoId())) {
             Alumno nuevoAlumno = alumnoRepositorio.findById(request.alumnoId())
                     .orElseThrow(() -> new IllegalArgumentException("Alumno no encontrado."));
-            ins.setAlumno(nuevoAlumno);
+            inscripcion.setAlumno(nuevoAlumno);
         }
 
-        if (!ins.getDisciplina().getId().equals(request.disciplinaId())) {
-            // Cambiar disciplina
+        if (!inscripcion.getDisciplina().getId().equals(request.disciplinaId())) {
             Disciplina nuevaDisciplina = disciplinaRepositorio.findById(request.disciplinaId())
                     .orElseThrow(() -> new IllegalArgumentException("Disciplina no encontrada."));
-            ins.setDisciplina(nuevaDisciplina);
+            inscripcion.setDisciplina(nuevaDisciplina);
         }
+
+        Bonificacion bonif = null;
+        Double costoFinal = request.costoParticular(); // Costo base
 
         if (request.bonificacionId() != null) {
-            Bonificacion nuevaBonif = bonificacionRepositorio.findById(request.bonificacionId())
-                    .orElseThrow(() -> new IllegalArgumentException("Bonificacion no encontrada."));
-            ins.setBonificacion(nuevaBonif);
-        } else {
-            ins.setBonificacion(null);
+            bonif = bonificacionRepositorio.findById(request.bonificacionId())
+                    .orElseThrow(() -> new IllegalArgumentException("Bonificación no encontrada."));
+
+            // Aplicar el descuento de la bonificación
+            if (bonif.getPorcentajeDescuento() != null && bonif.getPorcentajeDescuento() > 0) {
+                costoFinal = costoFinal - (costoFinal * bonif.getPorcentajeDescuento() / 100);
+            }
         }
 
-        ins.setCostoParticular(request.costoParticular());
-        ins.setNotas(request.notas());
+        inscripcion.setBonificacion(bonif);
+        inscripcion.setCostoParticular(costoFinal);
+        inscripcion.setNotas(request.notas());
 
-        Inscripcion actualizada = inscripcionRepositorio.save(ins);
+        Inscripcion actualizada = inscripcionRepositorio.save(inscripcion);
         return toResponse(actualizada);
     }
+
 
     public void eliminarInscripcion(Long id) {
         Inscripcion ins = inscripcionRepositorio.findById(id)
@@ -113,13 +127,21 @@ public class InscripcionServicio {
     private InscripcionResponse toResponse(Inscripcion ins) {
         return new InscripcionResponse(
                 ins.getId(),
-                ins.getAlumno().getId(),
-                ins.getDisciplina().getId(),
-                ins.getBonificacion() != null ? ins.getBonificacion().getId() : null,
+                new AlumnoListadoResponse(ins.getAlumno().getId(), ins.getAlumno().getNombre(), ins.getAlumno().getApellido()),
+                new DisciplinaSimpleResponse(ins.getDisciplina().getId(), ins.getDisciplina().getNombre()),
+                ins.getBonificacion() != null
+                        ? new BonificacionResponse(
+                        ins.getBonificacion().getId(),
+                        ins.getBonificacion().getDescripcion(),
+                        ins.getBonificacion().getPorcentajeDescuento(),
+                        ins.getBonificacion().getActivo(),
+                        ins.getBonificacion().getObservaciones())
+                        : null,
                 ins.getCostoParticular(),
                 ins.getNotas()
         );
     }
+
 
     public List<InscripcionResponse> listarPorAlumno(Long alumnoId) {
         return inscripcionRepositorio.findAllByAlumnoId(alumnoId);

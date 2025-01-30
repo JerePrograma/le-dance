@@ -38,8 +38,7 @@ export interface AlumnoResponse {
   nombrePadres?: string;
   autorizadoParaSalirSolo?: boolean;
   activo?: boolean;
-  otrasNotas?: string;
-  cuotaTotal?: number;
+  disciplinas: { id: number; nombre: string }[];
 }
 
 export interface AlumnoListadoResponse {
@@ -71,7 +70,7 @@ export interface DisciplinaResponse {
   valorCuota: number;
   matricula: number;
   profesorId: number | null;
-  // por ejemplo, "inscritos": number si lo devuelves en el backend
+  inscritos: number; // Cantidad de alumnos inscritos
 }
 
 // ========================================================
@@ -150,4 +149,22 @@ export interface AsistenciaResponse {
   observacion?: string;
   alumnoId: number;
   disciplinaId: number;
+}
+
+export interface InscripcionResponse {
+  id: number;
+  alumno: { id: number; nombre: string; apellido: string };
+  disciplina: { id: number; nombre: string };
+  bonificacion?: BonificacionResponse;
+  costoParticular?: number;
+  notas?: string;
+}
+
+export interface AsistenciaResponse {
+  id: number;
+  fecha: string;
+  presente: boolean;
+  observacion?: string;
+  alumno: { id: number; nombre: string; apellido: string };
+  disciplina: { id: number; nombre: string };
 }

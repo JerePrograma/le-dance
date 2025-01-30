@@ -2,9 +2,9 @@ package ledance.dto.response;
 
 public record InscripcionResponse(
         Long id,
-        Long alumnoId,
-        Long disciplinaId,
-        Long bonificacionId,
+        AlumnoListadoResponse alumno,
+        DisciplinaSimpleResponse disciplina,
+        BonificacionResponse bonificacion,
         Double costoParticular,
         String notas
 ) {}

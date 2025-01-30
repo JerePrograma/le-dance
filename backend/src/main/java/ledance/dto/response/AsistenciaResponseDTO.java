@@ -7,6 +7,6 @@ public record AsistenciaResponseDTO(
         LocalDate fecha,
         Boolean presente,
         String observacion,
-        Long alumnoId,
-        Long disciplinaId
+        AlumnoListadoResponse alumno,
+        DisciplinaSimpleResponse disciplina
 ) {}
