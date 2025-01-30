@@ -38,6 +38,8 @@ export interface AlumnoResponse {
   nombrePadres?: string;
   autorizadoParaSalirSolo?: boolean;
   activo?: boolean;
+  otrasNotas?: string; // Agregado
+  cuotaTotal?: number; // Agregado
   disciplinas: { id: number; nombre: string }[];
 }
 

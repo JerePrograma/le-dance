@@ -136,11 +136,10 @@ const InscripcionesFormulario: React.FC = () => {
           (b) => b.id === val
         );
         if (bonificacionSeleccionada) {
-          costoFinal =
-            prev.costoParticular -
-            (prev.costoParticular *
-              bonificacionSeleccionada.porcentajeDescuento) /
-              100;
+          const costoFinal =
+            (prev.costoParticular ?? 0) -
+            (prev.costoParticular ?? 0) *
+              (bonificacionSeleccionada.porcentajeDescuento / 100);
         }
       }
 
