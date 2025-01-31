@@ -20,6 +20,7 @@
 /home/jeremias/le-dance/backend/src/main/java/ledance/dto/request/LoginRequest.java
 /home/jeremias/le-dance/backend/src/main/java/ledance/dto/request/ModificacionUsuarioRequest.java
 /home/jeremias/le-dance/backend/src/main/java/ledance/dto/request/ProfesorRegistroRequest.java
+/home/jeremias/le-dance/backend/src/main/java/ledance/dto/request/ReporteRequest.java
 /home/jeremias/le-dance/backend/src/main/java/ledance/dto/request/RolRegistroRequest.java
 /home/jeremias/le-dance/backend/src/main/java/ledance/dto/request/UsuarioRegistroRequest.java
 /home/jeremias/le-dance/backend/src/main/java/ledance/dto/response/AlumnoListadoResponse.java
@@ -32,6 +33,7 @@
 /home/jeremias/le-dance/backend/src/main/java/ledance/dto/response/InscripcionResponse.java
 /home/jeremias/le-dance/backend/src/main/java/ledance/dto/response/PerfilUsuarioResponse.java
 /home/jeremias/le-dance/backend/src/main/java/ledance/dto/response/ProfesorListadoResponse.java
+/home/jeremias/le-dance/backend/src/main/java/ledance/dto/response/ReporteResponse.java
 /home/jeremias/le-dance/backend/src/main/java/ledance/dto/response/RolResponse.java
 /home/jeremias/le-dance/backend/src/main/java/ledance/dto/response/UsuarioResponse.java
 /home/jeremias/le-dance/backend/src/main/java/ledance/entidades/Alumno.java

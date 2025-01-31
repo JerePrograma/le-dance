@@ -6,6 +6,7 @@ ledance/repositorios/AsistenciaRepositorio.class
 ledance/validaciones/asistencias/ValidadorAsistenciaDuplicada.class
 ledance/entidades/Usuario.class
 ledance/dto/response/ProfesorListadoResponse.class
+ledance/dto/request/ReporteRequest.class
 ledance/dto/response/DatosRegistroProfesorResponse.class
 ledance/servicios/ProfesorServicio.class
 ledance/dto/request/ProfesorRegistroRequest.class
@@ -65,6 +66,7 @@ ledance/servicios/BonificacionServicio.class
 ledance/Main.class
 ledance/dto/response/DisciplinaSimpleResponse.class
 ledance/controladores/RolControlador.class
+ledance/dto/response/ReporteResponse.class
 ledance/servicios/AlumnoServicio.class
 ledance/controladores/AutenticacionControlador$TokensDTO.class
 ledance/infra/configuracion/ConfiguracionCors.class
