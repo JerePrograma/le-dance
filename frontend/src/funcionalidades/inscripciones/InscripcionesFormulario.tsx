@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { Form, useNavigate, useSearchParams } from "react-router-dom";
-import { ErrorMessage, Field, Formik } from "formik";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Formik, Form, Field, ErrorMessage } from "formik";
 import { inscripcionEsquema } from "../../validaciones/inscripcionEsquema";
 import inscripcionesApi from "../../utilidades/inscripcionesApi";
 import disciplinasApi from "../../utilidades/disciplinasApi";
@@ -24,14 +24,13 @@ const InscripcionesFormulario: React.FC = () => {
     []
   );
   const [inscripcionId, setInscripcionId] = useState<number | null>(null);
-
-  const initialValues: InscripcionRequest = {
+  const [initialValues, setInitialValues] = useState<InscripcionRequest>({
     alumnoId: 0,
     disciplinaId: 0,
     bonificacionId: undefined,
     costoParticular: 0,
     notas: "",
-  };
+  });
 
   // Cargar disciplinas y bonificaciones al montar el componente
   useEffect(() => {
@@ -41,8 +40,8 @@ const InscripcionesFormulario: React.FC = () => {
           disciplinasApi.listarDisciplinas(),
           bonificacionesApi.listarBonificaciones(),
         ]);
-        setDisciplinas(discData);
-        setBonificaciones(bonData);
+        setDisciplinas(discData || []);
+        setBonificaciones(bonData || []);
       } catch (error) {
         toast.error("Error al cargar disciplinas o bonificaciones.");
       }
@@ -50,28 +49,13 @@ const InscripcionesFormulario: React.FC = () => {
     fetchData();
   }, []);
 
-  // Determinar si estamos en edición o creación
-  useEffect(() => {
-    const idParam = searchParams.get("id");
-    const alumnoParam = searchParams.get("alumnoId");
-
-    if (idParam) {
-      cargarInscripcion(idParam);
-    } else if (alumnoParam) {
-      const aId = Number(alumnoParam);
-      if (!isNaN(aId)) {
-        initialValues.alumnoId = aId;
-      }
-    }
-  }, [searchParams]);
-
-  // Cargar una inscripción existente
+  // Cargar una inscripción existente si hay un ID en la URL
   const cargarInscripcion = useCallback(async (idStr: string) => {
     try {
       const idNum = Number(idStr);
       if (isNaN(idNum)) {
         toast.error("ID de inscripción inválido");
-        return;
+        return initialValues;
       }
       const data: InscripcionResponse =
         await inscripcionesApi.obtenerInscripcionPorId(idNum);
@@ -92,7 +76,22 @@ const InscripcionesFormulario: React.FC = () => {
     }
   }, []);
 
-  // Manejar guardado de inscripción
+  useEffect(() => {
+    const idParam = searchParams.get("id");
+    const alumnoParam = searchParams.get("alumnoId");
+
+    if (idParam) {
+      cargarInscripcion(idParam).then((data) => {
+        if (data) setInitialValues(data);
+      });
+    } else if (alumnoParam) {
+      const aId = Number(alumnoParam);
+      if (!isNaN(aId)) {
+        setInitialValues((prev) => ({ ...prev, alumnoId: aId }));
+      }
+    }
+  }, [searchParams, cargarInscripcion]);
+
   const handleGuardar = async (values: InscripcionRequest) => {
     if (!values.alumnoId || !values.disciplinaId) {
       toast.error("Debes asignar un alumno y una disciplina.");
@@ -112,41 +111,6 @@ const InscripcionesFormulario: React.FC = () => {
     }
   };
 
-  // Manejar selección de bonificación y cálculo del costo final
-  const handleSelectBonificacion = (
-    value: string,
-    values: InscripcionRequest,
-    setValues: (values: InscripcionRequest) => void
-  ) => {
-    const bonificacionId = value === "" ? undefined : Number(value);
-    let costoFinal = values.costoParticular ?? 0;
-
-    if (bonificacionId) {
-      const bonificacionSeleccionada = bonificaciones.find(
-        (b) => b.id === bonificacionId
-      );
-      if (bonificacionSeleccionada) {
-        costoFinal -=
-          (costoFinal * bonificacionSeleccionada.porcentajeDescuento) / 100;
-      }
-    }
-
-    setValues({ ...values, bonificacionId, costoParticular: costoFinal });
-  };
-
-  // Manejar limpieza del formulario
-  const handleLimpiar = (setValues: (values: InscripcionRequest) => void) => {
-    setValues(initialValues);
-    setInscripcionId(null);
-  };
-
-  // Manejar retorno a la vista de inscripciones o ficha del alumno
-  const handleVolver = (alumnoId?: number) => {
-    navigate(
-      alumnoId ? `/alumnos/formulario?id=${alumnoId}` : "/inscripciones"
-    );
-  };
-
   return (
     <div className="formulario">
       <h1 className="form-title">
@@ -159,7 +123,7 @@ const InscripcionesFormulario: React.FC = () => {
         onSubmit={handleGuardar}
         enableReinitialize
       >
-        {({ values, setValues, isSubmitting }) => (
+        {({ values, setFieldValue, isSubmitting }) => (
           <Form className="formulario">
             {/* Alumno ID */}
             <div className="form-grid">
@@ -198,9 +162,25 @@ const InscripcionesFormulario: React.FC = () => {
                 as="select"
                 name="bonificacionId"
                 className="form-input"
-                onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                  handleSelectBonificacion(e.target.value, values, setValues)
-                }
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                  const value =
+                    e.target.value === "" ? undefined : Number(e.target.value);
+                  const bonificacionSeleccionada = bonificaciones.find(
+                    (b) => b.id === value
+                  );
+                  const descuento = bonificacionSeleccionada
+                    ? bonificacionSeleccionada.porcentajeDescuento
+                    : 0;
+
+                  setFieldValue("bonificacionId", value);
+                  setFieldValue(
+                    "costoParticular",
+                    values.costoParticular
+                      ? values.costoParticular -
+                          (values.costoParticular * descuento) / 100
+                      : 0
+                  );
+                }}
               >
                 <option value="">-- Ninguna --</option>
                 {bonificaciones.map((bon) => (
@@ -246,14 +226,22 @@ const InscripcionesFormulario: React.FC = () => {
               <Boton
                 type="reset"
                 secondary
-                onClick={() => handleLimpiar(setValues)}
+                onClick={() =>
+                  setFieldValue("alumnoId", initialValues.alumnoId)
+                }
               >
                 Limpiar
               </Boton>
               <Boton
                 type="button"
                 secondary
-                onClick={() => handleVolver(values.alumnoId)}
+                onClick={() =>
+                  navigate(
+                    values.alumnoId
+                      ? `/alumnos/formulario?id=${values.alumnoId}`
+                      : "/inscripciones"
+                  )
+                }
               >
                 Volver
               </Boton>
