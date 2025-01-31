@@ -6,6 +6,10 @@
   <component name="ChangeListManager">
     <list default="true" id="ccb8f120-972c-4a18-b18b-4ae7da723dfa" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/request/DisciplinaRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/request/DisciplinaRequest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/validaciones/usuarios/ValidadorContrasenaSegura.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/validaciones/usuarios/ValidadorContrasenaSegura.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/alumnos/AlumnosFormulario.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/alumnos/AlumnosFormulario.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/utilidades/alumnosApi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/utilidades/alumnosApi.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -123,7 +127,7 @@
       <workItem from="1738166405092" duration="2033000" />
       <workItem from="1738183206812" duration="2382000" />
       <workItem from="1738276207724" duration="4883000" />
-      <workItem from="1738346254973" duration="4515000" />
+      <workItem from="1738346254973" duration="6116000" />
     </task>
     <servers />
   </component>

@@ -38,6 +38,11 @@ const profesoresApi = {
     );
     return response.data;
   },
+
+  eliminarProfesor: async (id: number): Promise<string> => {
+    const response = await api.put(`/api/profesores/${id}`, { activo: false });
+    return response.data;
+  },
 };
 
 export default profesoresApi;

@@ -8,6 +8,5 @@ public record DisciplinaRequest(
         String salon,
         Double valorCuota,
         Double matricula,
-        Long profesorId,
-        Integer cupoMaximo // Nuevo campo
+        Long profesorId
 ) {}

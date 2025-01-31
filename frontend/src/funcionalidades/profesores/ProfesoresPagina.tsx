@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import Tabla from "../../componentes/comunes/Tabla";
 import api from "../../utilidades/axiosConfig";
+import ReactPaginate from "react-paginate";
+import Boton from "../../componentes/comunes/Boton";
 
 interface Profesor {
   id: number;
@@ -13,32 +15,43 @@ interface Profesor {
 
 const Profesores = () => {
   const [profesores, setProfesores] = useState<Profesor[]>([]);
+  const [currentPage, setCurrentPage] = useState(0);
+  const itemsPerPage = 5;
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchProfesores = async () => {
-      try {
-        const response = await api.get("/api/profesores");
-        setProfesores(response.data);
-      } catch (error) {
-        console.error("Error al cargar profesores:", error);
-      }
-    };
-    fetchProfesores();
+  const fetchProfesores = useCallback(async () => {
+    try {
+      const response = await api.get<Profesor[]>("/api/profesores");
+      setProfesores(response.data);
+    } catch (error) {
+      console.error("Error al cargar profesores:", error);
+    }
   }, []);
 
-  const handleNuevoProfesor = () => navigate("/profesores/formulario");
-  const handleEditarProfesor = (id: number) =>
-    navigate(`/profesores/formulario?id=${id}`);
+  useEffect(() => {
+    fetchProfesores();
+  }, [fetchProfesores]);
+
+  const pageCount = Math.ceil(profesores.length / itemsPerPage);
+  const currentItems = profesores.slice(
+    currentPage * itemsPerPage,
+    (currentPage + 1) * itemsPerPage
+  );
+
+  const handlePageClick = ({ selected }: { selected: number }) => {
+    if (selected < pageCount) {
+      setCurrentPage(selected);
+    }
+  };
 
   return (
     <div className="page-container">
       <h1 className="page-title">Profesores</h1>
 
       <div className="flex justify-end mb-4">
-        <button onClick={handleNuevoProfesor} className="page-button">
+        <Boton onClick={() => navigate("/profesores/formulario")}>
           Registrar Nuevo Profesor
-        </button>
+        </Boton>
       </div>
 
       <div className="page-table-container">
@@ -51,22 +64,40 @@ const Profesores = () => {
             "Años de Experiencia",
             "Acciones",
           ]}
-          datos={profesores}
+          datos={currentItems}
           acciones={(fila) => (
             <div className="flex gap-2">
-              <button
-                onClick={() => handleEditarProfesor(fila.id)}
-                className="page-button bg-blue-500 hover:bg-blue-600"
+              <Boton
+                onClick={() => navigate(`/profesores/formulario?id=${fila.id}`)}
+                secondary
+                aria-label={`Editar profesor ${fila.nombre} ${fila.apellido}`}
               >
                 Editar
-              </button>
-              <button className="page-button bg-red-500 hover:bg-red-600">
+              </Boton>
+              <Boton
+                secondary
+                className="bg-red-500 hover:bg-red-600"
+                aria-label={`Eliminar profesor ${fila.nombre}`}
+              >
                 Eliminar
-              </button>
+              </Boton>
             </div>
           )}
         />
       </div>
+
+      {pageCount > 1 && (
+        <ReactPaginate
+          previousLabel={"← Anterior"}
+          nextLabel={"Siguiente →"}
+          breakLabel={"..."}
+          pageCount={pageCount}
+          onPageChange={handlePageClick}
+          containerClassName={"pagination"}
+          activeClassName={"active"}
+          disabledClassName={"disabled"}
+        />
+      )}
     </div>
   );
 };

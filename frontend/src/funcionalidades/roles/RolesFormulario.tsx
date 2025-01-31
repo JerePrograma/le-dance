@@ -1,7 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { Formik, Form, Field, ErrorMessage } from "formik";
+import { rolEsquema } from "../../validaciones/rolEsquema";
 import api from "../../utilidades/axiosConfig";
 import Boton from "../../componentes/comunes/Boton";
+import { toast } from "react-toastify";
 
 interface Rol {
   id?: number;
@@ -9,92 +12,121 @@ interface Rol {
 }
 
 const RolesFormulario: React.FC = () => {
-  const [rol, setRol] = useState<Rol>({
-    descripcion: "",
-  });
-
-  const [mensaje, setMensaje] = useState<string>(""); // Mensajes informativos
-  const [searchParams] = useSearchParams(); // Para capturar "id" en URL
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
-  // Cargar datos si hay "id" en la URL
+  const initialValues: Rol = {
+    descripcion: "",
+  };
+
+  const handleBuscar = useCallback(async (idStr: string, setValues: any) => {
+    try {
+      const idNum = Number(idStr);
+      if (isNaN(idNum)) {
+        toast.error("ID inválido");
+        return;
+      }
+      const response = await api.get<Rol>(`/api/roles/${idNum}`);
+      setValues(response.data);
+      toast.success("Rol cargado correctamente.");
+    } catch {
+      toast.error("Error al cargar los datos del rol.");
+    }
+  }, []);
+
   useEffect(() => {
     const id = searchParams.get("id");
-    if (id) {
-      handleBuscar(id);
-    }
-  }, [searchParams]);
+    if (id) handleBuscar(id, () => {});
+  }, [searchParams, handleBuscar]);
 
-  // Manejar cambios en los campos del formulario
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setRol({ ...rol, [name]: value });
-  };
-
-  // Buscar rol por ID
-  const handleBuscar = async (id?: string) => {
+  const handleGuardarRol = async (values: Rol) => {
     try {
-      const response = await api.get<Rol>(`/api/roles/${id}`);
-      setRol(response.data);
-      setMensaje("Rol cargado correctamente.");
-    } catch {
-      setMensaje("Error al cargar los datos del rol.");
-    }
-  };
-
-  // Guardar o actualizar rol
-  const handleGuardar = async () => {
-    if (!rol.descripcion) {
-      setMensaje("Por favor, complete el campo de descripción.");
-      return;
-    }
-
-    try {
-      if (rol.id) {
-        await api.put(`/api/roles/${rol.id}`, rol);
-        setMensaje("Rol actualizado correctamente.");
+      if (searchParams.get("id")) {
+        await api.put(`/api/roles/${searchParams.get("id")}`, values);
+        toast.success("Rol actualizado correctamente.");
       } else {
-        await api.post("/api/roles", rol);
-        setMensaje("Rol creado correctamente.");
+        await api.post("/api/roles", values);
+        toast.success("Rol creado correctamente.");
       }
     } catch {
-      setMensaje("Error al guardar los datos del rol.");
+      toast.error("Error al guardar los datos del rol.");
     }
-  };
-
-  // Limpiar formulario
-  const handleLimpiar = () => {
-    setRol({ descripcion: "" });
-    setMensaje("");
-  };
-
-  // Volver al listado de roles
-  const handleVolverListado = () => {
-    navigate("/roles");
   };
 
   return (
     <div className="formulario">
-      <h1 className="form-titulo">Formulario de Roles</h1>
+      <h1 className="form-title">
+        {searchParams.get("id") ? "Editar Rol" : "Nuevo Rol"}
+      </h1>
 
-      <div className="form-grid">
-        <input
-          type="text"
-          name="descripcion"
-          value={rol.descripcion}
-          onChange={handleChange}
-          placeholder="Descripción del Rol (Ej. Administrador)"
-          className="form-input"
-        />
-      </div>
+      <Formik
+        initialValues={initialValues}
+        validationSchema={rolEsquema}
+        onSubmit={handleGuardarRol}
+      >
+        {({ setValues, isSubmitting }) => (
+          <Form className="formulario">
+            {/* Búsqueda por ID */}
+            <div className="form-busqueda">
+              <label htmlFor="idBusqueda">Número de Rol:</label>
+              <Field
+                type="number"
+                id="idBusqueda"
+                name="id"
+                className="form-input"
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  handleBuscar(e.target.value, setValues)
+                }
+              />
+              <Boton
+                type="button"
+                onClick={() =>
+                  handleBuscar(searchParams.get("id") || "", setValues)
+                }
+              >
+                Buscar
+              </Boton>
+            </div>
 
-      <div className="form-acciones">
-        <Boton onClick={handleGuardar}>Guardar</Boton>
-        <Boton onClick={handleLimpiar}>Limpiar</Boton>
-        <Boton onClick={handleVolverListado}>Volver al Listado</Boton>
-      </div>
+            {/* Campo de Descripción */}
+            <fieldset className="form-fieldset">
+              <legend>Información del Rol</legend>
+              <div className="form-grid">
+                <div>
+                  <label>Descripción:</label>
+                  <Field
+                    name="descripcion"
+                    type="text"
+                    className="form-input"
+                  />
+                  <ErrorMessage
+                    name="descripcion"
+                    component="div"
+                    className="error"
+                  />
+                </div>
+              </div>
+            </fieldset>
 
-      {mensaje && <p className="form-mensaje">{mensaje}</p>}
+            {/* Botones de Acción */}
+            <div className="form-acciones">
+              <Boton type="submit" disabled={isSubmitting}>
+                Guardar Rol
+              </Boton>
+              <Boton
+                type="reset"
+                secondary
+                onClick={() => setValues(initialValues)}
+              >
+                Limpiar
+              </Boton>
+              <Boton type="button" secondary onClick={() => navigate("/roles")}>
+                Volver al Listado
+              </Boton>
+            </div>
+          </Form>
+        )}
+      </Formik>
     </div>
   );
 };

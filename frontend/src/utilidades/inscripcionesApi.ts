@@ -33,8 +33,11 @@ const inscripcionesApi = {
   },
 
   // Eliminar
-  eliminarInscripcion: async (id: number) => {
-    await api.delete(`/api/inscripciones/${id}`);
+  eliminarInscripcion: async (id: number): Promise<string> => {
+    const response = await api.put(`/api/inscripciones/${id}`, {
+      activo: false,
+    });
+    return response.data;
   },
 
   // Obtener por ID

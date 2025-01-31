@@ -34,6 +34,11 @@ const asistenciasApi = {
     });
     return response.data;
   },
+
+  eliminarAsistencia: async (id: number): Promise<string> => {
+    const response = await api.put(`/api/asistencias/${id}`, { activo: false });
+    return response.data;
+  },
 };
 
 export default asistenciasApi;

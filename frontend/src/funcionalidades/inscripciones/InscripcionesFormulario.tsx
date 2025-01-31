@@ -1,11 +1,12 @@
-/* InscripcionesFormulario.tsx */
-
-import React, { useState, useEffect, useCallback } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import React, { useEffect, useState, useCallback } from "react";
+import { Form, useNavigate, useSearchParams } from "react-router-dom";
+import { ErrorMessage, Field, Formik } from "formik";
+import { inscripcionEsquema } from "../../validaciones/inscripcionEsquema";
 import inscripcionesApi from "../../utilidades/inscripcionesApi";
 import disciplinasApi from "../../utilidades/disciplinasApi";
 import bonificacionesApi from "../../utilidades/bonificacionesApi";
 import Boton from "../../componentes/comunes/Boton";
+import { toast } from "react-toastify";
 
 import {
   InscripcionRequest,
@@ -15,34 +16,24 @@ import {
 } from "../../types/types";
 
 const InscripcionesFormulario: React.FC = () => {
-  // Estado local del formulario
-  const [inscripcionForm, setInscripcionForm] = useState<InscripcionRequest>({
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  const [disciplinas, setDisciplinas] = useState<DisciplinaResponse[]>([]);
+  const [bonificaciones, setBonificaciones] = useState<BonificacionResponse[]>(
+    []
+  );
+  const [inscripcionId, setInscripcionId] = useState<number | null>(null);
+
+  const initialValues: InscripcionRequest = {
     alumnoId: 0,
     disciplinaId: 0,
     bonificacionId: undefined,
     costoParticular: 0,
     notas: "",
-  });
+  };
 
-  // Listas para selects
-  const [disciplinas, setDisciplinas] = useState<DisciplinaResponse[]>([]);
-  const [bonificaciones, setBonificaciones] = useState<BonificacionResponse[]>(
-    []
-  );
-
-  // Manejo de si es "crear" o "editar"
-  const [inscripcionId, setInscripcionId] = useState<number | null>(null);
-
-  // Para mostrar mensajes al usuario
-  const [mensaje, setMensaje] = useState("");
-
-  // Hooks de routing
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
-
-  // ======================================
-  // Cargar Disciplinas / Bonificaciones
-  // ======================================
+  // Cargar disciplinas y bonificaciones al montar el componente
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -53,238 +44,223 @@ const InscripcionesFormulario: React.FC = () => {
         setDisciplinas(discData);
         setBonificaciones(bonData);
       } catch (error) {
-        console.error(error);
-        setMensaje("Error al cargar disciplinas o bonificaciones.");
+        toast.error("Error al cargar disciplinas o bonificaciones.");
       }
     };
     fetchData();
   }, []);
 
-  // ======================================
-  // Determinar si estamos en modo edición o creación
-  // ======================================
+  // Determinar si estamos en edición o creación
+  useEffect(() => {
+    const idParam = searchParams.get("id");
+    const alumnoParam = searchParams.get("alumnoId");
+
+    if (idParam) {
+      cargarInscripcion(idParam);
+    } else if (alumnoParam) {
+      const aId = Number(alumnoParam);
+      if (!isNaN(aId)) {
+        initialValues.alumnoId = aId;
+      }
+    }
+  }, [searchParams]);
+
+  // Cargar una inscripción existente
   const cargarInscripcion = useCallback(async (idStr: string) => {
     try {
       const idNum = Number(idStr);
       if (isNaN(idNum)) {
-        setMensaje("ID de inscripción inválido");
+        toast.error("ID de inscripción inválido");
         return;
       }
       const data: InscripcionResponse =
         await inscripcionesApi.obtenerInscripcionPorId(idNum);
-      setInscripcionForm({
+
+      setInscripcionId(data.id);
+      toast.success("Inscripción cargada correctamente.");
+
+      return {
         alumnoId: data.alumnoId,
         disciplinaId: data.disciplinaId,
         bonificacionId: data.bonificacionId,
         costoParticular: data.costoParticular ?? 0,
         notas: data.notas ?? "",
-      });
-      setInscripcionId(data.id);
-      setMensaje("Inscripción cargada correctamente.");
+      };
     } catch (err) {
-      console.error(err);
-      setMensaje("No se encontró la inscripción con ese ID.");
+      toast.error("No se encontró la inscripción con ese ID.");
+      return initialValues;
     }
   }, []);
 
-  useEffect(() => {
-    const idParam = searchParams.get("id"); // ?id=XX => Editar
-    const alumnoParam = searchParams.get("alumnoId"); // ?alumnoId=XX => Crear para un alumno
-    if (idParam) {
-      // Modo edición
-      cargarInscripcion(idParam);
-    } else if (alumnoParam) {
-      // Modo creación, atado a un alumno
-      const aId = Number(alumnoParam);
-      if (!isNaN(aId)) {
-        setInscripcionForm((prev) => ({ ...prev, alumnoId: aId }));
-      }
-    }
-  }, [searchParams, cargarInscripcion]);
-
-  // ======================================
-  // Manejadores de inputs
-  // ======================================
-  const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >
-  ) => {
-    const { name, value } = e.target;
-    setInscripcionForm((prev) => ({
-      ...prev,
-      [name]: name === "costoParticular" ? Number(value) : value,
-    }));
-  };
-
-  // Para selects de Disciplina y Bonificacion
-  const handleSelectDisciplina = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const val = Number(e.target.value);
-    setInscripcionForm((prev) => ({ ...prev, disciplinaId: val }));
-  };
-
-  const handleSelectBonificacion = (
-    e: React.ChangeEvent<HTMLSelectElement>
-  ) => {
-    const val = e.target.value === "" ? undefined : Number(e.target.value);
-
-    setInscripcionForm((prev) => {
-      let costoFinal = prev.costoParticular ?? 0;
-
-      if (val) {
-        const bonificacionSeleccionada = bonificaciones.find(
-          (b) => b.id === val
-        );
-        if (bonificacionSeleccionada) {
-          costoFinal =
-            costoFinal -
-            (costoFinal * bonificacionSeleccionada.porcentajeDescuento) / 100;
-        }
-      }
-
-      return { ...prev, bonificacionId: val, costoParticular: costoFinal };
-    });
-  };
-
-  // ======================================
-  // Guardar (crear o actualizar)
-  // ======================================
-  const handleGuardar = async () => {
-    // Validaciones mínimas
-    if (!inscripcionForm.alumnoId || !inscripcionForm.disciplinaId) {
-      setMensaje("Debes asignar un alumno y una disciplina.");
+  // Manejar guardado de inscripción
+  const handleGuardar = async (values: InscripcionRequest) => {
+    if (!values.alumnoId || !values.disciplinaId) {
+      toast.error("Debes asignar un alumno y una disciplina.");
       return;
     }
     try {
       if (inscripcionId) {
-        // Actualizar
-        await inscripcionesApi.actualizarInscripcion(
-          inscripcionId,
-          inscripcionForm
-        );
-        setMensaje("Inscripción actualizada correctamente.");
+        await inscripcionesApi.actualizarInscripcion(inscripcionId, values);
+        toast.success("Inscripción actualizada correctamente.");
       } else {
-        // Crear
-        const newIns = await inscripcionesApi.crearInscripcion(inscripcionForm);
+        const newIns = await inscripcionesApi.crearInscripcion(values);
         setInscripcionId(newIns.id);
-        setMensaje("Inscripción creada correctamente.");
+        toast.success("Inscripción creada correctamente.");
       }
     } catch (err) {
-      console.error(err);
-      setMensaje("Error al guardar la inscripción.");
+      toast.error("Error al guardar la inscripción.");
     }
   };
 
-  // ======================================
-  // Limpiar
-  // ======================================
-  const handleLimpiar = () => {
-    setInscripcionForm({
-      alumnoId: 0,
-      disciplinaId: 0,
-      bonificacionId: undefined,
-      costoParticular: 0,
-      notas: "",
-    });
+  // Manejar selección de bonificación y cálculo del costo final
+  const handleSelectBonificacion = (
+    value: string,
+    values: InscripcionRequest,
+    setValues: (values: InscripcionRequest) => void
+  ) => {
+    const bonificacionId = value === "" ? undefined : Number(value);
+    let costoFinal = values.costoParticular ?? 0;
+
+    if (bonificacionId) {
+      const bonificacionSeleccionada = bonificaciones.find(
+        (b) => b.id === bonificacionId
+      );
+      if (bonificacionSeleccionada) {
+        costoFinal -=
+          (costoFinal * bonificacionSeleccionada.porcentajeDescuento) / 100;
+      }
+    }
+
+    setValues({ ...values, bonificacionId, costoParticular: costoFinal });
+  };
+
+  // Manejar limpieza del formulario
+  const handleLimpiar = (setValues: (values: InscripcionRequest) => void) => {
+    setValues(initialValues);
     setInscripcionId(null);
-    setMensaje("");
   };
 
-  // ======================================
-  // Volver
-  // ======================================
-  const handleVolver = () => {
-    // Podrías volver a "/alumnos" o a la ficha del alumno
-    if (inscripcionForm.alumnoId) {
-      navigate(`/alumnos/formulario?id=${inscripcionForm.alumnoId}`);
-    } else {
-      navigate("/inscripciones");
-    }
+  // Manejar retorno a la vista de inscripciones o ficha del alumno
+  const handleVolver = (alumnoId?: number) => {
+    navigate(
+      alumnoId ? `/alumnos/formulario?id=${alumnoId}` : "/inscripciones"
+    );
   };
 
-  // ======================================
-  // RENDER
-  // ======================================
   return (
     <div className="formulario">
       <h1 className="form-title">
         {inscripcionId ? "Editar Inscripción" : "Nueva Inscripción"}
       </h1>
 
-      {mensaje && <p className="form-mensaje">{mensaje}</p>}
+      <Formik
+        initialValues={initialValues}
+        validationSchema={inscripcionEsquema}
+        onSubmit={handleGuardar}
+        enableReinitialize
+      >
+        {({ values, setValues, isSubmitting }) => (
+          <Form className="formulario">
+            {/* Alumno ID */}
+            <div className="form-grid">
+              <label>Alumno ID:</label>
+              <Field
+                name="alumnoId"
+                type="number"
+                className="form-input"
+                disabled={!!inscripcionId}
+              />
+              <ErrorMessage name="alumnoId" component="div" className="error" />
+            </div>
 
-      <div className="form-grid">
-        <div>
-          <label>Alumno ID:</label>
-          <input
-            name="alumnoId"
-            type="number"
-            value={inscripcionForm.alumnoId || ""}
-            onChange={handleChange}
-            disabled={!!inscripcionId}
-            className="form-input"
-          />
-        </div>
+            {/* Disciplina */}
+            <div className="form-grid">
+              <label>Disciplina:</label>
+              <Field as="select" name="disciplinaId" className="form-input">
+                <option value={0}>-- Seleccionar --</option>
+                {disciplinas.map((disc) => (
+                  <option key={disc.id} value={disc.id}>
+                    {disc.id} - {disc.nombre}
+                  </option>
+                ))}
+              </Field>
+              <ErrorMessage
+                name="disciplinaId"
+                component="div"
+                className="error"
+              />
+            </div>
 
-        <div>
-          <label>Disciplina:</label>
-          <select
-            value={inscripcionForm.disciplinaId}
-            onChange={handleSelectDisciplina}
-            className="form-input"
-          >
-            <option value={0}>-- Seleccionar --</option>
-            {disciplinas.map((disc) => (
-              <option key={disc.id} value={disc.id}>
-                {disc.id} - {disc.nombre}
-              </option>
-            ))}
-          </select>
-        </div>
+            {/* Bonificación */}
+            <div className="form-grid">
+              <label>Bonificación:</label>
+              <Field
+                as="select"
+                name="bonificacionId"
+                className="form-input"
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                  handleSelectBonificacion(e.target.value, values, setValues)
+                }
+              >
+                <option value="">-- Ninguna --</option>
+                {bonificaciones.map((bon) => (
+                  <option key={bon.id} value={bon.id}>
+                    {bon.descripcion}
+                  </option>
+                ))}
+              </Field>
+              <ErrorMessage
+                name="bonificacionId"
+                component="div"
+                className="error"
+              />
+            </div>
 
-        <div>
-          <label>Bonificación:</label>
-          <select
-            value={inscripcionForm.bonificacionId || ""}
-            onChange={handleSelectBonificacion}
-            className="form-input"
-          >
-            <option value="">-- Ninguna --</option>
-            {bonificaciones.map((bon) => (
-              <option key={bon.id} value={bon.id}>
-                {bon.descripcion}
-              </option>
-            ))}
-          </select>
-        </div>
+            {/* Costo Particular */}
+            <div className="form-grid">
+              <label>Costo Particular:</label>
+              <Field
+                name="costoParticular"
+                type="number"
+                className="form-input"
+              />
+              <ErrorMessage
+                name="costoParticular"
+                component="div"
+                className="error"
+              />
+            </div>
 
-        <div>
-          <label>Costo Particular:</label>
-          <input
-            name="costoParticular"
-            type="number"
-            value={inscripcionForm.costoParticular || 0}
-            onChange={handleChange}
-            className="form-input"
-          />
-        </div>
+            {/* Notas */}
+            <div className="form-grid">
+              <label>Notas:</label>
+              <Field as="textarea" name="notas" className="form-input" />
+              <ErrorMessage name="notas" component="div" className="error" />
+            </div>
 
-        <div>
-          <label>Notas:</label>
-          <textarea
-            name="notas"
-            value={inscripcionForm.notas || ""}
-            onChange={handleChange}
-            className="form-input"
-          />
-        </div>
-      </div>
-
-      <div className="form-acciones">
-        <Boton onClick={handleGuardar}>Guardar</Boton>
-        <Boton onClick={handleLimpiar}>Limpiar</Boton>
-        <Boton onClick={handleVolver}>Volver</Boton>
-      </div>
+            {/* Botones de acción */}
+            <div className="form-acciones">
+              <Boton type="submit" disabled={isSubmitting}>
+                {inscripcionId ? "Actualizar" : "Guardar"} Inscripción
+              </Boton>
+              <Boton
+                type="reset"
+                secondary
+                onClick={() => handleLimpiar(setValues)}
+              >
+                Limpiar
+              </Boton>
+              <Boton
+                type="button"
+                secondary
+                onClick={() => handleVolver(values.alumnoId)}
+              >
+                Volver
+              </Boton>
+            </div>
+          </Form>
+        )}
+      </Formik>
     </div>
   );
 };

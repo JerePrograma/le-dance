@@ -137,6 +137,24 @@ const AlumnosFormulario: React.FC = () => {
     }
   };
 
+  const handleEliminarInscripcion = async (inscripcionId: number) => {
+    const confirmacion = window.confirm(
+      "¿Estás seguro de eliminar esta inscripción?"
+    );
+    if (!confirmacion) return;
+
+    try {
+      await inscripcionesApi.eliminarInscripcion(inscripcionId);
+      setInscripciones((prev) =>
+        prev.filter((ins) => ins.id !== inscripcionId)
+      );
+      toast.success("Inscripción eliminada correctamente.");
+    } catch (error) {
+      console.error("Error al eliminar la inscripción:", error);
+      toast.error("No se pudo eliminar la inscripción.");
+    }
+  };
+
   return (
     <div className="formulario">
       <h1 className="form-title">Ficha de Alumno</h1>
@@ -147,7 +165,10 @@ const AlumnosFormulario: React.FC = () => {
         onSubmit={handleGuardarAlumno}
       >
         {({ setValues, isSubmitting }) => (
-          <Form>
+          <Form className="formulario">
+            <h1 className="form-title">Ficha de Alumno</h1>
+
+            {/* Búsqueda por ID */}
             <div className="form-busqueda">
               <label htmlFor="idBusqueda">Número de Alumno:</label>
               <input
@@ -162,7 +183,7 @@ const AlumnosFormulario: React.FC = () => {
               </Boton>
             </div>
 
-            {/* Buscador por nombre con sugerencias */}
+            {/* Búsqueda por Nombre con sugerencias */}
             <div className="form-busqueda">
               <label htmlFor="nombreBusqueda">Buscar por Nombre:</label>
               <input
@@ -196,59 +217,172 @@ const AlumnosFormulario: React.FC = () => {
               )}
             </div>
 
+            {nombreBusqueda && (
+              <button
+                onClick={() => setNombreBusqueda("")}
+                className="limpiar-boton"
+              >
+                Limpiar
+              </button>
+            )}
+
+            <fieldset className="form-fieldset">
+              <legend>Datos Personales</legend>
+              <div className="form-grid">
+                {/* Campos del Alumno */}
+                {[
+                  { name: "nombre", label: "Nombre (obligatorio)" },
+                  { name: "apellido", label: "Apellido" },
+                  {
+                    name: "fechaNacimiento",
+                    label: "Fecha de Nacimiento",
+                    type: "date",
+                  },
+                  {
+                    name: "fechaIncorporacion",
+                    label: "Fecha de Incorporación",
+                    type: "date",
+                  },
+                  { name: "celular1", label: "Celular 1 (obligatorio)" },
+                  { name: "celular2", label: "Celular 2" },
+                  { name: "email1", label: "Email 1", type: "email" },
+                  { name: "email2", label: "Email 2", type: "email" },
+                  { name: "documento", label: "Documento" },
+                  { name: "cuit", label: "CUIT" },
+                  { name: "nombrePadres", label: "Nombre de Padres" },
+                ].map(({ name, label, type = "text" }) => (
+                  <div key={name}>
+                    <label>{label}:</label>
+                    <Field name={name} type={type} className="form-input" />
+                    <ErrorMessage
+                      name={name}
+                      component="div"
+                      className="error"
+                    />
+                  </div>
+                ))}
+
+                {/* Checkboxes */}
+                {[
+                  {
+                    name: "autorizadoParaSalirSolo",
+                    label: "Autorizado para salir solo",
+                  },
+                  { name: "activo", label: "Activo" },
+                ].map(({ name, label }) => (
+                  <div key={name}>
+                    <label>{label}:</label>
+                    <Field
+                      name={name}
+                      type="checkbox"
+                      className="form-checkbox"
+                    />
+                  </div>
+                ))}
+              </div>
+            </fieldset>
+
+            {/* Otras Notas */}
             <div>
-              <label>Nombre:</label>
-              <Field name="nombre" type="text" className="form-input" />
-              <ErrorMessage name="nombre" component="div" className="error" />
+              <label>Otras Notas:</label>
+              <Field as="textarea" name="otrasNotas" className="form-input" />
+              <ErrorMessage
+                name="otrasNotas"
+                component="div"
+                className="error"
+              />
             </div>
 
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="form-boton"
-            >
-              Guardar Alumno
-            </button>
+            {/* Botones de Acción */}
+            <div className="form-acciones">
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="form-boton"
+              >
+                Guardar Alumno
+              </button>
+              <button
+                type="reset"
+                className="form-botonSecundario"
+                onClick={() => setValues(initialValues)}
+              >
+                Limpiar
+              </button>
+              <button
+                type="button"
+                className="form-botonSecundario"
+                onClick={() => navigate("/alumnos")}
+              >
+                Volver al Listado
+              </button>
+            </div>
+
+            {/* ================================
+          SECCION DE INSCRIPCIONES
+         ================================ */}
+            <h2>Inscripciones del Alumno</h2>
+            {alumnoId ? (
+              <>
+                <button
+                  className="botones botones-primario mb-4"
+                  onClick={() =>
+                    navigate(`/inscripciones/formulario?alumnoId=${alumnoId}`)
+                  }
+                >
+                  Agregar Disciplina
+                </button>
+
+                <Tabla
+                  encabezados={[
+                    "ID",
+                    "DisciplinaID",
+                    "BonificaciónID",
+                    "Costo Particular",
+                    "Notas",
+                    "Acciones",
+                  ]}
+                  datos={inscripciones}
+                  acciones={(fila) => (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() =>
+                          navigate(`/inscripciones/formulario?id=${fila.id}`)
+                        }
+                        className="botones botones-primario"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => handleEliminarInscripcion(fila.id)}
+                        className="botones bg-red-500 text-white hover:bg-red-600"
+                      >
+                        Eliminar
+                      </button>
+                    </div>
+                  )}
+                  extraRender={(fila) => [
+                    fila.id,
+                    fila.disciplinaId,
+                    fila.bonificacionId ?? "N/A",
+                    fila.costoParticular ?? 0,
+                    fila.notas ?? "",
+                  ]}
+                />
+              </>
+            ) : (
+              <p>
+                No se puede gestionar inscripciones hasta que{" "}
+                <strong>guarde o cargue</strong> un Alumno.
+              </p>
+            )}
+
+            {mensaje && (
+              <p className="form-mensaje form-mensaje-error">{mensaje}</p>
+            )}
           </Form>
         )}
       </Formik>
-
-      <h2>Inscripciones del Alumno</h2>
-      {alumnoId ? (
-        <Tabla
-          encabezados={[
-            "ID",
-            "DisciplinaID",
-            "BonificaciónID",
-            "Notas",
-            "Acciones",
-          ]}
-          datos={inscripciones}
-          acciones={(fila) => (
-            <button
-              onClick={() =>
-                navigate(`/inscripciones/formulario?id=${fila.id}`)
-              }
-              className="botones botones-primario"
-            >
-              Editar
-            </button>
-          )}
-          extraRender={(fila) => [
-            fila.id,
-            fila.disciplinaId,
-            fila.bonificacionId ?? "N/A",
-            fila.notas ?? "",
-          ]}
-        />
-      ) : (
-        <p>
-          No se puede gestionar inscripciones hasta que guarde o cargue un
-          Alumno.
-        </p>
-      )}
-
-      {mensaje && <p className="form-mensaje">{mensaje}</p>}
     </div>
   );
 };

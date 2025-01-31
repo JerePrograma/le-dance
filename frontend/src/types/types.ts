@@ -52,6 +52,7 @@ export interface AlumnoListadoResponse {
 // DISCIPLINA
 // ========================================================
 export interface DisciplinaRequest {
+  id: number;
   nombre: string;
   horario: string;
   frecuenciaSemanal: number;

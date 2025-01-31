@@ -26,7 +26,9 @@ const bonificacionesApi = {
     return response.data;
   },
   eliminarBonificacion: async (id: number): Promise<string> => {
-    const response = await api.delete(`/api/bonificaciones/${id}`);
+    const response = await api.put(`/api/bonificaciones/${id}`, {
+      activo: false,
+    });
     return response.data;
   },
 };

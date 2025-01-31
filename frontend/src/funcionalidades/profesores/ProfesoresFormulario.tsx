@@ -1,9 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { Formik, Form, Field, ErrorMessage } from "formik";
+import { profesorEsquema } from "../../validaciones/profesorEsquema";
 import api from "../../utilidades/axiosConfig";
+import { toast } from "react-toastify";
 import Boton from "../../componentes/comunes/Boton";
 
-interface Profesor {
+interface ProfesorRequest {
   id?: number;
   nombre: string;
   apellido: string;
@@ -12,126 +15,149 @@ interface Profesor {
 }
 
 const ProfesoresFormulario: React.FC = () => {
-  const [profesor, setProfesor] = useState<Profesor>({
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  const initialValues: ProfesorRequest = {
     nombre: "",
     apellido: "",
     especialidad: "",
     aniosExperiencia: 0,
-  });
+  };
 
-  const [mensaje, setMensaje] = useState<string>(""); // Mensajes informativos
-  const [searchParams] = useSearchParams(); // Para capturar "id" en URL
-  const navigate = useNavigate();
-
-  // Cargar datos si hay "id" en la URL
   useEffect(() => {
     const id = searchParams.get("id");
-    if (id) {
-      handleBuscar(id);
-    }
+    if (id) handleBuscar(id, () => {});
   }, [searchParams]);
 
-  // Manejar cambios en los campos del formulario
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    setProfesor({ ...profesor, [name]: value });
-  };
-
-  // Buscar profesor por ID
-  const handleBuscar = async (id?: string) => {
+  const handleBuscar = useCallback(async (idStr: string, setValues: any) => {
     try {
-      const response = await api.get<Profesor>(`/api/profesores/${id}`);
-      setProfesor(response.data);
-      setMensaje("Profesor cargado correctamente.");
+      const idNum = Number(idStr);
+      if (isNaN(idNum)) {
+        toast.error("ID inválido");
+        return;
+      }
+      const data: ProfesorRequest = await api.get(`/api/profesores/${idNum}`);
+      setValues({
+        nombre: data.nombre,
+        apellido: data.apellido,
+        especialidad: data.especialidad,
+        aniosExperiencia: data.aniosExperiencia ?? 0,
+      });
+      toast.success("Profesor cargado correctamente.");
     } catch {
-      setMensaje("Error al cargar los datos del profesor.");
+      toast.error("Error al cargar los datos del profesor.");
     }
-  };
+  }, []);
 
-  // Guardar o actualizar profesor
-  const handleGuardar = async () => {
-    if (!profesor.nombre || !profesor.apellido || !profesor.especialidad) {
-      setMensaje("Por favor, complete todos los campos obligatorios.");
-      return;
-    }
-
+  const handleGuardar = async (values: ProfesorRequest) => {
     try {
-      if (profesor.id) {
-        await api.put(`/api/profesores/${profesor.id}`, profesor);
-        setMensaje("Profesor actualizado correctamente.");
+      if (!values.nombre || !values.apellido || !values.especialidad) {
+        toast.error("Por favor, complete todos los campos obligatorios.");
+        return;
+      }
+
+      if (values.id) {
+        await api.put(`/api/profesores/${values.id}`, values);
+        toast.success("Profesor actualizado correctamente.");
       } else {
-        await api.post("/api/profesores", profesor);
-        setMensaje("Profesor creado correctamente.");
+        await api.post("/api/profesores", values);
+        toast.success("Profesor creado correctamente.");
       }
     } catch {
-      setMensaje("Error al guardar los datos del profesor.");
+      toast.error("Error al guardar los datos del profesor.");
     }
   };
 
-  // Limpiar formulario
-  const handleLimpiar = () => {
-    setProfesor({
-      nombre: "",
-      apellido: "",
-      especialidad: "",
-      aniosExperiencia: 0,
-    });
-    setMensaje("");
+  const handleLimpiar = (setValues: any) => {
+    setValues(initialValues);
   };
 
-  // Volver al listado de profesores
   const handleVolverListado = () => {
     navigate("/profesores");
   };
 
   return (
     <div className="formulario">
-      <h1 className="form-titulo">Formulario de Profesores</h1>
+      <h1 className="form-title">
+        {searchParams.get("id") ? "Editar Profesor" : "Nuevo Profesor"}
+      </h1>
 
-      <div className="form-grid">
-        <input
-          type="text"
-          name="nombre"
-          value={profesor.nombre}
-          onChange={handleChange}
-          placeholder="Nombre (Ej. Juan)"
-          className="form-input"
-        />
-        <input
-          type="text"
-          name="apellido"
-          value={profesor.apellido}
-          onChange={handleChange}
-          placeholder="Apellido (Ej. Pérez)"
-          className="form-input"
-        />
-        <input
-          type="text"
-          name="especialidad"
-          value={profesor.especialidad}
-          onChange={handleChange}
-          placeholder="Especialidad (Ej. Baile Contemporáneo)"
-          className="form-input"
-        />
-        <input
-          type="number"
-          name="aniosExperiencia"
-          value={profesor.aniosExperiencia || ""}
-          onChange={handleChange}
-          placeholder="Años de Experiencia (Ej. 5)"
-          className="form-input"
-        />
-      </div>
+      <Formik
+        initialValues={initialValues}
+        validationSchema={profesorEsquema}
+        onSubmit={handleGuardar}
+      >
+        {({ setValues, isSubmitting }) => (
+          <Form className="formulario">
+            {/* Búsqueda por ID */}
+            <div className="form-busqueda">
+              <label htmlFor="idBusqueda">Número de Profesor:</label>
+              <Field
+                type="number"
+                id="idBusqueda"
+                name="id"
+                className="form-input"
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  handleBuscar(e.target.value, setValues)
+                }
+              />
+              <Boton
+                type="button"
+                onClick={() =>
+                  handleBuscar(searchParams.get("id") || "", setValues)
+                }
+              >
+                Buscar
+              </Boton>
+            </div>
 
-      <div className="form-acciones">
-        <Boton onClick={handleGuardar}>Guardar</Boton>
-        <Boton onClick={handleLimpiar}>Limpiar</Boton>
-        <Boton onClick={handleVolverListado}>Volver al Listado</Boton>
-      </div>
+            {/* Datos del Profesor */}
+            <fieldset className="form-fieldset">
+              <legend>Datos del Profesor</legend>
+              <div className="form-grid">
+                {[
+                  { name: "nombre", label: "Nombre (obligatorio)" },
+                  { name: "apellido", label: "Apellido (obligatorio)" },
+                  { name: "especialidad", label: "Especialidad (obligatorio)" },
+                  {
+                    name: "aniosExperiencia",
+                    label: "Años de Experiencia",
+                    type: "number",
+                  },
+                ].map(({ name, label, type = "text" }) => (
+                  <div key={name}>
+                    <label>{label}:</label>
+                    <Field name={name} type={type} className="form-input" />
+                    <ErrorMessage
+                      name={name}
+                      component="div"
+                      className="error"
+                    />
+                  </div>
+                ))}
+              </div>
+            </fieldset>
 
-      {mensaje && <p className="form-mensaje">{mensaje}</p>}
+            {/* Botones de Acción */}
+            <div className="form-acciones">
+              <Boton type="submit" disabled={isSubmitting}>
+                Guardar Profesor
+              </Boton>
+              <Boton
+                type="reset"
+                secondary
+                onClick={() => handleLimpiar(setValues)}
+              >
+                Limpiar
+              </Boton>
+              <Boton type="button" secondary onClick={handleVolverListado}>
+                Volver al Listado
+              </Boton>
+            </div>
+          </Form>
+        )}
+      </Formik>
     </div>
   );
 };

@@ -32,7 +32,7 @@ const disciplinasApi = {
   },
 
   eliminarDisciplina: async (id: number): Promise<string> => {
-    const response = await api.delete(`/api/disciplinas/${id}`);
+    const response = await api.put(`/api/disciplinas/${id}`, { activo: false });
     return response.data;
   },
 

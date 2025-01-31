@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import Tabla from "../../componentes/comunes/Tabla";
 import api from "../../utilidades/axiosConfig";
+import ReactPaginate from "react-paginate";
+import Boton from "../../componentes/comunes/Boton";
 
 interface Asistencia {
   id: number;
@@ -13,35 +15,35 @@ interface Asistencia {
 
 const Asistencias = () => {
   const [asistencias, setAsistencias] = useState<Asistencia[]>([]);
+  const [currentPage, setCurrentPage] = useState(0);
+  const itemsPerPage = 5; // 🔄 Cantidad de asistencias por página
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchAsistencias = async () => {
-      try {
-        const response = await api.get("/api/asistencias");
-        setAsistencias(response.data);
-      } catch (error) {
-        console.error("Error al cargar asistencias:", error);
-      }
-    };
-    fetchAsistencias();
+  // 🔄 Fetch optimizado
+  const fetchAsistencias = useCallback(async () => {
+    try {
+      const response = await api.get<Asistencia[]>("/api/asistencias");
+      setAsistencias(response.data);
+    } catch (error) {
+      console.error("Error al cargar asistencias:", error);
+    }
   }, []);
 
-  const encabezados = [
-    "ID",
-    "Alumno",
-    "Disciplina",
-    "Fecha",
-    "Presente",
-    "Acciones",
-  ];
+  useEffect(() => {
+    fetchAsistencias();
+  }, [fetchAsistencias]);
 
-  const handleNuevaAsistencia = () => {
-    navigate("/asistencias/formulario");
-  };
+  // 🔄 Paginación segura
+  const pageCount = Math.ceil(asistencias.length / itemsPerPage);
+  const currentItems = asistencias.slice(
+    currentPage * itemsPerPage,
+    (currentPage + 1) * itemsPerPage
+  );
 
-  const handleEditarAsistencia = (id: number) => {
-    navigate(`/asistencias/formulario?id=${id}`);
+  const handlePageClick = ({ selected }: { selected: number }) => {
+    if (selected < pageCount) {
+      setCurrentPage(selected);
+    }
   };
 
   return (
@@ -49,30 +51,65 @@ const Asistencias = () => {
       <h1 className="page-title">Registro de Asistencias</h1>
 
       <div className="flex justify-end mb-4">
-        <button onClick={handleNuevaAsistencia} className="page-button">
+        <Boton onClick={() => navigate("/asistencias/formulario")}>
           Registrar Nueva Asistencia
-        </button>
+        </Boton>
       </div>
 
       <div className="page-table-container">
         <Tabla
-          encabezados={encabezados}
-          datos={asistencias}
+          encabezados={[
+            "ID",
+            "Alumno",
+            "Disciplina",
+            "Fecha",
+            "Presente",
+            "Acciones",
+          ]}
+          datos={currentItems}
           acciones={(fila) => (
             <div className="flex gap-2">
-              <button
-                onClick={() => handleEditarAsistencia(fila.id)}
-                className="page-button bg-blue-500 hover:bg-blue-600"
+              <Boton
+                onClick={() =>
+                  navigate(`/asistencias/formulario?id=${fila.id}`)
+                }
+                secondary
+                aria-label={`Editar asistencia de ${fila.alumno} en ${fila.disciplina}`}
               >
                 Editar
-              </button>
-              <button className="page-button bg-red-500 hover:bg-red-600">
+              </Boton>
+              <Boton
+                secondary
+                className="bg-red-500 hover:bg-red-600"
+                aria-label={`Eliminar asistencia de ${fila.alumno}`}
+              >
                 Eliminar
-              </button>
+              </Boton>
             </div>
           )}
+          extraRender={(fila) => [
+            fila.id,
+            fila.alumno,
+            fila.disciplina,
+            fila.fecha,
+            fila.presente ? "Sí" : "No",
+          ]}
         />
       </div>
+
+      {/* 🔄 Paginación Mejorada */}
+      {pageCount > 1 && (
+        <ReactPaginate
+          previousLabel={"← Anterior"}
+          nextLabel={"Siguiente →"}
+          breakLabel={"..."}
+          pageCount={pageCount}
+          onPageChange={handlePageClick}
+          containerClassName={"pagination"}
+          activeClassName={"active"}
+          disabledClassName={"disabled"}
+        />
+      )}
     </div>
   );
 };

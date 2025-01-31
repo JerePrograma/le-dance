@@ -1,7 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { Formik, Form, Field, ErrorMessage } from "formik";
+import { bonificacionEsquema } from "../../validaciones/bonificacionEsquema";
 import api from "../../utilidades/axiosConfig";
 import Boton from "../../componentes/comunes/Boton";
+import { toast } from "react-toastify";
 
 interface Bonificacion {
   id?: number;
@@ -12,73 +15,50 @@ interface Bonificacion {
 }
 
 const BonificacionesFormulario: React.FC = () => {
-  const [bonificacion, setBonificacion] = useState<Bonificacion>({
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  const initialValues: Bonificacion = {
     descripcion: "",
     porcentajeDescuento: 0,
     activo: true,
     observaciones: "",
-  });
-  const [mensaje, setMensaje] = useState<string>("");
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
+  };
+
+  const handleBuscar = useCallback(async (idStr: string, setValues: any) => {
+    try {
+      const idNum = Number(idStr);
+      if (isNaN(idNum)) {
+        toast.error("ID inválido");
+        return;
+      }
+      const response = await api.get<Bonificacion>(
+        `/api/bonificaciones/${idNum}`
+      );
+      setValues(response.data);
+      toast.success("Bonificación cargada correctamente.");
+    } catch {
+      toast.error("Error al cargar la bonificación.");
+    }
+  }, []);
 
   useEffect(() => {
-    const id = searchParams.get("id");
-    if (id) {
-      handleBuscar(id);
-    }
-  }, [searchParams]);
+    const idParam = searchParams.get("id");
+    if (idParam) handleBuscar(idParam, () => {});
+  }, [searchParams, handleBuscar]);
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value, type } = e.target;
-    setBonificacion({
-      ...bonificacion,
-      [name]:
-        type === "number" || name === "porcentajeDescuento"
-          ? parseInt(value, 10)
-          : value,
-    });
-  };
-
-  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, checked } = e.target;
-    setBonificacion({ ...bonificacion, [name]: checked });
-  };
-
-  const handleBuscar = async (id: string) => {
+  const handleGuardar = async (values: Bonificacion) => {
     try {
-      const response = await api.get<Bonificacion>(`/api/bonificaciones/${id}`);
-      setBonificacion(response.data);
-      setMensaje("Bonificación cargada correctamente.");
-    } catch {
-      setMensaje("Error al cargar la bonificación.");
-    }
-  };
-
-  const handleGuardar = async () => {
-    try {
-      if (bonificacion.id) {
-        await api.put(`/api/bonificaciones/${bonificacion.id}`, bonificacion);
-        setMensaje("Bonificación actualizada correctamente.");
+      if (values.id) {
+        await api.put(`/api/bonificaciones/${values.id}`, values);
+        toast.success("Bonificación actualizada correctamente.");
       } else {
-        await api.post("/api/bonificaciones", bonificacion);
-        setMensaje("Bonificación creada correctamente.");
+        await api.post("/api/bonificaciones", values);
+        toast.success("Bonificación creada correctamente.");
       }
     } catch {
-      setMensaje("Error al guardar la bonificación.");
+      toast.error("Error al guardar la bonificación.");
     }
-  };
-
-  const handleLimpiar = () => {
-    setBonificacion({
-      descripcion: "",
-      porcentajeDescuento: 0,
-      activo: true,
-      observaciones: "",
-    });
-    setMensaje("");
   };
 
   const handleVolverListado = () => {
@@ -88,46 +68,93 @@ const BonificacionesFormulario: React.FC = () => {
   return (
     <div className="formulario">
       <h1 className="form-titulo">Formulario de Bonificación</h1>
-      <div className="form-grid">
-        <input
-          type="text"
-          name="descripcion"
-          value={bonificacion.descripcion}
-          onChange={handleChange}
-          placeholder="Descripción (Ej. 1/2 BECA)"
-          className="form-input"
-        />
-        <input
-          type="number"
-          name="porcentajeDescuento"
-          value={bonificacion.porcentajeDescuento || ""}
-          onChange={handleChange}
-          placeholder="Porcentaje de Descuento"
-          className="form-input"
-        />
-        <textarea
-          name="observaciones"
-          value={bonificacion.observaciones || ""}
-          onChange={handleChange}
-          placeholder="Observaciones (Opcional)"
-          className="form-input"
-        />
-        <label className="form-checkbox">
-          <input
-            type="checkbox"
-            name="activo"
-            checked={bonificacion.activo}
-            onChange={handleCheckboxChange}
-          />
-          Activo
-        </label>
-      </div>
-      <div className="form-acciones">
-        <Boton onClick={handleGuardar}>Guardar</Boton>
-        <Boton onClick={handleLimpiar}>Limpiar</Boton>
-        <Boton onClick={handleVolverListado}>Volver al Listado</Boton>
-      </div>
-      {mensaje && <p className="form-mensaje">{mensaje}</p>}
+
+      <Formik
+        initialValues={initialValues}
+        validationSchema={bonificacionEsquema}
+        onSubmit={handleGuardar}
+      >
+        {({ setValues, isSubmitting }) => (
+          <Form className="formulario">
+            <div className="form-grid">
+              {/* Descripción */}
+              <div>
+                <label>Descripción (obligatoria):</label>
+                <Field
+                  type="text"
+                  name="descripcion"
+                  placeholder="Ejemplo: 1/2 BECA"
+                  className="form-input"
+                />
+                <ErrorMessage
+                  name="descripcion"
+                  component="div"
+                  className="error"
+                />
+              </div>
+
+              {/* Porcentaje de Descuento */}
+              <div>
+                <label>Porcentaje de Descuento:</label>
+                <Field
+                  type="number"
+                  name="porcentajeDescuento"
+                  placeholder="Ejemplo: 50"
+                  className="form-input"
+                />
+                <ErrorMessage
+                  name="porcentajeDescuento"
+                  component="div"
+                  className="error"
+                />
+              </div>
+
+              {/* Observaciones */}
+              <div>
+                <label>Observaciones:</label>
+                <Field
+                  as="textarea"
+                  name="observaciones"
+                  className="form-input"
+                />
+                <ErrorMessage
+                  name="observaciones"
+                  component="div"
+                  className="error"
+                />
+              </div>
+
+              {/* Activo */}
+              <div>
+                <label>Activo:</label>
+                <Field
+                  type="checkbox"
+                  name="activo"
+                  className="form-checkbox"
+                />
+                <ErrorMessage name="activo" component="div" className="error" />
+              </div>
+            </div>
+
+            {/* Botones de acción */}
+            <div className="form-acciones">
+              <Boton type="submit" disabled={isSubmitting}>
+                Guardar
+              </Boton>
+              <Boton
+                type="reset"
+                secondary
+                onClick={() => setValues(initialValues)}
+              >
+                Limpiar
+              </Boton>
+              <Boton type="button" secondary onClick={handleVolverListado}>
+                Volver al Listado
+              </Boton>
+            </div>
+          </Form>
+        )}
+      </Formik>
     </div>
   );
 };

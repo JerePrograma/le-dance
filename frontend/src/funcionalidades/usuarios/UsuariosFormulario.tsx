@@ -1,5 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { Formik, Form, Field, ErrorMessage } from "formik";
+import { usuarioEsquema } from "../../validaciones/usuarioEsquema";
 import api from "../../utilidades/axiosConfig";
+import Boton from "../../componentes/comunes/Boton";
+import { toast } from "react-toastify";
 
 interface Rol {
   id: number;
@@ -7,12 +11,7 @@ interface Rol {
 }
 
 const UsuariosFormulario: React.FC = () => {
-  const [email, setEmail] = useState("");
-  const [nombreUsuario, setNombreUsuario] = useState("");
-  const [contrasena, setContrasena] = useState("");
-  const [rol, setRol] = useState("");
   const [roles, setRoles] = useState<Rol[]>([]);
-  const [error, setError] = useState("");
 
   useEffect(() => {
     const fetchRoles = async () => {
@@ -20,24 +19,26 @@ const UsuariosFormulario: React.FC = () => {
         const response = await api.get<Rol[]>("/api/roles");
         setRoles(response.data);
       } catch (err) {
-        console.error("Error al cargar los roles:", err);
+        toast.error("Error al cargar los roles.");
       }
     };
     fetchRoles();
   }, []);
 
-  const handleRegistro = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const initialValues = {
+    email: "",
+    nombreUsuario: "",
+    contrasena: "",
+    rol: "",
+  };
+
+  const handleRegistro = async (values: typeof initialValues) => {
     try {
-      await api.post("/api/usuarios/registro", {
-        email,
-        nombreUsuario,
-        contrasena,
-        rol,
-      });
-      window.location.href = "/login"; // Redirige al login tras registro exitoso
-    } catch (err) {
-      setError("Error al registrar el usuario. Verifica los datos.");
+      await api.post("/api/usuarios/registro", values);
+      toast.success("Usuario registrado correctamente.");
+      window.location.href = "/login";
+    } catch {
+      toast.error("Error al registrar el usuario. Verifica los datos.");
     }
   };
 
@@ -45,65 +46,64 @@ const UsuariosFormulario: React.FC = () => {
     <div className="auth-container">
       <h1 className="auth-title">Registro</h1>
 
-      <form className="auth-form" onSubmit={handleRegistro}>
-        <div>
-          <label className="auth-label">Email:</label>
-          <input
-            className="auth-input"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </div>
+      <Formik
+        initialValues={initialValues}
+        validationSchema={usuarioEsquema}
+        onSubmit={handleRegistro}
+      >
+        {({ isSubmitting }) => (
+          <Form className="auth-form">
+            <div>
+              <label className="auth-label">Email:</label>
+              <Field type="email" name="email" className="auth-input" />
+              <ErrorMessage name="email" component="div" className="error" />
+            </div>
 
-        <div>
-          <label className="auth-label">Nombre de Usuario:</label>
-          <input
-            className="auth-input"
-            type="text"
-            value={nombreUsuario}
-            onChange={(e) => setNombreUsuario(e.target.value)}
-            required
-          />
-        </div>
+            <div>
+              <label className="auth-label">Nombre de Usuario:</label>
+              <Field type="text" name="nombreUsuario" className="auth-input" />
+              <ErrorMessage
+                name="nombreUsuario"
+                component="div"
+                className="error"
+              />
+            </div>
 
-        <div>
-          <label className="auth-label">Contraseña:</label>
-          <input
-            className="auth-input"
-            type="password"
-            value={contrasena}
-            onChange={(e) => setContrasena(e.target.value)}
-            required
-          />
-        </div>
+            <div>
+              <label className="auth-label">Contraseña:</label>
+              <Field type="password" name="contrasena" className="auth-input" />
+              <ErrorMessage
+                name="contrasena"
+                component="div"
+                className="error"
+              />
+            </div>
 
-        <div>
-          <label className="auth-label">Rol:</label>
-          <select
-            className="auth-input"
-            value={rol}
-            onChange={(e) => setRol(e.target.value)}
-            required
-          >
-            <option value="" disabled>
-              Seleccione un rol
-            </option>
-            {roles.map((rol) => (
-              <option key={rol.id} value={rol.descripcion}>
-                {rol.descripcion}
-              </option>
-            ))}
-          </select>
-        </div>
+            <div>
+              <label className="auth-label">Rol:</label>
+              <Field as="select" name="rol" className="auth-input">
+                <option value="">Seleccione un rol</option>
+                {roles.map((rol) => (
+                  <option key={rol.id} value={rol.descripcion}>
+                    {rol.descripcion}
+                  </option>
+                ))}
+              </Field>
+              <ErrorMessage name="rol" component="div" className="error" />
+            </div>
 
-        {error && <p className="auth-error">{error}</p>}
-
-        <button className="auth-button" type="submit">
-          Registrarse
-        </button>
-      </form>
+            {/* Botones de acción */}
+            <div className="form-acciones">
+              <Boton type="submit" disabled={isSubmitting}>
+                Registrarse
+              </Boton>
+              <Boton type="reset" secondary>
+                Limpiar
+              </Boton>
+            </div>
+          </Form>
+        )}
+      </Formik>
 
       <a href="/login" className="auth-link">
         ¿Ya tienes cuenta? Inicia sesión aquí

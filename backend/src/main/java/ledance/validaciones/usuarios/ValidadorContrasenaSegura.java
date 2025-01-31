@@ -15,8 +15,8 @@ public class ValidadorContrasenaSegura implements Validador<UsuarioRegistroReque
         String contrasena = datos.contrasena();
         List<String> errores = new ArrayList<>();
 
-        if (contrasena.length() < 8) {
-            errores.add("La contraseña debe tener al menos 8 caracteres.");
+        if (contrasena.length() < 6) {
+            errores.add("La contraseña debe tener al menos 6 caracteres.");
         }
 
         if (!contrasena.matches(".*\\d.*")) {

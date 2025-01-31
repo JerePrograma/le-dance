@@ -31,7 +31,7 @@ const alumnosApi = {
   },
 
   eliminarAlumno: async (id: number): Promise<string> => {
-    const response = await api.delete(`/api/alumnos/${id}`);
+    const response = await api.put(`/api/alumnos/${id}`, { activo: false });
     return response.data;
   },
 

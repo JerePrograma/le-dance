@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import Tabla from "../../componentes/comunes/Tabla";
 import api from "../../utilidades/axiosConfig";
+import ReactPaginate from "react-paginate";
+import Boton from "../../componentes/comunes/Boton";
 
 interface Disciplina {
   id: number;
@@ -11,54 +13,88 @@ interface Disciplina {
 
 const Disciplinas = () => {
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
+  const [currentPage, setCurrentPage] = useState(0);
+  const itemsPerPage = 5; // 🔄 Cantidad de disciplinas por página
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchDisciplinas = async () => {
-      try {
-        const response = await api.get("/api/disciplinas");
-        setDisciplinas(response.data);
-      } catch (error) {
-        console.error("Error al cargar disciplinas:", error);
-      }
-    };
-    fetchDisciplinas();
+  // 🔄 Fetch optimizado
+  const fetchDisciplinas = useCallback(async () => {
+    try {
+      const response = await api.get<Disciplina[]>("/api/disciplinas");
+      setDisciplinas(response.data);
+    } catch (error) {
+      console.error("Error al cargar disciplinas:", error);
+    }
   }, []);
 
-  const handleNuevaDisciplina = () => navigate("/disciplinas/formulario");
-  const handleEditarDisciplina = (id: number) =>
-    navigate(`/disciplinas/formulario?id=${id}`);
+  useEffect(() => {
+    fetchDisciplinas();
+  }, [fetchDisciplinas]);
+
+  // 🔄 Paginación segura
+  const pageCount = Math.ceil(disciplinas.length / itemsPerPage);
+  const currentItems = disciplinas.slice(
+    currentPage * itemsPerPage,
+    (currentPage + 1) * itemsPerPage
+  );
+
+  const handlePageClick = ({ selected }: { selected: number }) => {
+    if (selected < pageCount) {
+      setCurrentPage(selected);
+    }
+  };
 
   return (
     <div className="page-container">
       <h1 className="page-title">Disciplinas</h1>
 
       <div className="flex justify-end mb-4">
-        <button onClick={handleNuevaDisciplina} className="page-button">
+        <Boton onClick={() => navigate("/disciplinas/formulario")}>
           Registrar Nueva Disciplina
-        </button>
+        </Boton>
       </div>
 
       <div className="page-table-container">
         <Tabla
           encabezados={["ID", "Nombre", "Horario", "Acciones"]}
-          datos={disciplinas}
+          datos={currentItems}
           acciones={(fila) => (
-            <>
-              <button
-                onClick={() => handleEditarDisciplina(fila.id)}
-                className="page-button bg-blue-500 hover:bg-blue-600"
+            <div className="flex gap-2">
+              <Boton
+                onClick={() =>
+                  navigate(`/disciplinas/formulario?id=${fila.id}`)
+                }
+                secondary
+                aria-label={`Editar disciplina ${fila.nombre}`}
               >
                 Editar
-              </button>
-              <button className="page-button bg-red-500 hover:bg-red-600 ml-2">
+              </Boton>
+              <Boton
+                secondary
+                className="bg-red-500 hover:bg-red-600"
+                aria-label={`Eliminar disciplina ${fila.nombre}`}
+              >
                 Eliminar
-              </button>
-            </>
+              </Boton>
+            </div>
           )}
           extraRender={(fila) => [fila.id, fila.nombre, fila.horario]}
         />
       </div>
+
+      {/* 🔄 Paginación Mejorada */}
+      {pageCount > 1 && (
+        <ReactPaginate
+          previousLabel={"← Anterior"}
+          nextLabel={"Siguiente →"}
+          breakLabel={"..."}
+          pageCount={pageCount}
+          onPageChange={handlePageClick}
+          containerClassName={"pagination"}
+          activeClassName={"active"}
+          disabledClassName={"disabled"}
+        />
+      )}
     </div>
   );
 };

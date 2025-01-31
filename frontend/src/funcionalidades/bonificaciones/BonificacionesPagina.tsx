@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import Tabla from "../../componentes/comunes/Tabla";
 import api from "../../utilidades/axiosConfig";
+import ReactPaginate from "react-paginate";
+import Boton from "../../componentes/comunes/Boton";
 
 interface Bonificacion {
   id: number;
@@ -13,32 +15,45 @@ interface Bonificacion {
 
 const Bonificaciones = () => {
   const [bonificaciones, setBonificaciones] = useState<Bonificacion[]>([]);
+  const [currentPage, setCurrentPage] = useState(0);
+  const itemsPerPage = 5; // 🔄 Cantidad de bonificaciones por página
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchBonificaciones = async () => {
-      try {
-        const response = await api.get("/api/bonificaciones");
-        setBonificaciones(response.data);
-      } catch (error) {
-        console.error("Error al cargar bonificaciones:", error);
-      }
-    };
-    fetchBonificaciones();
+  // 🔄 Fetch optimizado
+  const fetchBonificaciones = useCallback(async () => {
+    try {
+      const response = await api.get<Bonificacion[]>("/api/bonificaciones");
+      setBonificaciones(response.data);
+    } catch (error) {
+      console.error("Error al cargar bonificaciones:", error);
+    }
   }, []);
 
-  const handleNuevaBonificacion = () => navigate("/bonificaciones/formulario");
-  const handleEditarBonificacion = (id: number) =>
-    navigate(`/bonificaciones/formulario?id=${id}`);
+  useEffect(() => {
+    fetchBonificaciones();
+  }, [fetchBonificaciones]);
+
+  // 🔄 Paginación segura
+  const pageCount = Math.ceil(bonificaciones.length / itemsPerPage);
+  const currentItems = bonificaciones.slice(
+    currentPage * itemsPerPage,
+    (currentPage + 1) * itemsPerPage
+  );
+
+  const handlePageClick = ({ selected }: { selected: number }) => {
+    if (selected < pageCount) {
+      setCurrentPage(selected);
+    }
+  };
 
   return (
     <div className="page-container">
       <h1 className="page-title">Bonificaciones</h1>
 
       <div className="flex justify-end mb-4">
-        <button onClick={handleNuevaBonificacion} className="page-button">
+        <Boton onClick={() => navigate("/bonificaciones/formulario")}>
           Registrar Nueva Bonificación
-        </button>
+        </Boton>
       </div>
 
       <div className="page-table-container">
@@ -50,18 +65,25 @@ const Bonificaciones = () => {
             "Activo",
             "Acciones",
           ]}
-          datos={bonificaciones}
+          datos={currentItems}
           acciones={(fila) => (
             <div className="flex gap-2">
-              <button
-                onClick={() => handleEditarBonificacion(fila.id)}
-                className="page-button bg-blue-500 hover:bg-blue-600"
+              <Boton
+                onClick={() =>
+                  navigate(`/bonificaciones/formulario?id=${fila.id}`)
+                }
+                secondary
+                aria-label={`Editar bonificación ${fila.descripcion}`}
               >
                 Editar
-              </button>
-              <button className="page-button bg-red-500 hover:bg-red-600">
+              </Boton>
+              <Boton
+                secondary
+                className="bg-red-500 hover:bg-red-600"
+                aria-label={`Eliminar bonificación ${fila.descripcion}`}
+              >
                 Eliminar
-              </button>
+              </Boton>
             </div>
           )}
           extraRender={(fila) => [
@@ -72,6 +94,20 @@ const Bonificaciones = () => {
           ]}
         />
       </div>
+
+      {/* 🔄 Paginación Mejorada */}
+      {pageCount > 1 && (
+        <ReactPaginate
+          previousLabel={"← Anterior"}
+          nextLabel={"Siguiente →"}
+          breakLabel={"..."}
+          pageCount={pageCount}
+          onPageChange={handlePageClick}
+          containerClassName={"pagination"}
+          activeClassName={"active"}
+          disabledClassName={"disabled"}
+        />
+      )}
     </div>
   );
 };

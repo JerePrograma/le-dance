@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import Tabla from "../../componentes/comunes/Tabla";
 import alumnosApi from "../../utilidades/alumnosApi";
 import ReactPaginate from "react-paginate";
+import Boton from "../../componentes/comunes/Boton";
 
 interface AlumnoListado {
   id: number;
@@ -13,29 +14,34 @@ interface AlumnoListado {
 const Alumnos = () => {
   const [alumnos, setAlumnos] = useState<AlumnoListado[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
-  const [itemsPerPage] = useState(5); // Cantidad de alumnos por página
-
+  const itemsPerPage = 5; // 🔄 Ya es una constante, no necesita useState
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchAlumnos = async () => {
-      try {
-        const response = await alumnosApi.listarAlumnos();
-        setAlumnos(response);
-      } catch (error) {
-        console.error("Error al cargar alumnos:", error);
-      }
-    };
-    fetchAlumnos();
+  // 🔄 Fetch de datos optimizado
+  const fetchAlumnos = useCallback(async () => {
+    try {
+      const response = await alumnosApi.listarAlumnos();
+      setAlumnos(response);
+    } catch (error) {
+      console.error("Error al cargar alumnos:", error);
+    }
   }, []);
 
-  // Obtener los alumnos de la página actual
-  const offset = currentPage * itemsPerPage;
-  const currentItems = alumnos.slice(offset, offset + itemsPerPage);
+  useEffect(() => {
+    fetchAlumnos();
+  }, [fetchAlumnos]);
+
+  // 🔄 Cálculo seguro de paginación
   const pageCount = Math.ceil(alumnos.length / itemsPerPage);
+  const currentItems = alumnos.slice(
+    currentPage * itemsPerPage,
+    (currentPage + 1) * itemsPerPage
+  );
 
   const handlePageClick = ({ selected }: { selected: number }) => {
-    setCurrentPage(selected);
+    if (selected < pageCount) {
+      setCurrentPage(selected);
+    }
   };
 
   return (
@@ -43,12 +49,9 @@ const Alumnos = () => {
       <h1 className="page-title">Alumnos</h1>
 
       <div className="flex justify-end mb-4">
-        <button
-          onClick={() => navigate("/alumnos/formulario")}
-          className="page-button"
-        >
+        <Boton onClick={() => navigate("/alumnos/formulario")}>
           Ficha de Alumnos
-        </button>
+        </Boton>
       </div>
 
       <div className="page-table-container">
@@ -56,27 +59,31 @@ const Alumnos = () => {
           encabezados={["ID", "Nombre", "Apellido", "Acciones"]}
           datos={currentItems}
           acciones={(fila) => (
-            <button
+            <Boton
               onClick={() => navigate(`/alumnos/formulario?id=${fila.id}`)}
-              className="page-button bg-blue-500 hover:bg-blue-600"
+              secondary
+              aria-label={`Editar alumno ${fila.nombre} ${fila.apellido}`}
             >
               Editar
-            </button>
+            </Boton>
           )}
           extraRender={(fila) => [fila.id, fila.nombre, fila.apellido]}
         />
       </div>
 
-      {/* Paginación */}
-      <ReactPaginate
-        previousLabel={"← Anterior"}
-        nextLabel={"Siguiente →"}
-        breakLabel={"..."}
-        pageCount={pageCount}
-        onPageChange={handlePageClick}
-        containerClassName={"pagination"}
-        activeClassName={"active"}
-      />
+      {/* 🔄 Paginación Mejorada */}
+      {pageCount > 1 && (
+        <ReactPaginate
+          previousLabel={"← Anterior"}
+          nextLabel={"Siguiente →"}
+          breakLabel={"..."}
+          pageCount={pageCount}
+          onPageChange={handlePageClick}
+          containerClassName={"pagination"}
+          activeClassName={"active"}
+          disabledClassName={"disabled"}
+        />
+      )}
     </div>
   );
 };

@@ -1,210 +1,209 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { Formik, Form, Field, ErrorMessage } from "formik";
+import { disciplinaEsquema } from "../../validaciones/disciplinaEsquema";
 import api from "../../utilidades/axiosConfig";
+import { toast } from "react-toastify";
+import {
+  DisciplinaRequest,
+  DisciplinaResponse,
+  ProfesorResponse,
+} from "../../types/types";
 import Boton from "../../componentes/comunes/Boton";
 
-interface Disciplina {
-  id?: number;
-  nombre: string;
-  horario: string;
-  frecuenciaSemanal?: number;
-  duracion: string;
-  salon: string;
-  valorCuota?: number;
-  matricula?: number;
-  profesorId?: number;
-  cupoMaximo?: number;
-}
-
-interface Profesor {
-  id: number;
-  nombreCompleto: string;
-}
-
 const DisciplinasFormulario: React.FC = () => {
-  const [disciplina, setDisciplina] = useState<Disciplina>({
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [profesores, setProfesores] = useState<ProfesorResponse[]>([]);
+
+  const initialValues: DisciplinaRequest = {
+    id: 0,
     nombre: "",
     horario: "",
-    frecuenciaSemanal: undefined,
+    frecuenciaSemanal: 0,
     duracion: "",
     salon: "",
-    valorCuota: undefined,
-    matricula: undefined,
-    profesorId: undefined,
-    cupoMaximo: undefined,
-  });
-
-  const [profesores, setProfesores] = useState<Profesor[]>([]);
-  const [mensaje, setMensaje] = useState<string>("");
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const id = searchParams.get("id");
-    if (id) {
-      handleBuscar(id);
-    }
-  }, [searchParams]);
+    valorCuota: 0,
+    matricula: 0,
+    profesorId: 0,
+  };
 
   useEffect(() => {
     const fetchProfesores = async () => {
       try {
-        const response = await api.get<Profesor[]>(
+        const response = await api.get<ProfesorResponse[]>(
           "/api/profesores/simplificados"
         );
         setProfesores(response.data);
       } catch {
-        setMensaje("Error al cargar la lista de profesores.");
+        toast.error("Error al cargar la lista de profesores.");
       }
     };
-
     fetchProfesores();
   }, []);
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    const { name, value } = e.target;
+  useEffect(() => {
+    const id = searchParams.get("id");
+    if (id) handleBuscar(id, () => {});
+  }, [searchParams]);
 
-    setDisciplina({
-      ...disciplina,
-      [name]: value === "" || isNaN(Number(value)) ? value : Number(value),
-    });
-  };
-
-  const handleBuscar = async (id?: string) => {
+  const handleBuscar = useCallback(async (idStr: string, setValues: any) => {
     try {
-      const response = await api.get<Disciplina>(`/api/disciplinas/${id}`);
-      setDisciplina(response.data);
-      setMensaje("Disciplina cargada correctamente.");
+      const idNum = Number(idStr);
+      if (isNaN(idNum)) {
+        toast.error("ID inválido");
+        return;
+      }
+      const data: DisciplinaResponse = await api.get(
+        `/api/disciplinas/${idNum}`
+      );
+      setValues({
+        nombre: data.nombre,
+        horario: data.horario,
+        frecuenciaSemanal: data.frecuenciaSemanal || 0,
+        duracion: data.duracion,
+        salon: data.salon,
+        valorCuota: data.valorCuota || 0,
+        matricula: data.matricula || 0,
+        profesorId: data.profesorId || 0,
+      });
+      toast.success("Disciplina cargada correctamente.");
     } catch {
-      setMensaje("Error al cargar la disciplina.");
+      toast.error("Error al cargar la disciplina.");
     }
-  };
+  }, []);
 
-  const handleGuardar = async () => {
+  const handleGuardarDisciplina = async (values: DisciplinaRequest) => {
     try {
-      if (disciplina.id) {
-        await api.put(`/api/disciplinas/${disciplina.id}`, disciplina);
-        setMensaje("Disciplina actualizada correctamente.");
+      if (values.id) {
+        await api.put(`/api/disciplinas/${values.id}`, values);
+        toast.success("Disciplina actualizada correctamente.");
       } else {
-        await api.post("/api/disciplinas", disciplina);
-        setMensaje("Disciplina creada correctamente.");
+        await api.post("/api/disciplinas", values);
+        toast.success("Disciplina creada correctamente.");
       }
     } catch {
-      setMensaje("Error al guardar la disciplina.");
+      toast.error("Error al guardar la disciplina.");
     }
-  };
-
-  const handleLimpiar = () => {
-    setDisciplina({
-      nombre: "",
-      horario: "",
-      frecuenciaSemanal: undefined,
-      duracion: "",
-      salon: "",
-      valorCuota: undefined,
-      matricula: undefined,
-      profesorId: undefined,
-      cupoMaximo: undefined,
-    });
-    setMensaje("");
-  };
-
-  const handleVolverListado = () => {
-    navigate("/disciplinas");
   };
 
   return (
     <div className="formulario">
-      <h1 className="form-titulo">Formulario de Disciplinas</h1>
-      <div className="form-grid">
-        <input
-          type="text"
-          name="nombre"
-          value={disciplina.nombre}
-          onChange={handleChange}
-          placeholder="Ej. Yoga, Baile Moderno"
-          className="form-input"
-        />
-        <input
-          type="text"
-          name="horario"
-          value={disciplina.horario}
-          onChange={handleChange}
-          placeholder="Ej. Lunes y Miércoles 18:00 - 19:00"
-          className="form-input"
-        />
-        <input
-          type="number"
-          name="frecuenciaSemanal"
-          value={disciplina.frecuenciaSemanal || ""}
-          onChange={handleChange}
-          placeholder="Frecuencia Semanal (Ej. 2)"
-          className="form-input"
-        />
-        <input
-          type="text"
-          name="duracion"
-          value={disciplina.duracion}
-          onChange={handleChange}
-          placeholder="Duración (Ej. 1 hora)"
-          className="form-input"
-        />
-        <input
-          type="text"
-          name="salon"
-          value={disciplina.salon}
-          onChange={handleChange}
-          placeholder="Salón (Ej. Salón A)"
-          className="form-input"
-        />
-        <input
-          type="number"
-          name="valorCuota"
-          value={disciplina.valorCuota || ""}
-          onChange={handleChange}
-          placeholder="Valor Cuota (Ej. 1500)"
-          className="form-input"
-        />
-        <input
-          type="number"
-          name="matricula"
-          value={disciplina.matricula || ""}
-          onChange={handleChange}
-          placeholder="Matrícula (Ej. 500)"
-          className="form-input"
-        />
-        <select
-          name="profesorId"
-          value={disciplina.profesorId || ""}
-          onChange={handleChange}
-          className="form-input"
-        >
-          <option value="" disabled>
-            Seleccione un Profesor
-          </option>
-          {profesores.map((profesor) => (
-            <option key={profesor.id} value={profesor.id}>
-              {profesor.nombreCompleto}
-            </option>
-          ))}
-        </select>
-        <input
-          type="number"
-          name="cupoMaximo"
-          value={disciplina.cupoMaximo || ""}
-          onChange={handleChange}
-          placeholder="Cupo Máximo de Alumnos"
-          className="form-input"
-        />
-      </div>
-      <div className="form-acciones">
-        <Boton onClick={handleGuardar}>Guardar</Boton>
-        <Boton onClick={handleLimpiar}>Limpiar</Boton>
-        <Boton onClick={handleVolverListado}>Volver al Listado</Boton>
-      </div>
-      {mensaje && <p className="form-mensaje">{mensaje}</p>}
+      <h1 className="form-title">Formulario de Disciplinas</h1>
+
+      <Formik
+        initialValues={initialValues}
+        validationSchema={disciplinaEsquema}
+        onSubmit={handleGuardarDisciplina}
+      >
+        {({ setValues, isSubmitting }) => (
+          <Form className="formulario">
+            {/* Búsqueda por ID */}
+            <div className="form-busqueda">
+              <label htmlFor="idBusqueda">Número de Disciplina:</label>
+              <Field
+                type="number"
+                id="idBusqueda"
+                name="id"
+                className="form-input"
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  const idValue = e.target.value ? Number(e.target.value) : 0; // Asegura que siempre sea un número
+                  setValues((prevValues) => ({
+                    ...prevValues,
+                    id: idValue, // Siempre un número, evitando `undefined`
+                  }));
+                }}
+              />
+
+              <Boton
+                type="button"
+                onClick={() =>
+                  handleBuscar(String(initialValues.id), setValues)
+                }
+              >
+                Buscar
+              </Boton>
+            </div>
+
+            {/* Campos del Formulario */}
+            <fieldset className="form-fieldset">
+              <legend>Datos de la Disciplina</legend>
+              <div className="form-grid">
+                {[
+                  { name: "nombre", label: "Nombre (obligatorio)" },
+                  {
+                    name: "horario",
+                    label: "Horario (Ej. Lunes y Miércoles 18:00 - 19:00)",
+                  },
+                  {
+                    name: "frecuenciaSemanal",
+                    label: "Frecuencia Semanal",
+                    type: "number",
+                  },
+                  { name: "duracion", label: "Duración (Ej. 1 hora)" },
+                  { name: "salon", label: "Salón (Ej. Salón A)" },
+                  { name: "valorCuota", label: "Valor Cuota", type: "number" },
+                  { name: "matricula", label: "Matrícula", type: "number" },
+                  {
+                    name: "cupoMaximo",
+                    label: "Cupo Máximo de Alumnos",
+                    type: "number",
+                  },
+                ].map(({ name, label, type = "text" }) => (
+                  <div key={name}>
+                    <label>{label}:</label>
+                    <Field name={name} type={type} className="form-input" />
+                    <ErrorMessage
+                      name={name}
+                      component="div"
+                      className="error"
+                    />
+                  </div>
+                ))}
+
+                {/* Selección de Profesor */}
+                <div>
+                  <label>Profesor:</label>
+                  <Field as="select" name="profesorId" className="form-input">
+                    <option value="">Seleccione un Profesor</option>
+                    {profesores.map((prof) => (
+                      <option key={prof.id} value={prof.id}>
+                        {prof.nombre + " " + prof.apellido}
+                      </option>
+                    ))}
+                  </Field>
+                  <ErrorMessage
+                    name="profesorId"
+                    component="div"
+                    className="error"
+                  />
+                </div>
+              </div>
+            </fieldset>
+
+            {/* Botones de Acción */}
+            <div className="form-acciones">
+              <Boton type="submit" disabled={isSubmitting}>
+                Guardar Disciplina
+              </Boton>
+              <Boton
+                type="reset"
+                secondary
+                onClick={() => setValues(initialValues)}
+              >
+                Limpiar
+              </Boton>
+              <Boton
+                type="button"
+                secondary
+                onClick={() => navigate("/disciplinas")}
+              >
+                Volver al Listado
+              </Boton>
+            </div>
+          </Form>
+        )}
+      </Formik>
     </div>
   );
 };
