@@ -6,6 +6,7 @@
 /home/jeremias/le-dance/backend/src/main/java/ledance/controladores/DisciplinaControlador.java
 /home/jeremias/le-dance/backend/src/main/java/ledance/controladores/InscripcionControlador.java
 /home/jeremias/le-dance/backend/src/main/java/ledance/controladores/ProfesorControlador.java
+/home/jeremias/le-dance/backend/src/main/java/ledance/controladores/ReporteControlador.java
 /home/jeremias/le-dance/backend/src/main/java/ledance/controladores/RolControlador.java
 /home/jeremias/le-dance/backend/src/main/java/ledance/controladores/UsuarioControlador.java
 /home/jeremias/le-dance/backend/src/main/java/ledance/dto/mappers/AlumnoMapper.java
@@ -27,6 +28,7 @@
 /home/jeremias/le-dance/backend/src/main/java/ledance/dto/response/BonificacionResponse.java
 /home/jeremias/le-dance/backend/src/main/java/ledance/dto/response/DatosRegistroProfesorResponse.java
 /home/jeremias/le-dance/backend/src/main/java/ledance/dto/response/DisciplinaResponse.java
+/home/jeremias/le-dance/backend/src/main/java/ledance/dto/response/DisciplinaSimpleResponse.java
 /home/jeremias/le-dance/backend/src/main/java/ledance/dto/response/InscripcionResponse.java
 /home/jeremias/le-dance/backend/src/main/java/ledance/dto/response/PerfilUsuarioResponse.java
 /home/jeremias/le-dance/backend/src/main/java/ledance/dto/response/ProfesorListadoResponse.java
@@ -60,6 +62,7 @@
 /home/jeremias/le-dance/backend/src/main/java/ledance/repositorios/InscripcionRepositorio.java
 /home/jeremias/le-dance/backend/src/main/java/ledance/repositorios/MetodoPagoRepositorio.java
 /home/jeremias/le-dance/backend/src/main/java/ledance/repositorios/ProfesorRepositorio.java
+/home/jeremias/le-dance/backend/src/main/java/ledance/repositorios/ReporteRepositorio.java
 /home/jeremias/le-dance/backend/src/main/java/ledance/repositorios/RolRepositorio.java
 /home/jeremias/le-dance/backend/src/main/java/ledance/repositorios/UsuarioRepositorio.java
 /home/jeremias/le-dance/backend/src/main/java/ledance/servicios/AlumnoServicio.java
@@ -68,6 +71,7 @@
 /home/jeremias/le-dance/backend/src/main/java/ledance/servicios/DisciplinaServicio.java
 /home/jeremias/le-dance/backend/src/main/java/ledance/servicios/InscripcionServicio.java
 /home/jeremias/le-dance/backend/src/main/java/ledance/servicios/ProfesorServicio.java
+/home/jeremias/le-dance/backend/src/main/java/ledance/servicios/ReporteServicio.java
 /home/jeremias/le-dance/backend/src/main/java/ledance/servicios/RolServicio.java
 /home/jeremias/le-dance/backend/src/main/java/ledance/servicios/UsuarioServicio.java
 /home/jeremias/le-dance/backend/src/main/java/ledance/validaciones/Validador.java

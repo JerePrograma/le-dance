@@ -9,6 +9,7 @@ ledance/dto/response/ProfesorListadoResponse.class
 ledance/dto/response/DatosRegistroProfesorResponse.class
 ledance/servicios/ProfesorServicio.class
 ledance/dto/request/ProfesorRegistroRequest.class
+ledance/repositorios/ReporteRepositorio.class
 ledance/validaciones/usuarios/ValidadorRol.class
 ledance/repositorios/BonificacionRepositorio.class
 ledance/infra/errores/TratadorDeErrores$DatosErrorGeneral.class
@@ -38,6 +39,7 @@ ledance/entidades/Rol.class
 ledance/repositorios/ProfesorRepositorio.class
 ledance/controladores/AutenticacionControlador.class
 ledance/validaciones/disciplinas/ValidadorDisciplinaDuplicada.class
+ledance/controladores/ReporteControlador.class
 ledance/dto/mappers/AlumnoMapper.class
 ledance/controladores/DisciplinaControlador.class
 ledance/entidades/Profesor.class
@@ -61,6 +63,7 @@ ledance/dto/request/InscripcionRequest.class
 ledance/validaciones/alumnos/ValidadorAlumnoDuplicado.class
 ledance/servicios/BonificacionServicio.class
 ledance/Main.class
+ledance/dto/response/DisciplinaSimpleResponse.class
 ledance/controladores/RolControlador.class
 ledance/servicios/AlumnoServicio.class
 ledance/controladores/AutenticacionControlador$TokensDTO.class
@@ -75,6 +78,7 @@ ledance/dto/response/RolResponse.class
 ledance/infra/seguridad/SecurityFilter.class
 ledance/dto/request/BonificacionRequest.class
 ledance/entidades/Alumno.class
+ledance/servicios/ReporteServicio.class
 ledance/infra/seguridad/SecurityConfigurations.class
 ledance/dto/request/AsistenciaRequest.class
 ledance/repositorios/DisciplinaRepositorio.class
