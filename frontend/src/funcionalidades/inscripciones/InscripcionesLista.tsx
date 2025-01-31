@@ -4,7 +4,7 @@ import Tabla from "../../componentes/comunes/Tabla";
 import inscripcionesApi from "../../utilidades/inscripcionesApi";
 import { InscripcionResponse } from "../../types/types";
 
-const InscripcionesLista: React.FC = () => {
+const InscripcionesPagina: React.FC = () => {
   const [inscripciones, setInscripciones] = useState<InscripcionResponse[]>([]);
   const navigate = useNavigate();
 
@@ -79,7 +79,7 @@ const InscripcionesLista: React.FC = () => {
             fila.id,
             fila.alumnoId,
             fila.disciplinaId,
-            fila.bonificacionId ?? "N/A",
+            fila.bonificacion ? fila.bonificacion.descripcion : "N/A", // Aquí mostramos el nombre de la bonificación
             fila.costoParticular ?? 0,
             fila.notas ?? "",
           ]}
@@ -89,4 +89,4 @@ const InscripcionesLista: React.FC = () => {
   );
 };
 
-export default InscripcionesLista;
+export default InscripcionesPagina;
