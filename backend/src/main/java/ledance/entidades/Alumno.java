@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Entity
 @Data
@@ -53,4 +54,8 @@ public class Alumno {
 
     @Column(nullable = false)
     private Boolean activo = true;
+
+    @OneToMany(mappedBy = "alumno", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Inscripcion> inscripciones;
+
 }

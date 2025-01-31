@@ -88,7 +88,7 @@ public class AlumnoServicio {
     }
 
     public List<AlumnoListadoResponse> buscarPorNombre(String nombre) {
-        return alumnoRepositorio.buscarPorNombreCompleto(nombre);
+        return alumnoRepositorio.buscarPorNombreCompleto(nombre).stream().map(alumnoMapper::toListadoResponse).collect(Collectors.toList());
     }
 
 }

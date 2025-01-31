@@ -17,8 +17,8 @@ public interface AlumnoRepositorio extends JpaRepository<Alumno, Long> {
 
     List<Alumno> findByActivoTrue();
 
-    @Query("SELECT new ledance.dto.response.AlumnoListadoResponse(a.id, a.nombre, a.apellido) " +
+    @Query("SELECT Alumno(a.id, a.nombre, a.apellido) " +
             "FROM Alumno a WHERE CONCAT(a.nombre, ' ', a.apellido) LIKE %:nombre%")
-    List<AlumnoListadoResponse> buscarPorNombreCompleto(@Param("nombre") String nombre);
+    List<Alumno> buscarPorNombreCompleto(@Param("nombre") String nombre);
 
 }

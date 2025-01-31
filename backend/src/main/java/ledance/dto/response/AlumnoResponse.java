@@ -19,8 +19,8 @@ public record AlumnoResponse(
         String nombrePadres,
         Boolean autorizadoParaSalirSolo,
         Boolean activo,
-        String otrasNotas, // Agregado
-        Double cuotaTotal, // Agregado
-        List<Long> disciplinasIds
+        List<DisciplinaSimpleResponse> disciplinas
 ) {}
+
+
 

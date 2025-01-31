@@ -1,9 +1,13 @@
 package ledance.dto.mappers;
 
 import ledance.dto.request.AlumnoRequest;
+import ledance.dto.response.AlumnoListadoResponse;
 import ledance.dto.response.AlumnoResponse;
+import ledance.dto.response.DisciplinaSimpleResponse;
 import ledance.entidades.Alumno;
 import org.springframework.stereotype.Component;
+
+import java.util.stream.Collectors;
 
 @Component
 public class AlumnoMapper {
@@ -68,4 +72,36 @@ public class AlumnoMapper {
                 null
         );
     }
+
+    public AlumnoResponse toResponse(Alumno alumno) {
+        return new AlumnoResponse(
+                alumno.getId(),
+                alumno.getNombre(),
+                alumno.getApellido(),
+                alumno.getFechaNacimiento(),
+                alumno.getEdad(),
+                alumno.getCelular1(),
+                alumno.getCelular2(),
+                alumno.getEmail1(),
+                alumno.getEmail2(),
+                alumno.getDocumento(),
+                alumno.getCuit(),
+                alumno.getFechaIncorporacion(),
+                alumno.getNombrePadres(),
+                alumno.getAutorizadoParaSalirSolo(),
+                alumno.getActivo(),
+                alumno.getInscripciones().stream() // Convertimos inscripciones en disciplinas
+                        .map(ins -> new DisciplinaSimpleResponse(ins.getDisciplina().getId(), ins.getDisciplina().getNombre()))
+                        .collect(Collectors.toList())
+        );
+    }
+
+    public AlumnoListadoResponse toListadoResponse(Alumno alumno){
+        return new AlumnoListadoResponse(
+                alumno.getId(),
+                alumno.getNombre(),
+                alumno.getApellido()
+        );
+    }
+
 }
