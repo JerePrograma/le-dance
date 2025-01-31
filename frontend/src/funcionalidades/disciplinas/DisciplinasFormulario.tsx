@@ -70,6 +70,7 @@ const DisciplinasFormulario: React.FC = () => {
       toast.success("Disciplina cargada correctamente.");
     } catch {
       toast.error("Error al cargar la disciplina.");
+      setValues(initialValues);
     }
   }, []);
 

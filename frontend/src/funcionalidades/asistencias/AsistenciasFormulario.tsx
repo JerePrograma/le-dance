@@ -81,6 +81,7 @@ const AsistenciasFormulario: React.FC = () => {
       toast.success("Asistencia cargada correctamente.");
     } catch {
       toast.error("Error al cargar la asistencia.");
+      setValues(initialValues);
     }
   }, []);
 

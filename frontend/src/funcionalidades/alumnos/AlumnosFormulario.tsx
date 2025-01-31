@@ -51,8 +51,10 @@ const AlumnosFormulario: React.FC = () => {
       const idNum = Number(idStr);
       if (isNaN(idNum)) {
         setMensaje("ID inválido");
+        setValues(initialValues); // ✅ Limpiar formulario
         return;
       }
+
       const data: AlumnoResponse = await alumnosApi.obtenerAlumnoPorId(idNum);
 
       setValues({
@@ -79,6 +81,9 @@ const AlumnosFormulario: React.FC = () => {
     } catch (error) {
       console.error(error);
       setMensaje("No se encontró un alumno con ese ID.");
+      setValues(initialValues); // ✅ Limpiar formulario si no encuentra el alumno
+      setAlumnoId(null);
+      setInscripciones([]); // ✅ También limpiar inscripciones
     }
   }, []);
 

@@ -47,6 +47,7 @@ const ProfesoresFormulario: React.FC = () => {
       toast.success("Profesor cargado correctamente.");
     } catch {
       toast.error("Error al cargar los datos del profesor.");
+      setValues(initialValues);
     }
   }, []);
 

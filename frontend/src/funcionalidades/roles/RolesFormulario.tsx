@@ -31,6 +31,7 @@ const RolesFormulario: React.FC = () => {
       toast.success("Rol cargado correctamente.");
     } catch {
       toast.error("Error al cargar los datos del rol.");
+      setValues(initialValues);
     }
   }, []);
 

@@ -39,6 +39,7 @@ const BonificacionesFormulario: React.FC = () => {
       toast.success("Bonificación cargada correctamente.");
     } catch {
       toast.error("Error al cargar la bonificación.");
+      setValues(initialValues);
     }
   }, []);
 

@@ -21,4 +21,15 @@ public interface AsistenciaRepositorio extends JpaRepository<Asistencia, Long> {
     @Query("SELECT a.alumno.nombre, a.disciplina.nombre, COUNT(a) FROM Asistencia a " +
             "WHERE a.presente = true GROUP BY a.alumno.nombre, a.disciplina.nombre")
     List<Object[]> obtenerAsistenciasPorAlumnoYDisciplina();
+
+
+    @Query("SELECT a.alumno.nombre, COUNT(a) FROM Asistencia a WHERE a.alumno.id = :alumnoId GROUP BY a.alumno.nombre")
+    List<Object[]> obtenerAsistenciasPorAlumno(Long alumnoId);
+
+    @Query("SELECT d.nombre, COUNT(a) FROM Asistencia a JOIN a.disciplina d WHERE d.id = :disciplinaId GROUP BY d.nombre")
+    List<Object[]> obtenerAsistenciasPorDisciplina(Long disciplinaId);
+
+    @Query("SELECT d.nombre, a.alumno.nombre, COUNT(a) FROM Asistencia a JOIN a.disciplina d WHERE d.id = :disciplinaId AND a.alumno.id = :alumnoId GROUP BY d.nombre, a.alumno.nombre")
+    List<Object[]> obtenerAsistenciasPorDisciplinaYAlumno(Long disciplinaId, Long alumnoId);
+
 }

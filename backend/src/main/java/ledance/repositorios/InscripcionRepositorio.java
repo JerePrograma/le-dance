@@ -17,7 +17,6 @@ public interface InscripcionRepositorio extends JpaRepository<Inscripcion, Long>
 
     List<InscripcionResponse> findAllByAlumnoId(Long alumnoId);
 
-    @Query("SELECT i.disciplina.nombre, SUM(i.costoParticular) FROM Inscripcion i " +
-            "WHERE i.alumno.activo = true GROUP BY i.disciplina.nombre")
+    @Query("SELECT d.nombre, SUM(i.costoParticular) FROM Inscripcion i JOIN i.disciplina d GROUP BY d.nombre")
     List<Object[]> obtenerRecaudacionPorDisciplina();
 }
