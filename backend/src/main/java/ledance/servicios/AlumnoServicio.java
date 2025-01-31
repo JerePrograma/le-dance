@@ -77,13 +77,7 @@ public class AlumnoServicio {
      * porque ahora se gestionan en InscripcionServicio.
      */
     public List<AlumnoListadoResponse> listarAlumnosSimplificado() {
-        return alumnoRepositorio.findAll().stream()
-                .map(alumno -> new AlumnoListadoResponse(
-                        alumno.getId(),
-                        alumno.getNombre(),
-                        alumno.getApellido()
-                ))
-                .collect(Collectors.toList());
+        return alumnoRepositorio.findAll().stream().map(alumnoMapper::toListadoResponse).collect(Collectors.toList());
     }
 
     public List<AlumnoListadoResponse> buscarPorNombre(String nombre) {
