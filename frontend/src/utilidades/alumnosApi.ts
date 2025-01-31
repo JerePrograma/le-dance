@@ -7,8 +7,8 @@ import {
 } from "../types/types";
 
 const alumnosApi = {
-  listarAlumnos: async (): Promise<AlumnoResponse[]> => {
-    const response = await api.get("/api/alumnos");
+  listarAlumnos: async (): Promise<AlumnoListadoResponse[]> => {
+    const response = await api.get("/api/alumnos/listado"); // ✅ Cambiado para devolver solo los datos necesarios
     return response.data;
   },
 

@@ -76,7 +76,6 @@ public class AlumnoServicio {
      * Métodos que estaban relacionados con Disciplinas / Bonificaciones se mueven o se eliminan
      * porque ahora se gestionan en InscripcionServicio.
      */
-
     public List<AlumnoListadoResponse> listarAlumnosSimplificado() {
         return alumnoRepositorio.findAll().stream()
                 .map(alumno -> new AlumnoListadoResponse(
