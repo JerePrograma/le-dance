@@ -1,25 +1,23 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Tabla from "../../componentes/comunes/Tabla";
-import api from "../../utilidades/axiosConfig";
+import alumnosApi from "../../utilidades/alumnosApi"; // ✅ Usamos la API corregida
 
-interface Alumno {
+interface AlumnoListado {
   id: number;
   nombre: string;
-  apellido?: string;
-  edad?: number;
-  activo?: boolean;
+  apellido: string;
 }
 
 const Alumnos = () => {
-  const [alumnos, setAlumnos] = useState<Alumno[]>([]);
+  const [alumnos, setAlumnos] = useState<AlumnoListado[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchAlumnos = async () => {
       try {
-        const response = await api.get("/api/alumnos");
-        setAlumnos(response.data);
+        const response = await alumnosApi.listarAlumnos(); // ✅ Ahora obtiene solo ID, nombre y apellido
+        setAlumnos(response);
       } catch (error) {
         console.error("Error al cargar alumnos:", error);
       }
@@ -43,14 +41,7 @@ const Alumnos = () => {
 
       <div className="page-table-container">
         <Tabla
-          encabezados={[
-            "ID",
-            "Nombre",
-            "Apellido",
-            "Edad",
-            "Activo",
-            "Acciones",
-          ]}
+          encabezados={["ID", "Nombre", "Apellido", "Acciones"]}
           datos={alumnos}
           acciones={(fila) => (
             <>
@@ -65,13 +56,7 @@ const Alumnos = () => {
               </button>
             </>
           )}
-          extraRender={(fila) => [
-            fila.id,
-            fila.nombre,
-            fila.apellido ?? "",
-            fila.edad ?? "",
-            fila.activo ? "Sí" : "No",
-          ]}
+          extraRender={(fila) => [fila.id, fila.nombre, fila.apellido]} // ✅ Solo mostramos lo que necesitamos
         />
       </div>
     </div>

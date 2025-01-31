@@ -73,7 +73,7 @@ public class AlumnoServicio {
     }
 
     /**
-     * Métodos que estaban relacionados con Disciplinas / Bonificaciones se mueven o se eliminan
+     * Métodos que estaban relacionados con Disciplinas / Bonificacio|nes se mueven o se eliminan
      * porque ahora se gestionan en InscripcionServicio.
      */
     public List<AlumnoListadoResponse> listarAlumnosSimplificado() {
