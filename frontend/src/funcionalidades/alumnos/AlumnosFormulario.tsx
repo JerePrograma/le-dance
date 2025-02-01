@@ -326,65 +326,81 @@ const AlumnosFormulario: React.FC = () => {
             {/* ================================
           SECCION DE INSCRIPCIONES
          ================================ */}
-            <h2>Inscripciones del Alumno</h2>
-            {alumnoId ? (
-              <>
-                <button
-                  className="botones botones-primario mb-4"
-                  onClick={() =>
-                    navigate(`/inscripciones/formulario?alumnoId=${alumnoId}`)
-                  }
-                >
-                  Agregar Disciplina
-                </button>
+            {/* 🔹 Sección de Inscripciones del Alumno */}
+            <fieldset className="form-fieldset">
+              <legend className="form-legend text-xl font-semibold">
+                Inscripciones del Alumno
+              </legend>
 
-                <Tabla
-                  encabezados={[
-                    "ID",
-                    "DisciplinaID",
-                    "BonificaciónID",
-                    "Costo Particular",
-                    "Notas",
-                    "Acciones",
-                  ]}
-                  datos={inscripciones}
-                  acciones={(fila) => (
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() =>
-                          navigate(`/inscripciones/formulario?id=${fila.id}`)
-                        }
-                        className="botones botones-primario"
-                      >
-                        Editar
-                      </button>
-                      <button
-                        onClick={() => handleEliminarInscripcion(fila.id)}
-                        className="botones bg-red-500 text-white hover:bg-red-600"
-                      >
-                        Eliminar
-                      </button>
-                    </div>
-                  )}
-                  extraRender={(fila) => [
-                    fila.id,
-                    fila.disciplinaId,
-                    fila.bonificacionId ?? "N/A",
-                    fila.costoParticular ?? 0,
-                    fila.notas ?? "",
-                  ]}
-                />
-              </>
-            ) : (
-              <p>
-                No se puede gestionar inscripciones hasta que{" "}
-                <strong>guarde o cargue</strong> un Alumno.
-              </p>
-            )}
+              {alumnoId ? (
+                <>
+                  {/* 🔹 Botón para agregar inscripción */}
+                  <div className="flex justify-end mb-4">
+                    <Boton
+                      onClick={() =>
+                        navigate(
+                          `/inscripciones/formulario?alumnoId=${alumnoId}`
+                        )
+                      }
+                    >
+                      Agregar Disciplina
+                    </Boton>
+                  </div>
 
-            {mensaje && (
-              <p className="form-mensaje form-mensaje-error">{mensaje}</p>
-            )}
+                  {/* 🔹 Tabla de inscripciones */}
+                  <div className="page-table-container">
+                    <Tabla
+                      encabezados={[
+                        "ID",
+                        "Disciplina",
+                        "Bonificación",
+                        "Costo",
+                        "Notas",
+                        "Acciones",
+                      ]}
+                      datos={inscripciones}
+                      acciones={(fila) => (
+                        <div className="flex gap-2">
+                          <Boton
+                            onClick={() =>
+                              navigate(
+                                `/inscripciones/formulario?id=${fila.id}`
+                              )
+                            }
+                            secondary
+                          >
+                            Editar
+                          </Boton>
+                          <Boton
+                            onClick={() => handleEliminarInscripcion(fila.id)}
+                            className="bg-red-500 text-white hover:bg-red-600"
+                          >
+                            Eliminar
+                          </Boton>
+                        </div>
+                      )}
+                      extraRender={(fila) => [
+                        fila.id,
+                        fila.disciplinaId,
+                        fila.bonificacionId ? fila.bonificacionId : "N/A",
+                        fila.costoParticular ? `$${fila.costoParticular}` : "-",
+                        fila.notas || "-",
+                      ]}
+                    />
+                  </div>
+                </>
+              ) : (
+                <p className="text-gray-500 text-sm mt-4">
+                  No se pueden gestionar inscripciones hasta que{" "}
+                  <strong>se guarde</strong> un alumno.
+                </p>
+              )}
+
+              {/* 🔹 Mensaje de error si existe */}
+              {mensaje && (
+                <p className="form-mensaje form-mensaje-error">{mensaje}</p>
+              )}
+            </fieldset>
           </Form>
         )}
       </Formik>
