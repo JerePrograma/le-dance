@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Tabla from "../../componentes/comunes/Tabla";
 import inscripcionesApi from "../../utilidades/inscripcionesApi";
 import { InscripcionResponse } from "../../types/types";
+import Boton from "../../componentes/comunes/Boton";
 
 const InscripcionesPagina: React.FC = () => {
   const [inscripciones, setInscripciones] = useState<InscripcionResponse[]>([]);
@@ -22,10 +23,6 @@ const InscripcionesPagina: React.FC = () => {
 
   const handleCrearInscripcion = () => {
     navigate("/inscripciones/formulario");
-  };
-
-  const handleEditarInscripcion = (id: number) => {
-    navigate(`/inscripciones/formulario?id=${id}`);
   };
 
   const handleEliminarInscripcion = async (id: number) => {
@@ -51,38 +48,40 @@ const InscripcionesPagina: React.FC = () => {
         <Tabla
           encabezados={[
             "ID",
-            "AlumnoID",
-            "DisciplinaID",
-            "BonificaciónID",
-            "Costo Particular",
+            "Alumno",
+            "Disciplina",
+            "Bonificación",
+            "Costo",
             "Notas",
             "Acciones",
           ]}
           datos={inscripciones}
-          acciones={(fila) => (
-            <div className="flex gap-2">
-              <button
-                onClick={() => handleEditarInscripcion(fila.id)}
-                className="page-button bg-blue-500 hover:bg-blue-600"
-              >
-                Editar
-              </button>
-              <button
-                onClick={() => handleEliminarInscripcion(fila.id)}
-                className="page-button bg-red-500 hover:bg-red-600"
-              >
-                Eliminar
-              </button>
-            </div>
-          )}
           extraRender={(fila) => [
             fila.id,
-            fila.alumnoId,
-            fila.disciplinaId,
-            fila.bonificacion ? fila.bonificacion.descripcion : "N/A", // Aquí mostramos el nombre de la bonificación
-            fila.costoParticular ?? 0,
-            fila.notas ?? "",
+            fila.alumno.nombre,
+            fila.disciplina.nombre,
+            fila.bonificacion ? fila.bonificacion.descripcion : "N/A",
+            fila.costoParticular ? `$${fila.costoParticular.toFixed(2)}` : "-",
+            fila.notas || "-",
           ]}
+          acciones={(fila) => (
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Boton
+                onClick={() =>
+                  navigate(`/inscripciones/formulario?id=${fila.id}`)
+                }
+                secondary
+              >
+                Editar
+              </Boton>
+              <Boton
+                onClick={() => handleEliminarInscripcion(fila.id)}
+                className="bg-red-500 text-white hover:bg-red-600"
+              >
+                Eliminar
+              </Boton>
+            </div>
+          )}
         />
       </div>
     </div>
