@@ -69,8 +69,7 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT }}
           script: |
-            # Se intenta detener el proceso actual del backend (si existe)
-            pkill -f 'backend-1.0.jar' || true
-            # Se inicia el backend en una nueva sesión para desacoplarlo de la sesión SSH,
-            # redirigiendo la entrada desde /dev/null para evitar que se cierre al finalizar la conexión.
-            setsid java -jar /home/jeremias/le-dance/backend/backend-1.0.jar > /home/jeremias/le-dance/backend/backend.log 2>&1 < /dev/null &
+              # Se intenta detener el proceso actual del backend (si existe)
+              pkill -f 'backend-1.0.jar' || true
+              # Inicia el backend en una sesión tmux desacoplada
+              tmux new -d -s backend "java -jar /home/jeremias/le-dance/backend/backend-1.0.jar > /home/jeremias/le-dance/backend/backend.log 2>&1"
