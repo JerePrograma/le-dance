@@ -18,6 +18,7 @@ yarn-error.log*
 .pnpm-debug.log*
 .vite/
 *.log
+package-lock.json
 
 # IDE Configurations
 .idea/
