@@ -1,6 +1,7 @@
 # Maven
 target/
 !.mvn/wrapper/maven-wrapper.jar
+backend/target/
 
 # Gradle
 .gradle/
@@ -10,7 +11,7 @@ build/
 
 # Node.js / Vite
 node_modules/
-dist/
+frontend/dist/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -19,13 +20,10 @@ yarn-error.log*
 *.log
 
 # IDE Configurations
-### IntelliJ IDEA ###
 .idea/
 *.iws
 *.iml
 *.ipr
-
-### Eclipse ###
 .apt_generated
 .classpath
 .factorypath
@@ -33,31 +31,21 @@ yarn-error.log*
 .settings/
 .springBeans
 .sts4-cache
-
-### NetBeans ###
 /nbproject/private/
 /nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-
-### Visual Studio Code ###
+nbdist/
+.nb-gradle/
 .vscode/
 .history/
 
 # OS Files
-### macOS ###
 .DS_Store
 .AppleDouble
 .LSOverride
-
-### Windows ###
 Thumbs.db
 ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
-
-### Linux ###
 *.pid
 *.swp
 *.swo
