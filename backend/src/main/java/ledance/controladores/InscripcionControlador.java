@@ -3,6 +3,7 @@ package ledance.controladores;
 import ledance.dto.request.InscripcionRequest;
 import ledance.dto.response.InscripcionResponse;
 import ledance.servicios.InscripcionServicio;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,15 +25,18 @@ public class InscripcionControlador {
     }
 
     @GetMapping
-    public List<InscripcionResponse> listar(
-            @RequestParam(required = false) Long alumnoId
-    ) {
-        if (alumnoId != null) {
-            return inscripcionServicio.listarPorAlumno(alumnoId);
+    public ResponseEntity<?> listar(@RequestParam(required = false) Long alumnoId) {
+        try {
+            if (alumnoId != null) {
+                return ResponseEntity.ok(inscripcionServicio.listarPorAlumno(alumnoId));
+            }
+            return ResponseEntity.ok(inscripcionServicio.listarInscripciones());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error interno del servidor.");
         }
-        return inscripcionServicio.listarInscripciones();
     }
-
 
     @GetMapping("/{id}")
     public ResponseEntity<InscripcionResponse> obtenerPorId(@PathVariable Long id) {

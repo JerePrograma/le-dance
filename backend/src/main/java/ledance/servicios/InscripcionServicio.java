@@ -144,6 +144,13 @@ public class InscripcionServicio {
 
 
     public List<InscripcionResponse> listarPorAlumno(Long alumnoId) {
-        return inscripcionRepositorio.findAllByAlumnoId(alumnoId);
+        List<Inscripcion> inscripciones = inscripcionRepositorio.findAllByAlumnoId(alumnoId);
+
+        if (inscripciones == null || inscripciones.isEmpty()) {
+            throw new IllegalArgumentException("No hay inscripciones para este alumno.");
+        }
+
+        return inscripciones.stream().map(this::toResponse).collect(Collectors.toList());
     }
+
 }
