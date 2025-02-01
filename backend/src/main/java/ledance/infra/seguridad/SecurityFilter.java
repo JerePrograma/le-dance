@@ -9,6 +9,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import com.auth0.jwt.exceptions.JWTVerificationException;
 
 import java.io.IOException;
 
@@ -24,33 +25,27 @@ public class SecurityFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain filterChain
-    ) throws ServletException, IOException {
-        var authHeader = request.getHeader("Authorization");
-        if (authHeader != null) {
-            var token = authHeader.replace("Bearer ", "");
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain)
+            throws ServletException, IOException {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.replace("Bearer ", "");
             try {
-                var email = tokenService.getSubject(token); // Lanza excepción si expira
-                // Revisamos también que sea un Access token (opcional)
-                var tipo = tokenService.getTokenType(token);
+                String email = tokenService.getSubject(token);
+                String tipo = tokenService.getTokenType(token);
                 if (!"ACCESS".equals(tipo)) {
-                    throw new RuntimeException("Token no es de tipo ACCESS");
+                    throw new JWTVerificationException("Token no es de tipo ACCESS");
                 }
-
-                //Si pasa, el Token es valido
                 var usuarioOpt = usuarioRepositorio.findByEmail(email);
                 if (usuarioOpt.isPresent()) {
                     var userEntity = usuarioOpt.get();
                     var authentication = new UsernamePasswordAuthenticationToken(
-                            userEntity, null, userEntity.getAuthorities()
-                    );
+                            userEntity, null, userEntity.getAuthorities());
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 }
-            } catch (Exception ex) {
-                // Token expirado o inválido -> 401
+            } catch (JWTVerificationException ex) {
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 return;
             }

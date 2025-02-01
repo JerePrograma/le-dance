@@ -1,3 +1,6 @@
 package ledance.dto.response;
 
-public record DisciplinaSimpleResponse(Long id, String nombre) {}
+public record DisciplinaSimpleResponse(
+        Long id,
+        String nombre
+) {}

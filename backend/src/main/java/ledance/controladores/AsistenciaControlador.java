@@ -3,7 +3,10 @@ package ledance.controladores;
 import ledance.dto.request.AsistenciaRequest;
 import ledance.dto.response.AsistenciaResponseDTO;
 import ledance.servicios.AsistenciaServicio;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -11,8 +14,10 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/asistencias")
+@Validated
 public class AsistenciaControlador {
 
+    private static final Logger log = LoggerFactory.getLogger(AsistenciaControlador.class);
     private final AsistenciaServicio asistenciaServicio;
 
     public AsistenciaControlador(AsistenciaServicio asistenciaServicio) {
@@ -20,9 +25,10 @@ public class AsistenciaControlador {
     }
 
     @PostMapping
-    public ResponseEntity<AsistenciaResponseDTO> registrarAsistencia(@RequestBody AsistenciaRequest requestDTO) {
-        AsistenciaResponseDTO asistencia = asistenciaServicio.registrarAsistencia(requestDTO);
-        return ResponseEntity.ok(asistencia);
+    public ResponseEntity<AsistenciaResponseDTO> registrarAsistencia(@RequestBody @Validated AsistenciaRequest requestDTO) {
+        log.info("Registrando asistencia para alumnoId: {} en disciplinaId: {}", requestDTO.alumnoId(), requestDTO.disciplinaId());
+        AsistenciaResponseDTO respuesta = asistenciaServicio.registrarAsistencia(requestDTO);
+        return ResponseEntity.ok(respuesta);
     }
 
     @GetMapping("/disciplina/{disciplinaId}")
@@ -47,6 +53,7 @@ public class AsistenciaControlador {
 
     @GetMapping("/reporte")
     public ResponseEntity<List<String>> obtenerReporteAsistencias() {
-        return ResponseEntity.ok(asistenciaServicio.generarReporteAsistencias());
+        List<String> reporte = asistenciaServicio.generarReporteAsistencias();
+        return ResponseEntity.ok(reporte);
     }
 }

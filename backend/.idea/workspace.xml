@@ -6,6 +6,34 @@
   <component name="ChangeListManager">
     <list default="true" id="ccb8f120-972c-4a18-b18b-4ae7da723dfa" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/AlumnoControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/AlumnoControlador.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/AsistenciaControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/AsistenciaControlador.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/AutenticacionControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/AutenticacionControlador.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/BonificacionControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/BonificacionControlador.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/DisciplinaControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/DisciplinaControlador.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/InscripcionControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/InscripcionControlador.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/ProfesorControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/ProfesorControlador.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/ReporteControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/ReporteControlador.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/RolControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/RolControlador.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/UsuarioControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/UsuarioControlador.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/mappers/AlumnoMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/mappers/AlumnoMapper.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/mappers/AsistenciaMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/mappers/AsistenciaMapper.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/response/AlumnoResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/response/AlumnoResponse.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/response/DisciplinaSimpleResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/response/DisciplinaSimpleResponse.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/response/ProfesorListadoResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/response/ProfesorListadoResponse.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/response/ReporteResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/response/ReporteResponse.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/response/UsuarioResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/response/UsuarioResponse.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/infra/seguridad/SecurityFilter.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/infra/seguridad/SecurityFilter.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/AlumnoServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/AlumnoServicio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/AsistenciaServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/AsistenciaServicio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/BonificacionServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/BonificacionServicio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/DisciplinaServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/DisciplinaServicio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/InscripcionServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/InscripcionServicio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/ProfesorServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/ProfesorServicio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/ReporteServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/ReporteServicio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/RolServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/RolServicio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/UsuarioServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/UsuarioServicio.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -29,38 +57,41 @@
   &quot;associatedIndex&quot;: 1
 }</component>
   <component name="ProjectId" id="2s4zS9Oqq5y7rIix9UrfQvYCyWE" />
+  <component name="ProjectLevelVcsManager">
+    <ConfirmationsSetting value="1" id="Add" />
+  </component>
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "RequestMappingsPanelOrder0": "0",
-    "RequestMappingsPanelOrder1": "1",
-    "RequestMappingsPanelWidth0": "75",
-    "RequestMappingsPanelWidth1": "75",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "Spring Boot.Main.executor": "Run",
-    "git-widget-placeholder": "main",
-    "kotlin-language-version-configured": "true",
-    "last_directory_selection": "D:/laburo/LE Dance/backend/src/main/java/ledance",
-    "last_opened_file_path": "D:/laburo/LE Dance/backend/src/main/java/ledance/validaciones",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "project.structure.last.edited": "Project",
-    "project.structure.proportion": "0.0",
-    "project.structure.side.proportion": "0.15977012",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RequestMappingsPanelOrder0&quot;: &quot;0&quot;,
+    &quot;RequestMappingsPanelOrder1&quot;: &quot;1&quot;,
+    &quot;RequestMappingsPanelWidth0&quot;: &quot;75&quot;,
+    &quot;RequestMappingsPanelWidth1&quot;: &quot;75&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;Spring Boot.Main.executor&quot;: &quot;Run&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;last_directory_selection&quot;: &quot;D:/laburo/LE Dance/backend/src/main/java/ledance&quot;,
+    &quot;last_opened_file_path&quot;: &quot;D:/laburo/LE Dance/backend/src/main/java/ledance/validaciones&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Project&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.0&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.15977012&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   },
-  "keyToStringList": {
-    "DatabaseDriversLRU": [
-      "postgresql"
+  &quot;keyToStringList&quot;: {
+    &quot;DatabaseDriversLRU&quot;: [
+      &quot;postgresql&quot;
     ]
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="D:\laburo\LE Dance\backend\src\main\java\ledance\validaciones" />
@@ -71,6 +102,7 @@
       <recent name="D:\laburo\LE Dance\backend\src\main\resources" />
     </key>
     <key name="CopyClassDialog.RECENTS_KEY">
+      <recent name="ledance.servicios" />
       <recent name="ledance" />
     </key>
   </component>
@@ -128,7 +160,8 @@
       <workItem from="1738276207724" duration="4883000" />
       <workItem from="1738346254973" duration="7482000" />
       <workItem from="1738376935430" duration="2843000" />
-      <workItem from="1738414547978" duration="1895000" />
+      <workItem from="1738414547978" duration="7413000" />
+      <workItem from="1738436755001" duration="208000" />
     </task>
     <servers />
   </component>

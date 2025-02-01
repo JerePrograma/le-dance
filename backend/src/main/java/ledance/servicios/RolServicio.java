@@ -2,61 +2,53 @@ package ledance.servicios;
 
 import ledance.dto.request.RolRegistroRequest;
 import ledance.dto.response.RolResponse;
+import ledance.dto.mappers.RolMapper;
 import ledance.entidades.Rol;
 import ledance.repositorios.RolRepositorio;
+import jakarta.transaction.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-public class RolServicio {
+public class RolServicio implements IRolServicio {
+
+    private static final Logger log = LoggerFactory.getLogger(RolServicio.class);
 
     private final RolRepositorio rolRepositorio;
+    private final RolMapper rolMapper;
 
-    public RolServicio(RolRepositorio rolRepositorio) {
+    public RolServicio(RolRepositorio rolRepositorio, RolMapper rolMapper) {
         this.rolRepositorio = rolRepositorio;
+        this.rolMapper = rolMapper;
     }
 
-    /**
-     * Registra un nuevo rol.
-     *
-     * @param request Datos del rol.
-     * @return Rol registrado.
-     */
+    @Override
+    @Transactional
     public RolResponse registrarRol(RolRegistroRequest request) {
+        log.info("Registrando rol: {}", request.descripcion());
         if (rolRepositorio.existsByDescripcion(request.descripcion())) {
             throw new IllegalArgumentException("El rol ya existe.");
         }
-
-        Rol rol = new Rol();
-        rol.setDescripcion(request.descripcion());
-        rol = rolRepositorio.save(rol);
-
-        return new RolResponse(rol.getId(), rol.getDescripcion());
+        Rol rol = rolMapper.toEntity(request);
+        Rol guardado = rolRepositorio.save(rol);
+        return rolMapper.toDTO(guardado);
     }
 
-    /**
-     * Obtiene un rol por su ID.
-     *
-     * @param id ID del rol.
-     * @return Datos del rol.
-     */
+    @Override
     public RolResponse obtenerRolPorId(Long id) {
         Rol rol = rolRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Rol no encontrado."));
-        return new RolResponse(rol.getId(), rol.getDescripcion());
+        return rolMapper.toDTO(rol);
     }
 
-    /**
-     * Lista todos los roles.
-     *
-     * @return Lista de roles.
-     */
+    @Override
     public List<RolResponse> listarRoles() {
-        return rolRepositorio.findAll()
-                .stream()
-                .map(rol -> new RolResponse(rol.getId(), rol.getDescripcion()))
+        return rolRepositorio.findAll().stream()
+                .map(rolMapper::toDTO)
                 .collect(Collectors.toList());
     }
 }
