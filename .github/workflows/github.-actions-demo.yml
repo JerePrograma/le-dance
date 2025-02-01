@@ -3,7 +3,7 @@ name: CI/CD - Deploy LE Dance
 on:
   push:
     branches:
-      - main # Ajusta la rama según convenga
+      - main  # Ajusta la rama según convenga
 
 jobs:
   build-and-deploy:
@@ -28,8 +28,8 @@ jobs:
         working-directory: frontend
         run: npm run build
 
-      # 3. Build del Backend (Maven con Corretto 17.0.13)
-      - name: Setup Java (Corretto 17.0.13)
+      # 3. Build del Backend (Maven con Corretto 17)
+      - name: Setup Java (Corretto 17)
         uses: actions/setup-java@v3
         with:
           distribution: "corretto"
@@ -43,13 +43,12 @@ jobs:
       - name: Copiar Frontend al VPS
         uses: appleboy/scp-action@v0.1.0
         with:
+          host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT }}
           source: "frontend/dist/*"
           target: "/home/jeremias/le-dance/frontend/dist/"
-          extra_args: "-oHostKeyAlgorithms=+ssh-rsa -oPubkeyAcceptedAlgorithms=+ssh-rsa"
-          host: ${{ secrets.VPS_HOST }}
 
       - name: Copiar Backend al VPS
         uses: appleboy/scp-action@v0.1.0
@@ -61,7 +60,7 @@ jobs:
           source: "backend/target/backend-1.0.jar"
           target: "/home/jeremias/le-dance/backend/"
 
-      # 5. Reiniciar el backend en el VPS (sin systemd, usando nohup)
+      # 5. Reiniciar el backend en el VPS (sin systemd, usando setsid para desacoplar el proceso)
       - name: Reiniciar backend en VPS
         uses: appleboy/ssh-action@v0.1.9
         with:
@@ -72,5 +71,6 @@ jobs:
           script: |
             # Se intenta detener el proceso actual del backend (si existe)
             pkill -f 'backend-1.0.jar' || true
-            # Se inicia el backend en segundo plano; el log se guarda en backend.log
-            nohup java -jar /home/jeremias/le-dance/backend/backend-1.0.jar > /home/jeremias/le-dance/backend/backend.log 2>&1 &
+            # Se inicia el backend en una nueva sesión para desacoplarlo de la sesión SSH,
+            # redirigiendo la entrada desde /dev/null para evitar que se cierre al finalizar la conexión.
+            setsid java -jar /home/jeremias/le-dance/backend/backend-1.0.jar > /home/jeremias/le-dance/backend/backend.log 2>&1 < /dev/null &
