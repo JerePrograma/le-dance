@@ -60,8 +60,8 @@ jobs:
           source: "backend/target/backend-1.0.jar"
           target: "/home/jeremias/le-dance/backend/"
 
-      # 5. Reiniciar el backend en el VPS (usando tmux para desacoplar el proceso)
-      - name: Reiniciar backend en VPS
+      # 5. Reiniciar el backend en el VPS usando pm2
+      - name: Reiniciar backend en VPS con pm2
         uses: appleboy/ssh-action@v0.1.9
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -70,7 +70,9 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           script: |
             # Se intenta detener el proceso actual del backend (si existe)
-            pkill -f 'backend-1.0.jar' || true
-            # Inicia el backend en una sesión tmux desacoplada
-            tmux new -d -s backend "java -jar /home/jeremias/le-dance/backend/backend-1.0.jar > /home/jeremias/le-dance/backend/backend.log 2>&1"
+            pm2 delete le-dance-backend || true
+            # Inicia el backend con pm2
+            pm2 start "java -jar /home/jeremias/le-dance/backend/backend-1.0.jar" --name le-dance-backend
+            # Guarda la configuración de pm2 para que se reinicie en caso de reinicio del sistema
+            pm2 save
             exit 0
