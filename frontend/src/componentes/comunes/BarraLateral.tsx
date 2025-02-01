@@ -2,7 +2,7 @@
 import { useMemo } from "react";
 import { NavLink } from "react-router-dom";
 import styles from "./BarraLateral.module.css";
-import useToggle from "./../../hooks/context/useToggle";
+import useToggle from "../../hooks/useToggle";
 
 const BarraLateral = () => {
   const [menuAbierto, alternarMenu] = useToggle(false);
