@@ -156,9 +156,19 @@ export interface AsistenciaResponse {
 
 export interface InscripcionResponse {
   id: number;
-  alumno: { id: number; nombre: string; apellido: string };
-  disciplina: { id: number; nombre: string };
-  bonificacion?: BonificacionResponse;
+  alumno: {
+    id: number;
+    nombre: string;
+    apellido: string;
+  };
+  disciplina: {
+    id: number;
+    nombre: string;
+  };
+  bonificacion?: {
+    id: number;
+    descripcion: string;
+  };
   costoParticular?: number;
   notas?: string;
 }
