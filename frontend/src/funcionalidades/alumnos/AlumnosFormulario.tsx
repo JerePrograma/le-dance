@@ -349,91 +349,44 @@ const AlumnosFormulario: React.FC = () => {
 
                   {/* 🔹 Tabla Responsive */}
                   {/* 🔹 Tabla de inscripciones con los datos corregidos */}
-                  <div className="overflow-x-auto w-full">
-                    <table className="min-w-full table-auto border-collapse border border-gray-300 dark:border-gray-700">
-                      <thead>
-                        <tr className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
-                          <th className="border border-gray-300 px-4 py-2 text-left">
-                            ID
-                          </th>
-                          <th className="border border-gray-300 px-4 py-2 text-left">
-                            Disciplina
-                          </th>
-                          <th className="border border-gray-300 px-4 py-2 text-left">
-                            Bonificación
-                          </th>
-                          <th className="border border-gray-300 px-4 py-2 text-left">
-                            Costo
-                          </th>
-                          <th className="border border-gray-300 px-4 py-2 text-left">
-                            Notas
-                          </th>
-                          <th className="border border-gray-300 px-4 py-2 text-left">
-                            Acciones
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {inscripciones.length > 0 ? (
-                          inscripciones.map((fila) => (
-                            <tr
-                              key={fila.id}
-                              className="border border-gray-300"
-                            >
-                              <td className="border border-gray-300 px-4 py-2">
-                                {fila.id}
-                              </td>
-                              <td className="border border-gray-300 px-4 py-2">
-                                {fila.disciplina.nombre}
-                              </td>
-                              <td className="border border-gray-300 px-4 py-2">
-                                {fila.bonificacion
-                                  ? fila.bonificacion.descripcion
-                                  : "N/A"}
-                              </td>
-                              <td className="border border-gray-300 px-4 py-2">
-                                {fila.costoParticular
-                                  ? `$${fila.costoParticular.toFixed(2)}`
-                                  : "-"}
-                              </td>
-                              <td className="border border-gray-300 px-4 py-2">
-                                {fila.notas || "-"}
-                              </td>
-                              <td className="border border-gray-300 px-4 py-2 flex flex-col sm:flex-row gap-2">
-                                <Boton
-                                  onClick={() =>
-                                    navigate(
-                                      `/inscripciones/formulario?id=${fila.id}`
-                                    )
-                                  }
-                                  secondary
-                                >
-                                  Editar
-                                </Boton>
-                                <Boton
-                                  onClick={() =>
-                                    handleEliminarInscripcion(fila.id)
-                                  }
-                                  className="bg-red-500 text-white hover:bg-red-600"
-                                >
-                                  Eliminar
-                                </Boton>
-                              </td>
-                            </tr>
-                          ))
-                        ) : (
-                          <tr>
-                            <td
-                              colSpan={6}
-                              className="text-center text-gray-500 py-4"
-                            >
-                              No hay inscripciones registradas.
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
+                  <Tabla
+                    encabezados={[
+                      "ID",
+                      "Disciplina",
+                      "Bonificación",
+                      "Costo",
+                      "Notas",
+                      "Acciones",
+                    ]}
+                    datos={inscripciones}
+                    extraRender={(fila) => [
+                      fila.id,
+                      fila.disciplina.nombre,
+                      fila.bonificacion ? fila.bonificacion.descripcion : "N/A",
+                      fila.costoParticular
+                        ? `$${fila.costoParticular.toFixed(2)}`
+                        : "-",
+                      fila.notas || "-",
+                    ]}
+                    acciones={(fila) => (
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <Boton
+                          onClick={() =>
+                            navigate(`/inscripciones/formulario?id=${fila.id}`)
+                          }
+                          secondary
+                        >
+                          Editar
+                        </Boton>
+                        <Boton
+                          onClick={() => handleEliminarInscripcion(fila.id)}
+                          className="bg-red-500 text-white hover:bg-red-600"
+                        >
+                          Eliminar
+                        </Boton>
+                      </div>
+                    )}
+                  />
                 </>
               ) : (
                 <p className="text-gray-500 text-sm mt-4">
