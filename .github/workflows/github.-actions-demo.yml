@@ -33,7 +33,7 @@ jobs:
         uses: actions/setup-java@v3
         with:
           distribution: "corretto"
-          java-version: "17.0.13"
+          java-version: "17"
 
       - name: Construir Backend con Maven
         working-directory: backend
