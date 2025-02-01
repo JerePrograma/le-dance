@@ -50,7 +50,7 @@ const Alumnos = () => {
 
       <div className="flex justify-end mb-4">
         <Boton onClick={() => navigate("/alumnos/formulario")}>
-          Ficha de Alumnos
+          Ficha Aade Alumnos
         </Boton>
       </div>
 
