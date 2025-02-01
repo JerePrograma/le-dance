@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Tabla from "../../componentes/comunes/Tabla";
 import api from "../../utilidades/axiosConfig";
@@ -16,16 +16,22 @@ interface Asistencia {
 const Asistencias = () => {
   const [asistencias, setAsistencias] = useState<Asistencia[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
-  const itemsPerPage = 5; // 🔄 Cantidad de asistencias por página
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const itemsPerPage = 5;
   const navigate = useNavigate();
 
-  // 🔄 Fetch optimizado
   const fetchAsistencias = useCallback(async () => {
     try {
+      setLoading(true);
+      setError(null);
       const response = await api.get<Asistencia[]>("/api/asistencias");
       setAsistencias(response.data);
     } catch (error) {
       console.error("Error al cargar asistencias:", error);
+      setError("Error al cargar asistencias.");
+    } finally {
+      setLoading(false);
     }
   }, []);
 
@@ -33,29 +39,39 @@ const Asistencias = () => {
     fetchAsistencias();
   }, [fetchAsistencias]);
 
-  // 🔄 Paginación segura
-  const pageCount = Math.ceil(asistencias.length / itemsPerPage);
-  const currentItems = asistencias.slice(
-    currentPage * itemsPerPage,
-    (currentPage + 1) * itemsPerPage
+  const pageCount = useMemo(
+    () => Math.ceil(asistencias.length / itemsPerPage),
+    [asistencias.length, itemsPerPage]
+  );
+  const currentItems = useMemo(
+    () =>
+      asistencias.slice(
+        currentPage * itemsPerPage,
+        (currentPage + 1) * itemsPerPage
+      ),
+    [asistencias, currentPage, itemsPerPage]
   );
 
-  const handlePageClick = ({ selected }: { selected: number }) => {
-    if (selected < pageCount) {
-      setCurrentPage(selected);
-    }
-  };
+  const handlePageClick = useCallback(
+    ({ selected }: { selected: number }) => {
+      if (selected < pageCount) {
+        setCurrentPage(selected);
+      }
+    },
+    [pageCount]
+  );
+
+  if (loading) return <div>Cargando...</div>;
+  if (error) return <div>{error}</div>;
 
   return (
     <div className="page-container">
       <h1 className="page-title">Registro de Asistencias</h1>
-
       <div className="flex justify-end mb-4">
         <Boton onClick={() => navigate("/asistencias/formulario")}>
           Registrar Nueva Asistencia
         </Boton>
       </div>
-
       <div className="page-table-container">
         <Tabla
           encabezados={[
@@ -96,8 +112,6 @@ const Asistencias = () => {
           ]}
         />
       </div>
-
-      {/* 🔄 Paginación Mejorada */}
       {pageCount > 1 && (
         <ReactPaginate
           previousLabel={"← Anterior"}

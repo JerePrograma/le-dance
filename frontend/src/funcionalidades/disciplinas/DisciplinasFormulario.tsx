@@ -1,6 +1,8 @@
+// src/funcionalidades/disciplinas/DisciplinasFormulario.tsx
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Formik, Form, Field, ErrorMessage } from "formik";
+import Boton from "../../componentes/comunes/Boton";
+import { ErrorMessage, Field, Form, Formik } from "formik";
 import { disciplinaEsquema } from "../../validaciones/disciplinaEsquema";
 import api from "../../utilidades/axiosConfig";
 import { toast } from "react-toastify";
@@ -9,24 +11,23 @@ import {
   DisciplinaResponse,
   ProfesorResponse,
 } from "../../types/types";
-import Boton from "../../componentes/comunes/Boton";
+
+const initialDisciplinaValues: DisciplinaRequest = {
+  id: 0,
+  nombre: "",
+  horario: "",
+  frecuenciaSemanal: 0,
+  duracion: "",
+  salon: "",
+  valorCuota: 0,
+  matricula: 0,
+  profesorId: 0,
+};
 
 const DisciplinasFormulario: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [profesores, setProfesores] = useState<ProfesorResponse[]>([]);
-
-  const initialValues: DisciplinaRequest = {
-    id: 0,
-    nombre: "",
-    horario: "",
-    frecuenciaSemanal: 0,
-    duracion: "",
-    salon: "",
-    valorCuota: 0,
-    matricula: 0,
-    profesorId: 0,
-  };
 
   useEffect(() => {
     const fetchProfesores = async () => {
@@ -47,59 +48,66 @@ const DisciplinasFormulario: React.FC = () => {
     if (id) handleBuscar(id, () => {});
   }, [searchParams]);
 
-  const handleBuscar = useCallback(async (idStr: string, setValues: any) => {
-    try {
-      const idNum = Number(idStr);
-      if (isNaN(idNum)) {
-        toast.error("ID inválido");
-        return;
+  const handleBuscar = useCallback(
+    async (idStr: string, resetForm: (values: DisciplinaRequest) => void) => {
+      try {
+        const idNum = Number(idStr);
+        if (isNaN(idNum)) {
+          toast.error("ID inválido");
+          return;
+        }
+        const data: DisciplinaResponse = await api.get(
+          `/api/disciplinas/${idNum}`
+        );
+        resetForm({
+          nombre: data.nombre,
+          horario: data.horario,
+          frecuenciaSemanal: data.frecuenciaSemanal || 0,
+          duracion: data.duracion,
+          salon: data.salon,
+          valorCuota: data.valorCuota || 0,
+          matricula: data.matricula || 0,
+          profesorId: data.profesorId || 0,
+          id: data.id,
+        });
+        toast.success("Disciplina cargada correctamente.");
+      } catch {
+        toast.error("Error al cargar la disciplina.");
+        resetForm(initialDisciplinaValues);
       }
-      const data: DisciplinaResponse = await api.get(
-        `/api/disciplinas/${idNum}`
-      );
-      setValues({
-        nombre: data.nombre,
-        horario: data.horario,
-        frecuenciaSemanal: data.frecuenciaSemanal || 0,
-        duracion: data.duracion,
-        salon: data.salon,
-        valorCuota: data.valorCuota || 0,
-        matricula: data.matricula || 0,
-        profesorId: data.profesorId || 0,
-      });
-      toast.success("Disciplina cargada correctamente.");
-    } catch {
-      toast.error("Error al cargar la disciplina.");
-      setValues(initialValues);
-    }
-  }, []);
+    },
+    []
+  );
 
-  const handleGuardarDisciplina = async (values: DisciplinaRequest) => {
-    try {
-      if (values.id) {
-        await api.put(`/api/disciplinas/${values.id}`, values);
-        toast.success("Disciplina actualizada correctamente.");
-      } else {
-        await api.post("/api/disciplinas", values);
-        toast.success("Disciplina creada correctamente.");
+  const handleGuardarDisciplina = useCallback(
+    async (values: DisciplinaRequest) => {
+      try {
+        if (values.id && values.id !== 0) {
+          await api.put(`/api/disciplinas/${values.id}`, values);
+          toast.success("Disciplina actualizada correctamente.");
+        } else {
+          await api.post("/api/disciplinas", values);
+          toast.success("Disciplina creada correctamente.");
+        }
+      } catch {
+        toast.error("Error al guardar la disciplina.");
       }
-    } catch {
-      toast.error("Error al guardar la disciplina.");
-    }
-  };
+    },
+    []
+  );
+
+  // Hasta aquí se finaliza la parte de inicialización y lógica para DisciplinasFormulario
 
   return (
     <div className="formulario">
       <h1 className="form-title">Formulario de Disciplinas</h1>
-
       <Formik
-        initialValues={initialValues}
+        initialValues={initialDisciplinaValues}
         validationSchema={disciplinaEsquema}
         onSubmit={handleGuardarDisciplina}
       >
-        {({ setValues, isSubmitting }) => (
+        {({ resetForm, isSubmitting }) => (
           <Form className="formulario">
-            {/* Búsqueda por ID */}
             <div className="form-busqueda">
               <label htmlFor="idBusqueda">Número de Disciplina:</label>
               <Field
@@ -108,25 +116,23 @@ const DisciplinasFormulario: React.FC = () => {
                 name="id"
                 className="form-input"
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                  const idValue = e.target.value ? Number(e.target.value) : 0; // Asegura que siempre sea un número
-                  setValues((prevValues) => ({
-                    ...prevValues,
-                    id: idValue, // Siempre un número, evitando `undefined`
-                  }));
+                  const idValue = e.target.value ? Number(e.target.value) : 0;
+                  resetForm({
+                    values: { ...initialDisciplinaValues, id: idValue },
+                  });
                 }}
               />
-
               <Boton
                 type="button"
                 onClick={() =>
-                  handleBuscar(String(initialValues.id), setValues)
+                  handleBuscar(String(initialDisciplinaValues.id), (vals) =>
+                    resetForm({ values: vals })
+                  )
                 }
               >
                 Buscar
               </Boton>
             </div>
-
-            {/* Campos del Formulario */}
             <fieldset className="form-fieldset">
               <legend>Datos de la Disciplina</legend>
               <div className="form-grid">
@@ -161,8 +167,6 @@ const DisciplinasFormulario: React.FC = () => {
                     />
                   </div>
                 ))}
-
-                {/* Selección de Profesor */}
                 <div>
                   <label>Profesor:</label>
                   <Field as="select" name="profesorId" className="form-input">
@@ -181,8 +185,6 @@ const DisciplinasFormulario: React.FC = () => {
                 </div>
               </div>
             </fieldset>
-
-            {/* Botones de Acción */}
             <div className="form-acciones">
               <Boton type="submit" disabled={isSubmitting}>
                 Guardar Disciplina
@@ -190,7 +192,7 @@ const DisciplinasFormulario: React.FC = () => {
               <Boton
                 type="reset"
                 secondary
-                onClick={() => setValues(initialValues)}
+                onClick={() => resetForm({ values: initialDisciplinaValues })}
               >
                 Limpiar
               </Boton>

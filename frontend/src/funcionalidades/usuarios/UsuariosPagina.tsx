@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Tabla from "../../componentes/comunes/Tabla";
 import api from "../../utilidades/axiosConfig";
@@ -15,16 +15,22 @@ interface Usuario {
 const UsuariosPagina = () => {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const itemsPerPage = 5;
   const navigate = useNavigate();
 
-  // ✅ Cargar usuarios con useCallback para optimización
   const fetchUsuarios = useCallback(async () => {
     try {
+      setLoading(true);
+      setError(null);
       const response = await api.get<Usuario[]>("/api/usuarios");
       setUsuarios(response.data);
     } catch (error) {
       console.error("Error al cargar usuarios:", error);
+      setError("Error al cargar usuarios.");
+    } finally {
+      setLoading(false);
     }
   }, []);
 
@@ -32,20 +38,28 @@ const UsuariosPagina = () => {
     fetchUsuarios();
   }, [fetchUsuarios]);
 
-  // ✅ Paginación
-  const pageCount = Math.ceil(usuarios.length / itemsPerPage);
-  const currentItems = usuarios.slice(
-    currentPage * itemsPerPage,
-    (currentPage + 1) * itemsPerPage
+  const pageCount = useMemo(
+    () => Math.ceil(usuarios.length / itemsPerPage),
+    [usuarios.length, itemsPerPage]
+  );
+  const currentItems = useMemo(
+    () =>
+      usuarios.slice(
+        currentPage * itemsPerPage,
+        (currentPage + 1) * itemsPerPage
+      ),
+    [usuarios, currentPage, itemsPerPage]
   );
 
-  const handlePageClick = ({ selected }: { selected: number }) => {
-    if (selected < pageCount) {
-      setCurrentPage(selected);
-    }
-  };
+  const handlePageClick = useCallback(
+    ({ selected }: { selected: number }) => {
+      if (selected < pageCount) {
+        setCurrentPage(selected);
+      }
+    },
+    [pageCount]
+  );
 
-  // ✅ Manejo de eliminación de usuario
   const handleEliminarUsuario = useCallback(async (id: number) => {
     if (window.confirm("¿Seguro que deseas eliminar este usuario?")) {
       try {
@@ -57,18 +71,17 @@ const UsuariosPagina = () => {
     }
   }, []);
 
+  if (loading) return <div>Cargando...</div>;
+  if (error) return <div>{error}</div>;
+
   return (
     <div className="page-container">
       <h1 className="page-title">Usuarios</h1>
-
-      {/* Botón para registrar nuevo usuario */}
       <div className="flex justify-end mb-4">
         <Boton onClick={() => navigate("/usuarios/formulario")}>
           Registrar Nuevo Usuario
         </Boton>
       </div>
-
-      {/* Tabla de usuarios */}
       <div className="page-table-container">
         <Tabla
           encabezados={["ID", "Nombre", "Correo", "Rol", "Acciones"]}
@@ -88,8 +101,6 @@ const UsuariosPagina = () => {
           extraRender={(fila) => [fila.id, fila.nombre, fila.correo, fila.rol]}
         />
       </div>
-
-      {/* ✅ Paginación con ReactPaginate */}
       {pageCount > 1 && (
         <ReactPaginate
           previousLabel={"← Anterior"}

@@ -1,9 +1,10 @@
+// src/funcionalidades/bonificaciones/BonificacionesFormulario.tsx
 import React, { useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Formik, Form, Field, ErrorMessage } from "formik";
+import Boton from "../../componentes/comunes/Boton";
+import { ErrorMessage, Field, Form, Formik } from "formik";
 import { bonificacionEsquema } from "../../validaciones/bonificacionEsquema";
 import api from "../../utilidades/axiosConfig";
-import Boton from "../../componentes/comunes/Boton";
 import { toast } from "react-toastify";
 
 interface Bonificacion {
@@ -14,41 +15,44 @@ interface Bonificacion {
   observaciones?: string;
 }
 
+const initialBonificacionValues: Bonificacion = {
+  descripcion: "",
+  porcentajeDescuento: 0,
+  activo: true,
+  observaciones: "",
+};
+
 const BonificacionesFormulario: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const initialValues: Bonificacion = {
-    descripcion: "",
-    porcentajeDescuento: 0,
-    activo: true,
-    observaciones: "",
-  };
-
-  const handleBuscar = useCallback(async (idStr: string, setValues: any) => {
-    try {
-      const idNum = Number(idStr);
-      if (isNaN(idNum)) {
-        toast.error("ID inválido");
-        return;
+  const handleBuscar = useCallback(
+    async (idStr: string, resetForm: (values: Bonificacion) => void) => {
+      try {
+        const idNum = Number(idStr);
+        if (isNaN(idNum)) {
+          toast.error("ID inválido");
+          return;
+        }
+        const response = await api.get<Bonificacion>(
+          `/api/bonificaciones/${idNum}`
+        );
+        resetForm(response.data);
+        toast.success("Bonificación cargada correctamente.");
+      } catch {
+        toast.error("Error al cargar la bonificación.");
+        resetForm(initialBonificacionValues);
       }
-      const response = await api.get<Bonificacion>(
-        `/api/bonificaciones/${idNum}`
-      );
-      setValues(response.data);
-      toast.success("Bonificación cargada correctamente.");
-    } catch {
-      toast.error("Error al cargar la bonificación.");
-      setValues(initialValues);
-    }
-  }, []);
+    },
+    []
+  );
 
   useEffect(() => {
     const idParam = searchParams.get("id");
     if (idParam) handleBuscar(idParam, () => {});
   }, [searchParams, handleBuscar]);
 
-  const handleGuardar = async (values: Bonificacion) => {
+  const handleGuardar = useCallback(async (values: Bonificacion) => {
     try {
       if (values.id) {
         await api.put(`/api/bonificaciones/${values.id}`, values);
@@ -60,25 +64,21 @@ const BonificacionesFormulario: React.FC = () => {
     } catch {
       toast.error("Error al guardar la bonificación.");
     }
-  };
+  }, []);
 
-  const handleVolverListado = () => {
-    navigate("/bonificaciones");
-  };
+  // Hasta aquí se finaliza la parte de inicialización y lógica para BonificacionesFormulario
 
   return (
     <div className="formulario">
-      <h1 className="form-titulo">Formulario de Bonificación</h1>
-
+      <h1 className="form-title">Formulario de Bonificación</h1>
       <Formik
-        initialValues={initialValues}
+        initialValues={initialBonificacionValues}
         validationSchema={bonificacionEsquema}
         onSubmit={handleGuardar}
       >
-        {({ setValues, isSubmitting }) => (
+        {({ resetForm, isSubmitting }) => (
           <Form className="formulario">
             <div className="form-grid">
-              {/* Descripción */}
               <div>
                 <label>Descripción (obligatoria):</label>
                 <Field
@@ -93,8 +93,6 @@ const BonificacionesFormulario: React.FC = () => {
                   className="error"
                 />
               </div>
-
-              {/* Porcentaje de Descuento */}
               <div>
                 <label>Porcentaje de Descuento:</label>
                 <Field
@@ -109,8 +107,6 @@ const BonificacionesFormulario: React.FC = () => {
                   className="error"
                 />
               </div>
-
-              {/* Observaciones */}
               <div>
                 <label>Observaciones:</label>
                 <Field
@@ -124,8 +120,6 @@ const BonificacionesFormulario: React.FC = () => {
                   className="error"
                 />
               </div>
-
-              {/* Activo */}
               <div>
                 <label>Activo:</label>
                 <Field
@@ -136,8 +130,6 @@ const BonificacionesFormulario: React.FC = () => {
                 <ErrorMessage name="activo" component="div" className="error" />
               </div>
             </div>
-
-            {/* Botones de acción */}
             <div className="form-acciones">
               <Boton type="submit" disabled={isSubmitting}>
                 Guardar
@@ -145,11 +137,15 @@ const BonificacionesFormulario: React.FC = () => {
               <Boton
                 type="reset"
                 secondary
-                onClick={() => setValues(initialValues)}
+                onClick={() => resetForm({ values: initialBonificacionValues })}
               >
                 Limpiar
               </Boton>
-              <Boton type="button" secondary onClick={handleVolverListado}>
+              <Boton
+                type="button"
+                secondary
+                onClick={() => navigate("/bonificaciones")}
+              >
                 Volver al Listado
               </Boton>
             </div>

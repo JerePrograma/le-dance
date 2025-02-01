@@ -1,20 +1,21 @@
-// Button.tsx
+// src/componentes/comunes/Boton.tsx
 import React from "react";
+import clsx from "clsx";
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   secondary?: boolean;
   children: React.ReactNode;
 }
 
-const Boton: React.FC<ButtonProps> = ({ secondary, children, ...props }) => {
-  // Escogemos la clase base y la secundaria
-  const baseClass = secondary ? "form-botonSecundario" : "form-boton";
-
-  return (
-    <button className={baseClass} {...props}>
-      {children}
-    </button>
-  );
-};
+const Boton: React.FC<ButtonProps> = React.memo(
+  ({ secondary, children, className, ...props }) => {
+    const baseClass = secondary ? "form-botonSecundario" : "form-boton";
+    return (
+      <button className={clsx(baseClass, className)} {...props}>
+        {children}
+      </button>
+    );
+  }
+);
 
 export default Boton;

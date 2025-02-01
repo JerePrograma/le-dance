@@ -1,13 +1,24 @@
-import { useState } from "react";
+// src/componentes/BarraLateral.tsx
+import { useMemo } from "react";
 import { NavLink } from "react-router-dom";
 import styles from "./BarraLateral.module.css";
+import useToggle from "./../../hooks/context/useToggle";
 
 const BarraLateral = () => {
-  const [menuAbierto, setMenuAbierto] = useState(false);
+  const [menuAbierto, alternarMenu] = useToggle(false);
 
-  const alternarMenu = () => {
-    setMenuAbierto((prev) => !prev);
-  };
+  // Lista de enlaces memorizada (la lista es fija)
+  const enlaces = useMemo(
+    () => [
+      { to: "/", label: "Inicio" },
+      { to: "/alumnos", label: "Alumnos" },
+      { to: "/disciplinas", label: "Disciplinas" },
+      { to: "/pagos", label: "Pagos" },
+      { to: "/asistencias", label: "Asistencias" },
+      { to: "/reportes", label: "Reportes" },
+    ],
+    []
+  );
 
   return (
     <>
@@ -16,6 +27,8 @@ const BarraLateral = () => {
         onClick={alternarMenu}
         className={`${styles.hamburguesa} lg:hidden`}
         aria-label="Abrir menú"
+        aria-expanded={menuAbierto}
+        aria-controls="menu-lateral"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -35,20 +48,14 @@ const BarraLateral = () => {
 
       {/* Barra lateral */}
       <aside
+        id="menu-lateral"
         className={`${styles.barraLateral} ${
           menuAbierto ? styles.barraAbierta : ""
         } lg:relative`}
       >
         <h1 className={styles.logo}>LE DANCE</h1>
-        <nav className={styles.navegacion}>
-          {[
-            { to: "/", label: "Inicio" },
-            { to: "/alumnos", label: "Alumnos" },
-            { to: "/disciplinas", label: "Disciplinas" },
-            { to: "/pagos", label: "Pagos" },
-            { to: "/asistencias", label: "Asistencias" },
-            { to: "/reportes", label: "Reportes" },
-          ].map((link) => (
+        <nav role="menu" className={styles.navegacion}>
+          {enlaces.map((link) => (
             <NavLink
               key={link.to}
               to={link.to}
@@ -56,6 +63,7 @@ const BarraLateral = () => {
                 `${styles.enlace} ${isActive ? styles.enlaceActivo : ""}`
               }
               onClick={alternarMenu}
+              role="menuitem"
             >
               {link.label}
             </NavLink>

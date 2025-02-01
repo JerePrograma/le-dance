@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Tabla from "../../componentes/comunes/Tabla";
 import api from "../../utilidades/axiosConfig";
@@ -16,16 +16,22 @@ interface Bonificacion {
 const Bonificaciones = () => {
   const [bonificaciones, setBonificaciones] = useState<Bonificacion[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
-  const itemsPerPage = 5; // 🔄 Cantidad de bonificaciones por página
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const itemsPerPage = 5;
   const navigate = useNavigate();
 
-  // 🔄 Fetch optimizado
   const fetchBonificaciones = useCallback(async () => {
     try {
+      setLoading(true);
+      setError(null);
       const response = await api.get<Bonificacion[]>("/api/bonificaciones");
       setBonificaciones(response.data);
     } catch (error) {
       console.error("Error al cargar bonificaciones:", error);
+      setError("Error al cargar bonificaciones.");
+    } finally {
+      setLoading(false);
     }
   }, []);
 
@@ -33,29 +39,39 @@ const Bonificaciones = () => {
     fetchBonificaciones();
   }, [fetchBonificaciones]);
 
-  // 🔄 Paginación segura
-  const pageCount = Math.ceil(bonificaciones.length / itemsPerPage);
-  const currentItems = bonificaciones.slice(
-    currentPage * itemsPerPage,
-    (currentPage + 1) * itemsPerPage
+  const pageCount = useMemo(
+    () => Math.ceil(bonificaciones.length / itemsPerPage),
+    [bonificaciones.length, itemsPerPage]
+  );
+  const currentItems = useMemo(
+    () =>
+      bonificaciones.slice(
+        currentPage * itemsPerPage,
+        (currentPage + 1) * itemsPerPage
+      ),
+    [bonificaciones, currentPage, itemsPerPage]
   );
 
-  const handlePageClick = ({ selected }: { selected: number }) => {
-    if (selected < pageCount) {
-      setCurrentPage(selected);
-    }
-  };
+  const handlePageClick = useCallback(
+    ({ selected }: { selected: number }) => {
+      if (selected < pageCount) {
+        setCurrentPage(selected);
+      }
+    },
+    [pageCount]
+  );
+
+  if (loading) return <div>Cargando...</div>;
+  if (error) return <div>{error}</div>;
 
   return (
     <div className="page-container">
       <h1 className="page-title">Bonificaciones</h1>
-
       <div className="flex justify-end mb-4">
         <Boton onClick={() => navigate("/bonificaciones/formulario")}>
           Registrar Nueva Bonificación
         </Boton>
       </div>
-
       <div className="page-table-container">
         <Tabla
           encabezados={[
@@ -94,8 +110,6 @@ const Bonificaciones = () => {
           ]}
         />
       </div>
-
-      {/* 🔄 Paginación Mejorada */}
       {pageCount > 1 && (
         <ReactPaginate
           previousLabel={"← Anterior"}

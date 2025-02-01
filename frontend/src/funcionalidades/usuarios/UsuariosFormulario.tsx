@@ -1,14 +1,22 @@
+// src/funcionalidades/usuarios/UsuariosFormulario.tsx
 import React, { useEffect, useState } from "react";
-import { Formik, Form, Field, ErrorMessage } from "formik";
+import { ErrorMessage, Field, Form, Formik } from "formik";
 import { usuarioEsquema } from "../../validaciones/usuarioEsquema";
 import api from "../../utilidades/axiosConfig";
-import Boton from "../../componentes/comunes/Boton";
 import { toast } from "react-toastify";
+import Boton from "../../componentes/comunes/Boton";
 
 interface Rol {
   id: number;
   descripcion: string;
 }
+
+const initialUserValues = {
+  email: "",
+  nombreUsuario: "",
+  contrasena: "",
+  rol: "",
+};
 
 const UsuariosFormulario: React.FC = () => {
   const [roles, setRoles] = useState<Rol[]>([]);
@@ -25,14 +33,7 @@ const UsuariosFormulario: React.FC = () => {
     fetchRoles();
   }, []);
 
-  const initialValues = {
-    email: "",
-    nombreUsuario: "",
-    contrasena: "",
-    rol: "",
-  };
-
-  const handleRegistro = async (values: typeof initialValues) => {
+  const handleRegistro = async (values: typeof initialUserValues) => {
     try {
       await api.post("/api/usuarios/registro", values);
       toast.success("Usuario registrado correctamente.");
@@ -42,12 +43,13 @@ const UsuariosFormulario: React.FC = () => {
     }
   };
 
+  // Hasta aquí se finaliza la parte de inicialización y lógica para UsuariosFormulario
+
   return (
     <div className="auth-container">
       <h1 className="auth-title">Registro</h1>
-
       <Formik
-        initialValues={initialValues}
+        initialValues={initialUserValues}
         validationSchema={usuarioEsquema}
         onSubmit={handleRegistro}
       >
@@ -58,7 +60,6 @@ const UsuariosFormulario: React.FC = () => {
               <Field type="email" name="email" className="auth-input" />
               <ErrorMessage name="email" component="div" className="error" />
             </div>
-
             <div>
               <label className="auth-label">Nombre de Usuario:</label>
               <Field type="text" name="nombreUsuario" className="auth-input" />
@@ -68,7 +69,6 @@ const UsuariosFormulario: React.FC = () => {
                 className="error"
               />
             </div>
-
             <div>
               <label className="auth-label">Contraseña:</label>
               <Field type="password" name="contrasena" className="auth-input" />
@@ -78,7 +78,6 @@ const UsuariosFormulario: React.FC = () => {
                 className="error"
               />
             </div>
-
             <div>
               <label className="auth-label">Rol:</label>
               <Field as="select" name="rol" className="auth-input">
@@ -91,8 +90,6 @@ const UsuariosFormulario: React.FC = () => {
               </Field>
               <ErrorMessage name="rol" component="div" className="error" />
             </div>
-
-            {/* Botones de acción */}
             <div className="form-acciones">
               <Boton type="submit" disabled={isSubmitting}>
                 Registrarse
@@ -104,7 +101,6 @@ const UsuariosFormulario: React.FC = () => {
           </Form>
         )}
       </Formik>
-
       <a href="/login" className="auth-link">
         ¿Ya tienes cuenta? Inicia sesión aquí
       </a>

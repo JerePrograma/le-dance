@@ -1,6 +1,7 @@
+// src/funcionalidades/asistencias/AsistenciasFormulario.tsx
 import React, { useEffect, useState, useCallback } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { Formik, Form, Field, ErrorMessage } from "formik";
+import { Form, useNavigate, useSearchParams } from "react-router-dom";
+import { ErrorMessage, Field, Formik } from "formik";
 import { asistenciaEsquema } from "../../validaciones/asistenciaEsquema";
 import api from "../../utilidades/axiosConfig";
 import { toast } from "react-toastify";
@@ -12,6 +13,14 @@ import {
 } from "../../types/types";
 import Boton from "../../componentes/comunes/Boton";
 
+const initialAsistenciaValues: AsistenciaRequest = {
+  fecha: "",
+  alumnoId: 0,
+  disciplinaId: 0,
+  presente: true,
+  observacion: "",
+};
+
 const AsistenciasFormulario: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -21,23 +30,6 @@ const AsistenciasFormulario: React.FC = () => {
   const [alumnosFiltrados, setAlumnosFiltrados] = useState<
     AlumnoListadoResponse[]
   >([]);
-  const [disciplinaSeleccionada, setDisciplinaSeleccionada] = useState<
-    number | null
-  >(null);
-
-  useEffect(() => {
-    if (disciplinaSeleccionada) {
-      handleFiltrarAlumnos(initialValues.fecha, disciplinaSeleccionada);
-    }
-  }, [disciplinaSeleccionada]);
-
-  const initialValues: AsistenciaRequest = {
-    fecha: "",
-    alumnoId: 0,
-    disciplinaId: 0,
-    presente: true,
-    observacion: "",
-  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -61,63 +53,73 @@ const AsistenciasFormulario: React.FC = () => {
     if (id) handleBuscar(id, () => {});
   }, [searchParams]);
 
-  const handleBuscar = useCallback(async (idStr: string, setValues: any) => {
-    try {
-      const idNum = Number(idStr);
-      if (isNaN(idNum)) {
-        toast.error("ID inválido");
-        return;
+  const handleBuscar = useCallback(
+    async (idStr: string, resetForm: (values: AsistenciaRequest) => void) => {
+      try {
+        const idNum = Number(idStr);
+        if (isNaN(idNum)) {
+          toast.error("ID inválido");
+          return;
+        }
+        const data: AsistenciaResponse = await api.get(
+          `/api/asistencias/${idNum}`
+        );
+        resetForm({
+          fecha: data.fecha,
+          alumnoId: data.alumnoId,
+          disciplinaId: data.disciplinaId,
+          presente: data.presente,
+          observacion: data.observacion || "",
+        });
+        toast.success("Asistencia cargada correctamente.");
+      } catch {
+        toast.error("Error al cargar la asistencia.");
+        resetForm(initialAsistenciaValues);
       }
-      const data: AsistenciaResponse = await api.get(
-        `/api/asistencias/${idNum}`
-      );
-      setValues({
-        fecha: data.fecha,
-        alumnoId: data.alumnoId,
-        disciplinaId: data.disciplinaId,
-        presente: data.presente,
-        observacion: data.observacion || "",
-      });
-      toast.success("Asistencia cargada correctamente.");
-    } catch {
-      toast.error("Error al cargar la asistencia.");
-      setValues(initialValues);
-    }
-  }, []);
+    },
+    []
+  );
 
-  const handleGuardarAsistencia = async (values: AsistenciaRequest) => {
-    try {
-      await api.post("/api/asistencias", values);
-      toast.success("Asistencia registrada correctamente.");
-    } catch {
-      toast.error("Error al registrar la asistencia.");
-    }
-  };
+  const handleGuardarAsistencia = useCallback(
+    async (values: AsistenciaRequest) => {
+      try {
+        await api.post("/api/asistencias", values);
+        toast.success("Asistencia registrada correctamente.");
+      } catch {
+        toast.error("Error al registrar la asistencia.");
+      }
+    },
+    []
+  );
 
-  const handleFiltrarAlumnos = async (fecha: string, disciplinaId: number) => {
-    try {
-      const response = await api.get<AlumnoListadoResponse[]>(
-        `/api/alumnos/por-fecha-y-disciplina?fecha=${fecha}&disciplinaId=${disciplinaId}`
-      );
-      setAlumnosFiltrados(response.data);
-    } catch {
-      toast.error("Error al cargar alumnos para la disciplina seleccionada.");
-      setAlumnosFiltrados([]);
-    }
-  };
+  const handleFiltrarAlumnos = useCallback(
+    async (fecha: string, disciplinaId: number) => {
+      try {
+        const response = await api.get<AlumnoListadoResponse[]>(
+          `/api/alumnos/por-fecha-y-disciplina?fecha=${fecha}&disciplinaId=${disciplinaId}`
+        );
+        setAlumnosFiltrados(response.data);
+      } catch {
+        toast.error("Error al cargar alumnos para la disciplina seleccionada.");
+        setAlumnosFiltrados([]);
+      }
+    },
+    []
+  );
+
+  // Hasta aquí se finaliza la parte de inicialización y lógica para AsistenciasFormulario
 
   return (
     <div className="formulario">
       <h1 className="form-title">Registro de Asistencias</h1>
-
       <Formik
-        initialValues={initialValues}
+        initialValues={initialAsistenciaValues}
         validationSchema={asistenciaEsquema}
         onSubmit={handleGuardarAsistencia}
+        enableReinitialize
       >
-        {({ setValues, isSubmitting, values }) => (
+        {({ resetForm, setValues, isSubmitting, values }) => (
           <Form className="formulario">
-            {/* Selección de Fecha */}
             <div className="form-grid">
               <label>Fecha:</label>
               <Field
@@ -131,14 +133,12 @@ const AsistenciasFormulario: React.FC = () => {
                     disciplinaId: 0,
                     alumnoId: 0,
                   });
-                  setDisciplinaSeleccionada(null);
+                  // Aunque "disciplinaSeleccionada" se actualiza, si no se usa en el render, se puede omitir.
                   setAlumnosFiltrados(alumnos);
                 }}
               />
               <ErrorMessage name="fecha" component="div" className="error" />
             </div>
-
-            {/* Selección de Disciplina */}
             <div className="form-grid">
               <label>Disciplina:</label>
               <Field
@@ -148,7 +148,6 @@ const AsistenciasFormulario: React.FC = () => {
                 onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
                   const id = Number(e.target.value);
                   setValues({ ...values, disciplinaId: id, alumnoId: 0 });
-                  setDisciplinaSeleccionada(id);
                   handleFiltrarAlumnos(values.fecha, id);
                 }}
               >
@@ -165,8 +164,6 @@ const AsistenciasFormulario: React.FC = () => {
                 className="error"
               />
             </div>
-
-            {/* Selección de Alumno */}
             <div className="form-grid">
               <label>Alumno:</label>
               <Field as="select" name="alumnoId" className="form-input">
@@ -179,8 +176,6 @@ const AsistenciasFormulario: React.FC = () => {
               </Field>
               <ErrorMessage name="alumnoId" component="div" className="error" />
             </div>
-
-            {/* Observaciones */}
             <div className="form-grid">
               <label>Observaciones:</label>
               <Field as="textarea" name="observacion" className="form-input" />
@@ -190,15 +185,11 @@ const AsistenciasFormulario: React.FC = () => {
                 className="error"
               />
             </div>
-
-            {/* Presente Checkbox */}
             <div className="form-checkbox">
               <label>
                 <Field type="checkbox" name="presente" /> Presente
               </label>
             </div>
-
-            {/* Botones de Acción */}
             <div className="form-acciones">
               <Boton type="submit" disabled={isSubmitting}>
                 Guardar Asistencia
@@ -207,8 +198,7 @@ const AsistenciasFormulario: React.FC = () => {
                 type="reset"
                 secondary
                 onClick={() => {
-                  setValues(initialValues);
-                  setDisciplinaSeleccionada(null);
+                  resetForm();
                   setAlumnosFiltrados(alumnos);
                 }}
               >

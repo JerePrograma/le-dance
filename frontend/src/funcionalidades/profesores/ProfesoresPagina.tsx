@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Tabla from "../../componentes/comunes/Tabla";
 import api from "../../utilidades/axiosConfig";
@@ -16,15 +16,22 @@ interface Profesor {
 const Profesores = () => {
   const [profesores, setProfesores] = useState<Profesor[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const itemsPerPage = 5;
   const navigate = useNavigate();
 
   const fetchProfesores = useCallback(async () => {
     try {
+      setLoading(true);
+      setError(null);
       const response = await api.get<Profesor[]>("/api/profesores");
       setProfesores(response.data);
     } catch (error) {
       console.error("Error al cargar profesores:", error);
+      setError("Error al cargar profesores.");
+    } finally {
+      setLoading(false);
     }
   }, []);
 
@@ -32,28 +39,39 @@ const Profesores = () => {
     fetchProfesores();
   }, [fetchProfesores]);
 
-  const pageCount = Math.ceil(profesores.length / itemsPerPage);
-  const currentItems = profesores.slice(
-    currentPage * itemsPerPage,
-    (currentPage + 1) * itemsPerPage
+  const pageCount = useMemo(
+    () => Math.ceil(profesores.length / itemsPerPage),
+    [profesores.length, itemsPerPage]
+  );
+  const currentItems = useMemo(
+    () =>
+      profesores.slice(
+        currentPage * itemsPerPage,
+        (currentPage + 1) * itemsPerPage
+      ),
+    [profesores, currentPage, itemsPerPage]
   );
 
-  const handlePageClick = ({ selected }: { selected: number }) => {
-    if (selected < pageCount) {
-      setCurrentPage(selected);
-    }
-  };
+  const handlePageClick = useCallback(
+    ({ selected }: { selected: number }) => {
+      if (selected < pageCount) {
+        setCurrentPage(selected);
+      }
+    },
+    [pageCount]
+  );
+
+  if (loading) return <div>Cargando...</div>;
+  if (error) return <div>{error}</div>;
 
   return (
     <div className="page-container">
       <h1 className="page-title">Profesores</h1>
-
       <div className="flex justify-end mb-4">
         <Boton onClick={() => navigate("/profesores/formulario")}>
           Registrar Nuevo Profesor
         </Boton>
       </div>
-
       <div className="page-table-container">
         <Tabla
           encabezados={[
@@ -85,7 +103,6 @@ const Profesores = () => {
           )}
         />
       </div>
-
       {pageCount > 1 && (
         <ReactPaginate
           previousLabel={"← Anterior"}

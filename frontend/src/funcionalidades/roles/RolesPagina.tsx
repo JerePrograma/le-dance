@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Tabla from "../../componentes/comunes/Tabla";
 import api from "../../utilidades/axiosConfig";
@@ -13,15 +13,22 @@ interface Rol {
 const RolesPagina = () => {
   const [roles, setRoles] = useState<Rol[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const itemsPerPage = 5;
   const navigate = useNavigate();
 
   const fetchRoles = useCallback(async () => {
     try {
+      setLoading(true);
+      setError(null);
       const response = await api.get<Rol[]>("/api/roles");
       setRoles(response.data);
     } catch (error) {
       console.error("Error al cargar roles:", error);
+      setError("Error al cargar roles.");
+    } finally {
+      setLoading(false);
     }
   }, []);
 
@@ -29,28 +36,36 @@ const RolesPagina = () => {
     fetchRoles();
   }, [fetchRoles]);
 
-  const pageCount = Math.ceil(roles.length / itemsPerPage);
-  const currentItems = roles.slice(
-    currentPage * itemsPerPage,
-    (currentPage + 1) * itemsPerPage
+  const pageCount = useMemo(
+    () => Math.ceil(roles.length / itemsPerPage),
+    [roles.length, itemsPerPage]
+  );
+  const currentItems = useMemo(
+    () =>
+      roles.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage),
+    [roles, currentPage, itemsPerPage]
   );
 
-  const handlePageClick = ({ selected }: { selected: number }) => {
-    if (selected < pageCount) {
-      setCurrentPage(selected);
-    }
-  };
+  const handlePageClick = useCallback(
+    ({ selected }: { selected: number }) => {
+      if (selected < pageCount) {
+        setCurrentPage(selected);
+      }
+    },
+    [pageCount]
+  );
+
+  if (loading) return <div>Cargando...</div>;
+  if (error) return <div>{error}</div>;
 
   return (
     <div className="page-container">
       <h1 className="page-title">Roles</h1>
-
       <div className="flex justify-end mb-4">
         <Boton onClick={() => navigate("/roles/formulario")}>
           Registrar Nuevo Rol
         </Boton>
       </div>
-
       <div className="page-table-container">
         <Tabla
           encabezados={["ID", "Descripción", "Acciones"]}
@@ -75,7 +90,6 @@ const RolesPagina = () => {
           )}
         />
       </div>
-
       {pageCount > 1 && (
         <ReactPaginate
           previousLabel={"← Anterior"}

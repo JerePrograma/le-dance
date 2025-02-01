@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Tabla from "../../componentes/comunes/Tabla";
 import alumnosApi from "../../utilidades/alumnosApi";
@@ -14,16 +14,23 @@ interface AlumnoListado {
 const Alumnos = () => {
   const [alumnos, setAlumnos] = useState<AlumnoListado[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
-  const itemsPerPage = 5; // 🔄 Ya es una constante, no necesita useState
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const itemsPerPage = 5; // Cantidad de items por página
   const navigate = useNavigate();
 
-  // 🔄 Fetch de datos optimizado
+  // Fetch de datos optimizado con manejo de loading y error
   const fetchAlumnos = useCallback(async () => {
     try {
+      setLoading(true);
+      setError(null);
       const response = await alumnosApi.listarAlumnos();
       setAlumnos(response);
     } catch (error) {
       console.error("Error al cargar alumnos:", error);
+      setError("Error al cargar alumnos.");
+    } finally {
+      setLoading(false);
     }
   }, []);
 
@@ -31,18 +38,33 @@ const Alumnos = () => {
     fetchAlumnos();
   }, [fetchAlumnos]);
 
-  // 🔄 Cálculo seguro de paginación
-  const pageCount = Math.ceil(alumnos.length / itemsPerPage);
-  const currentItems = alumnos.slice(
-    currentPage * itemsPerPage,
-    (currentPage + 1) * itemsPerPage
+  // Uso de useMemo para calcular el número total de páginas
+  const pageCount = useMemo(
+    () => Math.ceil(alumnos.length / itemsPerPage),
+    [alumnos.length, itemsPerPage]
   );
 
-  const handlePageClick = ({ selected }: { selected: number }) => {
-    if (selected < pageCount) {
-      setCurrentPage(selected);
-    }
-  };
+  // Uso de useMemo para obtener los items correspondientes a la página actual
+  const currentItems = useMemo(() => {
+    return alumnos.slice(
+      currentPage * itemsPerPage,
+      (currentPage + 1) * itemsPerPage
+    );
+  }, [alumnos, currentPage, itemsPerPage]);
+
+  // Función de paginación memorizada con useCallback
+  const handlePageClick = useCallback(
+    ({ selected }: { selected: number }) => {
+      if (selected < pageCount) {
+        setCurrentPage(selected);
+      }
+    },
+    [pageCount]
+  );
+
+  // Si lo deseas, puedes mostrar un spinner o un mensaje de carga
+  if (loading) return <div>Cargando...</div>;
+  if (error) return <div>{error}</div>;
 
   return (
     <div className="page-container">
@@ -58,6 +80,7 @@ const Alumnos = () => {
         <Tabla
           encabezados={["ID", "Nombre", "Apellido", "Acciones"]}
           datos={currentItems}
+          // Puedes optimizar la función de renderizado de acciones usando useCallback en el componente Tabla o incluso envolver Tabla en React.memo
           acciones={(fila) => (
             <Boton
               onClick={() => navigate(`/alumnos/formulario?id=${fila.id}`)}
@@ -71,7 +94,6 @@ const Alumnos = () => {
         />
       </div>
 
-      {/* 🔄 Paginación Mejorada */}
       {pageCount > 1 && (
         <ReactPaginate
           previousLabel={"← Anterior"}

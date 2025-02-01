@@ -19,21 +19,24 @@ const RolesFormulario: React.FC = () => {
     descripcion: "",
   };
 
-  const handleBuscar = useCallback(async (idStr: string, setValues: any) => {
-    try {
-      const idNum = Number(idStr);
-      if (isNaN(idNum)) {
-        toast.error("ID inválido");
-        return;
+  const handleBuscar = useCallback(
+    async (idStr: string, setValues: (vals: Rol) => void) => {
+      try {
+        const idNum = Number(idStr);
+        if (isNaN(idNum)) {
+          toast.error("ID inválido");
+          return;
+        }
+        const response = await api.get<Rol>(`/api/roles/${idNum}`);
+        setValues(response.data);
+        toast.success("Rol cargado correctamente.");
+      } catch {
+        toast.error("Error al cargar los datos del rol.");
+        setValues(initialValues);
       }
-      const response = await api.get<Rol>(`/api/roles/${idNum}`);
-      setValues(response.data);
-      toast.success("Rol cargado correctamente.");
-    } catch {
-      toast.error("Error al cargar los datos del rol.");
-      setValues(initialValues);
-    }
-  }, []);
+    },
+    []
+  );
 
   useEffect(() => {
     const id = searchParams.get("id");
@@ -59,15 +62,13 @@ const RolesFormulario: React.FC = () => {
       <h1 className="form-title">
         {searchParams.get("id") ? "Editar Rol" : "Nuevo Rol"}
       </h1>
-
       <Formik
         initialValues={initialValues}
         validationSchema={rolEsquema}
         onSubmit={handleGuardarRol}
       >
-        {({ setValues, isSubmitting }) => (
+        {({ resetForm, isSubmitting }) => (
           <Form className="formulario">
-            {/* Búsqueda por ID */}
             <div className="form-busqueda">
               <label htmlFor="idBusqueda">Número de Rol:</label>
               <Field
@@ -76,20 +77,22 @@ const RolesFormulario: React.FC = () => {
                 name="id"
                 className="form-input"
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  handleBuscar(e.target.value, setValues)
+                  handleBuscar(e.target.value, (vals: Rol) =>
+                    resetForm({ values: vals })
+                  )
                 }
               />
               <Boton
                 type="button"
                 onClick={() =>
-                  handleBuscar(searchParams.get("id") || "", setValues)
+                  handleBuscar(searchParams.get("id") || "", (vals: Rol) =>
+                    resetForm({ values: vals })
+                  )
                 }
               >
                 Buscar
               </Boton>
             </div>
-
-            {/* Campo de Descripción */}
             <fieldset className="form-fieldset">
               <legend>Información del Rol</legend>
               <div className="form-grid">
@@ -108,8 +111,6 @@ const RolesFormulario: React.FC = () => {
                 </div>
               </div>
             </fieldset>
-
-            {/* Botones de Acción */}
             <div className="form-acciones">
               <Boton type="submit" disabled={isSubmitting}>
                 Guardar Rol
@@ -117,7 +118,7 @@ const RolesFormulario: React.FC = () => {
               <Boton
                 type="reset"
                 secondary
-                onClick={() => setValues(initialValues)}
+                onClick={() => resetForm({ values: initialValues })}
               >
                 Limpiar
               </Boton>

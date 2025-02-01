@@ -6,34 +6,6 @@
   <component name="ChangeListManager">
     <list default="true" id="ccb8f120-972c-4a18-b18b-4ae7da723dfa" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/AlumnoControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/AlumnoControlador.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/AsistenciaControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/AsistenciaControlador.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/AutenticacionControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/AutenticacionControlador.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/BonificacionControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/BonificacionControlador.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/DisciplinaControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/DisciplinaControlador.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/InscripcionControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/InscripcionControlador.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/ProfesorControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/ProfesorControlador.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/ReporteControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/ReporteControlador.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/RolControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/RolControlador.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/UsuarioControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/UsuarioControlador.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/mappers/AlumnoMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/mappers/AlumnoMapper.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/mappers/AsistenciaMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/mappers/AsistenciaMapper.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/response/AlumnoResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/response/AlumnoResponse.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/response/DisciplinaSimpleResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/response/DisciplinaSimpleResponse.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/response/ProfesorListadoResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/response/ProfesorListadoResponse.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/response/ReporteResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/response/ReporteResponse.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/response/UsuarioResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/response/UsuarioResponse.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/infra/seguridad/SecurityFilter.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/infra/seguridad/SecurityFilter.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/AlumnoServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/AlumnoServicio.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/AsistenciaServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/AsistenciaServicio.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/BonificacionServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/BonificacionServicio.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/DisciplinaServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/DisciplinaServicio.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/InscripcionServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/InscripcionServicio.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/ProfesorServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/ProfesorServicio.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/ReporteServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/ReporteServicio.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/RolServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/RolServicio.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/UsuarioServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/UsuarioServicio.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -161,7 +133,7 @@
       <workItem from="1738346254973" duration="7482000" />
       <workItem from="1738376935430" duration="2843000" />
       <workItem from="1738414547978" duration="7413000" />
-      <workItem from="1738436755001" duration="208000" />
+      <workItem from="1738436755001" duration="2305000" />
     </task>
     <servers />
   </component>
