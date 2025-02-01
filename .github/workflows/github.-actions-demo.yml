@@ -43,12 +43,13 @@ jobs:
       - name: Copiar Frontend al VPS
         uses: appleboy/scp-action@v0.1.0
         with:
-          host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT }}
           source: "frontend/dist/*"
           target: "/home/jeremias/le-dance/frontend/dist/"
+          extra_args: "-oHostKeyAlgorithms=+ssh-rsa -oPubkeyAcceptedAlgorithms=+ssh-rsa"
+          host: ${{ secrets.VPS_HOST }}
 
       - name: Copiar Backend al VPS
         uses: appleboy/scp-action@v0.1.0
