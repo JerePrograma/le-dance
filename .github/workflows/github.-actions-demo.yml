@@ -60,7 +60,7 @@ jobs:
           source: "backend/target/backend-1.0.jar"
           target: "/home/jeremias/le-dance/backend/"
 
-      # 5. Reiniciar el backend en el VPS (sin systemd, usando setsid para desacoplar el proceso)
+      # 5. Reiniciar el backend en el VPS (usando tmux para desacoplar el proceso)
       - name: Reiniciar backend en VPS
         uses: appleboy/ssh-action@v0.1.9
         with:
@@ -69,7 +69,8 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT }}
           script: |
-              # Se intenta detener el proceso actual del backend (si existe)
-              pkill -f 'backend-1.0.jar' || true
-              # Inicia el backend en una sesión tmux desacoplada
-              tmux new -d -s backend "java -jar /home/jeremias/le-dance/backend/backend-1.0.jar > /home/jeremias/le-dance/backend/backend.log 2>&1"
+            # Se intenta detener el proceso actual del backend (si existe)
+            pkill -f 'backend-1.0.jar' || true
+            # Inicia el backend en una sesión tmux desacoplada
+            tmux new -d -s backend "java -jar /home/jeremias/le-dance/backend/backend-1.0.jar > /home/jeremias/le-dance/backend/backend.log 2>&1"
+            exit 0
