@@ -32,8 +32,8 @@ jobs:
       - name: Setup Java (Corretto 17)
         uses: actions/setup-java@v3
         with:
-          distribution: "corretto"
-          java-version: "17"
+          distribution: corretto
+          java-version: 17
 
       - name: Construir Backend con Maven
         working-directory: backend
@@ -60,7 +60,7 @@ jobs:
           source: "backend/target/backend-1.0.jar"
           target: "/home/jeremias/le-dance/backend/"
 
-      # 5. Reiniciar el backend en el VPS usando pm2
+      # 5. Reiniciar el backend en el VPS usando PM2
       - name: Reiniciar backend en VPS con pm2
         uses: appleboy/ssh-action@v0.1.9
         with:
@@ -69,10 +69,12 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT }}
           script: |
+            # Aseguramos que el PATH incluya la ubicación de PM2 instalado vía nvm
+            export PATH=$PATH:/root/.nvm/versions/node/v22.13.1/bin
             # Se intenta detener el proceso actual del backend (si existe)
             pm2 delete le-dance-backend || true
-            # Inicia el backend con pm2
-            pm2 start "java -jar /home/jeremias/le-dance/backend/backend-1.0.jar" --name le-dance-backend
-            # Guarda la configuración de pm2 para que se reinicie en caso de reinicio del sistema
+            # Inicia el backend con PM2 usando el JAR copiado
+            pm2 start "java -jar /home/jeremias/le-dance/backend/target/backend-1.0.jar" --name le-dance-backend
+            # Guarda la configuración de PM2 para reinicios automáticos
             pm2 save
             exit 0
