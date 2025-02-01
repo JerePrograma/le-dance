@@ -74,7 +74,7 @@ jobs:
             # Se intenta detener el proceso actual del backend (si existe)
             pm2 delete le-dance-backend || true
             # Inicia el backend con PM2 usando el JAR copiado
-            pm2 start "java -jar /home/jeremias/le-dance/backend/target/backend-1.0.jar" --name le-dance-backend
+            pm2 start "java -jar /home/jeremias/le-dance/backend/backend-1.0.jar" --name le-dance-backend
             # Guarda la configuración de PM2 para reinicios automáticos
             pm2 save
             exit 0
