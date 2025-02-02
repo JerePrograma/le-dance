@@ -34,14 +34,6 @@ public interface ProfesorRepositorio extends JpaRepository<Profesor, Long> {
      */
     List<Profesor> findByNombreContainingOrApellidoContaining(String nombre, String apellido);
 
-    /**
-     * Busca profesores con mas de un numero especifico de años de experiencia.
-     *
-     * @param aniosExperiencia Numero minimo de años de experiencia.
-     * @return Una lista de profesores con al menos el numero de años de experiencia.
-     */
-    List<Profesor> findByAniosExperienciaGreaterThanEqual(Integer aniosExperiencia);
-
     boolean existsByNombreAndApellido(String nombre, String apellido);
 
     List<Profesor> findByActivoTrue();

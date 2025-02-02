@@ -10,6 +10,7 @@ import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+
 import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -35,36 +36,38 @@ public class ReporteServicio implements IReporteServicio {
     @Transactional
     public List<ReporteResponse> generarReporte(ReporteRequest request) {
         log.info("Generando reporte de tipo: {}", request.tipo());
-        List<ReporteResponse> reporte;
+        List<ReporteResponse> reportes;
+
         switch (request.tipo()) {
             case "Recaudacion":
-                reporte = generarReporteRecaudacionPorDisciplina();
+                reportes = generarReporteRecaudacionPorDisciplina();
                 break;
             case "AsistenciaAlumno":
-                reporte = generarReporteAsistenciasPorAlumno(request.alumnoId());
+                reportes = generarReporteAsistenciasPorAlumno(request.alumnoId());
                 break;
             case "AsistenciaDisciplina":
-                reporte = generarReporteAsistenciasPorDisciplina(request.disciplinaId());
+                reportes = generarReporteAsistenciasPorDisciplina(request.disciplinaId());
                 break;
             case "AsistenciaDisciplinaAlumno":
-                reporte = generarReporteAsistenciasPorDisciplinaYAlumno(request.disciplinaId(), request.alumnoId());
+                reportes = generarReporteAsistenciasPorDisciplinaYAlumno(request.disciplinaId(), request.alumnoId());
                 break;
             default:
-                throw new IllegalArgumentException("Tipo de reporte no valido.");
+                throw new IllegalArgumentException("Tipo de reporte no válido.");
         }
-        guardarReporteEnBD(request.tipo(), reporte);
-        return reporte;
+
+        // Guardamos en BD y agregamos el reporte generado
+        return guardarReportesEnBD(request.tipo(), reportes);
     }
 
     private List<ReporteResponse> generarReporteRecaudacionPorDisciplina() {
         List<Object[]> resultados = inscripcionRepositorio.obtenerRecaudacionPorDisciplina();
         return resultados.stream()
                 .map(r -> new ReporteResponse(
-                        null,  // ❌ No se tiene ID en estos resultados
-                        "Recaudacion por Disciplina",
+                        null,  // Se asignará un ID luego
+                        "Recaudación por Disciplina",
                         "Disciplina: " + r[0] + " | Monto: $" + r[1],
-                        LocalDate.now(),  // ✅ Se asigna la fecha actual
-                        true  // ✅ Se asume que el reporte esta activo
+                        LocalDate.now(),
+                        true
                 ))
                 .collect(Collectors.toList());
     }
@@ -83,7 +86,7 @@ public class ReporteServicio implements IReporteServicio {
     }
 
     private List<ReporteResponse> generarReporteAsistenciasPorDisciplina(Long disciplinaId) {
-        List<Object[]> resultados = asistenciaRepositorio.obtenerAsistenciasPorDisciplina(disciplinaId);  // ✅ Corregido el error tipografico
+        List<Object[]> resultados = asistenciaRepositorio.obtenerAsistenciasPorDisciplina(disciplinaId);
         return resultados.stream()
                 .map(r -> new ReporteResponse(
                         null,
@@ -108,23 +111,25 @@ public class ReporteServicio implements IReporteServicio {
                 .collect(Collectors.toList());
     }
 
-
-    private ReporteResponse guardarReporteEnBD(String tipo, List<ReporteResponse> reporte) {
+    private List<ReporteResponse> guardarReportesEnBD(String tipo, List<ReporteResponse> reportes) {
         Reporte nuevoReporte = new Reporte();
         nuevoReporte.setTipo(tipo);
         nuevoReporte.setDescripcion("Reporte de " + tipo + " generado el " + LocalDate.now());
-        nuevoReporte.setFechaGeneracion(LocalDate.now());  // ✅ Asignar fecha antes de guardar
-        nuevoReporte.setActivo(true);  // ✅ Asignar activo antes de guardar
+        nuevoReporte.setFechaGeneracion(LocalDate.now());
+        nuevoReporte.setActivo(true);
+
+        // Guardamos el nuevo reporte en la BD
         Reporte guardado = reporteRepositorio.save(nuevoReporte);
 
-        return new ReporteResponse(
+        // Convertimos el reporte guardado en DTO y lo agregamos a la lista
+        reportes.add(new ReporteResponse(
                 guardado.getId(),
                 guardado.getTipo(),
                 guardado.getDescripcion(),
                 guardado.getFechaGeneracion(),
                 guardado.getActivo()
-        );
+        ));
+
+        return reportes;
     }
-
-
 }
