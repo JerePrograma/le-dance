@@ -1,16 +1,17 @@
-// src/funcionalidades/disciplinas/DisciplinasFormulario.tsx
-import React, { useEffect, useState, useCallback } from "react";
+import type React from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Boton from "../../componentes/comunes/Boton";
 import { ErrorMessage, Field, Form, Formik } from "formik";
 import { disciplinaEsquema } from "../../validaciones/disciplinaEsquema";
 import api from "../../utilidades/axiosConfig";
 import { toast } from "react-toastify";
-import {
+import type {
   DisciplinaRequest,
   DisciplinaResponse,
   ProfesorResponse,
 } from "../../types/types";
+import { Search } from "lucide-react";
 
 const initialDisciplinaValues: DisciplinaRequest = {
   id: 0,
@@ -60,15 +61,16 @@ const DisciplinasFormulario: React.FC = () => {
           `/api/disciplinas/${idNum}`
         );
         resetForm({
+          ...data,
+          id: data.id,
           nombre: data.nombre,
           horario: data.horario,
-          frecuenciaSemanal: data.frecuenciaSemanal || 0,
+          frecuenciaSemanal: data.frecuenciaSemanal,
           duracion: data.duracion,
           salon: data.salon,
-          valorCuota: data.valorCuota || 0,
-          matricula: data.matricula || 0,
-          profesorId: data.profesorId || 0,
-          id: data.id,
+          valorCuota: data.valorCuota,
+          matricula: data.matricula,
+          profesorId: 0,
         });
         toast.success("Disciplina cargada correctamente.");
       } catch {
@@ -96,110 +98,135 @@ const DisciplinasFormulario: React.FC = () => {
     []
   );
 
-  // Hasta aquí se finaliza la parte de inicialización y lógica para DisciplinasFormulario
-
   return (
-    <div className="formulario">
-      <h1 className="form-title">Formulario de Disciplinas</h1>
+    <div className="page-container">
+      <h1 className="page-title">Formulario de Disciplinas</h1>
       <Formik
         initialValues={initialDisciplinaValues}
         validationSchema={disciplinaEsquema}
         onSubmit={handleGuardarDisciplina}
+        enableReinitialize
       >
-        {({ resetForm, isSubmitting }) => (
-          <Form className="formulario">
-            <div className="form-busqueda">
-              <label htmlFor="idBusqueda">Número de Disciplina:</label>
-              <Field
-                type="number"
-                id="idBusqueda"
-                name="id"
-                className="form-input"
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                  const idValue = e.target.value ? Number(e.target.value) : 0;
-                  resetForm({
-                    values: { ...initialDisciplinaValues, id: idValue },
-                  });
-                }}
-              />
-              <Boton
-                type="button"
-                onClick={() =>
-                  handleBuscar(String(initialDisciplinaValues.id), (vals) =>
-                    resetForm({ values: vals })
-                  )
-                }
-              >
-                Buscar
-              </Boton>
-            </div>
-            <fieldset className="form-fieldset">
-              <legend>Datos de la Disciplina</legend>
-              <div className="form-grid">
-                {[
-                  { name: "nombre", label: "Nombre (obligatorio)" },
-                  {
-                    name: "horario",
-                    label: "Horario (Ej. Lunes y Miércoles 18:00 - 19:00)",
-                  },
-                  {
-                    name: "frecuenciaSemanal",
-                    label: "Frecuencia Semanal",
-                    type: "number",
-                  },
-                  { name: "duracion", label: "Duración (Ej. 1 hora)" },
-                  { name: "salon", label: "Salón (Ej. Salón A)" },
-                  { name: "valorCuota", label: "Valor Cuota", type: "number" },
-                  { name: "matricula", label: "Matrícula", type: "number" },
-                  {
-                    name: "cupoMaximo",
-                    label: "Cupo Máximo de Alumnos",
-                    type: "number",
-                  },
-                ].map(({ name, label, type = "text" }) => (
-                  <div key={name}>
-                    <label>{label}:</label>
-                    <Field name={name} type={type} className="form-input" />
-                    <ErrorMessage
-                      name={name}
-                      component="div"
-                      className="error"
-                    />
-                  </div>
-                ))}
-                <div>
-                  <label>Profesor:</label>
-                  <Field as="select" name="profesorId" className="form-input">
-                    <option value="">Seleccione un Profesor</option>
-                    {profesores.map((prof) => (
-                      <option key={prof.id} value={prof.id}>
-                        {prof.nombre + " " + prof.apellido}
-                      </option>
-                    ))}
-                  </Field>
-                  <ErrorMessage
-                    name="profesorId"
-                    component="div"
-                    className="error"
+        {({ resetForm, isSubmitting, values }) => (
+          <Form className="formulario max-w-4xl mx-auto">
+            <div className="form-grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="col-span-full mb-4">
+                <label htmlFor="idBusqueda" className="auth-label">
+                  Número de Disciplina:
+                </label>
+                <div className="flex gap-2">
+                  <Field
+                    type="number"
+                    id="idBusqueda"
+                    name="id"
+                    className="form-input flex-grow"
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      const idValue = e.target.value
+                        ? Number(e.target.value)
+                        : 0;
+                      resetForm({
+                        values: { ...initialDisciplinaValues, id: idValue },
+                      });
+                    }}
                   />
+                  <Boton
+                    type="button"
+                    onClick={() =>
+                      handleBuscar(String(values.id), (vals) =>
+                        resetForm({ values: vals })
+                      )
+                    }
+                    className="page-button"
+                  >
+                    <Search className="w-5 h-5 mr-2" />
+                    Buscar
+                  </Boton>
                 </div>
               </div>
-            </fieldset>
+
+              {[
+                { name: "nombre", label: "Nombre (obligatorio)" },
+                {
+                  name: "horario",
+                  label: "Horario (Ej. Lunes y Miércoles 18:00 - 19:00)",
+                },
+                {
+                  name: "frecuenciaSemanal",
+                  label: "Frecuencia Semanal",
+                  type: "number",
+                },
+                { name: "duracion", label: "Duración (Ej. 1 hora)" },
+                { name: "salon", label: "Salón (Ej. Salón A)" },
+                { name: "valorCuota", label: "Valor Cuota", type: "number" },
+                { name: "matricula", label: "Matrícula", type: "number" },
+                {
+                  name: "cupoMaximo",
+                  label: "Cupo Máximo de Alumnos",
+                  type: "number",
+                },
+              ].map(({ name, label, type = "text" }) => (
+                <div key={name} className="mb-4">
+                  <label htmlFor={name} className="auth-label">
+                    {label}:
+                  </label>
+                  <Field
+                    name={name}
+                    type={type}
+                    id={name}
+                    className="form-input"
+                  />
+                  <ErrorMessage
+                    name={name}
+                    component="div"
+                    className="auth-error"
+                  />
+                </div>
+              ))}
+
+              <div className="mb-4">
+                <label htmlFor="profesorId" className="auth-label">
+                  Profesor:
+                </label>
+                <Field
+                  as="select"
+                  name="profesorId"
+                  id="profesorId"
+                  className="form-input"
+                >
+                  <option value="">Seleccione un Profesor</option>
+                  {profesores.map((prof) => (
+                    <option key={prof.id} value={prof.id}>
+                      {prof.nombre} {prof.apellido}
+                    </option>
+                  ))}
+                </Field>
+                <ErrorMessage
+                  name="profesorId"
+                  component="div"
+                  className="auth-error"
+                />
+              </div>
+            </div>
+
             <div className="form-acciones">
-              <Boton type="submit" disabled={isSubmitting}>
+              <Boton
+                type="submit"
+                disabled={isSubmitting}
+                className="page-button"
+              >
                 Guardar Disciplina
               </Boton>
               <Boton
                 type="reset"
-                secondary
                 onClick={() => resetForm({ values: initialDisciplinaValues })}
+                className="page-button-secondary"
               >
                 Limpiar
               </Boton>
               <Boton
                 type="button"
-                secondary
                 onClick={() => navigate("/disciplinas")}
+                className="page-button-secondary"
               >
                 Volver al Listado
               </Boton>

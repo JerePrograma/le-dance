@@ -1,11 +1,11 @@
-// src/funcionalidades/asistencias/AsistenciasFormulario.tsx
-import React, { useEffect, useState, useCallback } from "react";
+import type React from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Form, useNavigate, useSearchParams } from "react-router-dom";
 import { ErrorMessage, Field, Formik } from "formik";
 import { asistenciaEsquema } from "../../validaciones/asistenciaEsquema";
 import api from "../../utilidades/axiosConfig";
 import { toast } from "react-toastify";
-import {
+import type {
   AsistenciaRequest,
   AsistenciaResponse,
   AlumnoListadoResponse,
@@ -13,8 +13,10 @@ import {
   ProfesorResponse,
 } from "../../types/types";
 import Boton from "../../componentes/comunes/Boton";
+import { Search } from "lucide-react";
 
 const initialAsistenciaValues: AsistenciaRequest = {
+  id: 0,
   fecha: "",
   alumnoId: 0,
   disciplinaId: 0,
@@ -36,30 +38,20 @@ const AsistenciasFormulario: React.FC = () => {
   >([]);
 
   useEffect(() => {
-    const fetchProfesores = async () => {
-      try {
-        const response = await api.get<ProfesorResponse[]>("/api/profesores");
-        setProfesores(response.data);
-      } catch {
-        toast.error("Error al cargar profesores.");
-      }
-    };
-
-    fetchProfesores();
-  }, []);
-
-  useEffect(() => {
     const fetchData = async () => {
       try {
-        const [alumnosResponse, disciplinasResponse] = await Promise.all([
-          api.get<AlumnoListadoResponse[]>("/api/alumnos/listado"),
-          api.get<DisciplinaResponse[]>("/api/disciplinas"),
-        ]);
+        const [profesoresResponse, alumnosResponse, disciplinasResponse] =
+          await Promise.all([
+            api.get<ProfesorResponse[]>("/api/profesores"),
+            api.get<AlumnoListadoResponse[]>("/api/alumnos/listado"),
+            api.get<DisciplinaResponse[]>("/api/disciplinas"),
+          ]);
+        setProfesores(profesoresResponse.data);
         setAlumnos(alumnosResponse.data);
         setAlumnosFiltrados(alumnosResponse.data);
         setDisciplinas(disciplinasResponse.data);
       } catch {
-        toast.error("Error al cargar alumnos o disciplinas.");
+        toast.error("Error al cargar datos iniciales.");
       }
     };
     fetchData();
@@ -82,6 +74,7 @@ const AsistenciasFormulario: React.FC = () => {
           `/api/asistencias/${idNum}`
         );
         resetForm({
+          id: data.id,
           fecha: data.fecha,
           alumnoId: data.alumnoId,
           disciplinaId: data.disciplinaId,
@@ -115,12 +108,11 @@ const AsistenciasFormulario: React.FC = () => {
     setValues: (values: AsistenciaRequest) => void
   ) => {
     setValues({
-      ...values, // ✅ Copiamos los valores actuales del formulario
-      disciplinaId, // ✅ Actualizamos la disciplina seleccionada
-      profesorId: 0, // ✅ Reset profesor cuando se cambia disciplina
+      ...values,
+      disciplinaId,
+      profesorId: 0,
     });
 
-    // Filtrar profesores relacionados con la disciplina seleccionada
     const profesoresRelacionados = profesores.filter(
       (profesor) =>
         profesor.id ===
@@ -144,11 +136,9 @@ const AsistenciasFormulario: React.FC = () => {
     []
   );
 
-  // Hasta aquí se finaliza la parte de inicialización y lógica para AsistenciasFormulario
-
   return (
-    <div className="formulario">
-      <h1 className="form-title">Registro de Asistencias</h1>
+    <div className="page-container">
+      <h1 className="page-title">Registro de Asistencias</h1>
       <Formik
         initialValues={initialAsistenciaValues}
         validationSchema={asistenciaEsquema}
@@ -156,117 +146,190 @@ const AsistenciasFormulario: React.FC = () => {
         enableReinitialize
       >
         {({ resetForm, setValues, isSubmitting, values }) => (
-          <Form className="formulario">
-            <div className="form-grid">
-              <label>Fecha:</label>
-              <Field
-                type="date"
-                name="fecha"
-                className="form-input"
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                  setValues({
-                    ...values,
-                    fecha: e.target.value,
-                    disciplinaId: 0,
-                    alumnoId: 0,
-                  });
-                  // Aunque "disciplinaSeleccionada" se actualiza, si no se usa en el render, se puede omitir.
-                  setAlumnosFiltrados(alumnos);
-                }}
-              />
-              <ErrorMessage name="fecha" component="div" className="error" />
-            </div>
-            <div className="form-grid">
-              <label>Disciplina:</label>
-              <Field
-                as="select"
-                name="disciplinaId"
-                className="form-input"
-                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-                  const id = Number(e.target.value);
-                  handleSeleccionarDisciplina(id, values, setValues); // ✅ Se pasa `values` correctamente
-                  handleFiltrarAlumnos(values.fecha, id);
-                }}
-              >
-                <option value="">Seleccione una disciplina</option>
-                {disciplinas.map((disc) => (
-                  <option key={disc.id} value={disc.id}>
-                    {disc.nombre}
-                  </option>
-                ))}
-              </Field>
-              <ErrorMessage
-                name="disciplinaId"
-                component="div"
-                className="error"
-              />
-            </div>
-            <div className="form-grid">
-              <label>Profesor:</label>
-              <Field as="select" name="profesorId" className="form-input">
-                <option value="">Seleccione un profesor</option>
-                {profesoresFiltrados.map((profesor: ProfesorResponse) => (
-                  <option key={profesor.id} value={profesor.id}>
-                    {profesor.nombre} {profesor.apellido}
-                  </option>
-                ))}
-              </Field>
-              <ErrorMessage
-                name="profesorId"
-                component="div"
-                className="error"
-              />
+          <Form className="formulario max-w-4xl mx-auto">
+            <div className="form-grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="col-span-full mb-4">
+                <label htmlFor="idBusqueda" className="auth-label">
+                  Número de Asistencia:
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    id="idBusqueda"
+                    className="form-input flex-grow"
+                    onChange={(e) => {
+                      const id = e.target.value;
+                      handleBuscar(id, (vals) => resetForm({ values: vals }));
+                    }}
+                  />
+                  <Boton
+                    onClick={() =>
+                      handleBuscar(values.id?.toString() || "", (vals) =>
+                        resetForm({ values: vals })
+                      )
+                    }
+                    className="page-button"
+                  >
+                    <Search className="w-5 h-5 mr-2" />
+                    Buscar
+                  </Boton>
+                </div>
+              </div>
 
-              <ErrorMessage
-                name="profesorId"
-                component="div"
-                className="error"
-              />
+              <div className="mb-4">
+                <label htmlFor="fecha" className="auth-label">
+                  Fecha:
+                </label>
+                <Field
+                  type="date"
+                  id="fecha"
+                  name="fecha"
+                  className="form-input"
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                    setValues({
+                      ...values,
+                      fecha: e.target.value,
+                      disciplinaId: 0,
+                      alumnoId: 0,
+                    });
+                    setAlumnosFiltrados(alumnos);
+                  }}
+                />
+                <ErrorMessage
+                  name="fecha"
+                  component="div"
+                  className="auth-error"
+                />
+              </div>
+
+              <div className="mb-4">
+                <label htmlFor="disciplinaId" className="auth-label">
+                  Disciplina:
+                </label>
+                <Field
+                  as="select"
+                  id="disciplinaId"
+                  name="disciplinaId"
+                  className="form-input"
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                    const id = Number(e.target.value);
+                    handleSeleccionarDisciplina(id, values, setValues);
+                    handleFiltrarAlumnos(values.fecha, id);
+                  }}
+                >
+                  <option value="">Seleccione una disciplina</option>
+                  {disciplinas.map((disc) => (
+                    <option key={disc.id} value={disc.id}>
+                      {disc.nombre}
+                    </option>
+                  ))}
+                </Field>
+                <ErrorMessage
+                  name="disciplinaId"
+                  component="div"
+                  className="auth-error"
+                />
+              </div>
+
+              <div className="mb-4">
+                <label htmlFor="profesorId" className="auth-label">
+                  Profesor:
+                </label>
+                <Field
+                  as="select"
+                  id="profesorId"
+                  name="profesorId"
+                  className="form-input"
+                >
+                  <option value="">Seleccione un profesor</option>
+                  {profesoresFiltrados.map((profesor: ProfesorResponse) => (
+                    <option key={profesor.id} value={profesor.id}>
+                      {profesor.nombre} {profesor.apellido}
+                    </option>
+                  ))}
+                </Field>
+                <ErrorMessage
+                  name="profesorId"
+                  component="div"
+                  className="auth-error"
+                />
+              </div>
+
+              <div className="mb-4">
+                <label htmlFor="alumnoId" className="auth-label">
+                  Alumno:
+                </label>
+                <Field
+                  as="select"
+                  id="alumnoId"
+                  name="alumnoId"
+                  className="form-input"
+                >
+                  <option value="">Seleccione un alumno</option>
+                  {alumnosFiltrados.map((alumno) => (
+                    <option key={alumno.id} value={alumno.id}>
+                      {alumno.nombre} {alumno.apellido}
+                    </option>
+                  ))}
+                </Field>
+                <ErrorMessage
+                  name="alumnoId"
+                  component="div"
+                  className="auth-error"
+                />
+              </div>
+
+              <div className="col-span-full mb-4">
+                <label htmlFor="observacion" className="auth-label">
+                  Observaciones:
+                </label>
+                <Field
+                  as="textarea"
+                  id="observacion"
+                  name="observacion"
+                  className="form-input h-24"
+                />
+                <ErrorMessage
+                  name="observacion"
+                  component="div"
+                  className="auth-error"
+                />
+              </div>
+
+              <div className="col-span-full mb-4">
+                <label className="flex items-center space-x-2">
+                  <Field
+                    type="checkbox"
+                    name="presente"
+                    className="form-checkbox"
+                  />
+                  <span>Presente</span>
+                </label>
+              </div>
             </div>
-            <div className="form-grid">
-              <label>Alumno:</label>
-              <Field as="select" name="alumnoId" className="form-input">
-                <option value="">Seleccione un alumno</option>
-                {alumnosFiltrados.map((alumno) => (
-                  <option key={alumno.id} value={alumno.id}>
-                    {alumno.nombre} {alumno.apellido}
-                  </option>
-                ))}
-              </Field>
-              <ErrorMessage name="alumnoId" component="div" className="error" />
-            </div>
-            <div className="form-grid">
-              <label>Observaciones:</label>
-              <Field as="textarea" name="observacion" className="form-input" />
-              <ErrorMessage
-                name="observacion"
-                component="div"
-                className="error"
-              />
-            </div>
-            <div className="form-checkbox">
-              <label>
-                <Field type="checkbox" name="presente" /> Presente
-              </label>
-            </div>
+
             <div className="form-acciones">
-              <Boton type="submit" disabled={isSubmitting}>
+              <Boton
+                type="submit"
+                disabled={isSubmitting}
+                className="page-button"
+              >
                 Guardar Asistencia
               </Boton>
               <Boton
                 type="reset"
-                secondary
                 onClick={() => {
                   resetForm();
                   setAlumnosFiltrados(alumnos);
                 }}
+                className="page-button-secondary"
               >
                 Limpiar
               </Boton>
               <Boton
                 type="button"
-                secondary
                 onClick={() => navigate("/asistencias")}
+                className="page-button-secondary"
               >
                 Volver al Listado
               </Boton>

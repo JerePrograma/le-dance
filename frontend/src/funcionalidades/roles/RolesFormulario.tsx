@@ -1,10 +1,12 @@
-import React, { useEffect, useCallback } from "react";
+import type React from "react";
+import { useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import { rolEsquema } from "../../validaciones/rolEsquema";
 import api from "../../utilidades/axiosConfig";
 import Boton from "../../componentes/comunes/Boton";
 import { toast } from "react-toastify";
+import { Search } from "lucide-react";
 
 interface Rol {
   id?: number;
@@ -45,8 +47,8 @@ const RolesFormulario: React.FC = () => {
 
   const handleGuardarRol = async (values: Rol) => {
     try {
-      if (searchParams.get("id")) {
-        await api.put(`/api/roles/${searchParams.get("id")}`, values);
+      if (values.id) {
+        await api.put(`/api/roles/${values.id}`, values);
         toast.success("Rol actualizado correctamente.");
       } else {
         await api.post("/api/roles", values);
@@ -58,71 +60,87 @@ const RolesFormulario: React.FC = () => {
   };
 
   return (
-    <div className="formulario">
-      <h1 className="form-title">
+    <div className="page-container">
+      <h1 className="page-title">
         {searchParams.get("id") ? "Editar Rol" : "Nuevo Rol"}
       </h1>
       <Formik
         initialValues={initialValues}
         validationSchema={rolEsquema}
         onSubmit={handleGuardarRol}
+        enableReinitialize
       >
-        {({ resetForm, isSubmitting }) => (
-          <Form className="formulario">
-            <div className="form-busqueda">
-              <label htmlFor="idBusqueda">Número de Rol:</label>
-              <Field
-                type="number"
-                id="idBusqueda"
-                name="id"
-                className="form-input"
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  handleBuscar(e.target.value, (vals: Rol) =>
-                    resetForm({ values: vals })
-                  )
-                }
-              />
-              <Boton
-                type="button"
-                onClick={() =>
-                  handleBuscar(searchParams.get("id") || "", (vals: Rol) =>
-                    resetForm({ values: vals })
-                  )
-                }
-              >
-                Buscar
-              </Boton>
-            </div>
-            <fieldset className="form-fieldset">
-              <legend>Información del Rol</legend>
-              <div className="form-grid">
-                <div>
-                  <label>Descripción:</label>
+        {({ resetForm, isSubmitting, values }) => (
+          <Form className="formulario max-w-4xl mx-auto">
+            <div className="form-grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="col-span-full mb-4">
+                <label htmlFor="idBusqueda" className="auth-label">
+                  Número de Rol:
+                </label>
+                <div className="flex gap-2">
                   <Field
-                    name="descripcion"
-                    type="text"
-                    className="form-input"
+                    type="number"
+                    id="idBusqueda"
+                    name="id"
+                    className="form-input flex-grow"
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      handleBuscar(e.target.value, (vals) =>
+                        resetForm({ values: vals })
+                      )
+                    }
                   />
-                  <ErrorMessage
-                    name="descripcion"
-                    component="div"
-                    className="error"
-                  />
+                  <Boton
+                    onClick={() =>
+                      handleBuscar(values.id?.toString() || "", (vals) =>
+                        resetForm({ values: vals })
+                      )
+                    }
+                    className="page-button"
+                  >
+                    <Search className="w-5 h-5 mr-2" />
+                    Buscar
+                  </Boton>
                 </div>
               </div>
-            </fieldset>
+
+              <div className="col-span-full mb-4">
+                <label htmlFor="descripcion" className="auth-label">
+                  Descripción:
+                </label>
+                <Field
+                  name="descripcion"
+                  type="text"
+                  id="descripcion"
+                  className="form-input"
+                />
+                <ErrorMessage
+                  name="descripcion"
+                  component="div"
+                  className="auth-error"
+                />
+              </div>
+            </div>
+
             <div className="form-acciones">
-              <Boton type="submit" disabled={isSubmitting}>
+              <Boton
+                type="submit"
+                disabled={isSubmitting}
+                className="page-button"
+              >
                 Guardar Rol
               </Boton>
               <Boton
                 type="reset"
-                secondary
                 onClick={() => resetForm({ values: initialValues })}
+                className="page-button-secondary"
               >
                 Limpiar
               </Boton>
-              <Boton type="button" secondary onClick={() => navigate("/roles")}>
+              <Boton
+                type="button"
+                onClick={() => navigate("/roles")}
+                className="page-button-secondary"
+              >
                 Volver al Listado
               </Boton>
             </div>

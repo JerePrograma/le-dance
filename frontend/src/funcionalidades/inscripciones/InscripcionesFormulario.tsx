@@ -1,5 +1,5 @@
-// src/funcionalidades/inscripciones/InscripcionesFormulario.tsx
-import React, { useEffect, useState, useCallback } from "react";
+import type React from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Boton from "../../componentes/comunes/Boton";
 import { ErrorMessage, Field, Form, Formik } from "formik";
@@ -8,12 +8,13 @@ import inscripcionesApi from "../../utilidades/inscripcionesApi";
 import disciplinasApi from "../../utilidades/disciplinasApi";
 import bonificacionesApi from "../../utilidades/bonificacionesApi";
 import { toast } from "react-toastify";
-import {
+import type {
   InscripcionRequest,
   InscripcionResponse,
   DisciplinaResponse,
   BonificacionResponse,
 } from "../../types/types";
+import { Search } from "lucide-react";
 
 const initialInscripcionValues: InscripcionRequest = {
   alumnoId: 0,
@@ -116,11 +117,9 @@ const InscripcionesFormulario: React.FC = () => {
     [inscripcionId]
   );
 
-  // Hasta aquí se finaliza la parte de inicialización y lógica para InscripcionesFormulario
-
   return (
-    <div className="formulario">
-      <h1 className="form-title">
+    <div className="page-container">
+      <h1 className="page-title">
         {inscripcionId ? "Editar Inscripción" : "Nueva Inscripción"}
       </h1>
       <Formik
@@ -130,105 +129,178 @@ const InscripcionesFormulario: React.FC = () => {
         enableReinitialize
       >
         {({ setFieldValue, isSubmitting, values }) => (
-          <Form className="formulario">
-            <div className="form-grid">
-              <label>Alumno ID:</label>
-              <Field
-                name="alumnoId"
-                type="number"
-                className="form-input"
-                disabled={!!inscripcionId}
-              />
-              <ErrorMessage name="alumnoId" component="div" className="error" />
+          <Form className="formulario max-w-4xl mx-auto">
+            <div className="form-grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="col-span-full mb-4">
+                <label htmlFor="idBusqueda" className="auth-label">
+                  Número de Inscripción:
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    id="idBusqueda"
+                    className="form-input flex-grow"
+                    onChange={(e) => {
+                      const id = e.target.value;
+                      cargarInscripcion(id).then((data) =>
+                        setInitialValues(data)
+                      );
+                    }}
+                  />
+                  <Boton
+                    onClick={() =>
+                      cargarInscripcion(inscripcionId?.toString() || "").then(
+                        (data) => setInitialValues(data)
+                      )
+                    }
+                    className="page-button"
+                  >
+                    <Search className="w-5 h-5 mr-2" />
+                    Buscar
+                  </Boton>
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <label htmlFor="alumnoId" className="auth-label">
+                  Alumno ID:
+                </label>
+                <Field
+                  name="alumnoId"
+                  type="number"
+                  id="alumnoId"
+                  className="form-input"
+                  disabled={!!inscripcionId}
+                />
+                <ErrorMessage
+                  name="alumnoId"
+                  component="div"
+                  className="auth-error"
+                />
+              </div>
+
+              <div className="mb-4">
+                <label htmlFor="disciplinaId" className="auth-label">
+                  Disciplina:
+                </label>
+                <Field
+                  as="select"
+                  name="disciplinaId"
+                  id="disciplinaId"
+                  className="form-input"
+                >
+                  <option value={0}>-- Seleccionar --</option>
+                  {disciplinas.map((disc) => (
+                    <option key={disc.id} value={disc.id}>
+                      {disc.id} - {disc.nombre}
+                    </option>
+                  ))}
+                </Field>
+                <ErrorMessage
+                  name="disciplinaId"
+                  component="div"
+                  className="auth-error"
+                />
+              </div>
+
+              <div className="mb-4">
+                <label htmlFor="bonificacionId" className="auth-label">
+                  Bonificación:
+                </label>
+                <Field
+                  as="select"
+                  name="bonificacionId"
+                  id="bonificacionId"
+                  className="form-input"
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                    const value =
+                      e.target.value === ""
+                        ? undefined
+                        : Number(e.target.value);
+                    const bonificacionSeleccionada = bonificaciones.find(
+                      (b) => b.id === value
+                    );
+                    const descuento = bonificacionSeleccionada
+                      ? bonificacionSeleccionada.porcentajeDescuento
+                      : 0;
+                    setFieldValue("bonificacionId", value);
+                    setFieldValue(
+                      "costoParticular",
+                      values.costoParticular
+                        ? values.costoParticular -
+                            (values.costoParticular * descuento) / 100
+                        : 0
+                    );
+                  }}
+                >
+                  <option value="">-- Ninguna --</option>
+                  {bonificaciones.map((bon) => (
+                    <option key={bon.id} value={bon.id}>
+                      {bon.descripcion}
+                    </option>
+                  ))}
+                </Field>
+                <ErrorMessage
+                  name="bonificacionId"
+                  component="div"
+                  className="auth-error"
+                />
+              </div>
+
+              <div className="mb-4">
+                <label htmlFor="costoParticular" className="auth-label">
+                  Costo Particular:
+                </label>
+                <Field
+                  name="costoParticular"
+                  type="number"
+                  id="costoParticular"
+                  className="form-input"
+                />
+                <ErrorMessage
+                  name="costoParticular"
+                  component="div"
+                  className="auth-error"
+                />
+              </div>
+
+              <div className="col-span-full mb-4">
+                <label htmlFor="notas" className="auth-label">
+                  Notas:
+                </label>
+                <Field
+                  as="textarea"
+                  name="notas"
+                  id="notas"
+                  className="form-input h-24"
+                />
+                <ErrorMessage
+                  name="notas"
+                  component="div"
+                  className="auth-error"
+                />
+              </div>
             </div>
-            <div className="form-grid">
-              <label>Disciplina:</label>
-              <Field as="select" name="disciplinaId" className="form-input">
-                <option value={0}>-- Seleccionar --</option>
-                {disciplinas.map((disc) => (
-                  <option key={disc.id} value={disc.id}>
-                    {disc.id} - {disc.nombre}
-                  </option>
-                ))}
-              </Field>
-              <ErrorMessage
-                name="disciplinaId"
-                component="div"
-                className="error"
-              />
-            </div>
-            <div className="form-grid">
-              <label>Bonificación:</label>
-              <Field
-                as="select"
-                name="bonificacionId"
-                className="form-input"
-                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-                  const value =
-                    e.target.value === "" ? undefined : Number(e.target.value);
-                  const bonificacionSeleccionada = bonificaciones.find(
-                    (b) => b.id === value
-                  );
-                  const descuento = bonificacionSeleccionada
-                    ? bonificacionSeleccionada.porcentajeDescuento
-                    : 0;
-                  setFieldValue("bonificacionId", value);
-                  setFieldValue(
-                    "costoParticular",
-                    values.costoParticular
-                      ? values.costoParticular -
-                          (values.costoParticular * descuento) / 100
-                      : 0
-                  );
-                }}
-              >
-                <option value="">-- Ninguna --</option>
-                {bonificaciones.map((bon) => (
-                  <option key={bon.id} value={bon.id}>
-                    {bon.descripcion}
-                  </option>
-                ))}
-              </Field>
-              <ErrorMessage
-                name="bonificacionId"
-                component="div"
-                className="error"
-              />
-            </div>
-            <div className="form-grid">
-              <label>Costo Particular:</label>
-              <Field
-                name="costoParticular"
-                type="number"
-                className="form-input"
-              />
-              <ErrorMessage
-                name="costoParticular"
-                component="div"
-                className="error"
-              />
-            </div>
-            <div className="form-grid">
-              <label>Notas:</label>
-              <Field as="textarea" name="notas" className="form-input" />
-              <ErrorMessage name="notas" component="div" className="error" />
-            </div>
+
             <div className="form-acciones">
-              <Boton type="submit" disabled={isSubmitting}>
+              <Boton
+                type="submit"
+                disabled={isSubmitting}
+                className="page-button"
+              >
                 {inscripcionId ? "Actualizar" : "Guardar"} Inscripción
               </Boton>
               <Boton
                 type="reset"
-                secondary
                 onClick={() =>
                   setFieldValue("alumnoId", initialInscripcionValues.alumnoId)
                 }
+                className="page-button-secondary"
               >
                 Limpiar
               </Boton>
               <Boton
                 type="button"
-                secondary
                 onClick={() =>
                   navigate(
                     values.alumnoId
@@ -236,6 +308,7 @@ const InscripcionesFormulario: React.FC = () => {
                       : "/inscripciones"
                   )
                 }
+                className="page-button-secondary"
               >
                 Volver
               </Boton>

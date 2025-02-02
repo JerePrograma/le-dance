@@ -1,11 +1,12 @@
-// src/funcionalidades/bonificaciones/BonificacionesFormulario.tsx
-import React, { useEffect, useCallback } from "react";
+import type React from "react";
+import { useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Boton from "../../componentes/comunes/Boton";
 import { ErrorMessage, Field, Form, Formik } from "formik";
 import { bonificacionEsquema } from "../../validaciones/bonificacionEsquema";
 import api from "../../utilidades/axiosConfig";
 import { toast } from "react-toastify";
+import { Search } from "lucide-react";
 
 interface Bonificacion {
   id?: number;
@@ -66,23 +67,53 @@ const BonificacionesFormulario: React.FC = () => {
     }
   }, []);
 
-  // Hasta aquí se finaliza la parte de inicialización y lógica para BonificacionesFormulario
-
   return (
-    <div className="formulario">
-      <h1 className="form-title">Formulario de Bonificación</h1>
+    <div className="page-container">
+      <h1 className="page-title">Formulario de Bonificación</h1>
       <Formik
         initialValues={initialBonificacionValues}
         validationSchema={bonificacionEsquema}
         onSubmit={handleGuardar}
+        enableReinitialize
       >
-        {({ resetForm, isSubmitting }) => (
-          <Form className="formulario">
-            <div className="form-grid">
-              <div>
-                <label>Descripción (obligatoria):</label>
+        {({ resetForm, isSubmitting, values }) => (
+          <Form className="formulario max-w-4xl mx-auto">
+            <div className="form-grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="col-span-full mb-4">
+                <label htmlFor="idBusqueda" className="auth-label">
+                  Número de Bonificación:
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    id="idBusqueda"
+                    className="form-input flex-grow"
+                    onChange={(e) => {
+                      const id = e.target.value;
+                      handleBuscar(id, (vals) => resetForm({ values: vals }));
+                    }}
+                  />
+                  <Boton
+                    onClick={() =>
+                      handleBuscar(values.id?.toString() || "", (vals) =>
+                        resetForm({ values: vals })
+                      )
+                    }
+                    className="page-button"
+                  >
+                    <Search className="w-5 h-5 mr-2" />
+                    Buscar
+                  </Boton>
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <label htmlFor="descripcion" className="auth-label">
+                  Descripción (obligatoria):
+                </label>
                 <Field
                   type="text"
+                  id="descripcion"
                   name="descripcion"
                   placeholder="Ejemplo: 1/2 BECA"
                   className="form-input"
@@ -90,13 +121,17 @@ const BonificacionesFormulario: React.FC = () => {
                 <ErrorMessage
                   name="descripcion"
                   component="div"
-                  className="error"
+                  className="auth-error"
                 />
               </div>
-              <div>
-                <label>Porcentaje de Descuento:</label>
+
+              <div className="mb-4">
+                <label htmlFor="porcentajeDescuento" className="auth-label">
+                  Porcentaje de Descuento:
+                </label>
                 <Field
                   type="number"
+                  id="porcentajeDescuento"
                   name="porcentajeDescuento"
                   placeholder="Ejemplo: 50"
                   className="form-input"
@@ -104,47 +139,63 @@ const BonificacionesFormulario: React.FC = () => {
                 <ErrorMessage
                   name="porcentajeDescuento"
                   component="div"
-                  className="error"
+                  className="auth-error"
                 />
               </div>
-              <div>
-                <label>Observaciones:</label>
+
+              <div className="col-span-full mb-4">
+                <label htmlFor="observaciones" className="auth-label">
+                  Observaciones:
+                </label>
                 <Field
                   as="textarea"
+                  id="observaciones"
                   name="observaciones"
-                  className="form-input"
+                  className="form-input h-24"
                 />
                 <ErrorMessage
                   name="observaciones"
                   component="div"
-                  className="error"
+                  className="auth-error"
                 />
               </div>
-              <div>
-                <label>Activo:</label>
-                <Field
-                  type="checkbox"
+
+              <div className="col-span-full mb-4">
+                <label className="flex items-center space-x-2">
+                  <Field
+                    type="checkbox"
+                    name="activo"
+                    className="form-checkbox"
+                  />
+                  <span>Activo</span>
+                </label>
+                <ErrorMessage
                   name="activo"
-                  className="form-checkbox"
+                  component="div"
+                  className="auth-error"
                 />
-                <ErrorMessage name="activo" component="div" className="error" />
               </div>
             </div>
+
             <div className="form-acciones">
-              <Boton type="submit" disabled={isSubmitting}>
+              <Boton
+                type="submit"
+                disabled={isSubmitting}
+                className="page-button"
+              >
                 Guardar
               </Boton>
               <Boton
                 type="reset"
-                secondary
                 onClick={() => resetForm({ values: initialBonificacionValues })}
+                className="page-button-secondary"
               >
                 Limpiar
               </Boton>
               <Boton
                 type="button"
-                secondary
                 onClick={() => navigate("/bonificaciones")}
+                className="page-button-secondary"
               >
                 Volver al Listado
               </Boton>

@@ -1,11 +1,12 @@
-// src/funcionalidades/profesores/ProfesoresFormulario.tsx
-import React, { useEffect, useCallback } from "react";
+import type React from "react";
+import { useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Boton from "../../componentes/comunes/Boton";
 import { ErrorMessage, Field, Form, Formik } from "formik";
 import { profesorEsquema } from "../../validaciones/profesorEsquema";
 import api from "../../utilidades/axiosConfig";
 import { toast } from "react-toastify";
+import { Search } from "lucide-react";
 
 interface ProfesorRequest {
   id?: number;
@@ -35,12 +36,7 @@ const ProfesoresFormulario: React.FC = () => {
           return;
         }
         const data: ProfesorRequest = await api.get(`/api/profesores/${idNum}`);
-        resetForm({
-          nombre: data.nombre,
-          apellido: data.apellido,
-          especialidad: data.especialidad,
-          aniosExperiencia: data.aniosExperiencia ?? 0,
-        });
+        resetForm(data);
         toast.success("Profesor cargado correctamente.");
       } catch {
         toast.error("Error al cargar los datos del profesor.");
@@ -59,10 +55,6 @@ const ProfesoresFormulario: React.FC = () => {
 
   const handleGuardar = useCallback(async (values: ProfesorRequest) => {
     try {
-      if (!values.nombre || !values.apellido || !values.especialidad) {
-        toast.error("Por favor, complete todos los campos obligatorios.");
-        return;
-      }
       if (values.id) {
         await api.put(`/api/profesores/${values.id}`, values);
         toast.success("Profesor actualizado correctamente.");
@@ -75,84 +67,98 @@ const ProfesoresFormulario: React.FC = () => {
     }
   }, []);
 
-  // Hasta aquí se finaliza la parte de inicialización y lógica para ProfesoresFormulario
-
   return (
-    <div className="formulario">
-      <h1 className="form-title">
+    <div className="page-container">
+      <h1 className="page-title">
         {searchParams.get("id") ? "Editar Profesor" : "Nuevo Profesor"}
       </h1>
       <Formik
         initialValues={initialProfesorValues}
         validationSchema={profesorEsquema}
         onSubmit={handleGuardar}
+        enableReinitialize
       >
-        {({ resetForm, isSubmitting }) => (
-          <Form className="formulario">
-            <div className="form-busqueda">
-              <label htmlFor="idBusqueda">Número de Profesor:</label>
-              <Field
-                type="number"
-                id="idBusqueda"
-                name="id"
-                className="form-input"
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  handleBuscar(e.target.value, (vals) =>
-                    resetForm({ values: vals })
-                  )
-                }
-              />
-              <Boton
-                type="button"
-                onClick={() =>
-                  handleBuscar(searchParams.get("id") || "", (vals) =>
-                    resetForm({ values: vals })
-                  )
-                }
-              >
-                Buscar
-              </Boton>
-            </div>
-            <fieldset className="form-fieldset">
-              <legend>Datos del Profesor</legend>
-              <div className="form-grid">
-                {[
-                  { name: "nombre", label: "Nombre (obligatorio)" },
-                  { name: "apellido", label: "Apellido (obligatorio)" },
-                  { name: "especialidad", label: "Especialidad (obligatorio)" },
-                  {
-                    name: "aniosExperiencia",
-                    label: "Años de Experiencia",
-                    type: "number",
-                  },
-                ].map(({ name, label, type = "text" }) => (
-                  <div key={name}>
-                    <label>{label}:</label>
-                    <Field name={name} type={type} className="form-input" />
-                    <ErrorMessage
-                      name={name}
-                      component="div"
-                      className="error"
-                    />
-                  </div>
-                ))}
+        {({ resetForm, isSubmitting, values }) => (
+          <Form className="formulario max-w-4xl mx-auto">
+            <div className="form-grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="col-span-full mb-4">
+                <label htmlFor="idBusqueda" className="auth-label">
+                  Número de Profesor:
+                </label>
+                <div className="flex gap-2">
+                  <Field
+                    type="number"
+                    id="idBusqueda"
+                    name="id"
+                    className="form-input flex-grow"
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      handleBuscar(e.target.value, (vals) =>
+                        resetForm({ values: vals })
+                      )
+                    }
+                  />
+                  <Boton
+                    onClick={() =>
+                      handleBuscar(values.id?.toString() || "", (vals) =>
+                        resetForm({ values: vals })
+                      )
+                    }
+                    className="page-button"
+                  >
+                    <Search className="w-5 h-5 mr-2" />
+                    Buscar
+                  </Boton>
+                </div>
               </div>
-            </fieldset>
+
+              {[
+                { name: "nombre", label: "Nombre (obligatorio)" },
+                { name: "apellido", label: "Apellido (obligatorio)" },
+                { name: "especialidad", label: "Especialidad (obligatorio)" },
+                {
+                  name: "aniosExperiencia",
+                  label: "Años de Experiencia",
+                  type: "number",
+                },
+              ].map(({ name, label, type = "text" }) => (
+                <div key={name} className="mb-4">
+                  <label htmlFor={name} className="auth-label">
+                    {label}:
+                  </label>
+                  <Field
+                    name={name}
+                    type={type}
+                    id={name}
+                    className="form-input"
+                  />
+                  <ErrorMessage
+                    name={name}
+                    component="div"
+                    className="auth-error"
+                  />
+                </div>
+              ))}
+            </div>
+
             <div className="form-acciones">
-              <Boton type="submit" disabled={isSubmitting}>
+              <Boton
+                type="submit"
+                disabled={isSubmitting}
+                className="page-button"
+              >
                 Guardar Profesor
               </Boton>
               <Boton
                 type="reset"
-                secondary
                 onClick={() => resetForm({ values: initialProfesorValues })}
+                className="page-button-secondary"
               >
                 Limpiar
               </Boton>
               <Boton
                 type="button"
-                secondary
                 onClick={() => navigate("/profesores")}
+                className="page-button-secondary"
               >
                 Volver al Listado
               </Boton>
