@@ -12,18 +12,20 @@ function Encabezado() {
 
   return (
     <>
-      <header className="bg-background dark:bg-background-dark border-b border-border dark:border-border-dark fixed top-0 left-0 right-0 z-50">
+      <header className="bg-[#F9FAFB] border-b border-gray-200 fixed top-0 left-0 right-0 z-50">
         <div className="@container mx-auto px-4 py-2 flex justify-between items-center">
           <NavLink
             to="/"
-            className="text-2xl font-bold text-primary dark:text-primary-light"
+            className="text-2xl font-bold text-[#8B5CF6]"
             onClick={() => setMenuAbierto(false)}
           >
             LE DANCE
           </NavLink>
           <button
             onClick={alternarMenu}
-            className="@container:hidden p-2 rounded-md bg-primary text-primary-foreground dark:bg-primary-light dark:text-background-dark hover:bg-primary/90 dark:hover:bg-primary-light/90 transition-colors"
+            className="@container:hidden p-2 rounded-[var(--radius-md)] 
+                      bg-[#8B5CF6] text-white hover:bg-[#7C3AED]
+                      transition-colors duration-200 ease-[var(--ease-out)]"
             aria-label={menuAbierto ? "Cerrar menú" : "Abrir menú"}
           >
             {menuAbierto ? (
@@ -36,8 +38,11 @@ function Encabezado() {
       </header>
 
       <aside
-        className={`fixed inset-y-0 right-0 z-40 w-64 bg-background dark:bg-background-dark shadow-lg transform
-                    ${menuAbierto ? "translate-x-0" : "translate-x-full"}
+        className={`fixed inset-y-0 right-0 z-40 w-64 
+                    bg-[#F9FAFB] border-l border-gray-200
+                    transform ${
+                      menuAbierto ? "translate-x-0" : "translate-x-full"
+                    }
                     transition-transform duration-300 ease-[var(--ease-in-out)]
                     @container:translate-x-0 @container:static @container:w-auto`}
       >
@@ -56,11 +61,11 @@ function Encabezado() {
               key={link.to}
               to={link.to}
               className={({ isActive }) =>
-                `block py-2 px-4 rounded-md transition-colors
+                `block py-2 px-4 rounded-[var(--radius-md)] transition-colors
                  ${
                    isActive
-                     ? "bg-primary text-primary-foreground dark:bg-primary-light dark:text-background-dark"
-                     : "text-foreground dark:text-text-dark hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent-dark dark:hover:text-accent-foreground-dark"
+                     ? "bg-[#8B5CF6] text-white"
+                     : "text-[#1F2937] hover:bg-[#8B5CF6]/10"
                  }`
               }
               onClick={() => setMenuAbierto(false)}
