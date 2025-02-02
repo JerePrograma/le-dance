@@ -22,7 +22,7 @@ const BarraLateral = () => {
     <>
       <button
         onClick={alternarMenu}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-md bg-primary text-primary-foreground"
+        className="@container:hidden fixed top-4 left-4 z-50 p-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
         aria-label="Abrir menú"
         aria-expanded={menuAbierto}
         aria-controls="menu-lateral"
@@ -32,22 +32,26 @@ const BarraLateral = () => {
 
       <aside
         id="menu-lateral"
-        className={`fixed inset-y-0 left-0 z-40 w-64 bg-background shadow-lg transform ${
-          menuAbierto ? "translate-x-0" : "-translate-x-full"
-        } transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:w-auto`}
+        className={`fixed inset-y-0 left-0 z-40 w-64 bg-background dark:bg-background-dark shadow-lg transform
+                    ${menuAbierto ? "translate-x-0" : "-translate-x-full"}
+                    transition-transform duration-300 ease-[var(--ease-in-out)]
+                    @container:translate-x-0 @container:static @container:w-auto`}
       >
-        <h1 className="text-2xl font-bold text-primary p-4">LE DANCE</h1>
+        <h1 className="text-2xl font-bold text-primary dark:text-primary-light p-4">
+          LE DANCE
+        </h1>
         <nav role="menu" className="space-y-2 p-4">
           {enlaces.map((link) => (
             <NavLink
               key={link.to}
               to={link.to}
               className={({ isActive }) =>
-                `block py-2 px-4 rounded-md transition-colors ${
-                  isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "text-foreground hover:bg-accent hover:text-accent-foreground"
-                }`
+                `block py-2 px-4 rounded-md transition-colors
+                 ${
+                   isActive
+                     ? "bg-primary text-primary-foreground dark:bg-primary-light dark:text-background-dark"
+                     : "text-foreground dark:text-text-dark hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent-dark dark:hover:text-accent-foreground-dark"
+                 }`
               }
               onClick={alternarMenu}
               role="menuitem"
@@ -61,7 +65,7 @@ const BarraLateral = () => {
       {menuAbierto && (
         <div
           onClick={alternarMenu}
-          className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
+          className="fixed inset-0 bg-black/50 z-30 @container:hidden"
           aria-hidden="true"
         ></div>
       )}
