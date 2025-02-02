@@ -1,60 +1,68 @@
-import type React from "react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
   Users,
-  Music2,
+  Music,
   GraduationCap,
   ClipboardCheck,
   Gift,
   CreditCard,
-  BarChart2,
+  BarChart3,
   UserCog,
   Shield,
+  LogOut,
 } from "lucide-react";
+import { useAuth } from "../hooks/context/authContext";
 
-const entidades = [
-  { nombre: "Profesores", ruta: "/profesores", icono: Users },
-  { nombre: "Disciplinas", ruta: "/disciplinas", icono: Music2 },
-  { nombre: "Alumnos", ruta: "/alumnos", icono: GraduationCap },
-  { nombre: "Asistencias", ruta: "/asistencias", icono: ClipboardCheck },
-  { nombre: "Bonificaciones", ruta: "/bonificaciones", icono: Gift },
-  { nombre: "Pagos", ruta: "/pagos", icono: CreditCard },
-  { nombre: "Reportes", ruta: "/reportes", icono: BarChart2 },
-  { nombre: "Usuarios", ruta: "/usuarios", icono: UserCog },
-  { nombre: "Roles", ruta: "/roles", icono: Shield },
+const navigationItems = [
+  { icon: Users, label: "Profesores", href: "/profesores" },
+  { icon: Music, label: "Disciplinas", href: "/disciplinas" },
+  { icon: GraduationCap, label: "Alumnos", href: "/alumnos" },
+  { icon: ClipboardCheck, label: "Asistencias", href: "/asistencias" },
+  { icon: Gift, label: "Bonificaciones", href: "/bonificaciones" },
+  { icon: CreditCard, label: "Pagos", href: "/pagos" },
+  { icon: BarChart3, label: "Reportes", href: "/reportes" },
+  { icon: UserCog, label: "Usuarios", href: "/usuarios" },
+  { icon: Shield, label: "Roles", href: "/roles" },
 ];
 
-const Inicio: React.FC = () => {
-  const navigate = useNavigate();
+export default function Dashboard() {
+  const { logout } = useAuth();
 
   return (
-    <div className="bg-background dark:bg-background-dark min-h-screen p-6 @container">
-      <h1 className="text-3xl font-bold text-center text-text dark:text-text-dark mb-6">
-        Panel de Gestión - LE DANCE
-      </h1>
-
-      <div className="grid grid-cols-1 @sm:grid-cols-2 @lg:grid-cols-3 gap-6">
-        {entidades.map(({ nombre, ruta, icono: Icon }) => (
+    <div className="min-h-screen bg-[#1a1f2e] text-white">
+      <header className="border-b border-white/10">
+        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-[#a78bfa]">LE DANCE</h1>
           <button
-            key={nombre}
-            className="group p-6 rounded-[var(--radius-lg)] shadow-lg 
-                       bg-white dark:bg-gray-800 
-                       transition-all duration-300 ease-[var(--ease-default)]
-                       hover:shadow-xl hover:scale-105 hover:bg-primary/5 dark:hover:bg-primary/10
-                       focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-background-dark"
-            onClick={() => navigate(ruta)}
+            onClick={logout}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#a78bfa] hover:bg-[#9061f9] transition-colors"
           >
-            <div className="flex items-center space-x-4">
-              <Icon className="w-8 h-8 text-primary group-hover:text-primary/80 transition-colors" />
-              <h3 className="text-xl font-semibold text-text dark:text-text-dark group-hover:text-primary">
-                {nombre}
-              </h3>
-            </div>
+            <LogOut className="w-5 h-5" />
+            Cerrar sesión
           </button>
-        ))}
-      </div>
+        </div>
+      </header>
+
+      <main className="container mx-auto px-4 py-8">
+        <h2 className="text-3xl font-bold text-center mb-12">
+          Panel de Gestión - LE DANCE
+        </h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {navigationItems.map((item) => (
+            <Link
+              key={item.href}
+              to={item.href}
+              className="block p-6 rounded-lg bg-[#242b3d] hover:bg-[#2f3850] transition-colors group"
+            >
+              <div className="flex items-center gap-4">
+                <item.icon className="w-8 h-8 text-[#a78bfa] group-hover:text-[#9061f9] transition-colors" />
+                <span className="text-xl font-medium">{item.label}</span>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </main>
     </div>
   );
-};
-
-export default Inicio;
+}
