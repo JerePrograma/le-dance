@@ -75,12 +75,21 @@ const AlumnosFormulario: React.FC = () => {
         callback(alumno);
         setAlumnoId(alumno.id);
         cargarInscripciones(alumno.id);
+        setMensaje("");
       } else {
         setMensaje("Por favor, ingrese un ID de alumno.");
+        resetearFormulario(callback);
       }
     } catch (error) {
       setMensaje("Alumno no encontrado.");
+      resetearFormulario(callback);
     }
+  };
+
+  const resetearFormulario = (callback: (vals: AlumnoRequest) => void) => {
+    callback(initialAlumnoValues);
+    setAlumnoId(null);
+    setInscripciones([]);
   };
 
   const handleSeleccionarAlumno = async (
@@ -94,8 +103,10 @@ const AlumnosFormulario: React.FC = () => {
       setAlumnoId(alumno.id);
       setNombreBusqueda(nombreCompleto);
       cargarInscripciones(alumno.id);
+      setMensaje("");
     } catch (error) {
       setMensaje("Alumno no encontrado.");
+      resetearFormulario(callback);
     }
   };
 
@@ -114,7 +125,7 @@ const AlumnosFormulario: React.FC = () => {
     if (alumnoIdParam) {
       handleBuscar(alumnoIdParam, (vals) => setAlumnoId(vals.id));
     }
-  }, [searchParams]);
+  }, [searchParams, handleBuscar]); // Added handleBuscar to dependencies
 
   useEffect(() => {
     const buscarSugerencias = async () => {
@@ -150,8 +161,8 @@ const AlumnosFormulario: React.FC = () => {
         enableReinitialize
       >
         {({ resetForm, isSubmitting }) => (
-          <Form className="formulario">
-            <div className="form-grid">
+          <Form className="formulario max-w-4xl mx-auto">
+            <div className="form-grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* Búsqueda por ID */}
               <div className="col-span-full mb-4">
                 <label htmlFor="idBusqueda" className="auth-label">
@@ -356,7 +367,7 @@ const AlumnosFormulario: React.FC = () => {
                       Agregar Disciplina
                     </Boton>
                   </div>
-                  <div className="page-table-container">
+                  <div className="overflow-x-auto">
                     <Tabla
                       encabezados={[
                         "ID",
