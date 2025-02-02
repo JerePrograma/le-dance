@@ -4,6 +4,7 @@ import Tabla from "../../componentes/comunes/Tabla";
 import api from "../../utilidades/axiosConfig";
 import ReactPaginate from "react-paginate";
 import Boton from "../../componentes/comunes/Boton";
+import { PlusCircle, Pencil, Trash2 } from "lucide-react";
 
 interface Disciplina {
   id: number;
@@ -39,7 +40,7 @@ const Disciplinas = () => {
 
   const pageCount = useMemo(
     () => Math.ceil(disciplinas.length / itemsPerPage),
-    [disciplinas.length, itemsPerPage]
+    [disciplinas.length]
   );
   const currentItems = useMemo(
     () =>
@@ -47,7 +48,7 @@ const Disciplinas = () => {
         currentPage * itemsPerPage,
         (currentPage + 1) * itemsPerPage
       ),
-    [disciplinas, currentPage, itemsPerPage]
+    [disciplinas, currentPage]
   );
 
   const handlePageClick = useCallback(
@@ -59,14 +60,19 @@ const Disciplinas = () => {
     [pageCount]
   );
 
-  if (loading) return <div>Cargando...</div>;
-  if (error) return <div>{error}</div>;
+  if (loading) return <div className="text-center py-4">Cargando...</div>;
+  if (error)
+    return <div className="text-center py-4 text-red-500">{error}</div>;
 
   return (
-    <div className="page-container">
+    <div className="page-container @container">
       <h1 className="page-title">Disciplinas</h1>
       <div className="flex justify-end mb-4">
-        <Boton onClick={() => navigate("/disciplinas/formulario")}>
+        <Boton
+          onClick={() => navigate("/disciplinas/formulario")}
+          className="page-button"
+        >
+          <PlusCircle className="w-5 h-5 mr-2" />
           Registrar Nueva Disciplina
         </Boton>
       </div>
@@ -81,15 +87,18 @@ const Disciplinas = () => {
                   navigate(`/disciplinas/formulario?id=${fila.id}`)
                 }
                 secondary
+                className="page-button-secondary"
                 aria-label={`Editar disciplina ${fila.nombre}`}
               >
+                <Pencil className="w-4 h-4 mr-2" />
                 Editar
               </Boton>
               <Boton
                 secondary
-                className="bg-red-500 hover:bg-red-600"
+                className="page-button-danger"
                 aria-label={`Eliminar disciplina ${fila.nombre}`}
               >
+                <Trash2 className="w-4 h-4 mr-2" />
                 Eliminar
               </Boton>
             </div>

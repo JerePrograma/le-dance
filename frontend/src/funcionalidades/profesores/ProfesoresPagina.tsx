@@ -4,6 +4,7 @@ import Tabla from "../../componentes/comunes/Tabla";
 import api from "../../utilidades/axiosConfig";
 import ReactPaginate from "react-paginate";
 import Boton from "../../componentes/comunes/Boton";
+import { PlusCircle, Pencil, Trash2 } from "lucide-react";
 
 interface Profesor {
   id: number;
@@ -41,7 +42,7 @@ const Profesores = () => {
 
   const pageCount = useMemo(
     () => Math.ceil(profesores.length / itemsPerPage),
-    [profesores.length, itemsPerPage]
+    [profesores.length]
   );
   const currentItems = useMemo(
     () =>
@@ -61,14 +62,19 @@ const Profesores = () => {
     [pageCount]
   );
 
-  if (loading) return <div>Cargando...</div>;
-  if (error) return <div>{error}</div>;
+  if (loading) return <div className="text-center py-4">Cargando...</div>;
+  if (error)
+    return <div className="text-center py-4 text-red-500">{error}</div>;
 
   return (
-    <div className="page-container">
+    <div className="page-container @container">
       <h1 className="page-title">Profesores</h1>
       <div className="flex justify-end mb-4">
-        <Boton onClick={() => navigate("/profesores/formulario")}>
+        <Boton
+          onClick={() => navigate("/profesores/formulario")}
+          className="page-button"
+        >
+          <PlusCircle className="w-5 h-5 mr-2" />
           Registrar Nuevo Profesor
         </Boton>
       </div>
@@ -88,19 +94,29 @@ const Profesores = () => {
               <Boton
                 onClick={() => navigate(`/profesores/formulario?id=${fila.id}`)}
                 secondary
+                className="page-button-secondary"
                 aria-label={`Editar profesor ${fila.nombre} ${fila.apellido}`}
               >
+                <Pencil className="w-4 h-4 mr-2" />
                 Editar
               </Boton>
               <Boton
                 secondary
-                className="bg-red-500 hover:bg-red-600"
+                className="page-button-danger"
                 aria-label={`Eliminar profesor ${fila.nombre}`}
               >
+                <Trash2 className="w-4 h-4 mr-2" />
                 Eliminar
               </Boton>
             </div>
           )}
+          extraRender={(fila) => [
+            fila.id,
+            fila.nombre,
+            fila.apellido,
+            fila.especialidad,
+            fila.aniosExperiencia,
+          ]}
         />
       </div>
       {pageCount > 1 && (

@@ -4,6 +4,7 @@ import Tabla from "../../componentes/comunes/Tabla";
 import alumnosApi from "../../utilidades/alumnosApi";
 import ReactPaginate from "react-paginate";
 import Boton from "../../componentes/comunes/Boton";
+import { PlusCircle, Pencil } from "lucide-react";
 
 interface AlumnoListado {
   id: number;
@@ -16,10 +17,9 @@ const Alumnos = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const itemsPerPage = 5; // Cantidad de items por página
+  const itemsPerPage = 5;
   const navigate = useNavigate();
 
-  // Fetch de datos optimizado con manejo de loading y error
   const fetchAlumnos = useCallback(async () => {
     try {
       setLoading(true);
@@ -38,21 +38,18 @@ const Alumnos = () => {
     fetchAlumnos();
   }, [fetchAlumnos]);
 
-  // Uso de useMemo para calcular el número total de páginas
   const pageCount = useMemo(
     () => Math.ceil(alumnos.length / itemsPerPage),
-    [alumnos.length, itemsPerPage]
+    [alumnos.length]
   );
 
-  // Uso de useMemo para obtener los items correspondientes a la página actual
   const currentItems = useMemo(() => {
     return alumnos.slice(
       currentPage * itemsPerPage,
       (currentPage + 1) * itemsPerPage
     );
-  }, [alumnos, currentPage, itemsPerPage]);
+  }, [alumnos, currentPage]);
 
-  // Función de paginación memorizada con useCallback
   const handlePageClick = useCallback(
     ({ selected }: { selected: number }) => {
       if (selected < pageCount) {
@@ -62,16 +59,20 @@ const Alumnos = () => {
     [pageCount]
   );
 
-  // Si lo deseas, puedes mostrar un spinner o un mensaje de carga
-  if (loading) return <div>Cargando...</div>;
-  if (error) return <div>{error}</div>;
+  if (loading) return <div className="text-center py-4">Cargando...</div>;
+  if (error)
+    return <div className="text-center py-4 text-red-500">{error}</div>;
 
   return (
-    <div className="page-container">
+    <div className="page-container @container">
       <h1 className="page-title">Alumnos</h1>
 
       <div className="flex justify-end mb-4">
-        <Boton onClick={() => navigate("/alumnos/formulario")}>
+        <Boton
+          onClick={() => navigate("/alumnos/formulario")}
+          className="page-button"
+        >
+          <PlusCircle className="w-5 h-5 mr-2" />
           Ficha Aade Alumnos
         </Boton>
       </div>
@@ -80,13 +81,14 @@ const Alumnos = () => {
         <Tabla
           encabezados={["ID", "Nombre", "Apellido", "Acciones"]}
           datos={currentItems}
-          // Puedes optimizar la función de renderizado de acciones usando useCallback en el componente Tabla o incluso envolver Tabla en React.memo
           acciones={(fila) => (
             <Boton
               onClick={() => navigate(`/alumnos/formulario?id=${fila.id}`)}
               secondary
+              className="page-button-secondary"
               aria-label={`Editar alumno ${fila.nombre} ${fila.apellido}`}
             >
+              <Pencil className="w-4 h-4 mr-2" />
               Editar
             </Boton>
           )}
