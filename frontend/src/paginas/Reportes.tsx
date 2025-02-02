@@ -94,71 +94,93 @@ const Reportes = () => {
   };
 
   return (
-    <div className="page-container">
+    <div className="page-container @container">
       <h1 className="page-title">Generación de Reportes</h1>
 
-      <div className="form-grid">
-        <label>Selecciona el Tipo de Reporte:</label>
-        <select
-          value={tipoReporte}
-          onChange={(e) => setTipoReporte(e.target.value)}
-          className="form-input"
-        >
-          <option value="">-- Seleccionar --</option>
-          <option value="Recaudación por Disciplina">
-            Recaudación por Disciplina
-          </option>
-          <option value="Asistencias por Alumno">Asistencias por Alumno</option>
-          <option value="Asistencias por Disciplina">
-            Asistencias por Disciplina
-          </option>
-          <option value="Asistencias por Disciplina y Alumno">
-            Asistencias por Disciplina y Alumno
-          </option>
-        </select>
+      <div className="space-y-4 mb-6">
+        <div>
+          <label
+            htmlFor="tipoReporte"
+            className="block text-sm font-medium text-foreground mb-1"
+          >
+            Selecciona el Tipo de Reporte:
+          </label>
+          <select
+            id="tipoReporte"
+            value={tipoReporte}
+            onChange={(e) => setTipoReporte(e.target.value)}
+            className="form-input w-full"
+          >
+            <option value="">-- Seleccionar --</option>
+            <option value="Recaudación por Disciplina">
+              Recaudación por Disciplina
+            </option>
+            <option value="Asistencias por Alumno">
+              Asistencias por Alumno
+            </option>
+            <option value="Asistencias por Disciplina">
+              Asistencias por Disciplina
+            </option>
+            <option value="Asistencias por Disciplina y Alumno">
+              Asistencias por Disciplina y Alumno
+            </option>
+          </select>
+        </div>
+
+        {tipoReporte.includes("Disciplina") && (
+          <div>
+            <label
+              htmlFor="disciplina"
+              className="block text-sm font-medium text-foreground mb-1"
+            >
+              Selecciona la Disciplina:
+            </label>
+            <select
+              id="disciplina"
+              value={filtroDisciplina}
+              onChange={(e) => setFiltroDisciplina(e.target.value)}
+              className="form-input w-full"
+            >
+              <option value="">-- Seleccionar --</option>
+              {disciplinas.map((disc) => (
+                <option key={disc.id} value={disc.id}>
+                  {disc.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {tipoReporte.includes("Alumno") && (
+          <div>
+            <label
+              htmlFor="alumno"
+              className="block text-sm font-medium text-foreground mb-1"
+            >
+              Selecciona el Alumno:
+            </label>
+            <select
+              id="alumno"
+              value={filtroAlumno}
+              onChange={(e) => setFiltroAlumno(e.target.value)}
+              className="form-input w-full"
+            >
+              <option value="">-- Seleccionar --</option>
+              {alumnos.map((alumno) => (
+                <option key={alumno.id} value={alumno.id}>
+                  {alumno.nombre} {alumno.apellido}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        <Boton onClick={obtenerDatosReporte} disabled={loading}>
+          Generar Reporte
+        </Boton>
       </div>
 
-      {tipoReporte.includes("Disciplina") && (
-        <div className="form-grid">
-          <label>Selecciona la Disciplina:</label>
-          <select
-            value={filtroDisciplina}
-            onChange={(e) => setFiltroDisciplina(e.target.value)}
-            className="form-input"
-          >
-            <option value="">-- Seleccionar --</option>
-            {disciplinas.map((disc) => (
-              <option key={disc.id} value={disc.id}>
-                {disc.nombre}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
-
-      {tipoReporte.includes("Alumno") && (
-        <div className="form-grid">
-          <label>Selecciona el Alumno:</label>
-          <select
-            value={filtroAlumno}
-            onChange={(e) => setFiltroAlumno(e.target.value)}
-            className="form-input"
-          >
-            <option value="">-- Seleccionar --</option>
-            {alumnos.map((alumno) => (
-              <option key={alumno.id} value={alumno.id}>
-                {alumno.nombre} {alumno.apellido}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
-
-      <Boton onClick={obtenerDatosReporte} disabled={loading}>
-        Generar Reporte
-      </Boton>
-
-      {loading && <p>Cargando...</p>}
+      {loading && <p className="text-center py-4">Cargando...</p>}
 
       {datos.length > 0 && (
         <div className="page-table-container">

@@ -1,7 +1,7 @@
-// Encabezado.tsx
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import BotonCerrarSesion from "./BotonCerrarSesion";
+import { Menu, X } from "lucide-react";
 
 function Encabezado() {
   const [menuAbierto, setMenuAbierto] = useState(false);
@@ -12,40 +12,35 @@ function Encabezado() {
 
   return (
     <>
-      {/* Barra superior */}
-      <header className="header">
-        <NavLink
-          to="/"
-          className="header-logo"
-          onClick={() => setMenuAbierto(false)}
-        >
-          LE DANCE
-        </NavLink>
-        <button
-          onClick={alternarMenu}
-          className="header-menu-btn"
-          aria-label="Abrir menú"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-6 w-6"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
+      <header className="bg-background border-b border-border fixed top-0 left-0 right-0 z-50">
+        <div className="container mx-auto px-4 py-2 flex justify-between items-center">
+          <NavLink
+            to="/"
+            className="text-2xl font-bold text-primary"
+            onClick={() => setMenuAbierto(false)}
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 6h16M4 12h16m-7 6h7"
-            />
-          </svg>
-        </button>
+            LE DANCE
+          </NavLink>
+          <button
+            onClick={alternarMenu}
+            className="lg:hidden p-2 rounded-md bg-primary text-primary-foreground"
+            aria-label={menuAbierto ? "Cerrar menú" : "Abrir menú"}
+          >
+            {menuAbierto ? (
+              <X className="h-6 w-6" />
+            ) : (
+              <Menu className="h-6 w-6" />
+            )}
+          </button>
+        </div>
       </header>
 
-      {/* Barra lateral */}
-      <aside className={`sidebar ${menuAbierto ? "sidebar-open" : ""}`}>
-        <nav className="sidebar-nav">
+      <aside
+        className={`fixed inset-y-0 right-0 z-40 w-64 bg-background shadow-lg transform ${
+          menuAbierto ? "translate-x-0" : "translate-x-full"
+        } transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:w-auto`}
+      >
+        <nav className="h-full flex flex-col p-4">
           <NavLink
             to="/"
             className="sidebar-link"
@@ -98,13 +93,17 @@ function Encabezado() {
           >
             Reportes
           </NavLink>
-          <BotonCerrarSesion />
+          <div className="mt-auto">
+            <BotonCerrarSesion />
+          </div>
         </nav>
       </aside>
 
-      {/* Overlay */}
       {menuAbierto && (
-        <div className="overlay lg:hidden" onClick={alternarMenu} />
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
+          onClick={alternarMenu}
+        />
       )}
     </>
   );

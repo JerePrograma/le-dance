@@ -1,13 +1,11 @@
-// src/componentes/BarraLateral.tsx
 import { useMemo } from "react";
 import { NavLink } from "react-router-dom";
-import styles from "./BarraLateral.module.css";
-import useToggle from "../../hooks/useToggle";
+import useToggle from "../hooks/useToggle";
+import { Menu } from "lucide-react";
 
 const BarraLateral = () => {
   const [menuAbierto, alternarMenu] = useToggle(false);
 
-  // Lista de enlaces memorizada (la lista es fija)
   const enlaces = useMemo(
     () => [
       { to: "/", label: "Inicio" },
@@ -22,45 +20,34 @@ const BarraLateral = () => {
 
   return (
     <>
-      {/* Botón de hamburguesa para móviles */}
       <button
         onClick={alternarMenu}
-        className={`${styles.hamburguesa} lg:hidden`}
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-md bg-primary text-primary-foreground"
         aria-label="Abrir menú"
         aria-expanded={menuAbierto}
         aria-controls="menu-lateral"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className="h-6 w-6"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M4 6h16M4 12h16m-7 6h7"
-          />
-        </svg>
+        <Menu className="h-6 w-6" />
       </button>
 
-      {/* Barra lateral */}
       <aside
         id="menu-lateral"
-        className={`${styles.barraLateral} ${
-          menuAbierto ? styles.barraAbierta : ""
-        } lg:relative`}
+        className={`fixed inset-y-0 left-0 z-40 w-64 bg-background shadow-lg transform ${
+          menuAbierto ? "translate-x-0" : "-translate-x-full"
+        } transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:w-auto`}
       >
-        <h1 className={styles.logo}>LE DANCE</h1>
-        <nav role="menu" className={styles.navegacion}>
+        <h1 className="text-2xl font-bold text-primary p-4">LE DANCE</h1>
+        <nav role="menu" className="space-y-2 p-4">
           {enlaces.map((link) => (
             <NavLink
               key={link.to}
               to={link.to}
               className={({ isActive }) =>
-                `${styles.enlace} ${isActive ? styles.enlaceActivo : ""}`
+                `block py-2 px-4 rounded-md transition-colors ${
+                  isActive
+                    ? "bg-primary text-primary-foreground"
+                    : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                }`
               }
               onClick={alternarMenu}
               role="menuitem"
@@ -71,11 +58,10 @@ const BarraLateral = () => {
         </nav>
       </aside>
 
-      {/* Fondo oscuro para cerrar el menú en móviles */}
       {menuAbierto && (
         <div
           onClick={alternarMenu}
-          className={styles.fondoOscuro}
+          className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
           aria-hidden="true"
         ></div>
       )}

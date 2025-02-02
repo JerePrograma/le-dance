@@ -1,5 +1,4 @@
-// src/componentes/comunes/Tarjeta.tsx
-import React from "react";
+import type React from "react";
 
 interface TarjetaProps {
   titulo: string;
@@ -15,11 +14,11 @@ const Tarjeta: React.FC<TarjetaProps> = ({
   children,
 }) => {
   return (
-    <div className="tarjeta p-4 border rounded shadow hover:shadow-lg transition">
-      <h3 className="text-xl font-bold">{titulo}</h3>
-      <p className="text-2xl">{valor}</p>
-      <p className="text-sm">{descripcion}</p>
-      {children && <div className="mt-2">{children}</div>}
+    <div className="bg-card text-card-foreground p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+      <h3 className="text-xl font-bold mb-2">{titulo}</h3>
+      <p className="text-2xl font-semibold mb-1">{valor}</p>
+      <p className="text-sm text-muted-foreground mb-4">{descripcion}</p>
+      {children && <div className="mt-4">{children}</div>}
     </div>
   );
 };
