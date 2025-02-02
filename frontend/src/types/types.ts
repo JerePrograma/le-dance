@@ -139,6 +139,7 @@ export interface ProfesorResponse {
 
 // Asistencia
 export interface AsistenciaRequest {
+  id: number;
   fecha: string; // ISO Date
   presente: boolean;
   observacion?: string;
