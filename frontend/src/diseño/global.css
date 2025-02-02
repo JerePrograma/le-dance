@@ -1,36 +1,44 @@
 @import "tailwindcss";
 
 @theme {
-  /* Colores */
-  --color-primary: #3b82f6;
-  --color-secondary: #6b7280;
+  /* Colors */
+  --color-primary: #8b5cf6;
+  --color-primary-light: #a78bfa;
+  --color-secondary: #10b981;
   --color-accent: #f43f5e;
   --color-background: #f9fafb;
   --color-background-dark: #111827;
   --color-text: #1f2937;
   --color-text-dark: #f3f4f6;
 
-  /* Tipografías */
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  /* Typography */
+  --font-sans: "Inter", system-ui, sans-serif;
   --font-serif: "Merriweather", ui-serif, Georgia, serif;
-  --font-display: "Poppins", sans-serif;
+  --font-display: "Satoshi", sans-serif;
   --font-body: var(--font-sans);
-  --font-title: "Satoshi", sans-serif;
+  --font-title: var(--font-display);
 
-  /* Bordes y Espaciado */
+  /* Borders and Spacing */
   --radius-sm: 0.25rem;
   --radius-md: 0.375rem;
   --radius-lg: 0.5rem;
+  --radius-card: 1rem;
   --spacing-1: 0.25rem;
   --spacing-2: 0.5rem;
   --spacing-4: 1rem;
   --spacing-6: 1.5rem;
 
-  /* Animaciones */
+  /* Animations */
   --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-in: cubic-bezier(0.4, 0, 1, 1);
   --ease-out: cubic-bezier(0, 0, 0.2, 1);
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1),
+    0 4px 6px -4px rgb(0 0 0 / 0.1);
 
   /* Breakpoints */
   --breakpoint-sm: 640px;
@@ -60,10 +68,11 @@
     @apply @container;
   }
 
+  /* Auth Styles */
   .auth-container {
     @apply w-full max-w-md mx-auto my-8 p-6 
            bg-white dark:bg-gray-800 
-           rounded-[var(--radius-lg)] shadow-lg 
+           rounded-[var(--radius-lg)] shadow-[var(--shadow-lg)]
            text-text dark:text-text-dark;
   }
 
@@ -90,7 +99,8 @@
   }
 
   .auth-button {
-    @apply bg-primary text-white py-2 px-4 rounded-[var(--radius-md)] transition-colors;
+    @apply bg-primary text-white py-2 px-4 rounded-[var(--radius-md)] 
+           transition-colors duration-200 ease-[var(--ease-out)];
   }
 
   .auth-button:hover {
@@ -101,10 +111,11 @@
     @apply mt-4 inline-block text-primary hover:text-primary/80;
   }
 
+  /* Form Styles */
   .formulario {
     @apply w-full max-w-2xl mx-auto my-8 p-8
            bg-white dark:bg-gray-800
-           rounded-[var(--radius-lg)] shadow-lg
+           rounded-[var(--radius-lg)] shadow-[var(--shadow-lg)]
            text-text dark:text-text-dark;
   }
 
@@ -132,7 +143,7 @@
 
   .form-boton {
     @apply bg-primary text-white py-2 px-4 rounded-[var(--radius-md)] 
-           border-0 transition-colors cursor-pointer;
+           border-0 transition-colors duration-200 ease-[var(--ease-out)] cursor-pointer;
   }
 
   .form-boton:hover {
@@ -141,7 +152,7 @@
 
   .form-botonSecundario {
     @apply bg-accent text-white py-2 px-4 rounded-[var(--radius-md)] 
-           border-0 transition-colors cursor-pointer;
+           border-0 transition-colors duration-200 ease-[var(--ease-out)] cursor-pointer;
   }
 
   .form-botonSecundario:hover {
@@ -171,16 +182,152 @@
   .form-legend {
     @apply font-medium mb-2;
   }
+
+  /* Navigation Styles */
+  .header {
+    @apply flex items-center justify-between px-4 py-2 bg-white dark:bg-gray-800 shadow-[var(--shadow-sm)];
+  }
+
+  .header-logo {
+    @apply text-xl font-bold text-text dark:text-text-dark tracking-wide;
+  }
+
+  .header-menu-btn {
+    @apply p-2 text-text/60 dark:text-text-dark/60 lg:hidden;
+  }
+
+  .sidebar {
+    @apply fixed top-0 left-0 h-full w-64 bg-background dark:bg-background-dark
+           transform -translate-x-full
+           transition-transform duration-300 ease-[var(--ease-in-out)]
+           z-40;
+  }
+
+  .sidebar-open {
+    @apply translate-x-0;
+  }
+
+  .sidebar-nav {
+    @apply flex flex-col mt-8;
+  }
+
+  .sidebar-link {
+    @apply px-4 py-2 text-text dark:text-text-dark
+           hover:bg-primary/10 dark:hover:bg-primary/20
+           transition-colors duration-200 ease-[var(--ease-out)];
+  }
+
+  .overlay {
+    @apply fixed inset-0 bg-black/50 z-30;
+  }
+
+  @screen lg {
+    .sidebar {
+      @apply relative translate-x-0;
+    }
+    .overlay {
+      @apply hidden;
+    }
+  }
+
+  /* Page Styles */
+  .page-container {
+    @apply container mx-auto max-w-5xl px-4 py-6
+           bg-background dark:bg-background-dark
+           text-text dark:text-text-dark;
+  }
+
+  .page-title {
+    @apply text-3xl font-bold mb-6 text-center;
+  }
+
+  .page-button {
+    @apply bg-primary text-white font-semibold rounded-[var(--radius-md)] px-4 py-2
+           hover:bg-primary/90 transition-colors duration-200 ease-[var(--ease-out)]
+           focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-background-dark;
+  }
+
+  .page-button-secondary {
+    @apply bg-secondary text-white font-semibold rounded-[var(--radius-md)] px-4 py-2
+           hover:bg-secondary/90 transition-colors duration-200 ease-[var(--ease-out)]
+           focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2 dark:focus:ring-offset-background-dark;
+  }
+
+  .page-button-group {
+    @apply flex flex-wrap gap-4 mb-6;
+  }
+
+  .page-table-container {
+    @apply w-full overflow-x-auto border border-gray-200 dark:border-gray-700
+           rounded-[var(--radius-md)] shadow-[var(--shadow-sm)];
+  }
+
+  .page-card {
+    @apply bg-white dark:bg-gray-800
+           shadow-[var(--shadow-md)] rounded-[var(--radius-card)] p-4
+           text-text dark:text-text-dark
+           transition-all duration-200 ease-[var(--ease-out)];
+  }
+
+  .page-card:hover {
+    @apply shadow-[var(--shadow-lg)];
+  }
+
+  .page-card-title {
+    @apply text-xl font-bold mb-2;
+  }
+
+  .page-card-content {
+    @apply text-sm;
+  }
+
+  .page-grid {
+    @apply grid grid-cols-1 @sm:grid-cols-2 @lg:grid-cols-3 gap-6;
+  }
+
+  .page-main {
+    @apply mt-8;
+  }
+
+  .page-footer {
+    @apply mt-8 pt-4 border-t border-gray-200 dark:border-gray-700
+           text-center text-sm text-text/60 dark:text-text-dark/60;
+  }
+
+  .pagination {
+    @apply flex justify-center items-center space-x-2 mt-6;
+  }
+
+  .pagination li {
+    @apply cursor-pointer bg-white dark:bg-gray-700
+           text-text dark:text-text-dark
+           border border-gray-300 dark:border-gray-600
+           rounded-[var(--radius-md)] px-3 py-2 
+           hover:bg-gray-100 dark:hover:bg-gray-600
+           transition-colors duration-200 ease-[var(--ease-out)];
+  }
+
+  .pagination .active {
+    @apply bg-primary text-white font-bold;
+  }
+
+  .pagination a {
+    @apply block w-full h-full text-center;
+  }
+
+  .pagination .disabled {
+    @apply opacity-50 cursor-not-allowed;
+  }
 }
 
 @layer utilities {
   .table {
-    @apply w-full border-collapse border border-gray-300;
+    @apply w-full border-collapse border border-gray-300 dark:border-gray-700;
   }
 
   .table th,
   .table td {
-    @apply border border-gray-300 px-4 py-2 text-left;
+    @apply border border-gray-300 dark:border-gray-700 px-4 py-2 text-left;
   }
 
   .table th {
@@ -192,11 +339,15 @@
   }
 
   .sugerencias-lista {
-    @apply absolute bg-white border border-gray-300 rounded-[var(--radius-md)] 
+    @apply absolute bg-white dark:bg-gray-800 
+           border border-gray-300 dark:border-gray-700 
+           rounded-[var(--radius-md)]
            w-full z-10 list-none p-0 mt-1;
   }
 
   .sugerencia-item {
-    @apply p-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700;
+    @apply p-2 cursor-pointer 
+           hover:bg-gray-100 dark:hover:bg-gray-700
+           transition-colors duration-200 ease-[var(--ease-out)];
   }
 }

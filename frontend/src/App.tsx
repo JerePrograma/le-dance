@@ -5,10 +5,6 @@ import { BrowserRouter } from "react-router-dom"; // Importar BrowserRouter aqu�
 import AppRouter from "./rutas/AppRouter";
 import { AuthProvider } from "./hooks/context/authContext";
 import "./diseño/global.css";
-import "./diseño/formStyles.css";
-import "./diseño/authStyles.css";
-import "./diseño/navStyles.css";
-import "./diseño/dashboardStyles.css";
 
 function App() {
   return (
