@@ -2,7 +2,7 @@ package ledance.dto.request;
 
 /**
  * DTO para crear/actualizar una inscripcion.
- * Campos mínimos:
+ * Campos mInimos:
  * - alumnoId
  * - disciplinaId
  * - bonificacionId (opcional)

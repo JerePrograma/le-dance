@@ -10,5 +10,6 @@ public record DisciplinaResponse(
         Double valorCuota,
         Double matricula,
         Long profesorId,
-        int inscritos // Nuevo campo que indica la cantidad de alumnos inscritos
+        int inscritos ,// Nuevo campo que indica la cantidad de alumnos inscritos
+        Boolean activo
 ) {}

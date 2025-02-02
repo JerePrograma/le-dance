@@ -4,5 +4,5 @@ public record ProfesorRegistroRequest(
         String nombre,
         String apellido,
         String especialidad,
-        Integer aniosExperiencia
+        Boolean activo // ✅ Opcional si quieres permitir que el usuario defina el estado activo
 ) {}

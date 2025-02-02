@@ -50,7 +50,7 @@ public class ReporteServicio implements IReporteServicio {
                 reporte = generarReporteAsistenciasPorDisciplinaYAlumno(request.disciplinaId(), request.alumnoId());
                 break;
             default:
-                throw new IllegalArgumentException("Tipo de reporte no válido.");
+                throw new IllegalArgumentException("Tipo de reporte no valido.");
         }
         guardarReporteEnBD(request.tipo(), reporte);
         return reporte;
@@ -59,41 +59,72 @@ public class ReporteServicio implements IReporteServicio {
     private List<ReporteResponse> generarReporteRecaudacionPorDisciplina() {
         List<Object[]> resultados = inscripcionRepositorio.obtenerRecaudacionPorDisciplina();
         return resultados.stream()
-                .map(r -> new ReporteResponse("Recaudación por Disciplina",
-                        "Disciplina: " + r[0] + " | Monto: $" + r[1]))
+                .map(r -> new ReporteResponse(
+                        null,  // ❌ No se tiene ID en estos resultados
+                        "Recaudacion por Disciplina",
+                        "Disciplina: " + r[0] + " | Monto: $" + r[1],
+                        LocalDate.now(),  // ✅ Se asigna la fecha actual
+                        true  // ✅ Se asume que el reporte esta activo
+                ))
                 .collect(Collectors.toList());
     }
 
     private List<ReporteResponse> generarReporteAsistenciasPorAlumno(Long alumnoId) {
         List<Object[]> resultados = asistenciaRepositorio.obtenerAsistenciasPorAlumno(alumnoId);
         return resultados.stream()
-                .map(r -> new ReporteResponse("Asistencias por Alumno",
-                        "Alumno: " + r[0] + " | Asistencias: " + r[1]))
+                .map(r -> new ReporteResponse(
+                        null,
+                        "Asistencias por Alumno",
+                        "Alumno: " + r[0] + " | Asistencias: " + r[1],
+                        LocalDate.now(),
+                        true
+                ))
                 .collect(Collectors.toList());
     }
 
     private List<ReporteResponse> generarReporteAsistenciasPorDisciplina(Long disciplinaId) {
-        List<Object[]> resultados = asistenciaRepositorio.obtenerAsistenciasPorDisciplina(disciplinaId);
+        List<Object[]> resultados = asistenciaRepositorio.obtenerAsistenciasPorDisciplina(disciplinaId);  // ✅ Corregido el error tipografico
         return resultados.stream()
-                .map(r -> new ReporteResponse("Asistencias por Disciplina",
-                        "Disciplina: " + r[0] + " | Asistencias: " + r[1]))
+                .map(r -> new ReporteResponse(
+                        null,
+                        "Asistencias por Disciplina",
+                        "Disciplina: " + r[0] + " | Asistencias: " + r[1],
+                        LocalDate.now(),
+                        true
+                ))
                 .collect(Collectors.toList());
     }
 
     private List<ReporteResponse> generarReporteAsistenciasPorDisciplinaYAlumno(Long disciplinaId, Long alumnoId) {
         List<Object[]> resultados = asistenciaRepositorio.obtenerAsistenciasPorDisciplinaYAlumno(disciplinaId, alumnoId);
         return resultados.stream()
-                .map(r -> new ReporteResponse("Asistencias por Disciplina y Alumno",
-                        "Disciplina: " + r[0] + " | Alumno: " + r[1] + " | Asistencias: " + r[2]))
+                .map(r -> new ReporteResponse(
+                        null,
+                        "Asistencias por Disciplina y Alumno",
+                        "Disciplina: " + r[0] + " | Alumno: " + r[1] + " | Asistencias: " + r[2],
+                        LocalDate.now(),
+                        true
+                ))
                 .collect(Collectors.toList());
     }
 
-    private void guardarReporteEnBD(String tipo, List<ReporteResponse> reporte) {
+
+    private ReporteResponse guardarReporteEnBD(String tipo, List<ReporteResponse> reporte) {
         Reporte nuevoReporte = new Reporte();
         nuevoReporte.setTipo(tipo);
         nuevoReporte.setDescripcion("Reporte de " + tipo + " generado el " + LocalDate.now());
-        nuevoReporte.setFechaGeneracion(LocalDate.now());
-        nuevoReporte.setActivo(true);
-        reporteRepositorio.save(nuevoReporte);
+        nuevoReporte.setFechaGeneracion(LocalDate.now());  // ✅ Asignar fecha antes de guardar
+        nuevoReporte.setActivo(true);  // ✅ Asignar activo antes de guardar
+        Reporte guardado = reporteRepositorio.save(nuevoReporte);
+
+        return new ReporteResponse(
+                guardado.getId(),
+                guardado.getTipo(),
+                guardado.getDescripcion(),
+                guardado.getFechaGeneracion(),
+                guardado.getActivo()
+        );
     }
+
+
 }

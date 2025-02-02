@@ -19,5 +19,5 @@ public record AlumnoResponse(
         String nombrePadres,
         Boolean autorizadoParaSalirSolo,
         Boolean activo,
-        List<DisciplinaSimpleResponse> disciplinas // O la información relevante
+        List<InscripcionResponse> inscripciones // ✅ Agregar inscripciones si es necesario
 ) {}

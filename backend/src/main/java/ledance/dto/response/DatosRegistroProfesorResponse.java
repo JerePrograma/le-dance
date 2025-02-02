@@ -7,10 +7,6 @@ public record DatosRegistroProfesorResponse(
         String nombre,
         String apellido,
         String especialidad,
-        Integer aniosExperiencia
-) {
-    public DatosRegistroProfesorResponse(Profesor profesor) {
-        this(profesor.getId(), profesor.getNombre(), profesor.getApellido(),
-                profesor.getEspecialidad(), profesor.getAniosExperiencia());
-    }
-}
+        Boolean activo // ✅ Agregado para evitar error
+) {}
+

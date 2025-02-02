@@ -44,34 +44,41 @@ public class InscripcionServicio implements IInscripcionServicio {
     @Override
     @Transactional
     public InscripcionResponse crearInscripcion(InscripcionRequest request) {
-        log.info("Creando inscripción para alumnoId: {} en disciplinaId: {}", request.alumnoId(), request.disciplinaId());
+        log.info("Creando inscripcion para alumnoId: {} en disciplinaId: {}", request.alumnoId(), request.disciplinaId());
+
         Alumno alumno = alumnoRepositorio.findById(request.alumnoId())
                 .orElseThrow(() -> new IllegalArgumentException("Alumno no encontrado."));
         Disciplina disciplina = disciplinaRepositorio.findById(request.disciplinaId())
                 .orElseThrow(() -> new IllegalArgumentException("Disciplina no encontrada."));
+
         Bonificacion bonif = null;
         Double costoFinal = request.costoParticular();
+
         if (request.bonificacionId() != null) {
             bonif = bonificacionRepositorio.findById(request.bonificacionId())
-                    .orElseThrow(() -> new IllegalArgumentException("Bonificación no encontrada."));
+                    .orElseThrow(() -> new IllegalArgumentException("Bonificacion no encontrada."));
             if (bonif.getPorcentajeDescuento() != null && bonif.getPorcentajeDescuento() > 0) {
                 costoFinal = costoFinal - (costoFinal * bonif.getPorcentajeDescuento() / 100);
             }
         }
+
         Inscripcion inscripcion = inscripcionMapper.toEntity(request);
         // Asignar asociaciones manualmente
         inscripcion.setAlumno(alumno);
         inscripcion.setDisciplina(disciplina);
         inscripcion.setBonificacion(bonif);
         inscripcion.setCostoParticular(costoFinal);
+
         Inscripcion guardada = inscripcionRepositorio.save(inscripcion);
-        return inscripcionMapper.toDTO(guardada);
+
+        return inscripcionMapper.toDTO(guardada);  // 🔹 Asegurarse de que `toDTO` existe en el mapper
     }
+
 
     @Override
     public InscripcionResponse obtenerPorId(Long id) {
         Inscripcion ins = inscripcionRepositorio.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Inscripción no encontrada."));
+                .orElseThrow(() -> new IllegalArgumentException("Inscripcion no encontrada."));
         return inscripcionMapper.toDTO(ins);
     }
 
@@ -85,9 +92,9 @@ public class InscripcionServicio implements IInscripcionServicio {
     @Override
     @Transactional
     public InscripcionResponse actualizarInscripcion(Long id, InscripcionRequest request) {
-        log.info("Actualizando inscripción con id: {}", id);
+        log.info("Actualizando inscripcion con id: {}", id);
         Inscripcion inscripcion = inscripcionRepositorio.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Inscripción no encontrada."));
+                .orElseThrow(() -> new IllegalArgumentException("Inscripcion no encontrada."));
         if (!inscripcion.getAlumno().getId().equals(request.alumnoId())) {
             Alumno nuevoAlumno = alumnoRepositorio.findById(request.alumnoId())
                     .orElseThrow(() -> new IllegalArgumentException("Alumno no encontrado."));
@@ -102,7 +109,7 @@ public class InscripcionServicio implements IInscripcionServicio {
         Double costoFinal = request.costoParticular();
         if (request.bonificacionId() != null) {
             bonif = bonificacionRepositorio.findById(request.bonificacionId())
-                    .orElseThrow(() -> new IllegalArgumentException("Bonificación no encontrada."));
+                    .orElseThrow(() -> new IllegalArgumentException("Bonificacion no encontrada."));
             if (bonif.getPorcentajeDescuento() != null && bonif.getPorcentajeDescuento() > 0) {
                 costoFinal = costoFinal - (costoFinal * bonif.getPorcentajeDescuento() / 100);
             }
@@ -118,7 +125,7 @@ public class InscripcionServicio implements IInscripcionServicio {
     @Transactional
     public void eliminarInscripcion(Long id) {
         Inscripcion ins = inscripcionRepositorio.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Inscripción no encontrada."));
+                .orElseThrow(() -> new IllegalArgumentException("Inscripcion no encontrada."));
         inscripcionRepositorio.delete(ins);
     }
 

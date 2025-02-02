@@ -53,7 +53,7 @@ public class AlumnoControlador {
     @DeleteMapping("/{id}")
     public ResponseEntity<String> eliminarAlumno(@PathVariable Long id) {
         alumnoServicio.eliminarAlumno(id);
-        return ResponseEntity.ok("Alumno eliminado (baja lógica) exitosamente.");
+        return ResponseEntity.ok("Alumno eliminado (baja logica) exitosamente.");
     }
 
     @GetMapping("/listado")

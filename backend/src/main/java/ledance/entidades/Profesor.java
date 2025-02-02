@@ -25,14 +25,12 @@ public class Profesor {
 
     private String especialidad;
 
-    private Integer aniosExperiencia;
-
     @OneToMany(mappedBy = "profesor")
     private List<Disciplina> disciplinas;
 
     @OneToOne
-    @JoinColumn(name = "usuario_id")
-    private Usuario usuario; // Relacion opcional con un usuario autenticado.
+    @JoinColumn(name = "usuario_id", nullable = true) // ✅ Relacion OPCIONAL
+    private Usuario usuario; // Ahora puede ser nulo
 
     @Column(nullable = false)
     private Boolean activo = true;

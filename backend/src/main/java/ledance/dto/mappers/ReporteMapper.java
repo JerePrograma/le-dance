@@ -9,9 +9,15 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface ReporteMapper {
 
-    // Si tuvieras un ReporteRequest para crear Reporte, lo mapeas
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "fechaGeneracion", ignore = true)
+    @Mapping(target = "activo", ignore = true)
     Reporte toEntity(ReporteRequest request);
 
+    @Mapping(target = "id", source = "id")
+    @Mapping(target = "tipo", source = "tipo")
+    @Mapping(target = "descripcion", source = "descripcion") // ✅ Correccion: se mapea correctamente
+    @Mapping(target = "fechaGeneracion", source = "fechaGeneracion")
+    @Mapping(target = "activo", source = "activo")
     ReporteResponse toDTO(Reporte reporte);
 }

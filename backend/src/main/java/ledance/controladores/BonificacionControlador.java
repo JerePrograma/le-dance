@@ -25,7 +25,7 @@ public class BonificacionControlador {
 
     @PostMapping
     public ResponseEntity<BonificacionResponse> crearBonificacion(@RequestBody @Validated BonificacionRequest requestDTO) {
-        log.info("Creando bonificación: {}", requestDTO.descripcion());
+        log.info("Creando bonificacion: {}", requestDTO.descripcion());
         BonificacionResponse response = bonificacionService.crearBonificacion(requestDTO);
         return ResponseEntity.ok(response);
     }
@@ -52,6 +52,6 @@ public class BonificacionControlador {
     @DeleteMapping("/{id}")
     public ResponseEntity<String> eliminarBonificacion(@PathVariable Long id) {
         bonificacionService.eliminarBonificacion(id);
-        return ResponseEntity.ok("Bonificación eliminada exitosamente.");
+        return ResponseEntity.ok("Bonificacion eliminada exitosamente.");
     }
 }

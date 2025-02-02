@@ -39,10 +39,10 @@ public class UsuarioServicio implements IUsuarioServicio {
     public String registrarUsuario(UsuarioRegistroRequest datosRegistro) {
         log.info("Registrando usuario con email: {}", datosRegistro.email());
         if (usuarioRepositorio.findByEmail(datosRegistro.email()).isPresent()) {
-            throw new IllegalArgumentException("El email ya está en uso.");
+            throw new IllegalArgumentException("El email ya esta en uso.");
         }
         Rol rol = rolRepositorio.findByDescripcion(datosRegistro.rol().toUpperCase())
-                .orElseThrow(() -> new IllegalArgumentException("Rol no válido: " + datosRegistro.rol()));
+                .orElseThrow(() -> new IllegalArgumentException("Rol no valido: " + datosRegistro.rol()));
         Usuario usuario = usuarioMapper.toEntity(datosRegistro);
         usuario.setContrasena(passwordEncoder.encode(datosRegistro.contrasena()));
         usuario.setRol(rol);
@@ -72,7 +72,7 @@ public class UsuarioServicio implements IUsuarioServicio {
     @Transactional
     public void actualizarRolPorDescripcion(Long idUsuario, String descripcionRol) {
         Rol rol = rolRepositorio.findByDescripcion(descripcionRol)
-                .orElseThrow(() -> new IllegalArgumentException("Rol no válido: " + descripcionRol));
+                .orElseThrow(() -> new IllegalArgumentException("Rol no valido: " + descripcionRol));
         actualizarRol(idUsuario, rol);
     }
 
@@ -89,11 +89,11 @@ public class UsuarioServicio implements IUsuarioServicio {
     public List<Usuario> listarUsuarios(String rolDescripcion, Boolean activo) {
         if (rolDescripcion != null && activo != null) {
             Rol rol = rolRepositorio.findByDescripcion(rolDescripcion)
-                    .orElseThrow(() -> new IllegalArgumentException("Rol no válido: " + rolDescripcion));
+                    .orElseThrow(() -> new IllegalArgumentException("Rol no valido: " + rolDescripcion));
             return usuarioRepositorio.findByRolAndActivo(rol, activo);
         } else if (rolDescripcion != null) {
             Rol rol = rolRepositorio.findByDescripcion(rolDescripcion)
-                    .orElseThrow(() -> new IllegalArgumentException("Rol no válido: " + rolDescripcion));
+                    .orElseThrow(() -> new IllegalArgumentException("Rol no valido: " + rolDescripcion));
             return usuarioRepositorio.findByRol(rol);
         } else if (activo != null) {
             return usuarioRepositorio.findByActivo(activo);

@@ -43,7 +43,7 @@ public class DisciplinaServicio implements IDisciplinaServicio {
         }
         Profesor profesor = profesorRepositorio.findById(requestDTO.profesorId())
                 .orElseThrow(() -> new IllegalArgumentException("Profesor no encontrado."));
-        // Aquí puedes agregar validaciones adicionales de horario si lo deseas.
+        // AquI puedes agregar validaciones adicionales de horario si lo deseas.
         Disciplina disciplina = disciplinaMapper.toEntity(requestDTO);
         disciplina.setProfesor(profesor);
         Disciplina guardada = disciplinaRepositorio.save(disciplina);

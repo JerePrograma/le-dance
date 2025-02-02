@@ -7,5 +7,6 @@ public record UsuarioRegistroRequest(
         @NotNull @NotBlank String email,
         @NotNull @NotBlank String nombreUsuario,
         @NotNull @NotBlank String contrasena,
-        @NotNull @NotBlank String rol
+        @NotNull @NotBlank String rol,
+        Boolean activo  // ✅ Agregar si es necesario
 ) {}

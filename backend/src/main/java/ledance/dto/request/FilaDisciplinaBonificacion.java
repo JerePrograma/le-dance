@@ -3,7 +3,7 @@ package ledance.dto.request;
 
 /**
  * Representa UNA fila de la tabla del frontend:
- * donde se eligió una disciplina y (opcional) una bonificación.
+ * donde se eligio una disciplina y (opcional) una bonificacion.
  */
 public record FilaDisciplinaBonificacion(
         Long disciplinaId,

@@ -25,12 +25,12 @@ public class TokenService {
         return generarToken(usuario, 2, "ACCESS");
     }
 
-    // Genera un Refresh Token (largo plazo), p. ej. 7 días
+    // Genera un Refresh Token (largo plazo), p. ej. 7 dIas
     public String generarRefreshToken(Usuario usuario) {
         return generarToken(usuario, 24 * 7, "REFRESH");
     }
 
-    // Método privado para crear un token con un "claim" de tipo (ACCESS o REFRESH)
+    // Metodo privado para crear un token con un "claim" de tipo (ACCESS o REFRESH)
     private String generarToken(Usuario usuario, int horas, String tipo) {
         try {
             Algorithm algorithm = Algorithm.HMAC256(secret);

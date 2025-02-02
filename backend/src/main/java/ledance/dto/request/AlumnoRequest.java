@@ -4,12 +4,13 @@ import java.time.LocalDate;
 import java.util.List;
 
 /**
- * Petición para crear/actualizar un Alumno, análoga a tu Frontend.
+ * Peticion para crear/actualizar un Alumno, analoga a tu Frontend.
  * - "edad" no se recibe, la calculamos en el backend.
- * - "filas" es la lista de la tabla (Disciplina+Bonificación).
+ * - "filas" es la lista de la tabla (Disciplina+Bonificacion).
  */
 public record AlumnoRequest(
         String nombre,
+        String apellido, // ✅ Agregar apellido si no existe
         LocalDate fechaNacimiento,
         LocalDate fechaIncorporacion,
         String celular1,
@@ -23,6 +24,7 @@ public record AlumnoRequest(
         Boolean autorizadoParaSalirSolo,
         Boolean activo,
         String otrasNotas,
-        Double cuotaTotal, // El front la calcula y la envía, o la calculamos en backend
+        Double cuotaTotal,
         List<FilaDisciplinaBonificacion> filas
 ) {}
+

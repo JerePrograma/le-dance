@@ -59,7 +59,7 @@ public class AsistenciaServicio implements IAsistenciaServicio {
         Asistencia asistencia = asistenciaMapper.toEntity(requestDTO);
         asistencia.setDisciplina(disciplina);
         asistencia.setAlumno(alumno);
-        asistencia.setProfesor(profesor); // ✅ Asignar el profesor si está presente
+        asistencia.setProfesor(profesor); // ✅ Asignar el profesor si esta presente
 
         Asistencia guardada = asistenciaRepositorio.save(asistencia);
         return asistenciaMapper.toResponseDTO(guardada);

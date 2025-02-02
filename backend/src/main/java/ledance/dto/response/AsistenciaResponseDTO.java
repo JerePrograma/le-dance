@@ -9,5 +9,6 @@ public record AsistenciaResponseDTO(
         String observacion,
         AlumnoListadoResponse alumno,
         DisciplinaSimpleResponse disciplina,
-        ProfesorResponse profesor  // ✅ Nuevo campo opcional
+        ProfesorResponse profesor,  // ✅ Nuevo campo opcional
+        Boolean activo               // ✅ Se agrega el campo activo
 ) {}

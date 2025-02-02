@@ -26,7 +26,7 @@ public class InscripcionControlador {
 
     @PostMapping
     public ResponseEntity<InscripcionResponse> crear(@RequestBody @Validated InscripcionRequest request) {
-        log.info("Creando inscripción para alumnoId: {} en disciplinaId: {}", request.alumnoId(), request.disciplinaId());
+        log.info("Creando inscripcion para alumnoId: {} en disciplinaId: {}", request.alumnoId(), request.disciplinaId());
         InscripcionResponse response = inscripcionService.crearInscripcion(request);
         return ResponseEntity.ok(response);
     }
@@ -70,6 +70,6 @@ public class InscripcionControlador {
     @DeleteMapping("/{id}")
     public ResponseEntity<String> eliminar(@PathVariable Long id) {
         inscripcionService.eliminarInscripcion(id);
-        return ResponseEntity.ok("Inscripción eliminada exitosamente.");
+        return ResponseEntity.ok("Inscripcion eliminada exitosamente.");
     }
 }

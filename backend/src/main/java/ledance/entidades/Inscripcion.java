@@ -16,17 +16,17 @@ public class Inscripcion {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Relación con Alumno
+    // Relacion con Alumno
     @ManyToOne
     @JoinColumn(name = "alumno_id")
     private Alumno alumno;
 
-    // Relación con Disciplina
+    // Relacion con Disciplina
     @ManyToOne
     @JoinColumn(name = "disciplina_id")
     private Disciplina disciplina;
 
-    // Relación opcional con la bonificación
+    // Relacion opcional con la bonificacion
     @ManyToOne
     @JoinColumn(name = "bonificacion_id", nullable = true)
     private Bonificacion bonificacion;

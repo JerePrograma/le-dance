@@ -74,7 +74,7 @@ public class AlumnoServicio implements IAlumnoServicio {
     @Override
     @Transactional
     public void eliminarAlumno(Long id) {
-        log.info("Eliminando (baja lógica) alumno con id: {}", id);
+        log.info("Eliminando (baja logica) alumno con id: {}", id);
         Alumno alumno = alumnoRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Alumno no encontrado."));
         alumno.setActivo(false);

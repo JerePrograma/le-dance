@@ -29,8 +29,8 @@ public class BonificacionServicio implements IBonificacionServicio {
     @Override
     @Transactional
     public BonificacionResponse crearBonificacion(BonificacionRequest requestDTO) {
-        log.info("Creando bonificación: {}", requestDTO.descripcion());
-        Bonificacion bonificacion = bonificacionMapper.toEntity(requestDTO);
+        log.info("Creando bonificacion: {}", requestDTO.descripcion());
+        Bonificacion bonificacion = bonificacionMapper.toEntity(requestDTO); // ✅ Ahora el mapeo es correcto
         Bonificacion guardada = bonificacionRepositorio.save(bonificacion);
         return bonificacionMapper.toDTO(guardada);
     }
@@ -45,7 +45,7 @@ public class BonificacionServicio implements IBonificacionServicio {
     @Override
     public BonificacionResponse obtenerBonificacionPorId(Long id) {
         Bonificacion bonificacion = bonificacionRepositorio.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Bonificación no encontrada."));
+                .orElseThrow(() -> new IllegalArgumentException("Bonificacion no encontrada."));
         return bonificacionMapper.toDTO(bonificacion);
     }
 
@@ -53,7 +53,7 @@ public class BonificacionServicio implements IBonificacionServicio {
     @Transactional
     public BonificacionResponse actualizarBonificacion(Long id, BonificacionRequest requestDTO) {
         Bonificacion bonificacion = bonificacionRepositorio.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Bonificación no encontrada."));
+                .orElseThrow(() -> new IllegalArgumentException("Bonificacion no encontrada."));
         // Actualizar campos manualmente
         bonificacion.setDescripcion(requestDTO.descripcion());
         bonificacion.setPorcentajeDescuento(requestDTO.porcentajeDescuento());
@@ -67,7 +67,7 @@ public class BonificacionServicio implements IBonificacionServicio {
     @Transactional
     public void eliminarBonificacion(Long id) {
         Bonificacion bonificacion = bonificacionRepositorio.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Bonificación no encontrada."));
+                .orElseThrow(() -> new IllegalArgumentException("Bonificacion no encontrada."));
         bonificacion.setActivo(false);
         bonificacionRepositorio.save(bonificacion);
     }

@@ -1,5 +1,5 @@
 -- ========================================
--- CREACIÓN DE TABLAS BÁSICAS
+-- CREACIoN DE TABLAS BaSICAS
 -- ========================================
 
 -- 1) ROLES
@@ -25,7 +25,6 @@ CREATE TABLE profesores (
                             nombre VARCHAR(100) NOT NULL,
                             apellido VARCHAR(100) NOT NULL,
                             especialidad VARCHAR(100),
-                            anios_experiencia INTEGER,
                             usuario_id INTEGER UNIQUE REFERENCES usuarios(id) ON DELETE SET NULL,
                             activo BOOLEAN NOT NULL DEFAULT TRUE
 );
@@ -79,7 +78,7 @@ CREATE TABLE alumnos (
 -- ENTIDAD INTERMEDIA: INSCRIPCIONES
 -- ========================================
 -- Reemplaza las antiguas "alumno_disciplina" / "alumno_bonificacion".
--- Cada registro vincula UN alumno, UNA disciplina y (opcional) UNA bonificación.
+-- Cada registro vincula UN alumno, UNA disciplina y (opcional) UNA bonificacion.
 CREATE TABLE inscripciones (
                                id SERIAL PRIMARY KEY,
                                alumno_id INTEGER NOT NULL REFERENCES alumnos(id) ON DELETE CASCADE,
@@ -164,13 +163,13 @@ CREATE TABLE reportes (
 );
 
 -- ========================================
--- INSERT DE DATOS INICIALES O ÍNDICES
+-- INSERT DE DATOS INICIALES O INDICES
 -- ========================================
 
 -- Insertar rol "ADMINISTRADOR"
 INSERT INTO roles (descripcion) VALUES ('ADMINISTRADOR');
 
--- Crear índices (para rendimiento)
+-- Crear Indices (para rendimiento)
 CREATE INDEX idx_asistencias_fecha ON asistencias(fecha);
 CREATE INDEX idx_asistencias_profesor ON asistencias(profesor_id);
 CREATE INDEX idx_pagos_alumno ON pagos(alumno_id);
@@ -180,7 +179,7 @@ CREATE INDEX idx_disciplinas_profesor ON disciplinas(profesor_id);
 CREATE INDEX idx_profesores_usuario ON profesores(usuario_id);
 CREATE INDEX idx_usuarios_rol ON usuarios(rol_id);
 
--- Índices adicionales para inscripciones, si lo deseas
+-- Indices adicionales para inscripciones, si lo deseas
 CREATE INDEX idx_inscripciones_alumno ON inscripciones(alumno_id);
 CREATE INDEX idx_inscripciones_disciplina ON inscripciones(disciplina_id);
 
