@@ -1,79 +1,91 @@
-import type React from "react";
 import { useState } from "react";
 import { useAuth } from "../hooks/context/authContext";
 import Boton from "../componentes/comunes/Boton";
+import { Form, Formik, Field, ErrorMessage } from "formik";
+import * as Yup from "yup";
+import { toast } from "react-toastify";
+
+const loginSchema = Yup.object().shape({
+  email: Yup.string().email("Email inválido").required("Email es requerido"),
+  contrasena: Yup.string().required("Contraseña es requerida"),
+});
 
 const Login: React.FC = () => {
   const { login } = useAuth();
-  const [email, setEmail] = useState("");
-  const [contrasena, setContrasena] = useState("");
   const [error, setError] = useState("");
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleLogin = async (values: { email: string; contrasena: string }) => {
     try {
-      await login(email, contrasena);
-      window.location.href = "/";
+      await login(values.email, values.contrasena);
+      window.location.href = "/dashboard";
     } catch (err) {
       setError("Credenciales incorrectas. Intenta nuevamente.");
+      toast.error("Error al iniciar sesión.");
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-background">
-      <div className="w-full max-w-md p-8 space-y-8 bg-card rounded-xl shadow-lg">
-        <h1 className="text-2xl font-bold text-center text-foreground">
-          Iniciar Sesión
-        </h1>
+    <div className="page-container">
+      <h1 className="page-title">Iniciar Sesión</h1>
+      <Formik
+        initialValues={{ email: "", contrasena: "" }}
+        validationSchema={loginSchema}
+        onSubmit={handleLogin}
+      >
+        {({ isSubmitting }) => (
+          <Form className="formulario max-w-md mx-auto">
+            <div className="mb-4">
+              <label htmlFor="email" className="auth-label">
+                Email:
+              </label>
+              <Field
+                type="email"
+                id="email"
+                name="email"
+                className="form-input"
+                placeholder="Ingrese su email"
+              />
+              <ErrorMessage
+                name="email"
+                component="div"
+                className="auth-error"
+              />
+            </div>
 
-        <form className="space-y-6" onSubmit={handleLogin}>
-          <div>
-            <label
-              htmlFor="email"
-              className="block text-sm font-medium text-foreground"
-            >
-              Email:
-            </label>
-            <input
-              id="email"
-              className="mt-1 block w-full px-3 py-2 bg-background border border-input rounded-md text-sm shadow-sm placeholder-muted-foreground
-                focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
+            <div className="mb-4">
+              <label htmlFor="contrasena" className="auth-label">
+                Contraseña:
+              </label>
+              <Field
+                type="password"
+                id="contrasena"
+                name="contrasena"
+                className="form-input"
+                placeholder="Ingrese su contraseña"
+              />
+              <ErrorMessage
+                name="contrasena"
+                component="div"
+                className="auth-error"
+              />
+            </div>
 
-          <div>
-            <label
-              htmlFor="password"
-              className="block text-sm font-medium text-foreground"
-            >
-              Contraseña:
-            </label>
-            <input
-              id="password"
-              className="mt-1 block w-full px-3 py-2 bg-background border border-input rounded-md text-sm shadow-sm placeholder-muted-foreground
-                focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-              type="password"
-              value={contrasena}
-              onChange={(e) => setContrasena(e.target.value)}
-              required
-            />
-          </div>
+            {error && <div className="auth-error mb-4">{error}</div>}
 
-          {error && <p className="text-destructive text-sm">{error}</p>}
-
-          <Boton type="submit" className="w-full">
-            Ingresar
-          </Boton>
-        </form>
-
-        <a
-          href="/registro"
-          className="block text-center text-sm text-primary hover:underline"
-        >
+            <div className="form-acciones">
+              <Boton
+                type="submit"
+                disabled={isSubmitting}
+                className="page-button w-full"
+              >
+                Ingresar
+              </Boton>
+            </div>
+          </Form>
+        )}
+      </Formik>
+      <div className="text-center mt-4">
+        <a href="/registro" className="text-primary hover:underline">
           ¿No tienes cuenta? Regístrate aquí
         </a>
       </div>

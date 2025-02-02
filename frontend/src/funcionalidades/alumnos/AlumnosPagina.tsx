@@ -73,7 +73,7 @@ const Alumnos = () => {
           className="page-button"
         >
           <PlusCircle className="w-5 h-5 mr-2" />
-          Ficha Aade Alumnos
+          Ficha de Alumnos
         </Boton>
       </div>
 
