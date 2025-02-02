@@ -6,10 +6,14 @@
   --color-primary-light: #a78bfa;
   --color-secondary: #10b981;
   --color-accent: #f43f5e;
-  --color-background: #f9fafb;
-  --color-background-dark: #111827;
-  --color-text: #1f2937;
-  --color-text-dark: #f3f4f6;
+  --color-background: #ffffff;
+  --color-background-dark: #1f2937;
+  --color-text: #111827;
+  --color-text-dark: #f9fafb;
+  --color-border: #e5e7eb;
+  --color-border-dark: #374151;
+  --color-destructive: #ef4444;
+  --color-destructive-dark: #dc2626;
 
   /* Typography */
   --font-sans: "Inter", system-ui, sans-serif;
@@ -49,6 +53,39 @@
 }
 
 @layer base {
+  :root {
+    --background: var(--color-background);
+    --foreground: var(--color-text);
+
+    --primary: var(--color-primary);
+    --primary-foreground: #ffffff;
+
+    --secondary: var(--color-secondary);
+    --secondary-foreground: #ffffff;
+
+    --accent: var(--color-accent);
+    --accent-foreground: #ffffff;
+
+    --border: var(--color-border);
+    --ring: var(--color-primary);
+  }
+
+  .dark {
+    --background: var(--color-background-dark);
+    --foreground: var(--color-text-dark);
+
+    --primary: var(--color-primary-light);
+    --primary-foreground: var(--color-background-dark);
+
+    --secondary: var(--color-secondary);
+    --secondary-foreground: #ffffff;
+
+    --accent: var(--color-accent);
+    --accent-foreground: #ffffff;
+
+    --border: var(--color-border-dark);
+    --ring: var(--color-primary-light);
+  }
   body {
     @apply bg-background text-text dark:bg-background-dark dark:text-text-dark font-body;
   }

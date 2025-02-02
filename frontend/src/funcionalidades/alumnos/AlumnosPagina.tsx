@@ -84,7 +84,6 @@ const Alumnos = () => {
           acciones={(fila) => (
             <Boton
               onClick={() => navigate(`/alumnos/formulario?id=${fila.id}`)}
-              secondary
               className="page-button-secondary"
               aria-label={`Editar alumno ${fila.nombre} ${fila.apellido}`}
             >
