@@ -17,7 +17,7 @@ const Login: React.FC = () => {
   const handleLogin = async (values: { email: string; contrasena: string }) => {
     try {
       await login(values.email, values.contrasena);
-      window.location.href = "/dashboard";
+      window.location.href = "/";
     } catch (err) {
       setError("Credenciales incorrectas. Intenta nuevamente.");
       toast.error("Error al iniciar sesión.");

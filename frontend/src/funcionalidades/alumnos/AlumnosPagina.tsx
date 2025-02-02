@@ -61,10 +61,10 @@ const Alumnos = () => {
 
   if (loading) return <div className="text-center py-4">Cargando...</div>;
   if (error)
-    return <div className="text-center py-4 text-red-500">{error}</div>;
+    return <div className="text-center py-4 text-destructive">{error}</div>;
 
   return (
-    <div className="page-container @container">
+    <div className="page-container">
       <h1 className="page-title">Alumnos</h1>
 
       <div className="flex justify-end mb-4">
@@ -77,7 +77,7 @@ const Alumnos = () => {
         </Boton>
       </div>
 
-      <div className="page-table-container">
+      <div className="bg-card rounded-lg shadow-md overflow-hidden">
         <Tabla
           encabezados={["ID", "Nombre", "Apellido", "Acciones"]}
           datos={currentItems}

@@ -49,7 +49,7 @@ const UsuariosPagina = () => {
         currentPage * itemsPerPage,
         (currentPage + 1) * itemsPerPage
       ),
-    [usuarios, currentPage, itemsPerPage]
+    [usuarios, currentPage]
   );
 
   const handlePageClick = useCallback(
@@ -74,10 +74,10 @@ const UsuariosPagina = () => {
 
   if (loading) return <div className="text-center py-4">Cargando...</div>;
   if (error)
-    return <div className="text-center py-4 text-red-500">{error}</div>;
+    return <div className="text-center py-4 text-destructive">{error}</div>;
 
   return (
-    <div className="page-container @container">
+    <div className="page-container">
       <h1 className="page-title">Usuarios</h1>
       <div className="flex justify-end mb-4">
         <Boton
@@ -88,7 +88,7 @@ const UsuariosPagina = () => {
           Registrar Nuevo Usuario
         </Boton>
       </div>
-      <div className="page-table-container">
+      <div className="page-card">
         <Tabla
           encabezados={["ID", "Nombre", "Correo", "Rol", "Acciones"]}
           datos={currentItems}
@@ -96,7 +96,6 @@ const UsuariosPagina = () => {
             <div className="flex gap-2">
               <Boton
                 onClick={() => navigate(`/usuarios/formulario?id=${fila.id}`)}
-                secondary
                 className="page-button-secondary"
                 aria-label={`Editar usuario ${fila.nombre}`}
               >
@@ -105,7 +104,6 @@ const UsuariosPagina = () => {
               </Boton>
               <Boton
                 onClick={() => handleEliminarUsuario(fila.id)}
-                secondary
                 className="page-button-danger"
                 aria-label={`Eliminar usuario ${fila.nombre}`}
               >

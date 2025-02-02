@@ -50,7 +50,7 @@ const Bonificaciones = () => {
         currentPage * itemsPerPage,
         (currentPage + 1) * itemsPerPage
       ),
-    [bonificaciones, currentPage, itemsPerPage]
+    [bonificaciones, currentPage]
   );
 
   const handlePageClick = useCallback(
@@ -64,10 +64,10 @@ const Bonificaciones = () => {
 
   if (loading) return <div className="text-center py-4">Cargando...</div>;
   if (error)
-    return <div className="text-center py-4 text-red-500">{error}</div>;
+    return <div className="text-center py-4 text-destructive">{error}</div>;
 
   return (
-    <div className="page-container @container">
+    <div className="page-container">
       <h1 className="page-title">Bonificaciones</h1>
       <div className="flex justify-end mb-4">
         <Boton
@@ -78,7 +78,7 @@ const Bonificaciones = () => {
           Registrar Nueva Bonificación
         </Boton>
       </div>
-      <div className="page-table-container">
+      <div className="page-card">
         <Tabla
           encabezados={[
             "ID",
@@ -94,7 +94,6 @@ const Bonificaciones = () => {
                 onClick={() =>
                   navigate(`/bonificaciones/formulario?id=${fila.id}`)
                 }
-                secondary
                 className="page-button-secondary"
                 aria-label={`Editar bonificación ${fila.descripcion}`}
               >
@@ -102,7 +101,6 @@ const Bonificaciones = () => {
                 Editar
               </Boton>
               <Boton
-                secondary
                 className="page-button-danger"
                 aria-label={`Eliminar bonificación ${fila.descripcion}`}
               >

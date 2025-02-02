@@ -6,8 +6,8 @@
   <component name="ChangeListManager">
     <list default="true" id="ccb8f120-972c-4a18-b18b-4ae7da723dfa" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/repositorios/ProfesorRepositorio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/repositorios/ProfesorRepositorio.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/ReporteServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/ReporteServicio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/alumnos/AlumnosPagina.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/alumnos/AlumnosPagina.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/paginas/Login.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/paginas/Login.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -139,6 +139,7 @@
       <workItem from="1738453630581" duration="929000" />
       <workItem from="1738455499980" duration="617000" />
       <workItem from="1738501175935" duration="10584000" />
+      <workItem from="1738537591150" duration="1057000" />
     </task>
     <servers />
   </component>

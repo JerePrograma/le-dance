@@ -1,4 +1,3 @@
-import type React from "react";
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Tabla from "../../componentes/comunes/Tabla";
@@ -8,7 +7,7 @@ import ReactPaginate from "react-paginate";
 import Boton from "../../componentes/comunes/Boton";
 import { PlusCircle, Pencil, Trash2 } from "lucide-react";
 
-const InscripcionesPagina: React.FC = () => {
+const InscripcionesPagina = () => {
   const [inscripciones, setInscripciones] = useState<InscripcionResponse[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -71,10 +70,10 @@ const InscripcionesPagina: React.FC = () => {
 
   if (loading) return <div className="text-center py-4">Cargando...</div>;
   if (error)
-    return <div className="text-center py-4 text-red-500">{error}</div>;
+    return <div className="text-center py-4 text-destructive">{error}</div>;
 
   return (
-    <div className="page-container @container">
+    <div className="page-container">
       <h1 className="page-title">Inscripciones</h1>
       <div className="flex justify-end mb-4">
         <Boton onClick={handleCrearInscripcion} className="page-button">
@@ -82,7 +81,7 @@ const InscripcionesPagina: React.FC = () => {
           Nueva Inscripción
         </Boton>
       </div>
-      <div className="page-table-container">
+      <div className="page-card">
         <Tabla
           encabezados={[
             "ID",
@@ -108,7 +107,6 @@ const InscripcionesPagina: React.FC = () => {
                 onClick={() =>
                   navigate(`/inscripciones/formulario?id=${fila.id}`)
                 }
-                secondary
                 className="page-button-secondary"
               >
                 <Pencil className="w-4 h-4 mr-2" />

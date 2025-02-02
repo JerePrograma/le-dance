@@ -65,10 +65,10 @@ const Asistencias = () => {
 
   if (loading) return <div className="text-center py-4">Cargando...</div>;
   if (error)
-    return <div className="text-center py-4 text-red-500">{error}</div>;
+    return <div className="text-center py-4 text-destructive">{error}</div>;
 
   return (
-    <div className="page-container @container">
+    <div className="page-container">
       <h1 className="page-title">Registro de Asistencias</h1>
       <div className="flex justify-end mb-4">
         <Boton
@@ -79,7 +79,7 @@ const Asistencias = () => {
           Registrar Nueva Asistencia
         </Boton>
       </div>
-      <div className="page-table-container">
+      <div className="page-card">
         <Tabla
           encabezados={[
             "ID",
@@ -97,7 +97,6 @@ const Asistencias = () => {
                 onClick={() =>
                   navigate(`/asistencias/formulario?id=${fila.id}`)
                 }
-                secondary
                 className="page-button-secondary"
                 aria-label={`Editar asistencia de ${fila.alumno} en ${fila.disciplina}`}
               >
@@ -105,7 +104,6 @@ const Asistencias = () => {
                 Editar
               </Boton>
               <Boton
-                secondary
                 className="page-button-danger"
                 aria-label={`Eliminar asistencia de ${fila.alumno}`}
               >

@@ -44,7 +44,7 @@ const RolesPagina = () => {
   const currentItems = useMemo(
     () =>
       roles.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage),
-    [roles, currentPage, itemsPerPage]
+    [roles, currentPage]
   );
 
   const handlePageClick = useCallback(
@@ -58,10 +58,10 @@ const RolesPagina = () => {
 
   if (loading) return <div className="text-center py-4">Cargando...</div>;
   if (error)
-    return <div className="text-center py-4 text-red-500">{error}</div>;
+    return <div className="text-center py-4 text-destructive">{error}</div>;
 
   return (
-    <div className="page-container @container">
+    <div className="page-container">
       <h1 className="page-title">Roles</h1>
       <div className="flex justify-end mb-4">
         <Boton
@@ -72,7 +72,7 @@ const RolesPagina = () => {
           Registrar Nuevo Rol
         </Boton>
       </div>
-      <div className="page-table-container">
+      <div className="page-card">
         <Tabla
           encabezados={["ID", "Descripción", "Acciones"]}
           datos={currentItems}
@@ -80,7 +80,6 @@ const RolesPagina = () => {
             <div className="flex gap-2">
               <Boton
                 onClick={() => navigate(`/roles/formulario?id=${fila.id}`)}
-                secondary
                 className="page-button-secondary"
                 aria-label={`Editar rol ${fila.descripcion}`}
               >
@@ -88,7 +87,6 @@ const RolesPagina = () => {
                 Editar
               </Boton>
               <Boton
-                secondary
                 className="page-button-danger"
                 aria-label={`Eliminar rol ${fila.descripcion}`}
               >
