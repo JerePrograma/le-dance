@@ -1,0 +1,30 @@
+@theme {
+  /* Colores principales */
+  --color-primary: #8b5cf6;
+  --color-primary-light: #a78bfa;
+  --color-secondary: #10b981;
+  --color-accent: #f43f5e;
+
+  /* Fondos y textos */
+  --color-background: #f9fafb;
+  --color-background-dark: #111827;
+  --color-text: #1f2937;
+  --color-text-dark: #f3f4f6;
+
+  /* Tipografía */
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-display: "Satoshi", sans-serif;
+
+  /* Bordes y sombras */
+  --radius-card: 1rem;
+  --shadow-elevation: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+
+  /* Animaciones */
+  --transition-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@layer base {
+  body {
+    @apply bg-background text-text dark:bg-background-dark dark:text-text-dark font-sans;
+  }
+}
