@@ -8,5 +8,6 @@ public record AsistenciaResponseDTO(
         Boolean presente,
         String observacion,
         AlumnoListadoResponse alumno,
-        DisciplinaSimpleResponse disciplina
+        DisciplinaSimpleResponse disciplina,
+        ProfesorResponse profesor  // ✅ Nuevo campo opcional
 ) {}

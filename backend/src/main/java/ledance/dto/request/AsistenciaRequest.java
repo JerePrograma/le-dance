@@ -7,5 +7,6 @@ public record AsistenciaRequest(
         Boolean presente,
         String observacion,
         Long alumnoId,
-        Long disciplinaId
+        Long disciplinaId,
+        Long profesorId // ✅ Nuevo campo opcional para el profesor
 ) {}

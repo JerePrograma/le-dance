@@ -6,10 +6,12 @@ import ledance.entidades.Alumno;
 import ledance.entidades.Disciplina;
 import ledance.entidades.Asistencia;
 import ledance.dto.mappers.AsistenciaMapper;
+import ledance.entidades.Profesor;
 import ledance.repositorios.AsistenciaRepositorio;
 import ledance.repositorios.DisciplinaRepositorio;
 import ledance.repositorios.AlumnoRepositorio;
 import jakarta.transaction.Transactional;
+import ledance.repositorios.ProfesorRepositorio;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -27,29 +29,38 @@ public class AsistenciaServicio implements IAsistenciaServicio {
     private final DisciplinaRepositorio disciplinaRepositorio;
     private final AlumnoRepositorio alumnoRepositorio;
     private final AsistenciaMapper asistenciaMapper;
+    private final ProfesorRepositorio profesorRepositorio;
 
     public AsistenciaServicio(AsistenciaRepositorio asistenciaRepositorio,
                               DisciplinaRepositorio disciplinaRepositorio,
                               AlumnoRepositorio alumnoRepositorio,
-                              AsistenciaMapper asistenciaMapper) {
+                              AsistenciaMapper asistenciaMapper, ProfesorRepositorio profesorRepositorio) {
         this.asistenciaRepositorio = asistenciaRepositorio;
         this.disciplinaRepositorio = disciplinaRepositorio;
         this.alumnoRepositorio = alumnoRepositorio;
         this.asistenciaMapper = asistenciaMapper;
+        this.profesorRepositorio = profesorRepositorio;
     }
 
     @Override
     @Transactional
     public AsistenciaResponseDTO registrarAsistencia(AsistenciaRequest requestDTO) {
         log.info("Registrando asistencia para alumnoId: {} en disciplinaId: {}", requestDTO.alumnoId(), requestDTO.disciplinaId());
+
         Disciplina disciplina = disciplinaRepositorio.findById(requestDTO.disciplinaId())
                 .orElseThrow(() -> new IllegalArgumentException("Disciplina no encontrada."));
+
         Alumno alumno = alumnoRepositorio.findById(requestDTO.alumnoId())
                 .orElseThrow(() -> new IllegalArgumentException("Alumno no encontrado."));
+
+        Profesor profesor = requestDTO.profesorId() != null ?
+                profesorRepositorio.findById(requestDTO.profesorId()).orElse(null) : null;
+
         Asistencia asistencia = asistenciaMapper.toEntity(requestDTO);
-        // Asignar las asociaciones obtenidas
         asistencia.setDisciplina(disciplina);
         asistencia.setAlumno(alumno);
+        asistencia.setProfesor(profesor); // ✅ Asignar el profesor si está presente
+
         Asistencia guardada = asistenciaRepositorio.save(asistencia);
         return asistenciaMapper.toResponseDTO(guardada);
     }

@@ -143,6 +143,7 @@ export interface AsistenciaRequest {
   observacion?: string;
   alumnoId: number;
   disciplinaId: number;
+  profesorId?: number; // ✅ Se agrega para poder relacionarlo en el backend
 }
 
 export interface AsistenciaResponse {

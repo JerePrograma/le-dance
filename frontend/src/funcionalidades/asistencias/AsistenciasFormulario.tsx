@@ -10,6 +10,7 @@ import {
   AsistenciaResponse,
   AlumnoListadoResponse,
   DisciplinaResponse,
+  ProfesorResponse,
 } from "../../types/types";
 import Boton from "../../componentes/comunes/Boton";
 
@@ -24,12 +25,28 @@ const initialAsistenciaValues: AsistenciaRequest = {
 const AsistenciasFormulario: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-
+  const [profesores, setProfesores] = useState<ProfesorResponse[]>([]);
   const [alumnos, setAlumnos] = useState<AlumnoListadoResponse[]>([]);
   const [disciplinas, setDisciplinas] = useState<DisciplinaResponse[]>([]);
   const [alumnosFiltrados, setAlumnosFiltrados] = useState<
     AlumnoListadoResponse[]
   >([]);
+  const [profesoresFiltrados, setProfesoresFiltrados] = useState<
+    ProfesorResponse[]
+  >([]);
+
+  useEffect(() => {
+    const fetchProfesores = async () => {
+      try {
+        const response = await api.get<ProfesorResponse[]>("/api/profesores");
+        setProfesores(response.data);
+      } catch {
+        toast.error("Error al cargar profesores.");
+      }
+    };
+
+    fetchProfesores();
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -92,6 +109,26 @@ const AsistenciasFormulario: React.FC = () => {
     []
   );
 
+  const handleSeleccionarDisciplina = (
+    disciplinaId: number,
+    values: AsistenciaRequest,
+    setValues: (values: AsistenciaRequest) => void
+  ) => {
+    setValues({
+      ...values, // ✅ Copiamos los valores actuales del formulario
+      disciplinaId, // ✅ Actualizamos la disciplina seleccionada
+      profesorId: 0, // ✅ Reset profesor cuando se cambia disciplina
+    });
+
+    // Filtrar profesores relacionados con la disciplina seleccionada
+    const profesoresRelacionados = profesores.filter(
+      (profesor) =>
+        profesor.id ===
+        disciplinas.find((d) => d.id === disciplinaId)?.profesorId
+    );
+    setProfesoresFiltrados(profesoresRelacionados);
+  };
+
   const handleFiltrarAlumnos = useCallback(
     async (fecha: string, disciplinaId: number) => {
       try {
@@ -147,7 +184,7 @@ const AsistenciasFormulario: React.FC = () => {
                 className="form-input"
                 onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
                   const id = Number(e.target.value);
-                  setValues({ ...values, disciplinaId: id, alumnoId: 0 });
+                  handleSeleccionarDisciplina(id, values, setValues); // ✅ Se pasa `values` correctamente
                   handleFiltrarAlumnos(values.fecha, id);
                 }}
               >
@@ -160,6 +197,28 @@ const AsistenciasFormulario: React.FC = () => {
               </Field>
               <ErrorMessage
                 name="disciplinaId"
+                component="div"
+                className="error"
+              />
+            </div>
+            <div className="form-grid">
+              <label>Profesor:</label>
+              <Field as="select" name="profesorId" className="form-input">
+                <option value="">Seleccione un profesor</option>
+                {profesoresFiltrados.map((profesor: ProfesorResponse) => (
+                  <option key={profesor.id} value={profesor.id}>
+                    {profesor.nombre} {profesor.apellido}
+                  </option>
+                ))}
+              </Field>
+              <ErrorMessage
+                name="profesorId"
+                component="div"
+                className="error"
+              />
+
+              <ErrorMessage
+                name="profesorId"
                 component="div"
                 className="error"
               />

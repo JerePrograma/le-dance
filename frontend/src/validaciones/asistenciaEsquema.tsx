@@ -8,6 +8,9 @@ export const asistenciaEsquema = Yup.object().shape({
   disciplinaId: Yup.number()
     .min(1, "Debe seleccionar una disciplina")
     .required("La disciplina es obligatoria"),
+  profesorId: Yup.number()
+    .nullable()
+    .min(1, "Debe seleccionar un profesor válido"),
   presente: Yup.boolean().required(),
   observacion: Yup.string().max(
     255,

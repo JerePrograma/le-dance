@@ -11,6 +11,7 @@ interface Asistencia {
   disciplina: string;
   fecha: string;
   presente: boolean;
+  profesor?: string; // ✅ Se agrega el profesor
 }
 
 const Asistencias = () => {
@@ -78,6 +79,7 @@ const Asistencias = () => {
             "ID",
             "Alumno",
             "Disciplina",
+            "Profesor", // ✅ Nuevo encabezado
             "Fecha",
             "Presente",
             "Acciones",
@@ -107,6 +109,7 @@ const Asistencias = () => {
             fila.id,
             fila.alumno,
             fila.disciplina,
+            fila.profesor || "N/A", // ✅ Mostramos el profesor o "N/A" si no hay
             fila.fecha,
             fila.presente ? "Sí" : "No",
           ]}
