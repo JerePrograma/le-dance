@@ -18,7 +18,7 @@ public interface InscripcionMapper {
     @Mapping(target = "bonificacion", ignore = true) // Se asigna en el servicio si esta presente
     Inscripcion toEntity(InscripcionRequest request);
 
-    @Mapping(target = "alumno", expression = "java(inscripcion.getAlumno() != null ? new AlumnoListadoResponse(inscripcion.getAlumno().getId(), inscripcion.getAlumno().getNombre(), inscripcion.getAlumno().getApellido()) : null)")
+    @Mapping(target = "alumno", expression = "java(inscripcion.getAlumno() != null ? new AlumnoListadoResponse(inscripcion.getAlumno().getId(), inscripcion.getAlumno().getNombre(), inscripcion.getAlumno().getApellido(), inscripcion.getAlumno().getActivo()) : null)")
     @Mapping(target = "disciplina", expression = "java(inscripcion.getDisciplina() != null ? new DisciplinaSimpleResponse(inscripcion.getDisciplina().getId(), inscripcion.getDisciplina().getNombre()) : null)")
     @Mapping(target = "bonificacion", expression = "java(inscripcion.getBonificacion() != null ? new BonificacionResponse(inscripcion.getBonificacion().getId(), inscripcion.getBonificacion().getDescripcion(), inscripcion.getBonificacion().getPorcentajeDescuento(), inscripcion.getBonificacion().getActivo(), inscripcion.getBonificacion().getObservaciones()) : null)")
     InscripcionResponse toDTO(Inscripcion inscripcion);

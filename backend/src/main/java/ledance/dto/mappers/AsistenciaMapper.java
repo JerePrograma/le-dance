@@ -20,7 +20,7 @@ public interface AsistenciaMapper {
     @Mapping(target = "profesor", ignore = true)
     Asistencia toEntity(AsistenciaRequest request);
 
-    @Mapping(target = "alumno", expression = "java(new AlumnoListadoResponse(asistencia.getAlumno().getId(), asistencia.getAlumno().getNombre(), asistencia.getAlumno().getApellido()))")
+    @Mapping(target = "alumno", expression = "java(new AlumnoListadoResponse(asistencia.getAlumno().getId(), asistencia.getAlumno().getNombre(), asistencia.getAlumno().getApellido(), asistencia.getAlumno().getActivo()))")
     @Mapping(target = "disciplina", expression = "java(new DisciplinaSimpleResponse(asistencia.getDisciplina().getId(), asistencia.getDisciplina().getNombre()))")
     @Mapping(target = "profesor", expression = "java(asistencia.getProfesor() != null ? "
             + "new ProfesorResponse(asistencia.getProfesor().getId(), "

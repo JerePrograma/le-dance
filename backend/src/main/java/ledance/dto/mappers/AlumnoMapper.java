@@ -26,6 +26,7 @@ public interface AlumnoMapper {
     @Mapping(target = "id", source = "id")
     @Mapping(target = "nombre", source = "nombre")
     @Mapping(target = "apellido", source = "apellido")
+    @Mapping(target = "activo", source = "activo") // ✅ Se debe asignar explícitamente
     AlumnoListadoResponse toListadoResponse(Alumno alumno);
 
     @Mapping(target = "edad", ignore = true) // ✅ Se ignora la edad ya que se calcula en el servicio
