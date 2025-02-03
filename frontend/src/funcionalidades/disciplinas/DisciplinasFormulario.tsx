@@ -1,16 +1,11 @@
-import type React from "react";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import Boton from "../../componentes/comunes/Boton";
 import { ErrorMessage, Field, Form, Formik } from "formik";
 import { disciplinaEsquema } from "../../validaciones/disciplinaEsquema";
-import api from "../../utilidades/axiosConfig";
+import disciplinasApi from "../../utilidades/disciplinasApi";
 import { toast } from "react-toastify";
-import type {
-  DisciplinaRequest,
-  DisciplinaResponse,
-  ProfesorResponse,
-} from "../../types/types";
+import type { DisciplinaRequest, ProfesorResponse } from "../../types/types";
+import Boton from "../../componentes/comunes/Boton";
 import { Search } from "lucide-react";
 
 const initialDisciplinaValues: DisciplinaRequest = {
@@ -28,15 +23,16 @@ const initialDisciplinaValues: DisciplinaRequest = {
 const DisciplinasFormulario: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const [disciplinaId, setDisciplinaId] = useState<number | null>(null);
   const [profesores, setProfesores] = useState<ProfesorResponse[]>([]);
+  const [mensaje, setMensaje] = useState("");
+  const [idBusqueda, setIdBusqueda] = useState("");
 
   useEffect(() => {
     const fetchProfesores = async () => {
       try {
-        const response = await api.get<ProfesorResponse[]>(
-          "/api/profesores/simplificados"
-        );
-        setProfesores(response.data);
+        const response = await disciplinasApi.listarDisciplinas();
+        setProfesores(response as unknown as ProfesorResponse[]);
       } catch {
         toast.error("Error al cargar la lista de profesores.");
       }
@@ -46,57 +42,46 @@ const DisciplinasFormulario: React.FC = () => {
 
   useEffect(() => {
     const id = searchParams.get("id");
-    if (id) handleBuscar(id, () => {});
+    if (id) {
+      handleBuscar(id, () => {});
+    }
   }, [searchParams]);
 
-  const handleBuscar = useCallback(
-    async (idStr: string, resetForm: (values: DisciplinaRequest) => void) => {
-      try {
-        const idNum = Number(idStr);
-        if (isNaN(idNum)) {
-          toast.error("ID inválido");
-          return;
-        }
-        const data: DisciplinaResponse = await api.get(
-          `/api/disciplinas/${idNum}`
-        );
-        resetForm({
-          ...data,
-          id: data.id,
-          nombre: data.nombre,
-          horario: data.horario,
-          frecuenciaSemanal: data.frecuenciaSemanal,
-          duracion: data.duracion,
-          salon: data.salon,
-          valorCuota: data.valorCuota,
-          matricula: data.matricula,
-          profesorId: 0,
-        });
-        toast.success("Disciplina cargada correctamente.");
-      } catch {
-        toast.error("Error al cargar la disciplina.");
-        resetForm(initialDisciplinaValues);
+  const handleBuscar = async (
+    idStr: string,
+    callback: (vals: DisciplinaRequest) => void
+  ) => {
+    try {
+      const idNum = Number(idStr);
+      if (isNaN(idNum)) {
+        setMensaje("ID inválido");
+        return;
       }
-    },
-    []
-  );
+      const disciplina = await disciplinasApi.obtenerDisciplinaPorId(idNum);
+      callback({ ...disciplina, profesorId: disciplina.profesorId ?? 0 }); // ✅ Corrección aplicada
+      setDisciplinaId(disciplina.id);
+      setMensaje("");
+    } catch {
+      setMensaje("Disciplina no encontrada.");
+      callback(initialDisciplinaValues);
+      setDisciplinaId(null);
+    }
+  };
 
-  const handleGuardarDisciplina = useCallback(
-    async (values: DisciplinaRequest) => {
-      try {
-        if (values.id && values.id !== 0) {
-          await api.put(`/api/disciplinas/${values.id}`, values);
-          toast.success("Disciplina actualizada correctamente.");
-        } else {
-          await api.post("/api/disciplinas", values);
-          toast.success("Disciplina creada correctamente.");
-        }
-      } catch {
-        toast.error("Error al guardar la disciplina.");
+  const handleGuardarDisciplina = async (values: DisciplinaRequest) => {
+    try {
+      if (disciplinaId) {
+        await disciplinasApi.actualizarDisciplina(disciplinaId, values);
+        setMensaje("Disciplina actualizada correctamente.");
+      } else {
+        const nuevaDisciplina = await disciplinasApi.crearDisciplina(values);
+        setDisciplinaId(nuevaDisciplina.id);
+        setMensaje("Disciplina creada correctamente.");
       }
-    },
-    []
-  );
+    } catch {
+      setMensaje("Error al guardar la disciplina.");
+    }
+  };
 
   return (
     <div className="page-container">
@@ -107,32 +92,25 @@ const DisciplinasFormulario: React.FC = () => {
         onSubmit={handleGuardarDisciplina}
         enableReinitialize
       >
-        {({ resetForm, isSubmitting, values }) => (
+        {({ resetForm, isSubmitting }) => (
           <Form className="formulario max-w-4xl mx-auto">
             <div className="form-grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Búsqueda por ID */}
               <div className="col-span-full mb-4">
                 <label htmlFor="idBusqueda" className="auth-label">
                   Número de Disciplina:
                 </label>
                 <div className="flex gap-2">
-                  <Field
+                  <input
                     type="number"
                     id="idBusqueda"
-                    name="id"
+                    value={idBusqueda}
+                    onChange={(e) => setIdBusqueda(e.target.value)}
                     className="form-input flex-grow"
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                      const idValue = e.target.value
-                        ? Number(e.target.value)
-                        : 0;
-                      resetForm({
-                        values: { ...initialDisciplinaValues, id: idValue },
-                      });
-                    }}
                   />
                   <Boton
-                    type="button"
                     onClick={() =>
-                      handleBuscar(String(values.id), (vals) =>
+                      handleBuscar(idBusqueda, (vals) =>
                         resetForm({ values: vals })
                       )
                     }
@@ -144,6 +122,7 @@ const DisciplinasFormulario: React.FC = () => {
                 </div>
               </div>
 
+              {/* Datos de la Disciplina */}
               {[
                 { name: "nombre", label: "Nombre (obligatorio)" },
                 {
@@ -183,6 +162,7 @@ const DisciplinasFormulario: React.FC = () => {
                 </div>
               ))}
 
+              {/* Selección de Profesor */}
               <div className="mb-4">
                 <label htmlFor="profesorId" className="auth-label">
                   Profesor:
@@ -224,13 +204,14 @@ const DisciplinasFormulario: React.FC = () => {
                 Limpiar
               </Boton>
               <Boton
-                type="button"
                 onClick={() => navigate("/disciplinas")}
                 className="page-button-secondary"
               >
                 Volver al Listado
               </Boton>
             </div>
+
+            {mensaje && <p className="form-mensaje">{mensaje}</p>}
           </Form>
         )}
       </Formik>
