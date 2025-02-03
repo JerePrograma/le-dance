@@ -1,7 +1,10 @@
 package ledance.servicios;
 
 import ledance.dto.request.AsistenciaRequest;
+import ledance.dto.response.AlumnoListadoResponse;
 import ledance.dto.response.AsistenciaResponseDTO;
+import ledance.dto.response.DisciplinaSimpleResponse;
+import ledance.dto.response.ProfesorResponse;
 import ledance.entidades.Alumno;
 import ledance.entidades.Disciplina;
 import ledance.entidades.Asistencia;
@@ -17,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -97,8 +101,31 @@ public class AsistenciaServicio implements IAsistenciaServicio {
     @Override
     public List<AsistenciaResponseDTO> listarTodasAsistencias() {
         return asistenciaRepositorio.findAll().stream()
-                .map(asistenciaMapper::toResponseDTO)
-                .collect(Collectors.toList());
+                .map(asistencia -> new AsistenciaResponseDTO(
+                        asistencia.getId(),
+                        asistencia.getFecha(),
+                        asistencia.getPresente(),
+                        asistencia.getObservacion(),
+                        new AlumnoListadoResponse(
+                                asistencia.getAlumno().getId(),
+                                asistencia.getAlumno().getNombre(),
+                                asistencia.getAlumno().getApellido(),
+                                asistencia.getAlumno().getActivo() // ✅ Agregado para frontend
+                        ),
+                        new DisciplinaSimpleResponse(
+                                asistencia.getDisciplina().getId(),
+                                asistencia.getDisciplina().getNombre()
+                        ),
+                        asistencia.getProfesor() != null ?
+                                new ProfesorResponse(
+                                        asistencia.getProfesor().getId(),
+                                        asistencia.getProfesor().getNombre(),
+                                        asistencia.getProfesor().getApellido(),
+                                        asistencia.getProfesor().getEspecialidad(),
+                                        asistencia.getProfesor().getActivo(),
+                                        Collections.emptyList() // ✅ Evita problemas de dependencias cíclicas
+                                ) : null
+                )).collect(Collectors.toList());
     }
 
 }
