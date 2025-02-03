@@ -309,7 +309,6 @@
   .page-card:hover {
     @apply shadow-[var(--shadow-lg)];
   }
-
   .page-card-title {
     @apply text-xl font-bold mb-2;
   }
@@ -384,7 +383,6 @@
   .table tr:nth-child(even) {
     @apply bg-gray-50 dark:bg-gray-800;
   }
-}
 
   .sugerencias-lista {
     @apply absolute bg-white dark:bg-gray-800 
