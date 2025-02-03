@@ -1,13 +1,11 @@
-import type React from "react";
 import { useEffect, useState, useCallback } from "react";
 import { Form, useNavigate, useSearchParams } from "react-router-dom";
 import { ErrorMessage, Field, Formik } from "formik";
 import { asistenciaEsquema } from "../../validaciones/asistenciaEsquema";
-import api from "../../utilidades/axiosConfig";
+import asistenciasApi from "../../utilidades/asistenciasApi";
 import { toast } from "react-toastify";
 import type {
   AsistenciaRequest,
-  AsistenciaResponse,
   AlumnoListadoResponse,
   DisciplinaResponse,
   ProfesorResponse,
@@ -36,105 +34,98 @@ const AsistenciasFormulario: React.FC = () => {
   const [profesoresFiltrados, setProfesoresFiltrados] = useState<
     ProfesorResponse[]
   >([]);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [profesoresResponse, alumnosResponse, disciplinasResponse] =
-          await Promise.all([
-            api.get<ProfesorResponse[]>("/api/profesores"),
-            api.get<AlumnoListadoResponse[]>("/api/alumnos/listado"),
-            api.get<DisciplinaResponse[]>("/api/disciplinas"),
-          ]);
-        setProfesores(profesoresResponse.data);
-        setAlumnos(alumnosResponse.data);
-        setAlumnosFiltrados(alumnosResponse.data);
-        setDisciplinas(disciplinasResponse.data);
-      } catch {
-        toast.error("Error al cargar datos iniciales.");
-      }
-    };
-    fetchData();
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [profesoresData, alumnosData, disciplinasData] = await Promise.all([
+        asistenciasApi.obtenerProfesores(),
+        asistenciasApi.obtenerAlumnosListado(),
+        asistenciasApi.obtenerDisciplinas(),
+      ]);
+      setProfesores(profesoresData);
+      setAlumnos(alumnosData);
+      setAlumnosFiltrados(alumnosData);
+      setDisciplinas(disciplinasData);
+    } catch {
+      toast.error("Error al cargar datos iniciales.");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  useEffect(() => {
     const id = searchParams.get("id");
-    if (id) handleBuscar(id, () => {});
+    if (id) {
+      handleBuscar(id, () => {});
+    }
   }, [searchParams]);
 
-  const handleBuscar = useCallback(
-    async (idStr: string, resetForm: (values: AsistenciaRequest) => void) => {
-      try {
-        const idNum = Number(idStr);
-        if (isNaN(idNum)) {
-          toast.error("ID inválido");
-          return;
-        }
-        const data: AsistenciaResponse = await api.get(
-          `/api/asistencias/${idNum}`
-        );
-        resetForm({
-          id: data.id,
-          fecha: data.fecha,
-          alumnoId: data.alumnoId,
-          disciplinaId: data.disciplinaId,
-          presente: data.presente,
-          observacion: data.observacion || "",
-        });
-        toast.success("Asistencia cargada correctamente.");
-      } catch {
-        toast.error("Error al cargar la asistencia.");
-        resetForm(initialAsistenciaValues);
+  const handleBuscar = async (
+    idStr: string,
+    resetForm: (nextState?: { values: AsistenciaRequest }) => void
+  ) => {
+    try {
+      const idNum = Number(idStr);
+      if (isNaN(idNum)) {
+        toast.error("ID inválido");
+        return;
       }
-    },
-    []
-  );
+      const data = await asistenciasApi.obtenerAsistenciaPorId(idNum);
+      toast.success("Asistencia cargada correctamente.");
+      resetForm({ values: data });
+    } catch {
+      toast.error("Error al cargar la asistencia.");
+      resetForm({ values: initialAsistenciaValues });
+    }
+  };
 
-  const handleGuardarAsistencia = useCallback(
-    async (values: AsistenciaRequest) => {
-      try {
-        await api.post("/api/asistencias", values);
-        toast.success("Asistencia registrada correctamente.");
-      } catch {
-        toast.error("Error al registrar la asistencia.");
+  const handleGuardarAsistencia = async (values: AsistenciaRequest) => {
+    try {
+      if (values.id) {
+        await asistenciasApi.actualizarAsistencia(values.id, values);
+      } else {
+        await asistenciasApi.registrarAsistencia(values);
       }
-    },
-    []
-  );
+      toast.success("Asistencia guardada correctamente.");
+      navigate("/asistencias");
+    } catch {
+      toast.error("Error al guardar la asistencia.");
+    }
+  };
 
   const handleSeleccionarDisciplina = (
     disciplinaId: number,
     values: AsistenciaRequest,
     setValues: (values: AsistenciaRequest) => void
   ) => {
-    setValues({
-      ...values,
-      disciplinaId,
-      profesorId: 0,
-    });
-
+    setValues({ ...values, disciplinaId, profesorId: 0 });
     const profesoresRelacionados = profesores.filter(
-      (profesor) =>
-        profesor.id ===
-        disciplinas.find((d) => d.id === disciplinaId)?.profesorId
+      (prof) =>
+        prof.id === disciplinas.find((d) => d.id === disciplinaId)?.profesorId
     );
     setProfesoresFiltrados(profesoresRelacionados);
   };
 
-  const handleFiltrarAlumnos = useCallback(
-    async (fecha: string, disciplinaId: number) => {
-      try {
-        const response = await api.get<AlumnoListadoResponse[]>(
-          `/api/alumnos/por-fecha-y-disciplina?fecha=${fecha}&disciplinaId=${disciplinaId}`
-        );
-        setAlumnosFiltrados(response.data);
-      } catch {
-        toast.error("Error al cargar alumnos para la disciplina seleccionada.");
-        setAlumnosFiltrados([]);
-      }
-    },
-    []
-  );
+  const handleFiltrarAlumnos = async (fecha: string, disciplinaId: number) => {
+    try {
+      const response = await asistenciasApi.obtenerAlumnosPorFechaYDisciplina(
+        fecha,
+        disciplinaId
+      );
+      setAlumnosFiltrados(response);
+    } catch {
+      toast.error("Error al cargar alumnos para la disciplina seleccionada.");
+      setAlumnosFiltrados([]);
+    }
+  };
+
+  if (loading) return <div className="text-center py-4">Cargando datos...</div>;
 
   return (
     <div className="page-container">
@@ -157,182 +148,128 @@ const AsistenciasFormulario: React.FC = () => {
                     type="number"
                     id="idBusqueda"
                     className="form-input flex-grow"
-                    onChange={(e) => {
-                      const id = e.target.value;
-                      handleBuscar(id, (vals) => resetForm({ values: vals }));
-                    }}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      handleBuscar(e.target.value, resetForm)
+                    }
                   />
                   <Boton
                     onClick={() =>
-                      handleBuscar(values.id?.toString() || "", (vals) =>
-                        resetForm({ values: vals })
-                      )
+                      handleBuscar(values.id?.toString() || "", resetForm)
                     }
                     className="page-button"
                   >
-                    <Search className="w-5 h-5 mr-2" />
-                    Buscar
+                    <Search className="w-5 h-5 mr-2" /> Buscar
                   </Boton>
                 </div>
               </div>
 
-              <div className="mb-4">
-                <label htmlFor="fecha" className="auth-label">
-                  Fecha:
-                </label>
-                <Field
-                  type="date"
-                  id="fecha"
-                  name="fecha"
-                  className="form-input"
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                    setValues({
-                      ...values,
-                      fecha: e.target.value,
-                      disciplinaId: 0,
-                      alumnoId: 0,
-                    });
-                    setAlumnosFiltrados(alumnos);
-                  }}
-                />
-                <ErrorMessage
-                  name="fecha"
-                  component="div"
-                  className="auth-error"
-                />
-              </div>
-
-              <div className="mb-4">
-                <label htmlFor="disciplinaId" className="auth-label">
-                  Disciplina:
-                </label>
-                <Field
-                  as="select"
-                  id="disciplinaId"
-                  name="disciplinaId"
-                  className="form-input"
-                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-                    const id = Number(e.target.value);
-                    handleSeleccionarDisciplina(id, values, setValues);
-                    handleFiltrarAlumnos(values.fecha, id);
-                  }}
-                >
-                  <option value="">Seleccione una disciplina</option>
-                  {disciplinas.map((disc) => (
-                    <option key={disc.id} value={disc.id}>
-                      {disc.nombre}
-                    </option>
-                  ))}
-                </Field>
-                <ErrorMessage
-                  name="disciplinaId"
-                  component="div"
-                  className="auth-error"
-                />
-              </div>
-
-              <div className="mb-4">
-                <label htmlFor="profesorId" className="auth-label">
-                  Profesor:
-                </label>
-                <Field
-                  as="select"
-                  id="profesorId"
-                  name="profesorId"
-                  className="form-input"
-                >
-                  <option value="">Seleccione un profesor</option>
-                  {profesoresFiltrados.map((profesor: ProfesorResponse) => (
-                    <option key={profesor.id} value={profesor.id}>
-                      {profesor.nombre} {profesor.apellido}
-                    </option>
-                  ))}
-                </Field>
-                <ErrorMessage
-                  name="profesorId"
-                  component="div"
-                  className="auth-error"
-                />
-              </div>
-
-              <div className="mb-4">
-                <label htmlFor="alumnoId" className="auth-label">
-                  Alumno:
-                </label>
-                <Field
-                  as="select"
-                  id="alumnoId"
-                  name="alumnoId"
-                  className="form-input"
-                >
-                  <option value="">Seleccione un alumno</option>
-                  {alumnosFiltrados.map((alumno) => (
-                    <option key={alumno.id} value={alumno.id}>
-                      {alumno.nombre} {alumno.apellido}
-                    </option>
-                  ))}
-                </Field>
-                <ErrorMessage
-                  name="alumnoId"
-                  component="div"
-                  className="auth-error"
-                />
-              </div>
-
-              <div className="col-span-full mb-4">
-                <label htmlFor="observacion" className="auth-label">
-                  Observaciones:
-                </label>
-                <Field
-                  as="textarea"
-                  id="observacion"
-                  name="observacion"
-                  className="form-input h-24"
-                />
-                <ErrorMessage
-                  name="observacion"
-                  component="div"
-                  className="auth-error"
-                />
-              </div>
-
-              <div className="col-span-full mb-4">
-                <label className="flex items-center space-x-2">
-                  <Field
-                    type="checkbox"
-                    name="presente"
-                    className="form-checkbox"
-                  />
-                  <span>Presente</span>
-                </label>
-              </div>
-            </div>
-
-            <div className="form-acciones">
-              <Boton
-                type="submit"
-                disabled={isSubmitting}
-                className="page-button"
-              >
-                Guardar Asistencia
-              </Boton>
-              <Boton
-                type="reset"
-                onClick={() => {
-                  resetForm();
+              <Field
+                type="date"
+                id="fecha"
+                name="fecha"
+                className="form-input"
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  setValues({
+                    ...values,
+                    fecha: e.target.value,
+                    disciplinaId: 0,
+                    alumnoId: 0,
+                  });
                   setAlumnosFiltrados(alumnos);
                 }}
-                className="page-button-secondary"
+              />
+              <ErrorMessage
+                name="fecha"
+                component="div"
+                className="auth-error"
+              />
+
+              <Field
+                as="select"
+                id="disciplinaId"
+                name="disciplinaId"
+                className="form-input"
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                  const id = Number(e.target.value);
+                  handleSeleccionarDisciplina(id, values, setValues);
+                  handleFiltrarAlumnos(values.fecha, id);
+                }}
               >
-                Limpiar
-              </Boton>
-              <Boton
-                type="button"
-                onClick={() => navigate("/asistencias")}
-                className="page-button-secondary"
+                <option value="">Seleccione una disciplina</option>
+                {disciplinas.map((disc) => (
+                  <option key={disc.id} value={disc.id}>
+                    {disc.nombre}
+                  </option>
+                ))}
+              </Field>
+              <Field
+                as="select"
+                id="profesorId"
+                name="profesorId"
+                className="form-input"
               >
-                Volver al Listado
-              </Boton>
+                <option value="">Seleccione un profesor</option>
+                {profesoresFiltrados.map((prof) => (
+                  <option key={prof.id} value={prof.id}>
+                    {prof.nombre} {prof.apellido}
+                  </option>
+                ))}
+              </Field>
+
+              <Field
+                as="select"
+                id="alumnoId"
+                name="alumnoId"
+                className="form-input"
+              >
+                <option value="">Seleccione un alumno</option>
+                {alumnosFiltrados.map((alumno) => (
+                  <option key={alumno.id} value={alumno.id}>
+                    {alumno.nombre} {alumno.apellido}
+                  </option>
+                ))}
+              </Field>
+              <ErrorMessage
+                name="disciplinaId"
+                component="div"
+                className="auth-error"
+              />
+
+              <Field
+                as="textarea"
+                id="observacion"
+                name="observacion"
+                className="form-input h-24"
+              />
+
+              <Field
+                type="checkbox"
+                name="presente"
+                className="form-checkbox"
+              />
+
+              <div className="form-acciones">
+                <Boton
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="page-button"
+                >
+                  Guardar
+                </Boton>
+                <Boton
+                  type="reset"
+                  onClick={() => resetForm()}
+                  className="page-button-secondary"
+                >
+                  Limpiar
+                </Boton>
+                <Boton
+                  onClick={() => navigate("/asistencias")}
+                  className="page-button-secondary"
+                >
+                  Volver
+                </Boton>
+              </div>
             </div>
           </Form>
         )}
