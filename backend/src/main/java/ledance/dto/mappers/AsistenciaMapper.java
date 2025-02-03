@@ -29,6 +29,5 @@ public interface AsistenciaMapper {
             + "asistencia.getProfesor().getEspecialidad(), "
             + "asistencia.getProfesor().getActivo(), "
             + "java.util.Collections.emptyList()) : null)") // ✅ `java.util.Collections.emptyList()`
-    @Mapping(target = "activo", source = "activo")
     AsistenciaResponseDTO toResponseDTO(Asistencia asistencia);
 }

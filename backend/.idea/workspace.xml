@@ -6,10 +6,8 @@
   <component name="ChangeListManager">
     <list default="true" id="ccb8f120-972c-4a18-b18b-4ae7da723dfa" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/request/AsistenciaRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/request/AsistenciaRequest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/response/AsistenciaResponseDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/response/AsistenciaResponseDTO.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/entidades/Asistencia.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/entidades/Asistencia.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/resources/db/migration/V1__create-database-ledance.sql" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/db/migration/V1__create-database-ledance.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/mappers/AsistenciaMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/mappers/AsistenciaMapper.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/repositorios/AsistenciaRepositorio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/repositorios/AsistenciaRepositorio.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -141,7 +139,7 @@
       <workItem from="1738453630581" duration="929000" />
       <workItem from="1738455499980" duration="617000" />
       <workItem from="1738501175935" duration="10584000" />
-      <workItem from="1738537591150" duration="7926000" />
+      <workItem from="1738537591150" duration="8816000" />
     </task>
     <servers />
   </component>

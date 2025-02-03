@@ -16,8 +16,6 @@ public interface AsistenciaRepositorio extends JpaRepository<Asistencia, Long> {
 
     boolean existsByAlumnoIdAndFecha(Long aLong, LocalDate fecha);
 
-    List<Asistencia> findByActivoTrue();
-
     @Query("SELECT a.alumno.nombre, a.disciplina.nombre, COUNT(a) FROM Asistencia a " +
             "WHERE a.presente = true GROUP BY a.alumno.nombre, a.disciplina.nombre")
     List<Object[]> obtenerAsistenciasPorAlumnoYDisciplina();
