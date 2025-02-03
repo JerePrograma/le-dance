@@ -357,8 +357,12 @@
 }
 
 @layer utilities {
+  .table-container {
+    @apply w-full overflow-x-auto rounded-lg shadow-md;
+  }
+
   .table {
-    @apply w-full border-collapse border border-gray-200 dark:border-gray-700;
+    @apply w-full border-collapse bg-white dark:bg-gray-800 text-sm;
   }
 
   .table th,
@@ -369,19 +373,33 @@
   }
 
   .table th {
-    @apply bg-gray-50 dark:bg-gray-800 
-           font-bold
-           text-[color:var(--foreground)] dark:text-text-dark;
+    @apply bg-gray-50 dark:bg-gray-700 
+           text-left py-4 px-6
+           font-semibold text-gray-600 dark:text-gray-200
+           border-b border-gray-200 dark:border-gray-600;
   }
 
-  .table tr {
-    @apply bg-white dark:bg-gray-900
-           hover:bg-gray-50 dark:hover:bg-gray-800
-           transition-colors duration-200;
+  .table td {
+    @apply py-4 px-6 
+           border-b border-gray-200 dark:border-gray-700
+           text-gray-700 dark:text-gray-300;
   }
 
-  .table tr:nth-child(even) {
-    @apply bg-gray-50 dark:bg-gray-800;
+  .table tr:hover {
+    @apply bg-gray-50 dark:bg-gray-700 transition-colors duration-150;
+  }
+
+  .table tbody tr:last-child td {
+    @apply border-b-0;
+  }
+
+  .table-striped tbody tr:nth-child(even) {
+    @apply bg-gray-50 dark:bg-gray-700;
+  }
+
+  .table-compact th,
+  .table-compact td {
+    @apply py-2 px-4;
   }
 
   .sugerencias-lista {
