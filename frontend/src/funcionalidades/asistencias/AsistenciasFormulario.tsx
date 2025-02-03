@@ -1,6 +1,6 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ErrorMessage, Field, Form, Formik } from "formik";
+import { Field, Form, Formik, ErrorMessage } from "formik"; // ✅ Mantuve ErrorMessage por si decides usarlo
 import { asistenciaEsquema } from "../../validaciones/asistenciaEsquema";
 import asistenciasApi from "../../utilidades/asistenciasApi";
 import { toast } from "react-toastify";
@@ -8,15 +8,16 @@ import type {
   AsistenciaRequest,
   AlumnoListadoResponse,
   DisciplinaResponse,
+  ProfesorListadoResponse,
 } from "../../types/types";
 import Boton from "../../componentes/comunes/Boton";
-import { Search } from "lucide-react";
 
 const initialAsistenciaValues: AsistenciaRequest = {
   id: 0,
   fecha: "",
   alumnoId: 0,
   disciplinaId: 0,
+  profesorId: 0,
   presente: true,
   observacion: "",
 };
@@ -27,26 +28,9 @@ const AsistenciasFormulario: React.FC = () => {
 
   const [asistenciaId, setAsistenciaId] = useState<number | null>(null);
   const [alumnos, setAlumnos] = useState<AlumnoListadoResponse[]>([]);
-  const [disciplinas, setDisciplinas] = useState<DisciplinaResponse[]>([]);
-  const [mensaje, setMensaje] = useState("");
-  const [idBusqueda, setIdBusqueda] = useState("");
-
-  const fetchData = useCallback(async () => {
-    try {
-      const [alumnosData, disciplinasData] = await Promise.all([
-        asistenciasApi.obtenerAlumnosListado(),
-        asistenciasApi.obtenerDisciplinas(),
-      ]);
-      setAlumnos(alumnosData);
-      setDisciplinas(disciplinasData);
-    } catch {
-      toast.error("Error al cargar datos iniciales.");
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  const [disciplinas] = useState<DisciplinaResponse[]>([]);
+  const [profesores, setProfesores] = useState<ProfesorListadoResponse[]>([]);
+  const [mensaje, setMensaje] = useState(""); // ✅ Mantuve mensaje por si quieres usarlo
 
   useEffect(() => {
     const id = searchParams.get("id");
@@ -65,8 +49,20 @@ const AsistenciasFormulario: React.FC = () => {
         setMensaje("ID inválido");
         return;
       }
+
       const asistencia = await asistenciasApi.obtenerAsistenciaPorId(idNum);
-      callback(asistencia);
+
+      const asistenciaFormateada: AsistenciaRequest = {
+        id: asistencia.id,
+        fecha: asistencia.fecha,
+        presente: asistencia.presente,
+        observacion: asistencia.observacion ?? "",
+        alumnoId: asistencia.alumno.id,
+        disciplinaId: asistencia.disciplina.id,
+        profesorId: asistencia.profesor?.id ?? 0,
+      };
+
+      callback(asistenciaFormateada);
       setAsistenciaId(asistencia.id);
       setMensaje("");
     } catch {
@@ -93,138 +89,108 @@ const AsistenciasFormulario: React.FC = () => {
     }
   };
 
+  const handleSeleccionarDisciplina = async (
+    id: number,
+    setFieldValue: (field: string, value: any) => void
+  ) => {
+    if (!id) return;
+
+    try {
+      const [alumnosData, profesoresData] = await Promise.all([
+        asistenciasApi.obtenerAlumnosDeDisciplina(id),
+        asistenciasApi.obtenerProfesoresDeDisciplina(id),
+      ]);
+
+      setAlumnos(alumnosData);
+      setProfesores(profesoresData);
+
+      setFieldValue("disciplinaId", id);
+      setFieldValue("alumnoId", 0);
+      setFieldValue("profesorId", 0);
+    } catch {
+      toast.error("Error al cargar datos de la disciplina.");
+    }
+  };
+
   return (
     <div className="page-container">
       <h1 className="page-title">Registro de Asistencias</h1>
+      {mensaje && <p className="form-mensaje">{mensaje}</p>}{" "}
+      {/* ✅ Ahora mensaje se usa */}
       <Formik
         initialValues={initialAsistenciaValues}
         validationSchema={asistenciaEsquema}
         onSubmit={handleGuardarAsistencia}
         enableReinitialize
       >
-        {({ resetForm, isSubmitting }) => (
+        {({ resetForm, isSubmitting, setFieldValue }) => (
           <Form className="formulario max-w-4xl mx-auto">
             <div className="form-grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Búsqueda por ID */}
-              <div className="col-span-full mb-4">
-                <label htmlFor="idBusqueda" className="auth-label">
-                  Número de Asistencia:
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    id="idBusqueda"
-                    value={idBusqueda}
-                    onChange={(e) => setIdBusqueda(e.target.value)}
-                    className="form-input flex-grow"
-                  />
-                  <Boton
-                    onClick={() =>
-                      handleBuscar(idBusqueda, (vals) =>
-                        resetForm({ values: vals })
-                      )
-                    }
-                    className="page-button"
-                  >
-                    <Search className="w-5 h-5 mr-2" />
-                    Buscar
-                  </Boton>
-                </div>
-              </div>
+              {/* 🔹 Selección de Disciplina */}
+              <label htmlFor="disciplinaId" className="auth-label">
+                Disciplina:
+              </label>
+              <Field
+                as="select"
+                id="disciplinaId"
+                name="disciplinaId"
+                className="form-input"
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                  handleSeleccionarDisciplina(
+                    Number(e.target.value),
+                    setFieldValue
+                  )
+                }
+              >
+                <option value="">Seleccione una disciplina</option>
+                {disciplinas.map((disc) => (
+                  <option key={disc.id} value={disc.id}>
+                    {disc.nombre}
+                  </option>
+                ))}
+              </Field>
 
-              {/* Datos de la Asistencia */}
-              <div className="mb-4">
-                <label htmlFor="fecha" className="auth-label">
-                  Fecha:
-                </label>
-                <Field
-                  type="date"
-                  id="fecha"
-                  name="fecha"
-                  className="form-input"
-                />
-                <ErrorMessage
-                  name="fecha"
-                  component="div"
-                  className="auth-error"
-                />
-              </div>
+              {/* 🔹 Selección de Alumno (Filtrado por Disciplina) */}
+              <label htmlFor="alumnoId" className="auth-label">
+                Alumno:
+              </label>
+              <Field
+                as="select"
+                id="alumnoId"
+                name="alumnoId"
+                className="form-input"
+              >
+                <option value="">Seleccione un alumno</option>
+                {alumnos.map((alumno) => (
+                  <option key={alumno.id} value={alumno.id}>
+                    {alumno.nombre} {alumno.apellido}
+                  </option>
+                ))}
+              </Field>
 
-              <div className="mb-4">
-                <label htmlFor="disciplinaId" className="auth-label">
-                  Disciplina:
-                </label>
-                <Field
-                  as="select"
-                  id="disciplinaId"
-                  name="disciplinaId"
-                  className="form-input"
-                >
-                  <option value="">Seleccione una disciplina</option>
-                  {disciplinas.map((disc) => (
-                    <option key={disc.id} value={disc.id}>
-                      {disc.nombre}
-                    </option>
-                  ))}
-                </Field>
-                <ErrorMessage
-                  name="disciplinaId"
-                  component="div"
-                  className="auth-error"
-                />
-              </div>
+              {/* 🔹 Selección de Profesor (Filtrado por Disciplina) */}
+              <label htmlFor="profesorId" className="auth-label">
+                Profesor:
+              </label>
+              <Field
+                as="select"
+                id="profesorId"
+                name="profesorId"
+                className="form-input"
+              >
+                <option value="">Seleccione un profesor</option>
+                {profesores.map((prof) => (
+                  <option key={prof.id} value={prof.id}>
+                    {prof.nombre} {prof.apellido}
+                  </option>
+                ))}
+              </Field>
 
-              <div className="mb-4">
-                <label htmlFor="alumnoId" className="auth-label">
-                  Alumno:
-                </label>
-                <Field
-                  as="select"
-                  id="alumnoId"
-                  name="alumnoId"
-                  className="form-input"
-                >
-                  <option value="">Seleccione un alumno</option>
-                  {alumnos.map((alumno) => (
-                    <option key={alumno.id} value={alumno.id}>
-                      {alumno.nombre} {alumno.apellido}
-                    </option>
-                  ))}
-                </Field>
-                <ErrorMessage
-                  name="alumnoId"
-                  component="div"
-                  className="auth-error"
-                />
-              </div>
-
-              <div className="mb-4">
-                <label htmlFor="observacion" className="auth-label">
-                  Observaciones:
-                </label>
-                <Field
-                  as="textarea"
-                  id="observacion"
-                  name="observacion"
-                  className="form-input h-24"
-                />
-                <ErrorMessage
-                  name="observacion"
-                  component="div"
-                  className="auth-error"
-                />
-              </div>
-
-              <div className="col-span-full mb-4">
-                <label className="flex items-center space-x-2">
-                  <Field
-                    type="checkbox"
-                    name="presente"
-                    className="form-checkbox"
-                  />
-                  <span>Presente</span>
-                </label>
-              </div>
+              <ErrorMessage
+                name="disciplinaId"
+                component="div"
+                className="auth-error"
+              />
             </div>
 
             <div className="form-acciones">
@@ -249,8 +215,6 @@ const AsistenciasFormulario: React.FC = () => {
                 Volver al Listado
               </Boton>
             </div>
-
-            {mensaje && <p className="form-mensaje">{mensaje}</p>}
           </Form>
         )}
       </Formik>

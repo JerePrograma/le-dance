@@ -1,5 +1,9 @@
 import api from "./axiosConfig";
-import { ProfesorRequest, ProfesorResponse } from "../types/types";
+import {
+  ProfesorRequest,
+  ProfesorResponse,
+  DisciplinaResponse,
+} from "../types/types";
 
 const profesoresApi = {
   listarProfesores: async (): Promise<ProfesorResponse[]> => {
@@ -19,28 +23,16 @@ const profesoresApi = {
     return response.data;
   },
 
-  asignarUsuario: async (
-    profesorId: number,
-    usuarioId: number
-  ): Promise<string> => {
-    const response = await api.patch(
-      `/api/profesores/${profesorId}/asignar-usuario?usuarioId=${usuarioId}`
-    );
-    return response.data;
-  },
-
-  asignarDisciplina: async (
-    profesorId: number,
-    disciplinaId: number
-  ): Promise<string> => {
-    const response = await api.patch(
-      `/api/profesores/${profesorId}/asignar-disciplina/${disciplinaId}`
-    );
-    return response.data;
-  },
-
   eliminarProfesor: async (id: number): Promise<string> => {
     const response = await api.put(`/api/profesores/${id}`, { activo: false });
+    return response.data;
+  },
+
+  /** 🔹 Obtener disciplinas de un profesor */
+  obtenerDisciplinasDeProfesor: async (
+    profesorId: number
+  ): Promise<DisciplinaResponse[]> => {
+    const response = await api.get(`/api/profesores/${profesorId}/disciplinas`);
     return response.data;
   },
 };

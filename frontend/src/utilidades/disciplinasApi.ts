@@ -2,7 +2,8 @@ import api from "./axiosConfig";
 import {
   DisciplinaRequest,
   DisciplinaResponse,
-  AlumnoRequest,
+  AlumnoListadoResponse,
+  ProfesorListadoResponse,
 } from "../types/types";
 
 const disciplinasApi = {
@@ -36,13 +37,20 @@ const disciplinasApi = {
     return response.data;
   },
 
-  inscribirAlumno: async (
-    disciplinaId: number,
-    alumno: AlumnoRequest
-  ): Promise<string> => {
-    const response = await api.post(
-      `/api/disciplinas/${disciplinaId}/inscribir-alumno`,
-      alumno
+  /** 🔹 Obtener alumnos de una disciplina */
+  obtenerAlumnosDeDisciplina: async (
+    disciplinaId: number
+  ): Promise<AlumnoListadoResponse[]> => {
+    const response = await api.get(`/api/disciplinas/${disciplinaId}/alumnos`);
+    return response.data;
+  },
+
+  /** 🔹 Obtener profesores de una disciplina */
+  obtenerProfesoresDeDisciplina: async (
+    disciplinaId: number
+  ): Promise<ProfesorListadoResponse[]> => {
+    const response = await api.get(
+      `/api/disciplinas/${disciplinaId}/profesores`
     );
     return response.data;
   },

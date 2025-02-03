@@ -3,6 +3,7 @@ package ledance.controladores;
 import ledance.dto.request.AlumnoRequest;
 import ledance.dto.response.AlumnoListadoResponse;
 import ledance.dto.response.AlumnoResponse;
+import ledance.dto.response.DisciplinaResponse;
 import ledance.servicios.IAlumnoServicio;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,4 +68,11 @@ public class AlumnoControlador {
         List<AlumnoListadoResponse> resultado = alumnoServicio.buscarPorNombre(nombre);
         return ResponseEntity.ok(resultado);
     }
+
+    @GetMapping("/{alumnoId}/disciplinas")
+    public ResponseEntity<List<DisciplinaResponse>> obtenerDisciplinasDeAlumno(@PathVariable Long alumnoId) {
+        List<DisciplinaResponse> disciplinas = alumnoServicio.obtenerDisciplinasDeAlumno(alumnoId);
+        return ResponseEntity.ok(disciplinas);
+    }
+
 }

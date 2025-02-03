@@ -1,8 +1,10 @@
 package ledance.servicios;
 
+import ledance.dto.mappers.DisciplinaMapper;
 import ledance.dto.request.AlumnoRequest;
 import ledance.dto.response.AlumnoListadoResponse;
 import ledance.dto.response.AlumnoResponse;
+import ledance.dto.response.DisciplinaResponse;
 import ledance.entidades.Alumno;
 import ledance.dto.mappers.AlumnoMapper;
 import ledance.repositorios.AlumnoRepositorio;
@@ -23,10 +25,12 @@ public class AlumnoServicio implements IAlumnoServicio {
 
     private final AlumnoRepositorio alumnoRepositorio;
     private final AlumnoMapper alumnoMapper;
+    private final DisciplinaMapper disciplinaMapper;
 
-    public AlumnoServicio(AlumnoRepositorio alumnoRepositorio, AlumnoMapper alumnoMapper) {
+    public AlumnoServicio(AlumnoRepositorio alumnoRepositorio, AlumnoMapper alumnoMapper, DisciplinaMapper disciplinaMapper) {
         this.alumnoRepositorio = alumnoRepositorio;
         this.alumnoMapper = alumnoMapper;
+        this.disciplinaMapper = disciplinaMapper;
     }
 
     @Override
@@ -94,4 +98,14 @@ public class AlumnoServicio implements IAlumnoServicio {
                 .map(alumnoMapper::toListadoResponse)
                 .collect(Collectors.toList());
     }
+
+    @Override
+    public List<DisciplinaResponse> obtenerDisciplinasDeAlumno(Long alumnoId) {
+        Alumno alumno = alumnoRepositorio.findById(alumnoId)
+                .orElseThrow(() -> new IllegalArgumentException("Alumno no encontrado."));
+        return alumno.getInscripciones().stream()
+                .map(inscripcion -> disciplinaMapper.toDTO(inscripcion.getDisciplina()))
+                .collect(Collectors.toList());
+    }
+
 }

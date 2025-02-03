@@ -2,6 +2,7 @@ package ledance.servicios;
 
 import ledance.dto.request.ProfesorRegistroRequest;
 import ledance.dto.response.DatosRegistroProfesorResponse;
+import ledance.dto.response.DisciplinaResponse;
 import ledance.dto.response.ProfesorListadoResponse;
 
 import java.util.List;
@@ -13,4 +14,6 @@ public interface IProfesorServicio {
     void asignarUsuario(Long profesorId, Long usuarioId);
     void asignarDisciplina(Long profesorId, Long disciplinaId);
     List<ProfesorListadoResponse> listarProfesoresSimplificados();
+
+    List<DisciplinaResponse> obtenerDisciplinasDeProfesor(Long profesorId);
 }

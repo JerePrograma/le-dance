@@ -3,6 +3,7 @@ package ledance.servicios;
 import ledance.dto.request.AlumnoRequest;
 import ledance.dto.response.AlumnoListadoResponse;
 import ledance.dto.response.AlumnoResponse;
+import ledance.dto.response.DisciplinaResponse;
 
 import java.util.List;
 
@@ -14,4 +15,6 @@ public interface IAlumnoServicio {
     void eliminarAlumno(Long id);
     List<AlumnoListadoResponse> listarAlumnosSimplificado();
     List<AlumnoListadoResponse> buscarPorNombre(String nombre);
+
+    List<DisciplinaResponse> obtenerDisciplinasDeAlumno(Long alumnoId);
 }

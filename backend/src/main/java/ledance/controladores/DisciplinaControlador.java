@@ -1,7 +1,9 @@
 package ledance.controladores;
 
 import ledance.dto.request.DisciplinaRequest;
+import ledance.dto.response.AlumnoListadoResponse;
 import ledance.dto.response.DisciplinaResponse;
+import ledance.dto.response.ProfesorListadoResponse;
 import ledance.servicios.DisciplinaServicio;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,4 +67,17 @@ public class DisciplinaControlador {
             return ResponseEntity.status(500).build();
         }
     }
+
+    @GetMapping("/{disciplinaId}/alumnos")
+    public ResponseEntity<List<AlumnoListadoResponse>> obtenerAlumnosDeDisciplina(@PathVariable Long disciplinaId) {
+        List<AlumnoListadoResponse> alumnos = disciplinaService.obtenerAlumnosDeDisciplina(disciplinaId);
+        return ResponseEntity.ok(alumnos);
+    }
+
+    @GetMapping("/{disciplinaId}/profesores")
+    public ResponseEntity<List<ProfesorListadoResponse>> obtenerProfesoresDeDisciplina(@PathVariable Long disciplinaId) {
+        List<ProfesorListadoResponse> profesores = disciplinaService.obtenerProfesoresDeDisciplina(disciplinaId);
+        return ResponseEntity.ok(profesores);
+    }
+
 }

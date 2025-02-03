@@ -1,7 +1,11 @@
 package ledance.servicios;
 
+import ledance.dto.mappers.AlumnoMapper;
+import ledance.dto.mappers.ProfesorMapper;
 import ledance.dto.request.DisciplinaRequest;
+import ledance.dto.response.AlumnoListadoResponse;
 import ledance.dto.response.DisciplinaResponse;
+import ledance.dto.response.ProfesorListadoResponse;
 import ledance.entidades.Disciplina;
 import ledance.entidades.Profesor;
 import ledance.dto.mappers.DisciplinaMapper;
@@ -25,13 +29,17 @@ public class DisciplinaServicio implements IDisciplinaServicio {
     private final DisciplinaRepositorio disciplinaRepositorio;
     private final ProfesorRepositorio profesorRepositorio;
     private final DisciplinaMapper disciplinaMapper;
+    private final AlumnoMapper alumnoMapper;
+    private final ProfesorMapper profesorMapper;
 
     public DisciplinaServicio(DisciplinaRepositorio disciplinaRepositorio,
                               ProfesorRepositorio profesorRepositorio,
-                              DisciplinaMapper disciplinaMapper) {
+                              DisciplinaMapper disciplinaMapper, AlumnoMapper alumnoMapper, ProfesorMapper profesorMapper) {
         this.disciplinaRepositorio = disciplinaRepositorio;
         this.profesorRepositorio = profesorRepositorio;
         this.disciplinaMapper = disciplinaMapper;
+        this.alumnoMapper = alumnoMapper;
+        this.profesorMapper = profesorMapper;
     }
 
     @Override
@@ -103,4 +111,21 @@ public class DisciplinaServicio implements IDisciplinaServicio {
                 .map(disciplinaMapper::toDTO)
                 .collect(Collectors.toList());
     }
+
+    @Override
+    public List<AlumnoListadoResponse> obtenerAlumnosDeDisciplina(Long disciplinaId) {
+        Disciplina disciplina = disciplinaRepositorio.findById(disciplinaId)
+                .orElseThrow(() -> new IllegalArgumentException("Disciplina no encontrada."));
+        return disciplina.getInscripciones().stream()
+                .map(inscripcion -> alumnoMapper.toListadoResponse(inscripcion.getAlumno()))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ProfesorListadoResponse> obtenerProfesoresDeDisciplina(Long disciplinaId) {
+        Disciplina disciplina = disciplinaRepositorio.findById(disciplinaId)
+                .orElseThrow(() -> new IllegalArgumentException("Disciplina no encontrada."));
+        return List.of(profesorMapper.toListadoDTO(disciplina.getProfesor()));
+    }
+
 }

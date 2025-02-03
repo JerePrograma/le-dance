@@ -1,6 +1,7 @@
 package ledance.repositorios;
 
 import jakarta.validation.constraints.NotNull;
+import ledance.entidades.Alumno;
 import ledance.entidades.Disciplina;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -19,4 +20,8 @@ public interface DisciplinaRepositorio extends JpaRepository<Disciplina, Long> {
     List<Disciplina> findDisciplinasPorDia(@Param("diaSemana") String diaSemana);
 
     List<Disciplina> findByActivoTrue();
+
+    @Query("SELECT i.alumno FROM Inscripcion i WHERE i.disciplina.id = :disciplinaId")
+    List<Alumno> findAlumnosPorDisciplina(@Param("disciplinaId") Long disciplinaId);
+
 }

@@ -1,7 +1,10 @@
 package ledance.repositorios;
 
+import ledance.entidades.Disciplina;
 import ledance.entidades.Profesor;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -37,4 +40,8 @@ public interface ProfesorRepositorio extends JpaRepository<Profesor, Long> {
     boolean existsByNombreAndApellido(String nombre, String apellido);
 
     List<Profesor> findByActivoTrue();
+
+    @Query("SELECT d FROM Disciplina d WHERE d.profesor.id = :profesorId")
+    List<Disciplina> findDisciplinasPorProfesor(@Param("profesorId") Long profesorId);
+
 }

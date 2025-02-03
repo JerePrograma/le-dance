@@ -4,11 +4,12 @@ import {
   AlumnoListadoResponse,
   AlumnoRequest,
   AlumnoResponse,
+  DisciplinaResponse,
 } from "../types/types";
 
 const alumnosApi = {
   listarAlumnos: async (): Promise<AlumnoListadoResponse[]> => {
-    const response = await api.get("/api/alumnos/listado"); // ✅ Cambiado para devolver solo los datos necesarios
+    const response = await api.get("/api/alumnos/listado"); // ✅ Devuelve solo los datos necesarios
     return response.data;
   },
 
@@ -40,6 +41,19 @@ const alumnosApi = {
       `/api/alumnos/buscar?nombre=${encodeURIComponent(nombre)}`
     );
     return response.data;
+  },
+
+  /** 🔹 Obtener disciplinas de un alumno */
+  obtenerDisciplinasDeAlumno: async (
+    alumnoId: number
+  ): Promise<DisciplinaResponse[]> => {
+    try {
+      const response = await api.get(`/api/alumnos/${alumnoId}/disciplinas`);
+      return response.data;
+    } catch (error) {
+      console.error("Error al obtener disciplinas del alumno:", error);
+      throw error;
+    }
   },
 };
 

@@ -4,7 +4,7 @@ import {
   AsistenciaResponse,
   AlumnoListadoResponse,
   DisciplinaResponse,
-  ProfesorResponse,
+  ProfesorListadoResponse,
 } from "../types/types";
 
 const asistenciasApi = {
@@ -64,53 +64,6 @@ const asistenciasApi = {
     }
   },
 
-  /** 🔹 Obtener asistencias filtradas por disciplina */
-  obtenerAsistenciasPorDisciplina: async (
-    disciplinaId: number
-  ): Promise<AsistenciaResponse[]> => {
-    try {
-      const response = await api.get(
-        `/api/asistencias/disciplina/${disciplinaId}`
-      );
-      return response.data;
-    } catch (error) {
-      console.error("Error al obtener asistencias por disciplina:", error);
-      throw error;
-    }
-  },
-
-  /** 🔹 Obtener asistencias filtradas por alumno */
-  obtenerAsistenciasPorAlumno: async (
-    alumnoId: number
-  ): Promise<AsistenciaResponse[]> => {
-    try {
-      const response = await api.get(`/api/asistencias/alumno/${alumnoId}`);
-      return response.data;
-    } catch (error) {
-      console.error("Error al obtener asistencias por alumno:", error);
-      throw error;
-    }
-  },
-
-  /** 🔹 Obtener asistencias por fecha y disciplina */
-  obtenerAsistenciasPorFechaYDisciplina: async (
-    fecha: string,
-    disciplinaId: number
-  ): Promise<AsistenciaResponse[]> => {
-    try {
-      const response = await api.get(`/api/asistencias/fecha`, {
-        params: { fecha, disciplinaId },
-      });
-      return response.data;
-    } catch (error) {
-      console.error(
-        "Error al obtener asistencias por fecha y disciplina:",
-        error
-      );
-      throw error;
-    }
-  },
-
   /** 🔹 Eliminar (desactivar) una asistencia */
   eliminarAsistencia: async (id: number): Promise<void> => {
     try {
@@ -121,51 +74,60 @@ const asistenciasApi = {
     }
   },
 
-  /** 🔹 Obtener la lista de profesores */
-  obtenerProfesores: async (): Promise<ProfesorResponse[]> => {
-    try {
-      const response = await api.get("/api/profesores");
-      return response.data;
-    } catch (error) {
-      console.error("Error al obtener profesores:", error);
-      throw error;
-    }
-  },
-
-  /** 🔹 Obtener la lista de alumnos (formato simplificado) */
-  obtenerAlumnosListado: async (): Promise<AlumnoListadoResponse[]> => {
-    try {
-      const response = await api.get("/api/alumnos/listado");
-      return response.data;
-    } catch (error) {
-      console.error("Error al obtener alumnos:", error);
-      throw error;
-    }
-  },
-
-  /** 🔹 Obtener la lista de disciplinas */
-  obtenerDisciplinas: async (): Promise<DisciplinaResponse[]> => {
-    try {
-      const response = await api.get("/api/disciplinas");
-      return response.data;
-    } catch (error) {
-      console.error("Error al obtener disciplinas:", error);
-      throw error;
-    }
-  },
-
-  /** 🔹 Obtener alumnos filtrados por fecha y disciplina */
-  obtenerAlumnosPorFechaYDisciplina: async (
-    fecha: string,
+  /** 🔹 Obtener alumnos de una disciplina */
+  obtenerAlumnosDeDisciplina: async (
     disciplinaId: number
   ): Promise<AlumnoListadoResponse[]> => {
     try {
-      const response = await api.get("/api/alumnos/por-fecha-y-disciplina", {
-        params: { fecha, disciplinaId },
-      });
+      const response = await api.get(
+        `/api/disciplinas/${disciplinaId}/alumnos`
+      );
       return response.data;
     } catch (error) {
-      console.error("Error al obtener alumnos por fecha y disciplina:", error);
+      console.error("Error al obtener alumnos de la disciplina:", error);
+      throw error;
+    }
+  },
+
+  /** 🔹 Obtener profesores de una disciplina */
+  obtenerProfesoresDeDisciplina: async (
+    disciplinaId: number
+  ): Promise<ProfesorListadoResponse[]> => {
+    try {
+      const response = await api.get(
+        `/api/disciplinas/${disciplinaId}/profesores`
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error al obtener profesores de la disciplina:", error);
+      throw error;
+    }
+  },
+
+  /** 🔹 Obtener disciplinas de un alumno */
+  obtenerDisciplinasDeAlumno: async (
+    alumnoId: number
+  ): Promise<DisciplinaResponse[]> => {
+    try {
+      const response = await api.get(`/api/alumnos/${alumnoId}/disciplinas`);
+      return response.data;
+    } catch (error) {
+      console.error("Error al obtener disciplinas del alumno:", error);
+      throw error;
+    }
+  },
+
+  /** 🔹 Obtener disciplinas de un profesor */
+  obtenerDisciplinasDeProfesor: async (
+    profesorId: number
+  ): Promise<DisciplinaResponse[]> => {
+    try {
+      const response = await api.get(
+        `/api/profesores/${profesorId}/disciplinas`
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error al obtener disciplinas del profesor:", error);
       throw error;
     }
   },
