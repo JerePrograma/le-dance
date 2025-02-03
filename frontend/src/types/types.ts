@@ -48,6 +48,7 @@ export interface AlumnoListadoResponse {
   id: number;
   nombre: string;
   apellido: string;
+  activo?: boolean;
 }
 // ========================================================
 // DISCIPLINA
@@ -62,7 +63,7 @@ export interface DisciplinaRequest {
   valorCuota: number;
   matricula: number;
   profesorId: number;
-  activo: boolean;
+  activo?: boolean;
 }
 
 export interface DisciplinaResponse {
@@ -76,7 +77,7 @@ export interface DisciplinaResponse {
   matricula: number;
   profesorId: number | null;
   inscritos: number; // Cantidad de alumnos inscritos
-  activo: boolean;
+  activo?: boolean;
 }
 
 // ========================================================
@@ -93,7 +94,7 @@ export interface BonificacionResponse {
   id: number;
   descripcion: string;
   porcentajeDescuento: number;
-  activo: boolean;
+  activo?: boolean;
   observaciones?: string;
 }
 
@@ -126,7 +127,7 @@ export interface ProfesorRequest {
   nombre: string;
   apellido: string;
   especialidad?: string;
-  aniosExperiencia?: number;
+  activo?: boolean;
   usuarioId?: number;
 }
 
@@ -135,7 +136,7 @@ export interface ProfesorResponse {
   nombre: string;
   apellido: string;
   especialidad?: string;
-  aniosExperiencia?: number;
+  activo?: boolean;
   usuarioId?: number | null;
 }
 

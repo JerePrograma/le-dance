@@ -8,6 +8,5 @@ public record AsistenciaRequest(
         String observacion,
         Long alumnoId,
         Long disciplinaId,
-        Long profesorId, // ✅ Nuevo campo opcional para el profesor
-        Boolean activo  // ✅ Se agrega el campo activo
+        Long profesorId // ✅ Nuevo campo opcional para el profesor
 ) {}

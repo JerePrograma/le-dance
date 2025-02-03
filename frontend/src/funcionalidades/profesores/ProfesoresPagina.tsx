@@ -11,7 +11,7 @@ interface Profesor {
   nombre: string;
   apellido: string;
   especialidad: string;
-  aniosExperiencia: number;
+  activo?: boolean;
 }
 
 const Profesores = () => {
@@ -87,8 +87,8 @@ const Profesores = () => {
             "Nombre",
             "Apellido",
             "Especialidad",
-            "Años de Experiencia",
             "Acciones",
+            "Activo",
           ]}
           datos={currentItems}
           acciones={(fila) => (
@@ -115,7 +115,6 @@ const Profesores = () => {
             fila.nombre,
             fila.apellido,
             fila.especialidad,
-            fila.aniosExperiencia,
           ]}
         />
       </div>

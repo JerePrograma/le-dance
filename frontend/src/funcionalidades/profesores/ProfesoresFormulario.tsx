@@ -116,9 +116,9 @@ const ProfesoresFormulario: React.FC = () => {
                 { name: "apellido", label: "Apellido (obligatorio)" },
                 { name: "especialidad", label: "Especialidad (obligatorio)" },
                 {
-                  name: "aniosExperiencia",
-                  label: "Años de Experiencia",
-                  type: "number",
+                  name: "activo",
+                  label: "activo",
+                  type: "boolean",
                 },
               ].map(({ name, label, type = "text" }) => (
                 <div key={name} className="mb-4">

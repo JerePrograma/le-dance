@@ -201,7 +201,7 @@ const DisciplinasFormulario: React.FC = () => {
               </div>
             </div>
             <div className="mb-4 col-span-full">
-              <label className="flex items-center space-x-2">
+              <label className="flex items-center space-x-2 cursor-pointer">
                 <Field name="activo">
                   {({ field, form }: { field: any; form: any }) => (
                     <input
@@ -210,12 +210,12 @@ const DisciplinasFormulario: React.FC = () => {
                       checked={field.value}
                       onChange={() =>
                         form.setFieldValue("activo", !field.value)
-                      } // ✅ Ahora se actualiza correctamente
-                      className="form-checkbox"
+                      }
+                      className="form-checkbox h-5 w-5 text-primary border-gray-300 rounded focus:ring focus:ring-primary-200"
                     />
                   )}
                 </Field>
-                <span>Activo</span>
+                <span className="text-gray-700">Activo</span>
               </label>
             </div>
             <div className="form-acciones">

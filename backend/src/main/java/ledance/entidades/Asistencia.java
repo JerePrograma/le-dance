@@ -38,7 +38,4 @@ public class Asistencia {
     @ManyToOne
     @JoinColumn(name = "profesor_id", nullable = true) // Opcional, si el profesor participa en la asistencia
     private Profesor profesor;
-
-    @Column(nullable = false)
-    private Boolean activo = true;
 }
