@@ -60,7 +60,11 @@ const DisciplinasFormulario: React.FC = () => {
         return;
       }
       const disciplina = await disciplinasApi.obtenerDisciplinaPorId(idNum);
-      callback({ ...disciplina, profesorId: disciplina.profesorId ?? 0 }); // ✅ Corrección aplicada
+      callback({
+        ...disciplina,
+        profesorId: disciplina.profesorId ?? 0,
+        activo: disciplina.activo ?? true,
+      });
       setDisciplinaId(disciplina.id);
       setMensaje("");
     } catch {
@@ -72,6 +76,8 @@ const DisciplinasFormulario: React.FC = () => {
 
   const handleGuardarDisciplina = async (values: DisciplinaRequest) => {
     try {
+      console.log("Valores a enviar:", values); // ✅ Verifica los valores antes de enviarlos
+
       if (disciplinaId) {
         await disciplinasApi.actualizarDisciplina(disciplinaId, values);
         setMensaje("Disciplina actualizada correctamente.");
@@ -145,6 +151,11 @@ const DisciplinasFormulario: React.FC = () => {
                   label: "Cupo Máximo de Alumnos",
                   type: "number",
                 },
+                {
+                  name: "activo",
+                  label: "activo",
+                  type: "boolean",
+                },
               ].map(({ name, label, type = "text" }) => (
                 <div key={name} className="mb-4">
                   <label htmlFor={name} className="auth-label">
@@ -189,7 +200,24 @@ const DisciplinasFormulario: React.FC = () => {
                 />
               </div>
             </div>
-
+            <div className="mb-4 col-span-full">
+              <label className="flex items-center space-x-2">
+                <Field name="activo">
+                  {({ field, form }: { field: any; form: any }) => (
+                    <input
+                      type="checkbox"
+                      {...field}
+                      checked={field.value}
+                      onChange={() =>
+                        form.setFieldValue("activo", !field.value)
+                      } // ✅ Ahora se actualiza correctamente
+                      className="form-checkbox"
+                    />
+                  )}
+                </Field>
+                <span>Activo</span>
+              </label>
+            </div>
             <div className="form-acciones">
               <Boton
                 type="submit"
