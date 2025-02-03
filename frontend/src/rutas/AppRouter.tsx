@@ -1,15 +1,11 @@
-/***********************************************
- * src/rutas/AppRouter.tsx
- ***********************************************/
 import { lazy, Suspense } from "react";
-import { Routes, Route } from "react-router-dom";
-import Encabezado from "../componentes/comunes/Encabezado";
+import { createRoutesFromElements, Route } from "react-router-dom";
 import ProtectedRoute from "./ProtectedRoute";
 
 // 🔹 Páginas con carga diferida
 const Login = lazy(() => import("../paginas/Login"));
 const Inicio = lazy(() => import("../paginas/Inicio"));
-const Reportes = lazy(() => import("../paginas/Reportes")); // 🔹 ¡Agregamos la página de reportes!
+const Reportes = lazy(() => import("../paginas/Reportes"));
 
 // Usuarios
 const Usuarios = lazy(
@@ -71,69 +67,44 @@ const FormularioInscripciones = lazy(
   () => import("../funcionalidades/inscripciones/InscripcionesFormulario")
 );
 
-const AppRouter = () => {
-  return (
-    <>
-      <Encabezado />
+const routes = createRoutesFromElements(
+  <Suspense fallback={<div>Cargando...</div>}>
+    <Route path="/login" element={<Login />} />
+    <Route path="/registro" element={<FormularioUsuarios />} />
 
-      <Suspense fallback={<div>Cargando...</div>}>
-        <Routes>
-          {/* 🔹 Rutas públicas */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/registro" element={<FormularioUsuarios />} />
+    <Route element={<ProtectedRoute />}>
+      <Route path="/" element={<Inicio />} />
+      <Route path="/reportes" element={<Reportes />} />
+      <Route path="/usuarios" element={<Usuarios />} />
+      <Route path="/usuarios/formulario" element={<FormularioUsuarios />} />
+      <Route path="/profesores" element={<Profesores />} />
+      <Route path="/profesores/formulario" element={<FormularioProfesores />} />
+      <Route path="/disciplinas" element={<Disciplinas />} />
+      <Route
+        path="/disciplinas/formulario"
+        element={<FormularioDisciplinas />}
+      />
+      <Route path="/alumnos" element={<Alumnos />} />
+      <Route path="/alumnos/formulario" element={<FormularioAlumnos />} />
+      <Route path="/asistencias" element={<Asistencias />} />
+      <Route
+        path="/asistencias/formulario"
+        element={<FormularioAsistencias />}
+      />
+      <Route path="/bonificaciones" element={<Bonificaciones />} />
+      <Route
+        path="/bonificaciones/formulario"
+        element={<FormularioBonificaciones />}
+      />
+      <Route path="/roles" element={<Roles />} />
+      <Route path="/roles/formulario" element={<FormularioRoles />} />
+      <Route path="/inscripciones" element={<Inscripciones />} />
+      <Route
+        path="/inscripciones/formulario"
+        element={<FormularioInscripciones />}
+      />
+    </Route>
+  </Suspense>
+);
 
-          {/* 🔹 Rutas protegidas */}
-          <Route element={<ProtectedRoute />}>
-            <Route path="/" element={<Inicio />} />
-            <Route path="/reportes" element={<Reportes />} />{" "}
-            {/* ✅ ¡RUTA DE REPORTES! */}
-            {/* 🔹 Usuarios */}
-            <Route path="/usuarios" element={<Usuarios />} />
-            <Route
-              path="/usuarios/formulario"
-              element={<FormularioUsuarios />}
-            />
-            {/* 🔹 Profesores */}
-            <Route path="/profesores" element={<Profesores />} />
-            <Route
-              path="/profesores/formulario"
-              element={<FormularioProfesores />}
-            />
-            {/* 🔹 Disciplinas */}
-            <Route path="/disciplinas" element={<Disciplinas />} />
-            <Route
-              path="/disciplinas/formulario"
-              element={<FormularioDisciplinas />}
-            />
-            {/* 🔹 Alumnos */}
-            <Route path="/alumnos" element={<Alumnos />} />
-            <Route path="/alumnos/formulario" element={<FormularioAlumnos />} />
-            {/* 🔹 Asistencias */}
-            <Route path="/asistencias" element={<Asistencias />} />
-            <Route
-              path="/asistencias/formulario"
-              element={<FormularioAsistencias />}
-            />
-            {/* 🔹 Bonificaciones */}
-            <Route path="/bonificaciones" element={<Bonificaciones />} />
-            <Route
-              path="/bonificaciones/formulario"
-              element={<FormularioBonificaciones />}
-            />
-            {/* 🔹 Roles */}
-            <Route path="/roles" element={<Roles />} />
-            <Route path="/roles/formulario" element={<FormularioRoles />} />
-            {/* 🔹 Inscripciones */}
-            <Route path="/inscripciones" element={<Inscripciones />} />
-            <Route
-              path="/inscripciones/formulario"
-              element={<FormularioInscripciones />}
-            />
-          </Route>
-        </Routes>
-      </Suspense>
-    </>
-  );
-};
-
-export default AppRouter;
+export default routes;

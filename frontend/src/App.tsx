@@ -1,22 +1,18 @@
-/***********************************************
- * src/App.tsx
- ***********************************************/
-import { BrowserRouter } from "react-router-dom"; // Importar BrowserRouter aquí
-import AppRouter from "./rutas/AppRouter";
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { AuthProvider } from "./hooks/context/authContext";
+import routes from "./rutas/AppRouter"; // ✅ Importa las rutas corregidas
 import "./diseño/global.css";
+
+// Crea el enrutador con las rutas definidas en AppRouter.tsx
+const router = createBrowserRouter(routes);
 
 function App() {
   return (
-    // El BrowserRouter envuelve a todo tu árbol de componentes
-    <BrowserRouter>
-      {/* El AuthProvider se ubica dentro del BrowserRouter */}
-      <AuthProvider>
-        <div className="App">
-          <AppRouter />
-        </div>
-      </AuthProvider>
-    </BrowserRouter>
+    <AuthProvider>
+      <div className="App">
+        <RouterProvider router={router} />
+      </div>
+    </AuthProvider>
   );
 }
 
