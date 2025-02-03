@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { ErrorMessage, Field, Form, Formik } from "formik";
 import { disciplinaEsquema } from "../../validaciones/disciplinaEsquema";
 import disciplinasApi from "../../utilidades/disciplinasApi";
+import profesoresApi from "../../utilidades/profesoresApi";
 import { toast } from "react-toastify";
 import type { DisciplinaRequest, ProfesorResponse } from "../../types/types";
 import Boton from "../../componentes/comunes/Boton";
@@ -31,7 +32,7 @@ const DisciplinasFormulario: React.FC = () => {
   useEffect(() => {
     const fetchProfesores = async () => {
       try {
-        const response = await disciplinasApi.listarDisciplinas();
+        const response = await profesoresApi.listarProfesores();
         setProfesores(response as unknown as ProfesorResponse[]);
       } catch {
         toast.error("Error al cargar la lista de profesores.");
