@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { Form, useNavigate, useSearchParams } from "react-router-dom";
-import { ErrorMessage, Field, Formik } from "formik";
+import { ErrorMessage, Field, Formik, FormikState } from "formik";
 import { asistenciaEsquema } from "../../validaciones/asistenciaEsquema";
 import asistenciasApi from "../../utilidades/asistenciasApi";
 import { toast } from "react-toastify";
@@ -68,7 +68,7 @@ const AsistenciasFormulario: React.FC = () => {
 
   const handleBuscar = async (
     idStr: string,
-    resetForm: (nextState?: { values: AsistenciaRequest }) => void
+    resetForm: (nextState?: Partial<FormikState<AsistenciaRequest>>) => void
   ) => {
     try {
       const idNum = Number(idStr);
@@ -78,10 +78,10 @@ const AsistenciasFormulario: React.FC = () => {
       }
       const data = await asistenciasApi.obtenerAsistenciaPorId(idNum);
       toast.success("Asistencia cargada correctamente.");
-      resetForm({ values: data });
+      resetForm({ values: { ...data } }); // ✅ Corrección aplicada
     } catch {
       toast.error("Error al cargar la asistencia.");
-      resetForm({ values: initialAsistenciaValues });
+      resetForm({ values: { ...initialAsistenciaValues } });
     }
   };
 
@@ -136,7 +136,7 @@ const AsistenciasFormulario: React.FC = () => {
         onSubmit={handleGuardarAsistencia}
         enableReinitialize
       >
-        {({ resetForm, setValues, isSubmitting, values }) => (
+        {({ resetForm, setValues, values }) => (
           <Form className="formulario max-w-4xl mx-auto">
             <div className="form-grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="col-span-full mb-4">
@@ -202,6 +202,7 @@ const AsistenciasFormulario: React.FC = () => {
                   </option>
                 ))}
               </Field>
+
               <Field
                 as="select"
                 id="profesorId"
@@ -229,47 +230,25 @@ const AsistenciasFormulario: React.FC = () => {
                   </option>
                 ))}
               </Field>
-              <ErrorMessage
-                name="disciplinaId"
-                component="div"
-                className="auth-error"
-              />
+            </div>
 
-              <Field
-                as="textarea"
-                id="observacion"
-                name="observacion"
-                className="form-input h-24"
-              />
-
-              <Field
-                type="checkbox"
-                name="presente"
-                className="form-checkbox"
-              />
-
-              <div className="form-acciones">
-                <Boton
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="page-button"
-                >
-                  Guardar
-                </Boton>
-                <Boton
-                  type="reset"
-                  onClick={() => resetForm()}
-                  className="page-button-secondary"
-                >
-                  Limpiar
-                </Boton>
-                <Boton
-                  onClick={() => navigate("/asistencias")}
-                  className="page-button-secondary"
-                >
-                  Volver
-                </Boton>
-              </div>
+            <div className="form-acciones">
+              <Boton type="submit" className="page-button">
+                Guardar
+              </Boton>
+              <Boton
+                type="reset"
+                onClick={() => resetForm()}
+                className="page-button-secondary"
+              >
+                Limpiar
+              </Boton>
+              <Boton
+                onClick={() => navigate("/asistencias")}
+                className="page-button-secondary"
+              >
+                Volver
+              </Boton>
             </div>
           </Form>
         )}
