@@ -62,6 +62,7 @@ export interface DisciplinaRequest {
   valorCuota: number;
   matricula: number;
   profesorId: number;
+  activo: boolean;
 }
 
 export interface DisciplinaResponse {
@@ -75,6 +76,7 @@ export interface DisciplinaResponse {
   matricula: number;
   profesorId: number | null;
   inscritos: number; // Cantidad de alumnos inscritos
+  activo: boolean;
 }
 
 // ========================================================

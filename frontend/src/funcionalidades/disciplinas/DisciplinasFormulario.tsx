@@ -19,6 +19,7 @@ const initialDisciplinaValues: DisciplinaRequest = {
   valorCuota: 0,
   matricula: 0,
   profesorId: 0,
+  activo: true,
 };
 
 const DisciplinasFormulario: React.FC = () => {
