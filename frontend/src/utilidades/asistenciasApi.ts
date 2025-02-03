@@ -2,6 +2,11 @@ import api from "./axiosConfig";
 import { AsistenciaRequest, AsistenciaResponse } from "../types/types";
 
 const asistenciasApi = {
+  listarAsistencias: async (): Promise<AsistenciaResponse[]> => {
+    const response = await api.get("/api/asistencias"); // ✅ Cambiado para devolver solo los datos necesarios
+    return response.data;
+  },
+
   registrarAsistencia: async (
     asistencia: AsistenciaRequest
   ): Promise<AsistenciaResponse> => {
@@ -18,10 +23,12 @@ const asistenciasApi = {
     return response.data;
   },
 
-  obtenerAsistenciasPorAlumno: async (
-    alumnoId: number
+  obtenerAsistenciasPorAsistencia: async (
+    asistenciaId: number
   ): Promise<AsistenciaResponse[]> => {
-    const response = await api.get(`/api/asistencias/alumno/${alumnoId}`);
+    const response = await api.get(
+      `/api/asistencias/asistencia/${asistenciaId}`
+    );
     return response.data;
   },
 

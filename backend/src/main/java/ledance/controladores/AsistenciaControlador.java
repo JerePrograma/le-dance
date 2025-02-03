@@ -30,7 +30,6 @@ public class AsistenciaControlador {
         return ResponseEntity.ok(asistencias);
     }
 
-
     @PostMapping
     public ResponseEntity<AsistenciaResponseDTO> registrarAsistencia(@RequestBody @Validated AsistenciaRequest requestDTO) {
         log.info("Registrando asistencia para alumnoId: {} en disciplinaId: {}", requestDTO.alumnoId(), requestDTO.disciplinaId());

@@ -1,18 +1,29 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Tabla from "../../componentes/comunes/Tabla";
-import api from "../../utilidades/axiosConfig";
+import asistenciasApi from "../../utilidades/asistenciasApi";
 import ReactPaginate from "react-paginate";
 import Boton from "../../componentes/comunes/Boton";
 import { PlusCircle, Pencil, Trash2 } from "lucide-react";
 
 interface Asistencia {
   id: number;
-  alumno: string;
-  disciplina: string;
+  alumno: {
+    id: number;
+    nombre: string;
+    apellido: string;
+  };
+  disciplina: {
+    id: number;
+    nombre: string;
+  };
   fecha: string;
   presente: boolean;
-  profesor?: string;
+  profesor?: {
+    id: number;
+    nombre: string;
+    apellido: string;
+  } | null;
 }
 
 const Asistencias = () => {
@@ -26,12 +37,11 @@ const Asistencias = () => {
   const fetchAsistencias = useCallback(async () => {
     try {
       setLoading(true);
-      setError(null);
-      const response = await api.get<Asistencia[]>("/api/asistencias");
-      setAsistencias(response.data);
-    } catch (error) {
-      console.error("Error al cargar asistencias:", error);
-      setError("Error al cargar asistencias.");
+      const data = await asistenciasApi.listarAsistencias();
+      setAsistencias(data);
+    } catch (err) {
+      console.error("Error al cargar asistencias:", err);
+      setError("No se pudieron cargar las asistencias.");
     } finally {
       setLoading(false);
     }
@@ -41,10 +51,23 @@ const Asistencias = () => {
     fetchAsistencias();
   }, [fetchAsistencias]);
 
+  const eliminarAsistencia = async (id: number) => {
+    try {
+      await asistenciasApi.eliminarAsistencia(id);
+      setAsistencias((prev) =>
+        prev.filter((asistencia) => asistencia.id !== id)
+      );
+    } catch (err) {
+      console.error("Error al eliminar asistencia:", err);
+      setError("Error al eliminar asistencia.");
+    }
+  };
+
   const pageCount = useMemo(
     () => Math.ceil(asistencias.length / itemsPerPage),
     [asistencias.length]
   );
+
   const currentItems = useMemo(
     () =>
       asistencias.slice(
@@ -65,16 +88,15 @@ const Asistencias = () => {
 
   if (loading) return <div className="text-center py-4">Cargando...</div>;
   if (error)
-    return <div className="text-center py-4 text-destructive">{error}</div>;
+    return <div className="text-center py-4 text-red-500">{error}</div>;
 
   return (
     <div className="page-container">
       <h1 className="page-title">Registro de Asistencias</h1>
-      <div className="page-button-group flex justify-end mb-4">
+      <div className="flex justify-end mb-4">
         <Boton
           onClick={() => navigate("/asistencias/formulario")}
           className="page-button"
-          aria-label="Registrar nueva asistencia"
         >
           <PlusCircle className="w-5 h-5 mr-2" />
           Registrar Nueva Asistencia
@@ -99,14 +121,15 @@ const Asistencias = () => {
                   navigate(`/asistencias/formulario?id=${fila.id}`)
                 }
                 className="page-button-secondary"
-                aria-label={`Editar asistencia de ${fila.alumno} en ${fila.disciplina}`}
+                aria-label={`Editar asistencia de ${fila.alumno.nombre} en ${fila.disciplina.nombre}`}
               >
                 <Pencil className="w-4 h-4 mr-2" />
                 Editar
               </Boton>
               <Boton
+                onClick={() => eliminarAsistencia(fila.id)}
                 className="page-button-danger"
-                aria-label={`Eliminar asistencia de ${fila.alumno}`}
+                aria-label={`Eliminar asistencia de ${fila.alumno.nombre}`}
               >
                 <Trash2 className="w-4 h-4 mr-2" />
                 Eliminar
@@ -115,9 +138,11 @@ const Asistencias = () => {
           )}
           extraRender={(fila) => [
             fila.id,
-            fila.alumno,
-            fila.disciplina,
-            fila.profesor || "N/A",
+            `${fila.alumno.nombre} ${fila.alumno.apellido}`,
+            fila.disciplina.nombre,
+            fila.profesor
+              ? `${fila.profesor.nombre} ${fila.profesor.apellido}`
+              : "N/A",
             fila.fecha,
             fila.presente ? "Sí" : "No",
           ]}
