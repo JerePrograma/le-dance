@@ -93,4 +93,12 @@ public class AsistenciaServicio implements IAsistenciaServicio {
                 .map(r -> "Alumno: " + r[0] + " | Disciplina: " + r[1] + " | Asistencias: " + r[2])
                 .collect(Collectors.toList());
     }
+
+    @Override
+    public List<AsistenciaResponseDTO> listarTodasAsistencias() {
+        return asistenciaRepositorio.findAll().stream()
+                .map(asistenciaMapper::toResponseDTO)
+                .collect(Collectors.toList());
+    }
+
 }

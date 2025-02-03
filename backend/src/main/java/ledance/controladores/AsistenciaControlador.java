@@ -24,6 +24,13 @@ public class AsistenciaControlador {
         this.asistenciaServicio = asistenciaServicio;
     }
 
+    @GetMapping
+    public ResponseEntity<List<AsistenciaResponseDTO>> listarTodasAsistencias() {
+        List<AsistenciaResponseDTO> asistencias = asistenciaServicio.listarTodasAsistencias();
+        return ResponseEntity.ok(asistencias);
+    }
+
+
     @PostMapping
     public ResponseEntity<AsistenciaResponseDTO> registrarAsistencia(@RequestBody @Validated AsistenciaRequest requestDTO) {
         log.info("Registrando asistencia para alumnoId: {} en disciplinaId: {}", requestDTO.alumnoId(), requestDTO.disciplinaId());

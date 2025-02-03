@@ -12,4 +12,6 @@ public interface IAsistenciaServicio {
     List<AsistenciaResponseDTO> obtenerAsistenciasPorAlumno(Long alumnoId);
     List<AsistenciaResponseDTO> obtenerAsistenciasPorFechaYDisciplina(LocalDate fecha, Long disciplinaId);
     List<String> generarReporteAsistencias();
+
+    List<AsistenciaResponseDTO> listarTodasAsistencias();
 }
