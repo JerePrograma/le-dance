@@ -136,6 +136,19 @@ export interface ProfesorResponse {
   nombre: string;
   apellido: string;
   especialidad?: string;
+  disciplina: {
+    id: number;
+    nombre: string;
+  };
+  activo?: boolean;
+  usuarioId?: number | null;
+}
+
+export interface ProfesorListadoResponse {
+  id: number;
+  nombre: string;
+  apellido: string;
+  especialidad?: string;
   activo?: boolean;
   usuarioId?: number | null;
 }
