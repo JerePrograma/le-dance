@@ -75,8 +75,12 @@ const InscripcionesPagina = () => {
   return (
     <div className="page-container">
       <h1 className="page-title">Inscripciones</h1>
-      <div className="flex justify-end mb-4">
-        <Boton onClick={handleCrearInscripcion} className="page-button">
+      <div className="page-button-group flex justify-end mb-4">
+        <Boton
+          onClick={handleCrearInscripcion}
+          className="page-button"
+          aria-label="Crear nueva inscripción"
+        >
           <PlusCircle className="w-5 h-5 mr-2" />
           Nueva Inscripción
         </Boton>
@@ -102,7 +106,7 @@ const InscripcionesPagina = () => {
             fila.notas || "-",
           ]}
           acciones={(fila) => (
-            <div className="flex flex-col sm:flex-row gap-2">
+            <div className="flex gap-2">
               <Boton
                 onClick={() =>
                   navigate(`/inscripciones/formulario?id=${fila.id}`)

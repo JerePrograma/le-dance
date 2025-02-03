@@ -63,10 +63,11 @@ const RolesPagina = () => {
   return (
     <div className="page-container">
       <h1 className="page-title">Roles</h1>
-      <div className="flex justify-end mb-4">
+      <div className="page-button-group flex justify-end mb-4">
         <Boton
           onClick={() => navigate("/roles/formulario")}
           className="page-button"
+          aria-label="Registrar Nuevo Rol"
         >
           <PlusCircle className="w-5 h-5 mr-2" />
           Registrar Nuevo Rol

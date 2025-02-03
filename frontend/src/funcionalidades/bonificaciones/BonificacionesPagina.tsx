@@ -69,10 +69,11 @@ const Bonificaciones = () => {
   return (
     <div className="page-container">
       <h1 className="page-title">Bonificaciones</h1>
-      <div className="flex justify-end mb-4">
+      <div className="page-button-group flex justify-end mb-4">
         <Boton
           onClick={() => navigate("/bonificaciones/formulario")}
           className="page-button"
+          aria-label="Registrar nueva bonificación"
         >
           <PlusCircle className="w-5 h-5 mr-2" />
           Registrar Nueva Bonificación

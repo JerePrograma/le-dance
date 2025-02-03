@@ -355,7 +355,7 @@ const AlumnosFormulario: React.FC = () => {
               </legend>
               {alumnoId ? (
                 <>
-                  <div className="flex justify-end mb-4">
+                  <div className="page-button-group flex justify-end mb-4">
                     <Boton
                       onClick={() =>
                         navigate(
@@ -390,7 +390,7 @@ const AlumnosFormulario: React.FC = () => {
                         fila.notas || "-",
                       ]}
                       acciones={(fila) => (
-                        <div className="flex flex-col sm:flex-row gap-2">
+                        <div className="flex gap-2">
                           <Boton
                             onClick={() =>
                               navigate(

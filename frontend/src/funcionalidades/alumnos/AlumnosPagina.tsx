@@ -67,17 +67,18 @@ const Alumnos = () => {
     <div className="page-container">
       <h1 className="page-title">Alumnos</h1>
 
-      <div className="flex justify-end mb-4">
+      <div className="page-button-group flex justify-end mb-4">
         <Boton
           onClick={() => navigate("/alumnos/formulario")}
           className="page-button"
+          aria-label="Ficha de Alumnos"
         >
           <PlusCircle className="w-5 h-5 mr-2" />
           Ficha de Alumnos
         </Boton>
       </div>
 
-      <div className="bg-card rounded-lg shadow-md overflow-hidden">
+      <div className="page-card">
         <Tabla
           encabezados={["ID", "Nombre", "Apellido", "Acciones"]}
           datos={currentItems}
