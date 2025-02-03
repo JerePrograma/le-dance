@@ -164,15 +164,6 @@ export interface AsistenciaRequest {
   profesorId?: number; // ✅ Se agrega para poder relacionarlo en el backend
 }
 
-export interface AsistenciaResponse {
-  id: number;
-  fecha: string;
-  presente: boolean;
-  observacion?: string;
-  alumnoId: number;
-  disciplinaId: number;
-}
-
 export interface InscripcionResponse {
   id: number;
   alumno: {
@@ -194,9 +185,22 @@ export interface InscripcionResponse {
 
 export interface AsistenciaResponse {
   id: number;
-  fecha: string;
+  fecha: string; // El backend devuelve LocalDate, pero en frontend es string
   presente: boolean;
   observacion?: string;
-  alumno: { id: number; nombre: string; apellido: string };
-  disciplina: { id: number; nombre: string };
+  alumno: {
+    id: number;
+    nombre: string;
+    apellido: string;
+    activo?: boolean; // ✅ Agregado si está presente en el backend
+  };
+  disciplina: {
+    id: number;
+    nombre: string;
+  };
+  profesor?: {
+    id: number;
+    nombre: string;
+    apellido: string;
+  } | null;
 }

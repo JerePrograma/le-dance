@@ -12,6 +12,7 @@ interface Asistencia {
     id: number;
     nombre: string;
     apellido: string;
+    activo: boolean;
   };
   disciplina: {
     id: number;
@@ -38,7 +39,17 @@ const Asistencias = () => {
     try {
       setLoading(true);
       const data = await asistenciasApi.listarAsistencias();
-      setAsistencias(data);
+
+      // Asegurar que activo nunca sea `undefined`
+      const formattedData = data.map((asistencia) => ({
+        ...asistencia,
+        alumno: {
+          ...asistencia.alumno,
+          activo: asistencia.alumno.activo ?? false, // ✅ Evita el error de tipo
+        },
+      }));
+
+      setAsistencias(formattedData);
     } catch (err) {
       console.error("Error al cargar asistencias:", err);
       setError("No se pudieron cargar las asistencias.");
@@ -111,6 +122,7 @@ const Asistencias = () => {
             "Profesor",
             "Fecha",
             "Presente",
+            "Activo", // ✅ Nueva columna para mostrar el estado activo del alumno
             "Acciones",
           ]}
           datos={currentItems}
@@ -145,6 +157,7 @@ const Asistencias = () => {
               : "N/A",
             fila.fecha,
             fila.presente ? "Sí" : "No",
+            fila.alumno.activo ? "Activo" : "Inactivo", // ✅ Mostrar estado del alumno
           ]}
         />
       </div>

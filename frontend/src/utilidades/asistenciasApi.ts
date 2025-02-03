@@ -12,7 +12,14 @@ const asistenciasApi = {
   listarAsistencias: async (): Promise<AsistenciaResponse[]> => {
     try {
       const response = await api.get("/api/asistencias");
-      return response.data;
+
+      return response.data.map((asistencia: AsistenciaResponse) => ({
+        ...asistencia,
+        alumno: {
+          ...asistencia.alumno,
+          activo: asistencia.alumno.activo ?? false, // ✅ Asignar `false` si es `undefined`
+        },
+      }));
     } catch (error) {
       console.error("Error al obtener asistencias:", error);
       throw error;
