@@ -2,7 +2,7 @@ import type React from "react";
 import { useEffect, useState } from "react";
 import { ErrorMessage, Field, Form, Formik } from "formik";
 import { usuarioEsquema } from "../../validaciones/usuarioEsquema";
-import api from "../../utilidades/axiosConfig";
+import api from "../../api/axiosConfig";
 import { toast } from "react-toastify";
 import Boton from "../../componentes/comunes/Boton";
 

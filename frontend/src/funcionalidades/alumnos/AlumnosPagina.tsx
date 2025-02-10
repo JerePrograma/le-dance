@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Tabla from "../../componentes/comunes/Tabla";
-import alumnosApi from "../../utilidades/alumnosApi";
+import alumnosApi from "../../api/alumnosApi";
 import ReactPaginate from "react-paginate";
 import Boton from "../../componentes/comunes/Boton";
 import { PlusCircle, Pencil } from "lucide-react";
@@ -24,7 +24,7 @@ const Alumnos = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await alumnosApi.listarAlumnos();
+      const response = await alumnosApi.listar();
       setAlumnos(response);
     } catch (error) {
       console.error("Error al cargar alumnos:", error);

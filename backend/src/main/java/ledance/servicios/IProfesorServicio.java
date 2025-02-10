@@ -1,19 +1,20 @@
 package ledance.servicios;
 
+import ledance.dto.request.ProfesorModificacionRequest;
 import ledance.dto.request.ProfesorRegistroRequest;
-import ledance.dto.response.DatosRegistroProfesorResponse;
-import ledance.dto.response.DisciplinaResponse;
+import ledance.dto.response.ProfesorDetalleResponse;
 import ledance.dto.response.ProfesorListadoResponse;
 
 import java.util.List;
 
 public interface IProfesorServicio {
-    DatosRegistroProfesorResponse registrarProfesor(ProfesorRegistroRequest request);
-    DatosRegistroProfesorResponse obtenerProfesorPorId(Long id);
-    List<DatosRegistroProfesorResponse> listarProfesores();
-    void asignarUsuario(Long profesorId, Long usuarioId);
-    void asignarDisciplina(Long profesorId, Long disciplinaId);
-    List<ProfesorListadoResponse> listarProfesoresSimplificados();
+    ProfesorDetalleResponse registrarProfesor(ProfesorRegistroRequest request);
+    ProfesorDetalleResponse obtenerProfesorPorId(Long id);
+    List<ProfesorListadoResponse> listarProfesores();
+    ProfesorDetalleResponse actualizarProfesor(Long id, ProfesorModificacionRequest request);
+    void eliminarProfesor(Long id);
 
-    List<DisciplinaResponse> obtenerDisciplinasDeProfesor(Long profesorId);
+    // ✅ Metodos adicionales:
+    List<ProfesorListadoResponse> buscarPorNombre(String nombre);
+    List<ProfesorListadoResponse> listarProfesoresActivos();
 }

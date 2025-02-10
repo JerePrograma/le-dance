@@ -1,82 +1,136 @@
 import type React from "react";
-import { useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Boton from "../../componentes/comunes/Boton";
-import { ErrorMessage, Field, Form, Formik } from "formik";
+import { ErrorMessage, Field, Form, Formik, type FormikHelpers } from "formik";
 import { bonificacionEsquema } from "../../validaciones/bonificacionEsquema";
-import api from "../../utilidades/axiosConfig";
+import bonificacionesApi from "../../api/bonificacionesApi";
 import { toast } from "react-toastify";
 import { Search } from "lucide-react";
+import type {
+  BonificacionResponse,
+  BonificacionRegistroRequest,
+  BonificacionModificacionRequest,
+} from "../../types/types";
 
-interface Bonificacion {
-  id?: number;
-  descripcion: string;
-  porcentajeDescuento: number;
-  activo: boolean;
-  observaciones?: string;
-}
-
-const initialBonificacionValues: Bonificacion = {
+const initialBonificacionValues: BonificacionRegistroRequest &
+  Partial<BonificacionModificacionRequest> = {
   descripcion: "",
   porcentajeDescuento: 0,
-  activo: true,
   observaciones: "",
+  activo: true,
 };
 
 const BonificacionesFormulario: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const [bonificacionId, setBonificacionId] = useState<number | null>(null);
+  const [formValues, setFormValues] = useState<
+    BonificacionRegistroRequest & Partial<BonificacionModificacionRequest>
+  >(initialBonificacionValues);
+  const [mensaje, setMensaje] = useState("");
+  const [idBusqueda, setIdBusqueda] = useState("");
 
-  const handleBuscar = useCallback(
-    async (idStr: string, resetForm: (values: Bonificacion) => void) => {
-      try {
-        const idNum = Number(idStr);
-        if (isNaN(idNum)) {
-          toast.error("ID inválido");
-          return;
-        }
-        const response = await api.get<Bonificacion>(
-          `/api/bonificaciones/${idNum}`
-        );
-        resetForm(response.data);
-        toast.success("Bonificación cargada correctamente.");
-      } catch {
-        toast.error("Error al cargar la bonificación.");
-        resetForm(initialBonificacionValues);
-      }
+  const convertToBonificacionFormValues = useCallback(
+    (
+      bonificacion: BonificacionResponse
+    ): BonificacionRegistroRequest &
+      Partial<BonificacionModificacionRequest> => {
+      return {
+        descripcion: bonificacion.descripcion,
+        porcentajeDescuento: bonificacion.porcentajeDescuento,
+        observaciones: bonificacion.observaciones || "",
+        activo: bonificacion.activo,
+      };
     },
     []
   );
 
+  const handleBuscar = useCallback(async () => {
+    if (!idBusqueda) {
+      setMensaje("Por favor, ingrese un ID de bonificación.");
+      return;
+    }
+
+    try {
+      const bonificacion = await bonificacionesApi.obtenerBonificacionPorId(
+        Number(idBusqueda)
+      );
+      console.log("Bonificacion data received:", bonificacion);
+      const convertedBonificacion =
+        convertToBonificacionFormValues(bonificacion);
+      console.log("Converted bonificacion data:", convertedBonificacion);
+      setFormValues(convertedBonificacion);
+      setBonificacionId(bonificacion.id);
+      setMensaje("Bonificación encontrada.");
+    } catch (error) {
+      console.error("Error al buscar la bonificación:", error);
+      setMensaje("Bonificación no encontrada.");
+      resetearFormulario();
+    }
+  }, [idBusqueda, convertToBonificacionFormValues]);
+
+  const resetearFormulario = useCallback(() => {
+    setFormValues(initialBonificacionValues);
+    setBonificacionId(null);
+    setMensaje("");
+    setIdBusqueda("");
+  }, []);
+
   useEffect(() => {
     const idParam = searchParams.get("id");
-    if (idParam) handleBuscar(idParam, () => {});
+    if (idParam) {
+      setIdBusqueda(idParam);
+      handleBuscar();
+    }
   }, [searchParams, handleBuscar]);
 
-  const handleGuardar = useCallback(async (values: Bonificacion) => {
-    try {
-      if (values.id) {
-        await api.put(`/api/bonificaciones/${values.id}`, values);
-        toast.success("Bonificación actualizada correctamente.");
-      } else {
-        await api.post("/api/bonificaciones", values);
-        toast.success("Bonificación creada correctamente.");
+  const handleGuardar = useCallback(
+    async (
+      values: BonificacionRegistroRequest &
+        Partial<BonificacionModificacionRequest>,
+      {
+        setSubmitting,
+      }: FormikHelpers<
+        BonificacionRegistroRequest & Partial<BonificacionModificacionRequest>
+      >
+    ) => {
+      try {
+        if (bonificacionId) {
+          await bonificacionesApi.actualizarBonificacion(
+            bonificacionId,
+            values as BonificacionModificacionRequest
+          );
+          toast.success("Bonificación actualizada correctamente.");
+        } else {
+          const nuevaBonificacion = await bonificacionesApi.crearBonificacion(
+            values as BonificacionRegistroRequest
+          );
+          setBonificacionId(nuevaBonificacion.id);
+          toast.success("Bonificación creada correctamente.");
+        }
+        setMensaje("Bonificación guardada exitosamente.");
+      } catch (error) {
+        console.error("Error al guardar la bonificación:", error);
+        toast.error("Error al guardar la bonificación.");
+        setMensaje("Error al guardar la bonificación.");
+      } finally {
+        setSubmitting(false);
       }
-    } catch {
-      toast.error("Error al guardar la bonificación.");
-    }
-  }, []);
+    },
+    [bonificacionId]
+  );
 
   return (
     <div className="page-container">
       <h1 className="page-title">Formulario de Bonificación</h1>
       <Formik
-        initialValues={initialBonificacionValues}
+        initialValues={formValues}
         validationSchema={bonificacionEsquema}
         onSubmit={handleGuardar}
         enableReinitialize
       >
-        {({ resetForm, isSubmitting, values }) => (
+        {({ isSubmitting, resetForm }) => (
           <Form className="formulario max-w-4xl mx-auto">
             <div className="form-grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="col-span-full mb-4">
@@ -87,18 +141,13 @@ const BonificacionesFormulario: React.FC = () => {
                   <input
                     type="number"
                     id="idBusqueda"
+                    value={idBusqueda}
+                    onChange={(e) => setIdBusqueda(e.target.value)}
                     className="form-input flex-grow"
-                    onChange={(e) => {
-                      const id = e.target.value;
-                      handleBuscar(id, (vals) => resetForm({ values: vals }));
-                    }}
                   />
                   <Boton
-                    onClick={() =>
-                      handleBuscar(values.id?.toString() || "", (vals) =>
-                        resetForm({ values: vals })
-                      )
-                    }
+                    onClick={handleBuscar}
+                    type="button"
                     className="page-button"
                   >
                     <Search className="w-5 h-5 mr-2" />
@@ -160,22 +209,36 @@ const BonificacionesFormulario: React.FC = () => {
                 />
               </div>
 
-              <div className="col-span-full mb-4">
-                <label className="flex items-center space-x-2">
-                  <Field
-                    type="checkbox"
+              {bonificacionId !== null && (
+                <div className="col-span-full mb-4">
+                  <label className="flex items-center space-x-2">
+                    <Field
+                      type="checkbox"
+                      name="activo"
+                      className="form-checkbox"
+                    />
+                    <span>Activo</span>
+                  </label>
+                  <ErrorMessage
                     name="activo"
-                    className="form-checkbox"
+                    component="div"
+                    className="auth-error"
                   />
-                  <span>Activo</span>
-                </label>
-                <ErrorMessage
-                  name="activo"
-                  component="div"
-                  className="auth-error"
-                />
-              </div>
+                </div>
+              )}
             </div>
+
+            {mensaje && (
+              <p
+                className={`form-mensaje ${
+                  mensaje.includes("Error") || mensaje.includes("no encontrada")
+                    ? "form-mensaje-error"
+                    : "form-mensaje-success"
+                }`}
+              >
+                {mensaje}
+              </p>
+            )}
 
             <div className="form-acciones">
               <Boton
@@ -186,8 +249,11 @@ const BonificacionesFormulario: React.FC = () => {
                 Guardar
               </Boton>
               <Boton
-                type="reset"
-                onClick={() => resetForm({ values: initialBonificacionValues })}
+                type="button"
+                onClick={() => {
+                  resetearFormulario();
+                  resetForm();
+                }}
                 className="page-button-secondary"
               >
                 Limpiar

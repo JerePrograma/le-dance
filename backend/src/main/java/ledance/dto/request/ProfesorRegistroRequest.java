@@ -1,8 +1,12 @@
 package ledance.dto.request;
 
+import jakarta.validation.constraints.NotBlank;
+import java.time.LocalDate;
+
 public record ProfesorRegistroRequest(
-        String nombre,
-        String apellido,
+        @NotBlank String nombre,
+        @NotBlank String apellido,
         String especialidad,
-        Boolean activo // ✅ Opcional si quieres permitir que el usuario defina el estado activo
+        LocalDate fechaNacimiento, // ✅ NUEVO: Fecha de nacimiento opcional
+        String telefono // ✅ NUEVO: Número de contacto opcional
 ) {}

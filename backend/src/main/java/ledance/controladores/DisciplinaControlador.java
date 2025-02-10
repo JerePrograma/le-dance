@@ -1,16 +1,20 @@
 package ledance.controladores;
 
-import ledance.dto.request.DisciplinaRequest;
+import ledance.dto.request.DisciplinaModificacionRequest;
+import ledance.dto.request.DisciplinaRegistroRequest;
 import ledance.dto.response.AlumnoListadoResponse;
-import ledance.dto.response.DisciplinaResponse;
+import ledance.dto.response.DisciplinaDetalleResponse;
+import ledance.dto.response.DisciplinaListadoResponse;
 import ledance.dto.response.ProfesorListadoResponse;
 import ledance.servicios.DisciplinaServicio;
+import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalTime;
 import java.util.List;
 
 @RestController
@@ -19,65 +23,102 @@ import java.util.List;
 public class DisciplinaControlador {
 
     private static final Logger log = LoggerFactory.getLogger(DisciplinaControlador.class);
-    private final DisciplinaServicio disciplinaService;
+    private final DisciplinaServicio disciplinaServicio;
 
-    public DisciplinaControlador(DisciplinaServicio disciplinaService) {
-        this.disciplinaService = disciplinaService;
+    public DisciplinaControlador(DisciplinaServicio disciplinaServicio) {
+        this.disciplinaServicio = disciplinaServicio;
     }
 
+    /**
+     * ✅ Registrar una nueva disciplina.
+     */
     @PostMapping
-    public ResponseEntity<DisciplinaResponse> crearDisciplina(@RequestBody @Validated DisciplinaRequest requestDTO) {
-        log.info("Creando disciplina: {}", requestDTO.nombre());
-        DisciplinaResponse response = disciplinaService.crearDisciplina(requestDTO);
+    public ResponseEntity<DisciplinaDetalleResponse> registrarDisciplina(@Valid @RequestBody DisciplinaRegistroRequest requestDTO) {
+        log.info("Registrando disciplina: {}", requestDTO.nombre());
+        DisciplinaDetalleResponse response = disciplinaServicio.crearDisciplina(requestDTO);
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * ✅ Listar TODAS las disciplinas con detalles completos.
+     */
     @GetMapping
-    public ResponseEntity<List<DisciplinaResponse>> listarDisciplinas() {
-        List<DisciplinaResponse> respuesta = disciplinaService.listarDisciplinas();
-        return ResponseEntity.ok(respuesta);
+    public ResponseEntity<List<DisciplinaDetalleResponse>> listarDisciplinas() {
+        List<DisciplinaDetalleResponse> disciplinas = disciplinaServicio.listarDisciplinas();
+        return ResponseEntity.ok(disciplinas);
     }
 
+    /**
+     * ✅ Obtener una disciplina por ID con detalles completos.
+     */
     @GetMapping("/{id}")
-    public ResponseEntity<DisciplinaResponse> obtenerDisciplinaPorId(@PathVariable Long id) {
-        DisciplinaResponse response = disciplinaService.obtenerDisciplinaPorId(id);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<DisciplinaDetalleResponse> obtenerDisciplinaPorId(@PathVariable Long id) {
+        DisciplinaDetalleResponse disciplina = disciplinaServicio.obtenerDisciplinaPorId(id);
+        return ResponseEntity.ok(disciplina);
     }
 
+    /**
+     * ✅ Actualizar una disciplina por ID.
+     */
     @PutMapping("/{id}")
-    public ResponseEntity<DisciplinaResponse> actualizarDisciplina(@PathVariable Long id,
-                                                                   @RequestBody @Validated DisciplinaRequest requestDTO) {
-        DisciplinaResponse response = disciplinaService.actualizarDisciplina(id, requestDTO);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<DisciplinaDetalleResponse> actualizarDisciplina(@PathVariable Long id,
+                                                                          @Valid @RequestBody DisciplinaModificacionRequest requestDTO) {
+        log.info("Actualizando disciplina con id: {}", id);
+        DisciplinaDetalleResponse disciplinaActualizada = disciplinaServicio.actualizarDisciplina(id, requestDTO);
+        return ResponseEntity.ok(disciplinaActualizada);
     }
 
+    /**
+     * ✅ Dar de baja (baja lógica) a una disciplina.
+     */
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> eliminarDisciplina(@PathVariable Long id) {
-        disciplinaService.eliminarDisciplina(id);
-        return ResponseEntity.ok("Disciplina eliminada exitosamente.");
+    public ResponseEntity<Void> darBajaDisciplina(@PathVariable Long id) {
+        log.info("Dando de baja la disciplina con id: {}", id);
+        disciplinaServicio.eliminarDisciplina(id);
+        return ResponseEntity.noContent().build(); // 204 No Content
     }
 
+    /**
+     * ✅ Listar disciplinas activas en formato simplificado.
+     */
+    @GetMapping("/listado")
+    public ResponseEntity<List<DisciplinaListadoResponse>> listarDisciplinasSimplificadas() {
+        List<DisciplinaListadoResponse> disciplinas = disciplinaServicio.listarDisciplinasSimplificadas();
+        return disciplinas.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(disciplinas);
+    }
+
+    /**
+     * ✅ Obtener disciplinas activas según una fecha específica.
+     */
     @GetMapping("/por-fecha")
-    public ResponseEntity<List<DisciplinaResponse>> obtenerDisciplinasPorFecha(@RequestParam String fecha) {
-        try {
-            List<DisciplinaResponse> respuesta = disciplinaService.obtenerDisciplinasPorFecha(fecha);
-            return ResponseEntity.ok(respuesta);
-        } catch (Exception e) {
-            log.error("Error obteniendo disciplinas por fecha: {}", e.getMessage());
-            return ResponseEntity.status(500).build();
-        }
+    public ResponseEntity<List<DisciplinaListadoResponse>> obtenerDisciplinasPorFecha(@RequestParam String fecha) {
+        List<DisciplinaListadoResponse> disciplinas = disciplinaServicio.obtenerDisciplinasPorFecha(fecha);
+        return ResponseEntity.ok(disciplinas);
     }
 
+    /**
+     * ✅ Obtener alumnos de una disciplina específica.
+     */
     @GetMapping("/{disciplinaId}/alumnos")
     public ResponseEntity<List<AlumnoListadoResponse>> obtenerAlumnosDeDisciplina(@PathVariable Long disciplinaId) {
-        List<AlumnoListadoResponse> alumnos = disciplinaService.obtenerAlumnosDeDisciplina(disciplinaId);
+        List<AlumnoListadoResponse> alumnos = disciplinaServicio.obtenerAlumnosDeDisciplina(disciplinaId);
         return ResponseEntity.ok(alumnos);
     }
 
-    @GetMapping("/{disciplinaId}/profesores")
-    public ResponseEntity<List<ProfesorListadoResponse>> obtenerProfesoresDeDisciplina(@PathVariable Long disciplinaId) {
-        List<ProfesorListadoResponse> profesores = disciplinaService.obtenerProfesoresDeDisciplina(disciplinaId);
-        return ResponseEntity.ok(profesores);
+    /**
+     * ✅ Obtener el profesor de una disciplina específica.
+     */
+    @GetMapping("/{disciplinaId}/profesor")
+    public ResponseEntity<ProfesorListadoResponse> obtenerProfesorDeDisciplina(@PathVariable Long disciplinaId) {
+        ProfesorListadoResponse profesor = disciplinaServicio.obtenerProfesorDeDisciplina(disciplinaId);
+        return ResponseEntity.ok(profesor);
+    }
+
+    @GetMapping("/por-horario")
+    public ResponseEntity<List<DisciplinaListadoResponse>> obtenerDisciplinasPorHorario(@RequestParam String horario) {
+        LocalTime horarioInicio = LocalTime.parse(horario);
+        List<DisciplinaListadoResponse> disciplinas = disciplinaServicio.obtenerDisciplinasPorHorario(horarioInicio);
+        return ResponseEntity.ok(disciplinas);
     }
 
 }

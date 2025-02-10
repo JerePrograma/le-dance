@@ -1,4 +1,9 @@
 package ledance.dto.request;
 
-public record LoginRequest(String email, String contrasena) {
-}
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+
+public record LoginRequest(
+        @Email @NotBlank String email,
+        @NotBlank String contrasena
+) {}

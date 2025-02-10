@@ -1,20 +1,22 @@
 package ledance.servicios;
 
-import ledance.dto.mappers.DisciplinaMapper;
-import ledance.dto.request.ProfesorRegistroRequest;
-import ledance.dto.response.DatosRegistroProfesorResponse;
-import ledance.dto.response.DisciplinaResponse;
-import ledance.dto.response.ProfesorListadoResponse;
 import ledance.dto.mappers.ProfesorMapper;
+import ledance.dto.request.ProfesorModificacionRequest;
+import ledance.dto.request.ProfesorRegistroRequest;
+import ledance.dto.response.DisciplinaListadoResponse;
+import ledance.dto.response.ProfesorDetalleResponse;
+import ledance.dto.response.ProfesorListadoResponse;
+import ledance.entidades.Disciplina;
 import ledance.entidades.Profesor;
-import ledance.entidades.Usuario;
-import ledance.repositorios.DisciplinaRepositorio;
+import ledance.infra.errores.TratadorDeErrores;
 import ledance.repositorios.ProfesorRepositorio;
-import ledance.repositorios.UsuarioRepositorio;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDate;
+import java.time.Period;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -24,81 +26,129 @@ public class ProfesorServicio implements IProfesorServicio {
     private static final Logger log = LoggerFactory.getLogger(ProfesorServicio.class);
 
     private final ProfesorRepositorio profesorRepositorio;
-    private final DisciplinaRepositorio disciplinaRepositorio;
-    private final UsuarioRepositorio usuarioRepositorio;
     private final ProfesorMapper profesorMapper;
-    private final DisciplinaMapper disciplinaMapper;
 
-    public ProfesorServicio(ProfesorRepositorio profesorRepositorio,
-                            DisciplinaRepositorio disciplinaRepositorio,
-                            UsuarioRepositorio usuarioRepositorio,
-                            ProfesorMapper profesorMapper, DisciplinaMapper disciplinaMapper) {
+    public ProfesorServicio(ProfesorRepositorio profesorRepositorio, ProfesorMapper profesorMapper) {
         this.profesorRepositorio = profesorRepositorio;
-        this.disciplinaRepositorio = disciplinaRepositorio;
-        this.usuarioRepositorio = usuarioRepositorio;
         this.profesorMapper = profesorMapper;
-        this.disciplinaMapper = disciplinaMapper;
+    }
+
+    /**
+     * ✅ Registrar un nuevo profesor.
+     */
+    @Override
+    @Transactional
+    public ProfesorDetalleResponse registrarProfesor(ProfesorRegistroRequest request) {
+        log.info("Registrando profesor: {} {}", request.nombre(), request.apellido());
+        log.debug("Fecha de nacimiento: {}, Teléfono: {}", request.fechaNacimiento(), request.telefono());
+        log.debug("Datos completos del profesor a registrar: {}", request); // Agregamos este log para depuración
+
+        Profesor profesor = profesorMapper.toEntity(request);
+        profesor.setEdad(calcularEdad(request.fechaNacimiento()));
+        Profesor guardado = profesorRepositorio.save(profesor);
+        return profesorMapper.toDetalleResponse(guardado);
     }
 
     @Override
     @Transactional
-    public DatosRegistroProfesorResponse registrarProfesor(ProfesorRegistroRequest request) {
-        log.info("Registrando profesor: {} {}", request.nombre(), request.apellido());
-        Profesor profesor = profesorMapper.toEntity(request);
-        Profesor guardado = profesorRepositorio.save(profesor);
-        return profesorMapper.toDatosRegistroDTO(guardado);
-    }
+    public ProfesorDetalleResponse actualizarProfesor(Long id, ProfesorModificacionRequest request) {
+        log.info("Actualizando profesor con id: {}", id);
+        log.debug("Fecha de nacimiento: {}, Teléfono: {}", request.fechaNacimiento(), request.telefono()); // Agregamos este log para depuración
+        log.debug("Datos completos del profesor a actualizar: {}", request); // Agregamos este log para depuración
 
-    @Override
-    public DatosRegistroProfesorResponse obtenerProfesorPorId(Long id) {
         Profesor profesor = profesorRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Profesor no encontrado."));
-        return profesorMapper.toDatosRegistroDTO(profesor);
+
+        profesorMapper.updateEntityFromRequest(request, profesor);
+        profesor.setEdad(calcularEdad(request.fechaNacimiento()));
+        Profesor actualizado = profesorRepositorio.save(profesor);
+        return profesorMapper.toDetalleResponse(actualizado);
     }
 
+    /**
+     * ✅ Obtener un profesor por ID.
+     */
     @Override
-    public List<DatosRegistroProfesorResponse> listarProfesores() {
+    public ProfesorDetalleResponse obtenerProfesorPorId(Long id) {
+        Profesor profesor = profesorRepositorio.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Profesor no encontrado."));
+        return profesorMapper.toDetalleResponse(profesor);
+    }
+
+    /**
+     * ✅ Listar todos los profesores.
+     */
+    @Override
+    public List<ProfesorListadoResponse> listarProfesores() {
         return profesorRepositorio.findAll().stream()
-                .map(profesorMapper::toDatosRegistroDTO)
+                .map(profesorMapper::toListadoResponse)
                 .collect(Collectors.toList());
     }
 
+    /**
+     * ✅ Listar profesores activos.
+     */
+    @Override
+    public List<ProfesorListadoResponse> listarProfesoresActivos() {
+        return profesorRepositorio.findByActivoTrue().stream()
+                .map(profesorMapper::toListadoResponse)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * ✅ Buscar profesores por nombre o apellido.
+     */
+    @Override
+    public List<ProfesorListadoResponse> buscarPorNombre(String nombre) {
+        return profesorRepositorio.findByNombreContainingOrApellidoContaining(nombre, nombre).stream()
+                .map(profesorMapper::toListadoResponse)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * ✅ Eliminar un profesor (baja logica).
+     */
     @Override
     @Transactional
-    public void asignarUsuario(Long profesorId, Long usuarioId) {
-        Profesor profesor = profesorRepositorio.findById(profesorId)
+    public void eliminarProfesor(Long id) {
+        log.info("Eliminando profesor con id: {}", id);
+
+        Profesor profesor = profesorRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Profesor no encontrado."));
-        Usuario usuario = usuarioRepositorio.findById(usuarioId)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado."));
-        profesor.setUsuario(usuario);
+
+        profesor.setActivo(false);
         profesorRepositorio.save(profesor);
     }
 
-    @Override
-    @Transactional
-    public void asignarDisciplina(Long profesorId, Long disciplinaId) {
-        Profesor profesor = profesorRepositorio.findById(profesorId)
-                .orElseThrow(() -> new IllegalArgumentException("Profesor no encontrado."));
-        var disciplina = disciplinaRepositorio.findById(disciplinaId)
-                .orElseThrow(() -> new IllegalArgumentException("Disciplina no encontrada."));
-        disciplina.setProfesor(profesor);
-        disciplinaRepositorio.save(disciplina);
+    /**
+     * 🔄 Se actualiza automaticamente antes de persistir o actualizar
+     */
+    public int calcularEdad(LocalDate fechaNacimiento) {
+        if (fechaNacimiento != null) {
+            return Period.between(fechaNacimiento, LocalDate.now()).getYears();
+        }
+        return 0;
     }
 
-    @Override
-    public List<ProfesorListadoResponse> listarProfesoresSimplificados() {
-        return profesorRepositorio.findAll().stream()
-                .map(profesorMapper::toListadoDTO)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<DisciplinaResponse> obtenerDisciplinasDeProfesor(Long profesorId) {
+    public List<DisciplinaListadoResponse> obtenerDisciplinasDeProfesor(Long profesorId) {
         Profesor profesor = profesorRepositorio.findById(profesorId)
-                .orElseThrow(() -> new IllegalArgumentException("Profesor no encontrado."));
+                .orElseThrow(() -> new TratadorDeErrores.RecursoNoEncontradoException("Profesor no encontrado con id: " + profesorId));
+
         return profesor.getDisciplinas().stream()
-                .map(disciplinaMapper::toDTO)
+                .map(this::toListadoResponse)
                 .collect(Collectors.toList());
+    }
+
+    // Ejemplo simplificado en el método toListadoResponse:
+    public DisciplinaListadoResponse toListadoResponse(Disciplina disciplina) {
+        return new DisciplinaListadoResponse(
+                disciplina.getId(),
+                disciplina.getNombre(),
+                disciplina.getHorarioInicio(),
+                disciplina.getActivo(),
+                disciplina.getProfesor().getId(),      // Agregado: id del profesor
+                disciplina.getProfesor().getNombre()     // Agregado: nombre del profesor
+        );
     }
 
 }

@@ -1,12 +1,13 @@
 package ledance.servicios;
 
-import ledance.dto.mappers.DisciplinaMapper;
-import ledance.dto.request.AlumnoRequest;
-import ledance.dto.response.AlumnoListadoResponse;
-import ledance.dto.response.AlumnoResponse;
-import ledance.dto.response.DisciplinaResponse;
-import ledance.entidades.Alumno;
 import ledance.dto.mappers.AlumnoMapper;
+import ledance.dto.mappers.DisciplinaMapper;
+import ledance.dto.request.AlumnoModificacionRequest;
+import ledance.dto.request.AlumnoRegistroRequest;
+import ledance.dto.response.AlumnoDetalleResponse;
+import ledance.dto.response.AlumnoListadoResponse;
+import ledance.dto.response.DisciplinaListadoResponse;
+import ledance.entidades.Alumno;
 import ledance.repositorios.AlumnoRepositorio;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
@@ -35,59 +36,68 @@ public class AlumnoServicio implements IAlumnoServicio {
 
     @Override
     @Transactional
-    public AlumnoResponse registrarAlumno(AlumnoRequest requestDTO) {
+    public AlumnoDetalleResponse registrarAlumno(AlumnoRegistroRequest requestDTO) {
         log.info("Registrando alumno: {}", requestDTO.nombre());
+
         Alumno alumno = alumnoMapper.toEntity(requestDTO);
+
+        // Calcular edad automaticamente
         if (alumno.getFechaNacimiento() != null) {
-            int years = Period.between(alumno.getFechaNacimiento(), LocalDate.now()).getYears();
-            alumno.setEdad(years);
+            alumno.setEdad(calcularEdad(requestDTO.fechaNacimiento()));
         }
+
+        // Guardar el alumno
         Alumno alumnoGuardado = alumnoRepositorio.save(alumno);
-        return alumnoMapper.toDTO(alumnoGuardado);
+        return alumnoMapper.toDetalleResponse(alumnoGuardado);
     }
 
     @Override
-    public AlumnoResponse obtenerAlumnoPorId(Long id) {
+    public AlumnoDetalleResponse obtenerAlumnoPorId(Long id) {
         Alumno alumno = alumnoRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Alumno no encontrado."));
-        return alumnoMapper.toDTO(alumno);
+        return alumnoMapper.toDetalleResponse(alumno);
     }
 
     @Override
-    public List<AlumnoResponse> listarAlumnos() {
+    public List<AlumnoListadoResponse> listarAlumnos() {
         return alumnoRepositorio.findAll().stream()
-                .map(alumnoMapper::toDTO)
+                .map(alumnoMapper::toListadoResponse)
                 .collect(Collectors.toList());
     }
 
     @Override
     @Transactional
-    public AlumnoResponse actualizarAlumno(Long id, AlumnoRequest requestDTO) {
+    public AlumnoDetalleResponse actualizarAlumno(Long id, AlumnoModificacionRequest requestDTO) {
         log.info("Actualizando alumno con id: {}", id);
         Alumno alumno = alumnoRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Alumno no encontrado."));
-        alumnoMapper.updateEntityFromRequest(alumno, requestDTO);
+
+        alumnoMapper.updateEntityFromRequest(requestDTO, alumno);
+
+        // Recalcular edad si cambia la fecha de nacimiento
         if (alumno.getFechaNacimiento() != null) {
-            int years = Period.between(alumno.getFechaNacimiento(), LocalDate.now()).getYears();
-            alumno.setEdad(years);
+            alumno.setEdad(calcularEdad(requestDTO.fechaNacimiento()));
         }
+
         Alumno alumnoActualizado = alumnoRepositorio.save(alumno);
-        return alumnoMapper.toDTO(alumnoActualizado);
+        return alumnoMapper.toDetalleResponse(alumnoActualizado);
     }
 
     @Override
     @Transactional
-    public void eliminarAlumno(Long id) {
-        log.info("Eliminando (baja logica) alumno con id: {}", id);
+    public void darBajaAlumno(Long id) {
+        log.info("Dando de baja (baja logica) al alumno con id: {}", id);
         Alumno alumno = alumnoRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Alumno no encontrado."));
+
         alumno.setActivo(false);
+        alumno.setFechaDeBaja(LocalDate.now());  // Guardar la fecha de baja
         alumnoRepositorio.save(alumno);
     }
 
     @Override
     public List<AlumnoListadoResponse> listarAlumnosSimplificado() {
-        return alumnoRepositorio.findAll().stream()
+        return alumnoRepositorio.findByActivoTrue().stream()
                 .map(alumnoMapper::toListadoResponse)
                 .collect(Collectors.toList());
     }
@@ -100,12 +110,19 @@ public class AlumnoServicio implements IAlumnoServicio {
     }
 
     @Override
-    public List<DisciplinaResponse> obtenerDisciplinasDeAlumno(Long alumnoId) {
+    public List<DisciplinaListadoResponse> obtenerDisciplinasDeAlumno(Long alumnoId) {
         Alumno alumno = alumnoRepositorio.findById(alumnoId)
                 .orElseThrow(() -> new IllegalArgumentException("Alumno no encontrado."));
         return alumno.getInscripciones().stream()
-                .map(inscripcion -> disciplinaMapper.toDTO(inscripcion.getDisciplina()))
+                .map(inscripcion -> disciplinaMapper.toListadoResponse(inscripcion.getDisciplina())) // ✅ Uso correcto del mapper
                 .collect(Collectors.toList());
+    }
+
+    private int calcularEdad(LocalDate fechaNacimiento) {
+        if (fechaNacimiento != null) {
+            return Period.between(fechaNacimiento, LocalDate.now()).getYears();
+        }
+        return 0;
     }
 
 }

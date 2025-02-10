@@ -1,7 +1,9 @@
+"use client";
+
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Tabla from "../../componentes/comunes/Tabla";
-import inscripcionesApi from "../../utilidades/inscripcionesApi";
+import inscripcionesApi from "../../api/inscripcionesApi";
 import type { InscripcionResponse } from "../../types/types";
 import ReactPaginate from "react-paginate";
 import Boton from "../../componentes/comunes/Boton";
@@ -19,7 +21,7 @@ const InscripcionesPagina = () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await inscripcionesApi.listarInscripciones();
+      const data = await inscripcionesApi.listar();
       setInscripciones(data);
     } catch (error) {
       console.error("Error al cargar inscripciones:", error);
@@ -39,7 +41,7 @@ const InscripcionesPagina = () => {
 
   const handleEliminarInscripcion = useCallback(async (id: number) => {
     try {
-      await inscripcionesApi.eliminarInscripcion(id);
+      await inscripcionesApi.eliminar(id);
       setInscripciones((prev) => prev.filter((ins) => ins.id !== id));
     } catch (error) {
       console.error("Error al eliminar inscripción:", error);
@@ -99,10 +101,9 @@ const InscripcionesPagina = () => {
           datos={currentItems}
           extraRender={(fila) => [
             fila.id,
-            fila.alumno.nombre,
+            `${fila.alumno.nombre} ${fila.alumno.apellido}`,
             fila.disciplina.nombre,
             fila.bonificacion ? fila.bonificacion.descripcion : "N/A",
-            fila.costoParticular ? `$${fila.costoParticular.toFixed(2)}` : "-",
             fila.notas || "-",
           ]}
           acciones={(fila) => (

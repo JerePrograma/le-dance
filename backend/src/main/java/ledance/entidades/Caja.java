@@ -26,6 +26,9 @@ public class Caja {
 
     @NotNull
     private Double totalTransferencia;
+    
+    @NotNull
+    private Double totalTarjeta; // ✅ Agregado para conciliación con pago con tarjeta.
 
     private String rangoDesdeHasta;
 

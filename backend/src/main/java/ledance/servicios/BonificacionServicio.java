@@ -1,9 +1,10 @@
 package ledance.servicios;
 
-import ledance.dto.request.BonificacionRequest;
+import ledance.dto.mappers.BonificacionMapper;
+import ledance.dto.request.BonificacionModificacionRequest;
+import ledance.dto.request.BonificacionRegistroRequest;
 import ledance.dto.response.BonificacionResponse;
 import ledance.entidades.Bonificacion;
-import ledance.dto.mappers.BonificacionMapper;
 import ledance.repositorios.BonificacionRepositorio;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
@@ -26,22 +27,37 @@ public class BonificacionServicio implements IBonificacionServicio {
         this.bonificacionMapper = bonificacionMapper;
     }
 
+    /**
+     * ✅ Crear una nueva bonificacion
+     */
     @Override
     @Transactional
-    public BonificacionResponse crearBonificacion(BonificacionRequest requestDTO) {
+    public BonificacionResponse crearBonificacion(BonificacionRegistroRequest requestDTO) {
         log.info("Creando bonificacion: {}", requestDTO.descripcion());
-        Bonificacion bonificacion = bonificacionMapper.toEntity(requestDTO); // ✅ Ahora el mapeo es correcto
+
+        // Validacion para evitar duplicados
+        if (bonificacionRepositorio.existsByDescripcion(requestDTO.descripcion())) {
+            throw new IllegalArgumentException("Ya existe una bonificacion con la misma descripcion.");
+        }
+
+        Bonificacion bonificacion = bonificacionMapper.toEntity(requestDTO);
         Bonificacion guardada = bonificacionRepositorio.save(bonificacion);
         return bonificacionMapper.toDTO(guardada);
     }
 
+    /**
+     * ✅ Listar todas las bonificaciones activas
+     */
     @Override
     public List<BonificacionResponse> listarBonificaciones() {
-        return bonificacionRepositorio.findAll().stream()
+        return bonificacionRepositorio.findByActivoTrue().stream()
                 .map(bonificacionMapper::toDTO)
                 .collect(Collectors.toList());
     }
 
+    /**
+     * ✅ Obtener una bonificacion por ID
+     */
     @Override
     public BonificacionResponse obtenerBonificacionPorId(Long id) {
         Bonificacion bonificacion = bonificacionRepositorio.findById(id)
@@ -49,25 +65,39 @@ public class BonificacionServicio implements IBonificacionServicio {
         return bonificacionMapper.toDTO(bonificacion);
     }
 
+    /**
+     * ✅ Actualizar una bonificacion existente
+     */
     @Override
     @Transactional
-    public BonificacionResponse actualizarBonificacion(Long id, BonificacionRequest requestDTO) {
+    public BonificacionResponse actualizarBonificacion(Long id, BonificacionModificacionRequest requestDTO) {
+        log.info("Actualizando bonificacion con id: {}", id);
+
         Bonificacion bonificacion = bonificacionRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Bonificacion no encontrada."));
-        // Actualizar campos manualmente
-        bonificacion.setDescripcion(requestDTO.descripcion());
-        bonificacion.setPorcentajeDescuento(requestDTO.porcentajeDescuento());
-        bonificacion.setActivo(Boolean.TRUE.equals(requestDTO.activo()));
-        bonificacion.setObservaciones(requestDTO.observaciones());
+
+        // Uso del mapper para actualizar la entidad
+        bonificacionMapper.updateEntityFromRequest(requestDTO, bonificacion);
+
         Bonificacion actualizada = bonificacionRepositorio.save(bonificacion);
         return bonificacionMapper.toDTO(actualizada);
     }
 
+    /**
+     * ✅ Baja logica de una bonificacion (desactivar)
+     */
     @Override
     @Transactional
     public void eliminarBonificacion(Long id) {
+        log.info("Dando de baja la bonificacion con id: {}", id);
+
         Bonificacion bonificacion = bonificacionRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Bonificacion no encontrada."));
+
+        if (!bonificacion.getActivo()) {
+            throw new IllegalStateException("La bonificacion ya esta inactiva.");
+        }
+
         bonificacion.setActivo(false);
         bonificacionRepositorio.save(bonificacion);
     }

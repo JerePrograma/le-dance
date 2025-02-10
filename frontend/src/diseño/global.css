@@ -51,7 +51,6 @@
   --breakpoint-xl: 1280px;
   --breakpoint-2xl: 1536px;
 }
-
 @layer base {
   :root {
     --background: var(--color-background);
@@ -413,5 +412,82 @@
     @apply p-2 cursor-pointer 
            hover:bg-gray-100 dark:hover:bg-gray-700
            transition-colors duration-200 ease-[var(--ease-out)];
+  }
+}
+@layer components {
+  .dashboard-container {
+    @apply container mx-auto max-w-7xl px-4 py-6 
+           bg-background dark:bg-background-dark 
+           text-[color:var(--foreground)] dark:text-text-dark;
+  }
+
+  .dashboard-header {
+    @apply flex justify-between items-center py-4 px-6 
+           bg-white dark:bg-gray-800 
+           shadow-[var(--shadow-sm)] rounded-[var(--radius-md)];
+  }
+
+  .dashboard-title {
+    @apply text-3xl font-bold text-[color:var(--foreground)] dark:text-text-dark;
+  }
+
+  .dashboard-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6;
+  }
+
+  .dashboard-card {
+    @apply bg-white dark:bg-gray-900 p-6 
+           rounded-[var(--radius-card)] shadow-[var(--shadow-md)]
+           transition-all duration-200 ease-[var(--ease-out)];
+  }
+
+  .dashboard-card:hover {
+    @apply shadow-[var(--shadow-lg)];
+  }
+
+  .dashboard-card-title {
+    @apply text-xl font-bold mb-2;
+  }
+
+  .dashboard-card-content {
+    @apply text-sm;
+  }
+
+  .dashboard-chart-container {
+    @apply bg-white dark:bg-gray-900 
+           p-6 rounded-[var(--radius-lg)] shadow-[var(--shadow-md)];
+  }
+
+  .dashboard-sidebar {
+    @apply fixed top-0 left-0 w-64 h-full bg-background dark:bg-background-dark 
+           shadow-md transition-transform duration-300 ease-in-out 
+           transform -translate-x-full lg:translate-x-0;
+  }
+
+  .dashboard-sidebar-nav {
+    @apply flex flex-col mt-6;
+  }
+
+  .dashboard-sidebar-link {
+    @apply px-4 py-3 text-[color:var(--foreground)] dark:text-text-dark 
+           hover:bg-primary/10 dark:hover:bg-primary/20 
+           transition-colors duration-200 ease-[var(--ease-out)];
+  }
+
+  .dashboard-stats {
+    @apply flex flex-wrap gap-4;
+  }
+
+  .dashboard-stat {
+    @apply bg-white dark:bg-gray-900 p-4 rounded-[var(--radius-lg)]
+           shadow-[var(--shadow-md)] text-center;
+  }
+
+  .dashboard-stat-number {
+    @apply text-2xl font-bold;
+  }
+
+  .dashboard-stat-label {
+    @apply text-gray-500;
   }
 }

@@ -1,9 +1,12 @@
 package ledance.dto.response;
 
+/**
+ * DTO para responder con la información de un usuario.
+ */
 public record UsuarioResponse(
         Long id,
         String nombreUsuario,
         String email,
-        String rolDescripcion,
-        Boolean activo // ✅ Agregado para evitar errores de mapeo
+        String rolDescripcion, // ✅ Se mapea desde `rol.descripcion`
+        Boolean activo
 ) {}

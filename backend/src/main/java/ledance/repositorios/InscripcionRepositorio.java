@@ -1,7 +1,8 @@
 package ledance.repositorios;
 
-import ledance.dto.response.InscripcionResponse;
+import ledance.entidades.EstadoInscripcion;
 import ledance.entidades.Inscripcion;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -11,12 +12,26 @@ import java.util.List;
 @Repository
 public interface InscripcionRepositorio extends JpaRepository<Inscripcion, Long> {
 
-    List<Inscripcion> findByAlumnoId(Long alumnoId);
+    @EntityGraph(attributePaths = {"alumno", "disciplina", "bonificacion"})
+    @Query("SELECT i FROM Inscripcion i")
+    List<Inscripcion> findAllWithDetails();
 
     List<Inscripcion> findByDisciplinaId(Long disciplinaId);
 
-    List<Inscripcion> findAllByAlumnoId(Long alumnoId);
+    @Query("SELECT i.disciplina.nombre as disciplina, COUNT(i) as count FROM Inscripcion i GROUP BY i.disciplina.nombre")
+    List<Object[]> countByDisciplinaGrouped();
 
-    @Query("SELECT d.nombre, SUM(i.costoParticular) FROM Inscripcion i JOIN i.disciplina d GROUP BY d.nombre")
-    List<Object[]> obtenerRecaudacionPorDisciplina();
+    @Query("SELECT FUNCTION('MONTH', i.fechaInscripcion) as month, COUNT(i) as count FROM Inscripcion i GROUP BY FUNCTION('MONTH', i.fechaInscripcion)")
+    List<Object[]> countByMonthGrouped();
+
+    List<Inscripcion> findAllByDisciplinaIdAndEstado(Long disciplinaId, EstadoInscripcion estado);
+
+    // Nuevo método: buscar inscripciones de un alumno con estado = X
+    List<Inscripcion> findByAlumno_IdAndEstado(Long alumnoId, EstadoInscripcion estado);
+
+    // Nuevo método: buscar inscripciones con un estado específico (ej.: ACTIVA)
+    List<Inscripcion> findByEstado(EstadoInscripcion estado);
 }
+
+
+

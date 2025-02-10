@@ -3,7 +3,7 @@ import { useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import { rolEsquema } from "../../validaciones/rolEsquema";
-import api from "../../utilidades/axiosConfig";
+import api from "../../api/axiosConfig";
 import Boton from "../../componentes/comunes/Boton";
 import { toast } from "react-toastify";
 import { Search } from "lucide-react";

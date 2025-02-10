@@ -1,23 +1,28 @@
 import type React from "react";
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ErrorMessage, Field, Form, Formik } from "formik";
+import { ErrorMessage, Field, Form, Formik, type FormikHelpers } from "formik";
 import { alumnoEsquema } from "../../validaciones/alumnoEsquema";
-import alumnosApi from "../../utilidades/alumnosApi";
-import inscripcionesApi from "../../utilidades/inscripcionesApi";
+import alumnosApi from "../../api/alumnosApi";
+import inscripcionesApi from "../../api/inscripcionesApi";
 import { toast } from "react-toastify";
 import type {
   AlumnoListadoResponse,
-  AlumnoRequest,
+  AlumnoRegistroRequest,
+  AlumnoModificacionRequest,
   InscripcionResponse,
 } from "../../types/types";
 import useDebounce from "../../hooks/useDebounce";
 import Boton from "../../componentes/comunes/Boton";
 import Tabla from "../../componentes/comunes/Tabla";
 import { Search, X } from "lucide-react";
+import {
+  convertToAlumnoRegistroRequest,
+  convertToAlumnoModificacionRequest,
+} from "../../utilidades/alumnoUtils";
 
-const initialAlumnoValues: AlumnoRequest = {
-  id: 0,
+const initialAlumnoValues: AlumnoRegistroRequest &
+  Partial<AlumnoModificacionRequest> = {
   nombre: "",
   apellido: "",
   fechaNacimiento: "",
@@ -30,9 +35,10 @@ const initialAlumnoValues: AlumnoRequest = {
   cuit: "",
   nombrePadres: "",
   autorizadoParaSalirSolo: false,
-  activo: true,
   otrasNotas: "",
   cuotaTotal: 0,
+  disciplinas: [],
+  activo: true,
 };
 
 const AlumnosFormulario: React.FC = () => {
@@ -47,73 +53,97 @@ const AlumnosFormulario: React.FC = () => {
   const [sugerenciasAlumnos, setSugerenciasAlumnos] = useState<
     AlumnoListadoResponse[]
   >([]);
+  const [formValues, setFormValues] = useState<
+    AlumnoRegistroRequest & Partial<AlumnoModificacionRequest>
+  >(initialAlumnoValues);
 
   const debouncedNombreBusqueda = useDebounce(nombreBusqueda, 300);
 
-  const handleGuardarAlumno = async (values: AlumnoRequest) => {
+  const handleGuardarAlumno = async (
+    values: AlumnoRegistroRequest & Partial<AlumnoModificacionRequest>,
+    {
+      setSubmitting,
+    }: FormikHelpers<AlumnoRegistroRequest & Partial<AlumnoModificacionRequest>>
+  ) => {
     try {
+      let successMsg: string;
       if (alumnoId) {
-        await alumnosApi.actualizarAlumno(alumnoId, values);
-        setMensaje("Alumno actualizado correctamente");
+        await alumnosApi.actualizar(
+          alumnoId,
+          convertToAlumnoModificacionRequest(
+            values as AlumnoModificacionRequest
+          )
+        );
+        successMsg = "Alumno actualizado correctamente";
       } else {
-        const nuevoAlumno = await alumnosApi.registrarAlumno(values);
+        const nuevoAlumno = await alumnosApi.registrar(
+          values as AlumnoRegistroRequest
+        );
         setAlumnoId(nuevoAlumno.id);
-        setMensaje("Alumno creado correctamente");
+        successMsg = "Alumno creado correctamente";
       }
+      setMensaje(successMsg);
+      toast.success(successMsg);
     } catch (error: any) {
-      setMensaje(error.response?.data?.message || "Error al guardar el alumno");
+      const errorMessage =
+        error.response?.data?.message ||
+        (error.response?.status === 404
+          ? "Alumno no encontrado"
+          : "Error al guardar el alumno");
+      setMensaje(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const handleBuscar = async (
-    id: string,
-    callback: (vals: AlumnoRequest) => void
-  ) => {
+  const handleBuscar = useCallback(async (id: string) => {
     try {
       if (id) {
-        const alumno = await alumnosApi.obtenerAlumnoPorId(Number.parseInt(id));
-        callback(alumno);
+        const alumno = await alumnosApi.obtenerPorId(Number(id));
+        console.log("Alumno data received:", alumno);
+        const convertedAlumno = convertToAlumnoRegistroRequest(alumno);
+        console.log("Converted alumno data:", convertedAlumno);
+        setFormValues(convertedAlumno);
         setAlumnoId(alumno.id);
         cargarInscripciones(alumno.id);
         setMensaje("");
       } else {
         setMensaje("Por favor, ingrese un ID de alumno.");
-        resetearFormulario(callback);
+        resetearFormulario();
       }
     } catch (error) {
       setMensaje("Alumno no encontrado.");
-      resetearFormulario(callback);
+      resetearFormulario();
     }
-  };
+  }, []);
 
-  const resetearFormulario = (callback: (vals: AlumnoRequest) => void) => {
-    callback(initialAlumnoValues);
+  const resetearFormulario = () => {
+    setFormValues(initialAlumnoValues);
     setAlumnoId(null);
     setInscripciones([]);
   };
 
   const handleSeleccionarAlumno = async (
     id: number,
-    nombreCompleto: string,
-    callback: (vals: AlumnoRequest) => void
+    nombreCompleto: string
   ) => {
     try {
-      const alumno = await alumnosApi.obtenerAlumnoPorId(id);
-      callback(alumno);
+      const alumno = await alumnosApi.obtenerPorId(id);
+      setFormValues(convertToAlumnoRegistroRequest(alumno));
       setAlumnoId(alumno.id);
       setNombreBusqueda(nombreCompleto);
       cargarInscripciones(alumno.id);
       setMensaje("");
     } catch (error) {
       setMensaje("Alumno no encontrado.");
-      resetearFormulario(callback);
+      resetearFormulario();
     }
   };
 
   const cargarInscripciones = useCallback(async (alumnoId: number | null) => {
     if (alumnoId) {
-      const inscripcionesDelAlumno =
-        await inscripcionesApi.listarInscripcionesPorAlumno(alumnoId);
+      const inscripcionesDelAlumno = await inscripcionesApi.listar(alumnoId);
       setInscripciones(inscripcionesDelAlumno);
     } else {
       setInscripciones([]);
@@ -123,9 +153,9 @@ const AlumnosFormulario: React.FC = () => {
   useEffect(() => {
     const alumnoIdParam = searchParams.get("alumnoId");
     if (alumnoIdParam) {
-      handleBuscar(alumnoIdParam, (vals) => setAlumnoId(vals.id));
+      handleBuscar(alumnoIdParam);
     }
-  }, [searchParams, handleBuscar]); // Added handleBuscar to dependencies
+  }, [searchParams, handleBuscar]);
 
   useEffect(() => {
     const buscarSugerencias = async () => {
@@ -143,7 +173,7 @@ const AlumnosFormulario: React.FC = () => {
 
   const handleEliminarInscripcion = async (id: number) => {
     try {
-      await inscripcionesApi.eliminarInscripcion(id);
+      await inscripcionesApi.eliminar(id);
       cargarInscripciones(alumnoId);
       toast.success("Inscripción eliminada correctamente");
     } catch (error) {
@@ -155,12 +185,12 @@ const AlumnosFormulario: React.FC = () => {
     <div className="page-container">
       <h1 className="page-title">Ficha de Alumno</h1>
       <Formik
-        initialValues={initialAlumnoValues}
+        initialValues={formValues}
         validationSchema={alumnoEsquema}
         onSubmit={handleGuardarAlumno}
         enableReinitialize
       >
-        {({ resetForm, isSubmitting }) => (
+        {({ isSubmitting, setFieldValue }) => (
           <Form className="formulario max-w-4xl mx-auto">
             <div className="form-grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* Búsqueda por ID */}
@@ -177,11 +207,7 @@ const AlumnosFormulario: React.FC = () => {
                     className="form-input flex-grow"
                   />
                   <Boton
-                    onClick={() =>
-                      handleBuscar(idBusqueda, (vals) =>
-                        resetForm({ values: vals })
-                      )
-                    }
+                    onClick={() => handleBuscar(idBusqueda)}
                     className="page-button"
                   >
                     <Search className="w-5 h-5 mr-2" />
@@ -205,6 +231,7 @@ const AlumnosFormulario: React.FC = () => {
                   />
                   {nombreBusqueda && (
                     <button
+                      type="button"
                       onClick={() => setNombreBusqueda("")}
                       className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
                     >
@@ -219,8 +246,7 @@ const AlumnosFormulario: React.FC = () => {
                           onClick={() =>
                             handleSeleccionarAlumno(
                               alumno.id,
-                              `${alumno.nombre} ${alumno.apellido}`,
-                              (vals) => resetForm({ values: vals })
+                              `${alumno.nombre} ${alumno.apellido}`
                             )
                           }
                           className="sugerencia-item"
@@ -321,9 +347,20 @@ const AlumnosFormulario: React.FC = () => {
                 Guardar Alumno
               </button>
               <button
-                type="reset"
+                type="button"
                 className="page-button-secondary"
-                onClick={() => resetForm({ values: initialAlumnoValues })}
+                onClick={() => {
+                  resetearFormulario();
+                  Object.keys(initialAlumnoValues).forEach((key) => {
+                    setFieldValue(
+                      key,
+                      initialAlumnoValues[
+                      key as keyof (AlumnoRegistroRequest &
+                        Partial<AlumnoModificacionRequest>)
+                      ]
+                    );
+                  });
+                }}
               >
                 Limpiar
               </button>
@@ -338,11 +375,10 @@ const AlumnosFormulario: React.FC = () => {
 
             {mensaje && (
               <p
-                className={`form-mensaje ${
-                  mensaje.includes("correctamente")
+                className={`form-mensaje ${mensaje.includes("correctamente")
                     ? "form-mensaje-success"
                     : "form-mensaje-error"
-                }`}
+                  }`}
               >
                 {mensaje}
               </p>
@@ -380,13 +416,8 @@ const AlumnosFormulario: React.FC = () => {
                       datos={inscripciones}
                       extraRender={(fila) => [
                         fila.id,
-                        fila.disciplina.nombre,
-                        fila.bonificacion
-                          ? fila.bonificacion.descripcion
-                          : "N/A",
-                        fila.costoParticular
-                          ? `$${fila.costoParticular.toFixed(2)}`
-                          : "-",
+                        fila.disciplina?.nombre ?? "Sin Disciplina",
+                        fila.bonificacion?.descripcion ?? "N/A",
                         fila.notas || "-",
                       ]}
                       acciones={(fila) => (

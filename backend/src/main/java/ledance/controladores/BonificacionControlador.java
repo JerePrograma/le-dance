@@ -1,6 +1,7 @@
 package ledance.controladores;
 
-import ledance.dto.request.BonificacionRequest;
+import ledance.dto.request.BonificacionModificacionRequest;
+import ledance.dto.request.BonificacionRegistroRequest;
 import ledance.dto.response.BonificacionResponse;
 import ledance.servicios.BonificacionServicio;
 import org.slf4j.Logger;
@@ -24,34 +25,30 @@ public class BonificacionControlador {
     }
 
     @PostMapping
-    public ResponseEntity<BonificacionResponse> crearBonificacion(@RequestBody @Validated BonificacionRequest requestDTO) {
-        log.info("Creando bonificacion: {}", requestDTO.descripcion());
-        BonificacionResponse response = bonificacionService.crearBonificacion(requestDTO);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<BonificacionResponse> crearBonificacion(@RequestBody @Validated BonificacionRegistroRequest requestDTO) {
+        log.info("Creando bonificación: {}", requestDTO.descripcion());
+        return ResponseEntity.ok(bonificacionService.crearBonificacion(requestDTO));
     }
 
     @GetMapping
     public ResponseEntity<List<BonificacionResponse>> listarBonificaciones() {
-        List<BonificacionResponse> respuesta = bonificacionService.listarBonificaciones();
-        return ResponseEntity.ok(respuesta);
+        return ResponseEntity.ok(bonificacionService.listarBonificaciones());
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<BonificacionResponse> obtenerBonificacionPorId(@PathVariable Long id) {
-        BonificacionResponse response = bonificacionService.obtenerBonificacionPorId(id);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(bonificacionService.obtenerBonificacionPorId(id));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<BonificacionResponse> actualizarBonificacion(@PathVariable Long id,
-                                                                       @RequestBody @Validated BonificacionRequest requestDTO) {
-        BonificacionResponse response = bonificacionService.actualizarBonificacion(id, requestDTO);
-        return ResponseEntity.ok(response);
+                                                                       @RequestBody @Validated BonificacionModificacionRequest requestDTO) {
+        return ResponseEntity.ok(bonificacionService.actualizarBonificacion(id, requestDTO));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> eliminarBonificacion(@PathVariable Long id) {
+    public ResponseEntity<Void> eliminarBonificacion(@PathVariable Long id) {
         bonificacionService.eliminarBonificacion(id);
-        return ResponseEntity.ok("Bonificacion eliminada exitosamente.");
+        return ResponseEntity.noContent().build();
     }
 }

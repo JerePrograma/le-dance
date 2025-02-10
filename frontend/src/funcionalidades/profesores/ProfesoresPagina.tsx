@@ -1,17 +1,17 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Tabla from "../../componentes/comunes/Tabla";
-import profesoresApi from "../../utilidades/profesoresApi"; // ✅ Usar la API correcta
+import profesoresApi from "../../api/profesoresApi"; // ✅ Usar la API correcta
 import ReactPaginate from "react-paginate";
 import Boton from "../../componentes/comunes/Boton";
 import { PlusCircle, Pencil, Trash2 } from "lucide-react";
-import { ProfesorResponse } from "../../types/types"; // ✅ Importar el tipo correcto
+import { ProfesorListadoResponse } from "../../types/types"; // ✅ Importar el tipo correcto
 import { toast } from "react-toastify";
 
 const itemsPerPage = 5;
 
 const Profesores = () => {
-  const [profesores, setProfesores] = useState<ProfesorResponse[]>([]);
+  const [profesores, setProfesores] = useState<ProfesorListadoResponse[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -120,7 +120,6 @@ const Profesores = () => {
             fila.id,
             fila.nombre,
             fila.apellido,
-            fila.especialidad || "No especificado",
             fila.activo ? "Sí" : "No", // ✅ Mostrar si está activo o no
           ]}
         />

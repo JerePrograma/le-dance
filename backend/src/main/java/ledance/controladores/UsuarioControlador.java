@@ -1,6 +1,6 @@
 package ledance.controladores;
 
-import ledance.dto.request.ModificacionUsuarioRequest;
+import ledance.dto.request.UsuarioModificacionRequest;
 import ledance.dto.request.UsuarioRegistroRequest;
 import ledance.dto.response.UsuarioResponse;
 import ledance.entidades.Usuario;
@@ -40,7 +40,7 @@ public class UsuarioControlador {
 
     @PatchMapping("/perfil")
     public ResponseEntity<String> actualizarNombreUsuario(@AuthenticationPrincipal Usuario usuario,
-                                                          @RequestBody @Validated ModificacionUsuarioRequest datos) {
+                                                          @RequestBody @Validated UsuarioModificacionRequest datos) {
         if (usuario == null) {
             return ResponseEntity.status(401).body("Usuario no autenticado");
         }

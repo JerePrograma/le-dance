@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import Tabla from "../componentes/comunes/Tabla";
 import Boton from "../componentes/comunes/Boton";
-import api from "../utilidades/axiosConfig";
+import api from "../api/axiosConfig";
 
 interface ReporteData {
   id: number;

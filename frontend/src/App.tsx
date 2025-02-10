@@ -1,20 +1,16 @@
-/***********************************************
- * src/App.tsx
- ***********************************************/
-import { BrowserRouter } from "react-router-dom"; // Importar BrowserRouter aquí
+// src/App.tsx
+import { BrowserRouter } from "react-router-dom";
 import AppRouter from "./rutas/AppRouter";
 import { AuthProvider } from "./hooks/context/authContext";
-import "./diseño/global.css";
+import { AsistenciaProvider } from "./hooks/context/asistenciaContext";
 
 function App() {
   return (
-    // El BrowserRouter envuelve a todo tu árbol de componentes
     <BrowserRouter>
-      {/* El AuthProvider se ubica dentro del BrowserRouter */}
       <AuthProvider>
-        <div className="App">
+        <AsistenciaProvider>
           <AppRouter />
-        </div>
+        </AsistenciaProvider>
       </AuthProvider>
     </BrowserRouter>
   );

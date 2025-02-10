@@ -6,7 +6,9 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalTime;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Data
@@ -22,11 +24,32 @@ public class Disciplina {
     @NotNull
     private String nombre;
 
-    private String horario;
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "disciplina_dias", joinColumns = @JoinColumn(name = "disciplina_id"))
+    @Column(name = "dia")
+    @Enumerated(EnumType.STRING)
+    private Set<DiaSemana> diasSemana;
 
     private Integer frecuenciaSemanal;
-    private String duracion;
-    private String salon;
+
+    @NotNull
+    private LocalTime horarioInicio;
+
+    @NotNull
+    private Double duracion;
+
+    @ManyToOne
+    @JoinColumn(name = "salon_id")
+    private Salon salon;
+
+    @ManyToOne
+    @JoinColumn(name = "profesor_id", nullable = false)
+    @NotNull(message = "La disciplina debe tener un profesor asignado")
+    private Profesor profesor;
+
+    @ManyToOne
+    @JoinColumn(name = "recargo_id")
+    private Recargo recargo;
 
     @NotNull
     private Double valorCuota;
@@ -34,14 +57,13 @@ public class Disciplina {
     @NotNull
     private Double matricula;
 
-    @ManyToOne
-    @JoinColumn(name = "profesor_id")
-    private Profesor profesor;
+    private Double claseSuelta;
+    private Double clasePrueba;
 
     @Column(nullable = false)
     private Boolean activo = true;
 
     @OneToMany(mappedBy = "disciplina", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Inscripcion> inscripciones;
-
 }
+

@@ -1,26 +1,36 @@
-import type React from "react";
+"use client";
+
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import Boton from "../../componentes/comunes/Boton";
-import { ErrorMessage, Field, Form, Formik } from "formik";
-import { inscripcionEsquema } from "../../validaciones/inscripcionEsquema";
-import inscripcionesApi from "../../utilidades/inscripcionesApi";
-import disciplinasApi from "../../utilidades/disciplinasApi";
-import bonificacionesApi from "../../utilidades/bonificacionesApi";
+import { Formik, Form, Field, ErrorMessage } from "formik";
 import { toast } from "react-toastify";
-import type {
-  InscripcionRequest,
-  InscripcionResponse,
-  DisciplinaResponse,
-  BonificacionResponse,
-} from "../../types/types";
+import Boton from "../../componentes/comunes/Boton";
 import { Search } from "lucide-react";
 
-const initialInscripcionValues: InscripcionRequest = {
+// APIs
+import inscripcionesApi from "../../api/inscripcionesApi";
+import disciplinasApi from "../../api/disciplinasApi";
+import bonificacionesApi from "../../api/bonificacionesApi";
+
+// Types
+import type {
+  InscripcionRegistroRequest,
+  InscripcionResponse,
+  BonificacionResponse,
+  DisciplinaDetalleResponse,
+} from "../../types/types";
+
+// Esquema de validación
+import { inscripcionEsquema } from "../../validaciones/inscripcionEsquema";
+
+// Valores iniciales (sin fechaBaja)
+const initialInscripcionValues: InscripcionRegistroRequest = {
   alumnoId: 0,
-  disciplinaId: 0,
-  bonificacionId: undefined,
-  costoParticular: 0,
+  inscripcion: {
+    disciplinaId: 0,
+    bonificacionId: undefined,
+  },
+  fechaInscripcion: new Date().toISOString().split("T")[0], // p.ej. "2025-02-06"
   notas: "",
 };
 
@@ -28,22 +38,31 @@ const InscripcionesFormulario: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const [disciplinas, setDisciplinas] = useState<DisciplinaResponse[]>([]);
+  // Listados
+  const [disciplinas, setDisciplinas] = useState<DisciplinaDetalleResponse[]>(
+    []
+  );
   const [bonificaciones, setBonificaciones] = useState<BonificacionResponse[]>(
     []
   );
-  const [inscripcionId, setInscripcionId] = useState<number | null>(null);
-  const [initialValues, setInitialValues] = useState<InscripcionRequest>(
-    initialInscripcionValues
-  );
 
+  // ID de inscripción para saber si estamos en modo "edición" o "nuevo"
+  const [inscripcionId, setInscripcionId] = useState<number | null>(null);
+
+  // Estado con los valores del formulario
+  const [initialValues, setInitialValues] =
+    useState<InscripcionRegistroRequest>(initialInscripcionValues);
+
+  // Cargar catálogos (Disciplinas, Bonificaciones) con Promise.all
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [discData, bonData] = await Promise.all([
-          disciplinasApi.listarDisciplinas(),
-          bonificacionesApi.listarBonificaciones(),
-        ]);
+        // 👇 Ajuste con casting de tuplas
+        const [discData, bonData] = (await Promise.all([
+          disciplinasApi.listarDisciplinas(), // Retorna DisciplinaDetalleResponse[]
+          bonificacionesApi.listarBonificaciones(), // Retorna BonificacionResponse[]
+        ])) as [DisciplinaDetalleResponse[], BonificacionResponse[]];
+
         setDisciplinas(discData || []);
         setBonificaciones(bonData || []);
       } catch (error) {
@@ -53,23 +72,33 @@ const InscripcionesFormulario: React.FC = () => {
     fetchData();
   }, []);
 
+  // Función para cargar datos de una Inscripción existente
   const cargarInscripcion = useCallback(
-    async (idStr: string): Promise<InscripcionRequest> => {
+    async (idStr: string): Promise<InscripcionRegistroRequest> => {
       try {
         const idNum = Number(idStr);
         if (isNaN(idNum)) {
           toast.error("ID de inscripción inválido");
           return initialInscripcionValues;
         }
-        const data: InscripcionResponse =
-          await inscripcionesApi.obtenerInscripcionPorId(idNum);
+
+        const data: InscripcionResponse = await inscripcionesApi.obtenerPorId(
+          idNum
+        );
         setInscripcionId(data.id);
+
         toast.success("Inscripción cargada correctamente.");
+
+        // Mapeo la respuesta (InscripcionResponse) a InscripcionRegistroRequest
         return {
-          alumnoId: data.alumnoId,
-          disciplinaId: data.disciplinaId,
-          bonificacionId: data.bonificacionId,
-          costoParticular: data.costoParticular ?? 0,
+          alumnoId: data.alumno.id,
+          inscripcion: {
+            disciplinaId: data.disciplina.id,
+            bonificacionId: data.bonificacion?.id,
+          },
+          // Tomamos la fecha de inscripción de la entidad si la tuvieras en tu backend
+          // Aquí, para ejemplo, uso la de "data". Ajusta según tu real response
+          fechaInscripcion: new Date().toISOString().split("T")[0],
           notas: data.notas ?? "",
         };
       } catch (err) {
@@ -80,14 +109,16 @@ const InscripcionesFormulario: React.FC = () => {
     []
   );
 
+  // Efecto para leer parámetros de la URL e inicializar el formulario
   useEffect(() => {
     const idParam = searchParams.get("id");
     const alumnoParam = searchParams.get("alumnoId");
+
     if (idParam) {
-      cargarInscripcion(idParam).then((data) => {
-        setInitialValues(data);
-      });
+      // Modo edición
+      cargarInscripcion(idParam).then((data) => setInitialValues(data));
     } else if (alumnoParam) {
+      // Modo nuevo con un alumno ya conocido
       const aId = Number(alumnoParam);
       if (!isNaN(aId)) {
         setInitialValues((prev) => ({ ...prev, alumnoId: aId }));
@@ -95,18 +126,27 @@ const InscripcionesFormulario: React.FC = () => {
     }
   }, [searchParams, cargarInscripcion]);
 
+  // Handler para guardar/actualizar la inscripción
   const handleGuardar = useCallback(
-    async (values: InscripcionRequest) => {
-      if (!values.alumnoId || !values.disciplinaId) {
+    async (values: InscripcionRegistroRequest) => {
+      if (!values.alumnoId || !values.inscripcion.disciplinaId) {
         toast.error("Debes asignar un alumno y una disciplina.");
         return;
       }
       try {
         if (inscripcionId) {
-          await inscripcionesApi.actualizarInscripcion(inscripcionId, values);
+          // Actualizar
+          await inscripcionesApi.actualizar(inscripcionId, {
+            alumnoId: values.alumnoId,
+            disciplinaId: values.inscripcion.disciplinaId,
+            bonificacionId: values.inscripcion.bonificacionId,
+            // podrías añadir "fechaBaja", "activo", etc. si es que existen
+            notas: values.notas,
+          });
           toast.success("Inscripción actualizada correctamente.");
         } else {
-          const newIns = await inscripcionesApi.crearInscripcion(values);
+          // Crear nueva
+          const newIns = await inscripcionesApi.crear(values);
           setInscripcionId(newIns.id);
           toast.success("Inscripción creada correctamente.");
         }
@@ -122,15 +162,17 @@ const InscripcionesFormulario: React.FC = () => {
       <h1 className="page-title">
         {inscripcionId ? "Editar Inscripción" : "Nueva Inscripción"}
       </h1>
+
       <Formik
         initialValues={initialValues}
         validationSchema={inscripcionEsquema}
         onSubmit={handleGuardar}
         enableReinitialize
       >
-        {({ setFieldValue, isSubmitting, values }) => (
+        {({ isSubmitting, values }) => (
           <Form className="formulario max-w-4xl mx-auto">
             <div className="form-grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* BUSCADOR DE INSCRIPCIÓN */}
               <div className="col-span-full mb-4">
                 <label htmlFor="idBusqueda" className="auth-label">
                   Número de Inscripción:
@@ -161,6 +203,7 @@ const InscripcionesFormulario: React.FC = () => {
                 </div>
               </div>
 
+              {/* ALUMNO */}
               <div className="mb-4">
                 <label htmlFor="alumnoId" className="auth-label">
                   Alumno ID:
@@ -179,14 +222,18 @@ const InscripcionesFormulario: React.FC = () => {
                 />
               </div>
 
+              {/* DISCIPLINA */}
               <div className="mb-4">
-                <label htmlFor="disciplinaId" className="auth-label">
+                <label
+                  htmlFor="inscripcion.disciplinaId"
+                  className="auth-label"
+                >
                   Disciplina:
                 </label>
                 <Field
                   as="select"
-                  name="disciplinaId"
-                  id="disciplinaId"
+                  name="inscripcion.disciplinaId"
+                  id="inscripcion.disciplinaId"
                   className="form-input"
                 >
                   <option value={0}>-- Seleccionar --</option>
@@ -197,41 +244,25 @@ const InscripcionesFormulario: React.FC = () => {
                   ))}
                 </Field>
                 <ErrorMessage
-                  name="disciplinaId"
+                  name="inscripcion.disciplinaId"
                   component="div"
                   className="auth-error"
                 />
               </div>
 
+              {/* BONIFICACIÓN */}
               <div className="mb-4">
-                <label htmlFor="bonificacionId" className="auth-label">
-                  Bonificación:
+                <label
+                  htmlFor="inscripcion.bonificacionId"
+                  className="auth-label"
+                >
+                  Bonificación (Opcional):
                 </label>
                 <Field
                   as="select"
-                  name="bonificacionId"
-                  id="bonificacionId"
+                  name="inscripcion.bonificacionId"
+                  id="inscripcion.bonificacionId"
                   className="form-input"
-                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-                    const value =
-                      e.target.value === ""
-                        ? undefined
-                        : Number(e.target.value);
-                    const bonificacionSeleccionada = bonificaciones.find(
-                      (b) => b.id === value
-                    );
-                    const descuento = bonificacionSeleccionada
-                      ? bonificacionSeleccionada.porcentajeDescuento
-                      : 0;
-                    setFieldValue("bonificacionId", value);
-                    setFieldValue(
-                      "costoParticular",
-                      values.costoParticular
-                        ? values.costoParticular -
-                            (values.costoParticular * descuento) / 100
-                        : 0
-                    );
-                  }}
                 >
                   <option value="">-- Ninguna --</option>
                   {bonificaciones.map((bon) => (
@@ -241,29 +272,52 @@ const InscripcionesFormulario: React.FC = () => {
                   ))}
                 </Field>
                 <ErrorMessage
-                  name="bonificacionId"
+                  name="inscripcion.bonificacionId"
                   component="div"
                   className="auth-error"
                 />
               </div>
 
+              {/* FECHA INSCRIPCION */}
               <div className="mb-4">
-                <label htmlFor="costoParticular" className="auth-label">
-                  Costo Particular:
+                <label htmlFor="fechaInscripcion" className="auth-label">
+                  Fecha de Inscripción:
                 </label>
                 <Field
-                  name="costoParticular"
-                  type="number"
-                  id="costoParticular"
+                  name="fechaInscripcion"
+                  type="date"
+                  id="fechaInscripcion"
                   className="form-input"
                 />
                 <ErrorMessage
-                  name="costoParticular"
+                  name="fechaInscripcion"
                   component="div"
                   className="auth-error"
                 />
               </div>
+              {/* FECHA DE BAJA solo si existe ID */}
+              {inscripcionId && (
+                <div className="mb-4">
+                  <label htmlFor="fechaBaja" className="auth-label">
+                    Fecha de Baja:
+                  </label>
+                  <Field
+                    name="fechaBaja"
+                    type="date"
+                    id="fechaBaja"
+                    className="form-input"
+                  />
+                  <ErrorMessage
+                    name="fechaBaja"
+                    component="div"
+                    className="auth-error"
+                  />
+                </div>
+              )}
 
+              {/* ... cualquier otro campo condicional ... */}
+
+              {/* NOTAS */}
               <div className="col-span-full mb-4">
                 <label htmlFor="notas" className="auth-label">
                   Notas:
@@ -292,9 +346,7 @@ const InscripcionesFormulario: React.FC = () => {
               </Boton>
               <Boton
                 type="reset"
-                onClick={() =>
-                  setFieldValue("alumnoId", initialInscripcionValues.alumnoId)
-                }
+                onClick={() => setInitialValues(initialInscripcionValues)}
                 className="page-button-secondary"
               >
                 Limpiar

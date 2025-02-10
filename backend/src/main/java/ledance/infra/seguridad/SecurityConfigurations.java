@@ -1,6 +1,5 @@
 package ledance.infra.seguridad;
 
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -31,9 +30,12 @@ public class SecurityConfigurations {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(req -> {
-                    req.requestMatchers(HttpMethod.GET, "/api/roles").permitAll();
+                    // ✅ Permitir acceso público a login, registro y roles
                     req.requestMatchers(HttpMethod.POST, "/api/login").permitAll();
                     req.requestMatchers(HttpMethod.POST, "/api/usuarios/registro").permitAll();
+                    req.requestMatchers("/api/roles").permitAll(); // 🔹 Se permite GET y POST a /api/roles
+
+                    // 🔹 Proteger el resto de endpoints (requiere autenticación)
                     req.anyRequest().authenticated();
                 })
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)

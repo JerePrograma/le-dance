@@ -1,196 +1,329 @@
-import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ErrorMessage, Field, Form, Formik } from "formik";
-import { disciplinaEsquema } from "../../validaciones/disciplinaEsquema";
-import disciplinasApi from "../../utilidades/disciplinasApi";
-import profesoresApi from "../../utilidades/profesoresApi";
+import { Formik, Form, Field, ErrorMessage } from "formik";
+import * as Yup from "yup";
 import { toast } from "react-toastify";
-import type { DisciplinaRequest, ProfesorResponse } from "../../types/types";
-import Boton from "../../componentes/comunes/Boton";
 import { Search } from "lucide-react";
+import salonesApi from "../../api/salonesApi";
+import profesoresApi from "../../api/profesoresApi";
+import disciplinasApi from "../../api/disciplinasApi";
+import Boton from "../../componentes/comunes/Boton";
+import type {
+  DisciplinaRegistroRequest,
+  DisciplinaModificacionRequest,
+  SalonResponse,
+  ProfesorListadoResponse,
+  DiaSemana,
+} from "../../types/types";
+import React, { useState, useEffect, useCallback } from "react";
 
-const initialDisciplinaValues: DisciplinaRequest = {
-  id: 0,
+const diasSemana = [
+  "LUNES",
+  "MARTES",
+  "MIERCOLES",
+  "JUEVES",
+  "VIERNES",
+  "SABADO",
+];
+
+const initialDisciplinaValues: DisciplinaRegistroRequest = {
   nombre: "",
-  horario: "",
-  frecuenciaSemanal: 0,
-  duracion: "",
-  salon: "",
+  diasSemana: [],
+  frecuenciaSemanal: 1,
+  horarioInicio: "",
+  duracion: 1,
+  salonId: 0,
+  profesorId: 0,
+  recargoId: undefined,
   valorCuota: 0,
   matricula: 0,
-  profesorId: 0,
-  activo: true,
+  claseSuelta: undefined,
+  clasePrueba: undefined,
 };
+
+const disciplinaSchema = Yup.object().shape({
+  nombre: Yup.string().required("El nombre es obligatorio"),
+  diasSemana: Yup.array().of(Yup.string()).min(1, "Seleccione al menos un día"),
+  frecuenciaSemanal: Yup.number()
+    .positive()
+    .integer()
+    .required("La frecuencia semanal es obligatoria"),
+  horarioInicio: Yup.string().required("El horario de inicio es obligatorio"),
+  duracion: Yup.number().positive().required("La duración es obligatoria"),
+  salonId: Yup.number().positive().required("Debe seleccionar un salón"),
+  profesorId: Yup.number().positive().required("Debe seleccionar un profesor"),
+  valorCuota: Yup.number()
+    .positive()
+    .required("El valor de la cuota es obligatorio"),
+  matricula: Yup.number()
+    .min(0)
+    .required("El valor de la matrícula es obligatorio"),
+  claseSuelta: Yup.number().min(0),
+  clasePrueba: Yup.number().min(0),
+});
 
 const DisciplinasFormulario: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [disciplinaId, setDisciplinaId] = useState<number | null>(null);
-  const [profesores, setProfesores] = useState<ProfesorResponse[]>([]);
+  const [formValues, setFormValues] = useState<
+    DisciplinaRegistroRequest & Partial<DisciplinaModificacionRequest>
+  >(initialDisciplinaValues);
   const [mensaje, setMensaje] = useState("");
   const [idBusqueda, setIdBusqueda] = useState("");
+  const [salones, setSalones] = useState<SalonResponse[]>([]);
+  const [profesores, setProfesores] = useState<ProfesorListadoResponse[]>([]);
 
-  useEffect(() => {
-    const fetchProfesores = async () => {
-      try {
-        const response = await profesoresApi.listarProfesores();
-        setProfesores(response as unknown as ProfesorResponse[]);
-      } catch {
-        toast.error("Error al cargar la lista de profesores.");
-      }
-    };
-    fetchProfesores();
+  const fetchSalones = useCallback(async () => {
+    try {
+      const response = await salonesApi.listarSalones();
+      setSalones(response.content);
+    } catch (error) {
+      console.error("Error al cargar salones:", error);
+      toast.error("Error al cargar salones");
+    }
+  }, []);
+
+  const fetchProfesores = useCallback(async () => {
+    try {
+      const response = await profesoresApi.listarProfesoresActivos();
+      setProfesores(response);
+    } catch (error) {
+      console.error("Error al cargar profesores:", error);
+      toast.error("Error al cargar profesores");
+    }
   }, []);
 
   useEffect(() => {
-    const id = searchParams.get("id");
-    if (id) {
-      handleBuscar(id, () => {});
-    }
-  }, [searchParams]);
+    fetchSalones();
+    fetchProfesores();
+  }, [fetchSalones, fetchProfesores]);
 
-  const handleBuscar = async (
-    idStr: string,
-    callback: (vals: DisciplinaRequest) => void
-  ) => {
+  const handleBuscar = useCallback(async () => {
+    if (!idBusqueda) {
+      setMensaje("Por favor, ingrese un ID de disciplina.");
+      return;
+    }
+
     try {
-      const idNum = Number(idStr);
-      if (isNaN(idNum)) {
-        setMensaje("ID inválido");
-        return;
-      }
-      const disciplina = await disciplinasApi.obtenerDisciplinaPorId(idNum);
-      callback({
-        ...disciplina,
-        profesorId: disciplina.profesorId ?? 0,
-        activo: disciplina.activo ?? true,
+      const disciplina = await disciplinasApi.obtenerDisciplinaPorId(
+        Number(idBusqueda)
+      );
+      setFormValues({
+        nombre: disciplina.nombre,
+        diasSemana: disciplina.diasSemana as DiaSemana[], // Cast to DiaSemana[]
+        frecuenciaSemanal: disciplina.diasSemana.length, // Assuming frecuenciaSemanal is the number of days
+        horarioInicio: disciplina.horarioInicio,
+        duracion: disciplina.duracion,
+        salonId: salones.find((s) => s.nombre === disciplina.salon)?.id || 0,
+        profesorId:
+          profesores.find(
+            (p) =>
+              p.nombre === disciplina.profesorNombre &&
+              p.apellido === disciplina.profesorApellido
+          )?.id || 0,
+        valorCuota: disciplina.valorCuota,
+        matricula: disciplina.matricula,
+        claseSuelta: disciplina.claseSuelta,
+        clasePrueba: disciplina.clasePrueba,
+        activo: disciplina.activo,
       });
       setDisciplinaId(disciplina.id);
-      setMensaje("");
-    } catch {
+      setMensaje("Disciplina encontrada.");
+    } catch (error) {
+      console.error("Error al buscar la disciplina:", error);
       setMensaje("Disciplina no encontrada.");
-      callback(initialDisciplinaValues);
+      setFormValues(initialDisciplinaValues);
       setDisciplinaId(null);
     }
-  };
+  }, [idBusqueda, salones, profesores]);
 
-  const handleGuardarDisciplina = async (values: DisciplinaRequest) => {
+  useEffect(() => {
+    const idParam = searchParams.get("id");
+    if (idParam) {
+      setIdBusqueda(idParam);
+      handleBuscar();
+    }
+  }, [searchParams, handleBuscar]);
+
+  const handleSubmit = async (
+    values: DisciplinaRegistroRequest & Partial<DisciplinaModificacionRequest>
+  ) => {
     try {
-      console.log("Valores a enviar:", values); // ✅ Verifica los valores antes de enviarlos
-
       if (disciplinaId) {
-        await disciplinasApi.actualizarDisciplina(disciplinaId, values);
-        setMensaje("Disciplina actualizada correctamente.");
+        await disciplinasApi.actualizarDisciplina(
+          disciplinaId,
+          values as DisciplinaModificacionRequest
+        );
+        toast.success("Disciplina actualizada correctamente");
       } else {
-        const nuevaDisciplina = await disciplinasApi.crearDisciplina(values);
-        setDisciplinaId(nuevaDisciplina.id);
-        setMensaje("Disciplina creada correctamente.");
+        await disciplinasApi.registrarDisciplina(
+          values as DisciplinaRegistroRequest
+        );
+        toast.success("Disciplina creada correctamente");
       }
-    } catch {
-      setMensaje("Error al guardar la disciplina.");
+      navigate("/disciplinas");
+    } catch (error) {
+      console.error("Error al guardar la disciplina:", error);
+      toast.error("Error al guardar la disciplina");
     }
   };
 
   return (
     <div className="page-container">
-      <h1 className="page-title">Formulario de Disciplinas</h1>
+      <h1 className="page-title">Formulario de Disciplina</h1>
+      <div className="mb-4">
+        <label htmlFor="idBusqueda" className="auth-label">
+          ID de Disciplina:
+        </label>
+        <div className="flex gap-2">
+          <input
+            type="number"
+            id="idBusqueda"
+            value={idBusqueda}
+            onChange={(e) => setIdBusqueda(e.target.value)}
+            className="form-input flex-grow"
+          />
+          <Boton onClick={handleBuscar} className="page-button">
+            <Search className="w-5 h-5 mr-2" />
+            Buscar
+          </Boton>
+        </div>
+      </div>
+
+      {mensaje && (
+        <p
+          className={`form-mensaje ${
+            mensaje.includes("Error")
+              ? "form-mensaje-error"
+              : "form-mensaje-success"
+          }`}
+        >
+          {mensaje}
+        </p>
+      )}
+
       <Formik
-        initialValues={initialDisciplinaValues}
-        validationSchema={disciplinaEsquema}
-        onSubmit={handleGuardarDisciplina}
+        initialValues={formValues}
+        validationSchema={disciplinaSchema}
+        onSubmit={handleSubmit}
         enableReinitialize
       >
-        {({ resetForm, isSubmitting }) => (
+        {() => (
           <Form className="formulario max-w-4xl mx-auto">
             <div className="form-grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Búsqueda por ID */}
-              <div className="col-span-full mb-4">
-                <label htmlFor="idBusqueda" className="auth-label">
-                  Número de Disciplina:
+              <div className="mb-4">
+                <label htmlFor="nombre" className="auth-label">
+                  Nombre:
                 </label>
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    id="idBusqueda"
-                    value={idBusqueda}
-                    onChange={(e) => setIdBusqueda(e.target.value)}
-                    className="form-input flex-grow"
-                  />
-                  <Boton
-                    onClick={() =>
-                      handleBuscar(idBusqueda, (vals) =>
-                        resetForm({ values: vals })
-                      )
-                    }
-                    className="page-button"
-                  >
-                    <Search className="w-5 h-5 mr-2" />
-                    Buscar
-                  </Boton>
-                </div>
+                <Field name="nombre" type="text" className="form-input" />
+                <ErrorMessage
+                  name="nombre"
+                  component="div"
+                  className="auth-error"
+                />
               </div>
 
-              {/* Datos de la Disciplina */}
-              {[
-                { name: "nombre", label: "Nombre (obligatorio)" },
-                {
-                  name: "horario",
-                  label: "Horario (Ej. Lunes y Miércoles 18:00 - 19:00)",
-                },
-                {
-                  name: "frecuenciaSemanal",
-                  label: "Frecuencia Semanal",
-                  type: "number",
-                },
-                { name: "duracion", label: "Duración (Ej. 1 hora)" },
-                { name: "salon", label: "Salón (Ej. Salón A)" },
-                { name: "valorCuota", label: "Valor Cuota", type: "number" },
-                { name: "matricula", label: "Matrícula", type: "number" },
-                {
-                  name: "cupoMaximo",
-                  label: "Cupo Máximo de Alumnos",
-                  type: "number",
-                },
-                {
-                  name: "activo",
-                  label: "activo",
-                  type: "boolean",
-                },
-              ].map(({ name, label, type = "text" }) => (
-                <div key={name} className="mb-4">
-                  <label htmlFor={name} className="auth-label">
-                    {label}:
-                  </label>
-                  <Field
-                    name={name}
-                    type={type}
-                    id={name}
-                    className="form-input"
-                  />
-                  <ErrorMessage
-                    name={name}
-                    component="div"
-                    className="auth-error"
-                  />
+              <div className="mb-4">
+                <label className="auth-label">Días de la semana:</label>
+                <div className="flex flex-wrap gap-2">
+                  {diasSemana.map((dia) => (
+                    <label key={dia} className="flex items-center">
+                      <Field
+                        type="checkbox"
+                        name="diasSemana"
+                        value={dia}
+                        className="form-checkbox"
+                      />
+                      <span className="ml-2">{dia}</span>
+                    </label>
+                  ))}
                 </div>
-              ))}
+                <ErrorMessage
+                  name="diasSemana"
+                  component="div"
+                  className="auth-error"
+                />
+              </div>
 
-              {/* Selección de Profesor */}
+              <div className="mb-4">
+                <label htmlFor="frecuenciaSemanal" className="auth-label">
+                  Frecuencia Semanal:
+                </label>
+                <Field
+                  name="frecuenciaSemanal"
+                  type="number"
+                  className="form-input"
+                />
+                <ErrorMessage
+                  name="frecuenciaSemanal"
+                  component="div"
+                  className="auth-error"
+                />
+              </div>
+
+              <div className="mb-4">
+                <label htmlFor="horarioInicio" className="auth-label">
+                  Horario de Inicio:
+                </label>
+                <Field
+                  name="horarioInicio"
+                  type="time"
+                  className="form-input"
+                />
+                <ErrorMessage
+                  name="horarioInicio"
+                  component="div"
+                  className="auth-error"
+                />
+              </div>
+
+              <div className="mb-4">
+                <label htmlFor="duracion" className="auth-label">
+                  Duración (horas):
+                </label>
+                <Field
+                  name="duracion"
+                  type="number"
+                  step="0.5"
+                  className="form-input"
+                />
+                <ErrorMessage
+                  name="duracion"
+                  component="div"
+                  className="auth-error"
+                />
+              </div>
+
+              <div className="mb-4">
+                <label htmlFor="salonId" className="auth-label">
+                  Salón:
+                </label>
+                <Field as="select" name="salonId" className="form-input">
+                  <option value="">Seleccione un salón</option>
+                  {salones.map((salon) => (
+                    <option key={salon.id} value={salon.id}>
+                      {salon.nombre}
+                    </option>
+                  ))}
+                </Field>
+                <ErrorMessage
+                  name="salonId"
+                  component="div"
+                  className="auth-error"
+                />
+              </div>
+
               <div className="mb-4">
                 <label htmlFor="profesorId" className="auth-label">
                   Profesor:
                 </label>
-                <Field
-                  as="select"
-                  name="profesorId"
-                  id="profesorId"
-                  className="form-input"
-                >
-                  <option value="">Seleccione un Profesor</option>
-                  {profesores.map((prof) => (
-                    <option key={prof.id} value={prof.id}>
-                      {prof.nombre} {prof.apellido}
-                    </option>
+                <Field as="select" name="profesorId" className="form-input">
+                  <option value="">Seleccione un profesor</option>
+                  {profesores.map((profesor) => (
+                    <option
+                      key={profesor.id}
+                      value={profesor.id}
+                    >{`${profesor.nombre} ${profesor.apellido}`}</option>
                   ))}
                 </Field>
                 <ErrorMessage
@@ -199,49 +332,101 @@ const DisciplinasFormulario: React.FC = () => {
                   className="auth-error"
                 />
               </div>
-            </div>
-            <div className="mb-4 col-span-full">
-              <label className="flex items-center space-x-2 cursor-pointer">
-                <Field name="activo">
-                  {({ field, form }: { field: any; form: any }) => (
-                    <input
+
+              <div className="mb-4">
+                <label htmlFor="valorCuota" className="auth-label">
+                  Valor de Cuota:
+                </label>
+                <Field
+                  name="valorCuota"
+                  type="number"
+                  step="0.01"
+                  className="form-input"
+                />
+                <ErrorMessage
+                  name="valorCuota"
+                  component="div"
+                  className="auth-error"
+                />
+              </div>
+
+              <div className="mb-4">
+                <label htmlFor="matricula" className="auth-label">
+                  Matrícula:
+                </label>
+                <Field
+                  name="matricula"
+                  type="number"
+                  step="0.01"
+                  className="form-input"
+                />
+                <ErrorMessage
+                  name="matricula"
+                  component="div"
+                  className="auth-error"
+                />
+              </div>
+
+              <div className="mb-4">
+                <label htmlFor="claseSuelta" className="auth-label">
+                  Clase Suelta:
+                </label>
+                <Field
+                  name="claseSuelta"
+                  type="number"
+                  step="0.01"
+                  className="form-input"
+                />
+                <ErrorMessage
+                  name="claseSuelta"
+                  component="div"
+                  className="auth-error"
+                />
+              </div>
+
+              <div className="mb-4">
+                <label htmlFor="clasePrueba" className="auth-label">
+                  Clase de Prueba:
+                </label>
+                <Field
+                  name="clasePrueba"
+                  type="number"
+                  step="0.01"
+                  className="form-input"
+                />
+                <ErrorMessage
+                  name="clasePrueba"
+                  component="div"
+                  className="auth-error"
+                />
+              </div>
+
+              {disciplinaId !== null && (
+                <div className="mb-4">
+                  <label className="flex items-center">
+                    <Field
                       type="checkbox"
-                      {...field}
-                      checked={field.value}
-                      onChange={() =>
-                        form.setFieldValue("activo", !field.value)
-                      }
-                      className="form-checkbox h-5 w-5 text-primary border-gray-300 rounded focus:ring focus:ring-primary-200"
+                      name="activo"
+                      className="form-checkbox"
                     />
-                  )}
-                </Field>
-                <span className="text-gray-700">Activo</span>
-              </label>
+                    <span className="ml-2">Activo</span>
+                  </label>
+                </div>
+              )}
             </div>
+
             <div className="form-acciones">
-              <Boton
-                type="submit"
-                disabled={isSubmitting}
-                className="page-button"
-              >
-                Guardar Disciplina
+              <Boton type="submit" className="page-button">
+                {disciplinaId ? "Actualizar" : "Crear"} Disciplina
               </Boton>
               <Boton
-                type="reset"
-                onClick={() => resetForm({ values: initialDisciplinaValues })}
-                className="page-button-secondary"
-              >
-                Limpiar
-              </Boton>
-              <Boton
+                type="button"
                 onClick={() => navigate("/disciplinas")}
                 className="page-button-secondary"
               >
-                Volver al Listado
+                Cancelar
               </Boton>
             </div>
-
-            {mensaje && <p className="form-mensaje">{mensaje}</p>}
           </Form>
         )}
       </Formik>

@@ -10,8 +10,9 @@ export const profesorEsquema = Yup.object().shape({
   especialidad: Yup.string()
     .min(3, "Debe especificar una especialidad válida")
     .required("La especialidad es obligatoria"),
-  aniosExperiencia: Yup.number()
-    .min(0, "Debe ser un número positivo")
-    .max(50, "No puede ser mayor a 50 años")
-    .required("Los años de experiencia son obligatorios"),
+  fechaNacimiento: Yup.date()
+    .nullable()
+    .max(new Date(), "La fecha de nacimiento no puede ser en el futuro"),
+  telefono: Yup.string().nullable(),
+  activo: Yup.boolean(),
 });

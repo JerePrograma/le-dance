@@ -1,12 +1,14 @@
 package ledance.dto.request;
 
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 
+/**
+ * DTO para registrar un nuevo usuario.
+ */
 public record UsuarioRegistroRequest(
-        @NotNull @NotBlank String email,
-        @NotNull @NotBlank String nombreUsuario,
-        @NotNull @NotBlank String contrasena,
-        @NotNull @NotBlank String rol,
-        Boolean activo  // ✅ Agregar si es necesario
+        @NotBlank String nombreUsuario,
+        @Email @NotBlank String email,
+        @NotBlank String contrasena,
+        @NotBlank String rol // ✅ Nombre del rol (ADMIN, USER, etc.), se valida en el servicio
 ) {}

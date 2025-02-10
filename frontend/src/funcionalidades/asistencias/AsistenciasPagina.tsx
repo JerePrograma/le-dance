@@ -1,180 +1,297 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
-import Tabla from "../../componentes/comunes/Tabla";
-import asistenciasApi from "../../utilidades/asistenciasApi";
-import ReactPaginate from "react-paginate";
+import React, { useState, useEffect, useCallback } from "react";
+import { Field } from "formik";
 import Boton from "../../componentes/comunes/Boton";
-import { PlusCircle, Pencil, Trash2 } from "lucide-react";
+import Tabla from "../../componentes/comunes/Tabla";
+import { toast } from "react-toastify";
+import { Search } from "lucide-react";
+import asistenciasApi from "../../api/asistenciasApi";
+import {
+  type AsistenciaMensualDetalleResponse,
+  type AsistenciaDiariaRegistroRequest,
+  EstadoAsistencia,
+} from "../../types/types";
+import { debounce } from "lodash";
 
-interface Asistencia {
-  id: number;
-  alumno: {
-    id: number;
-    nombre: string;
-    apellido: string;
-    activo: boolean;
-  };
-  disciplina: {
-    id: number;
-    nombre: string;
-  };
-  fecha: string;
-  presente: boolean;
-  profesor?: {
-    id: number;
-    nombre: string;
-    apellido: string;
-  } | null;
-}
-
-const Asistencias = () => {
-  const [asistencias, setAsistencias] = useState<Asistencia[]>([]);
-  const [currentPage, setCurrentPage] = useState(0);
+const AsistenciasPage: React.FC = () => {
+  const [selectedPD, setSelectedPD] = useState<number>(0);
+  const [mes, setMes] = useState(new Date().getMonth() + 1);
+  const [anio, setAnio] = useState(new Date().getFullYear());
+  const [asistencia, setAsistencia] =
+    useState<AsistenciaMensualDetalleResponse | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const itemsPerPage = 5;
-  const navigate = useNavigate();
+  const [observaciones, setObservaciones] = useState<Record<number, string>>({});
 
-  const fetchAsistencias = useCallback(async () => {
+  const meses = [
+    { value: 1, label: "Enero" },
+    { value: 2, label: "Febrero" },
+    { value: 3, label: "Marzo" },
+    { value: 4, label: "Abril" },
+    { value: 5, label: "Mayo" },
+    { value: 6, label: "Junio" },
+    { value: 7, label: "Julio" },
+    { value: 8, label: "Agosto" },
+    { value: 9, label: "Septiembre" },
+    { value: 10, label: "Octubre" },
+    { value: 11, label: "Noviembre" },
+    { value: 12, label: "Diciembre" },
+  ];
+
+  const getSabadosDelMes = useCallback((mes: number, anio: number): Date[] => {
+    const sabados: Date[] = [];
+    const fecha = new Date(anio, mes - 1, 1);
+
+    while (fecha.getMonth() === mes - 1) {
+      if (fecha.getDay() === 6) {
+        sabados.push(new Date(fecha));
+      }
+      fecha.setDate(fecha.getDate() + 1);
+    }
+    return sabados;
+  }, []);
+
+  const cargarAsistencia = useCallback(async () => {
+    if (!selectedPD) return;
+    setLoading(true);
     try {
-      setLoading(true);
-      const data = await asistenciasApi.listarAsistencias();
-
-      // Asegurar que activo nunca sea `undefined`
-      const formattedData = data.map((asistencia) => ({
-        ...asistencia,
-        alumno: {
-          ...asistencia.alumno,
-          activo: asistencia.alumno.activo ?? false, // ✅ Evita el error de tipo
-        },
-      }));
-
-      setAsistencias(formattedData);
-    } catch (err) {
-      console.error("Error al cargar asistencias:", err);
-      setError("No se pudieron cargar las asistencias.");
+      const data = await asistenciasApi.obtenerAsistenciaMensualDetalle(selectedPD);
+      if (!data) {
+        toast.error("No se encontró la asistencia mensual.");
+        setLoading(false);
+        return;
+      }
+      setAsistencia(data);
+      // Convertir el arreglo de observaciones en un objeto record: { [alumnoId]: observacion }
+      setObservaciones(
+        data.observaciones.reduce((acc, obs) => {
+          acc[obs.alumnoId] = obs.observacion;
+          return acc;
+        }, {} as Record<number, string>)
+      );
+    } catch (error) {
+      console.error("Error al cargar asistencia:", error);
+      toast.error("Error al cargar la asistencia");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [selectedPD]);
 
   useEffect(() => {
-    fetchAsistencias();
-  }, [fetchAsistencias]);
+    cargarAsistencia();
+  }, [cargarAsistencia]);
 
-  const eliminarAsistencia = async (id: number) => {
+  const toggleAsistencia = async (alumnoId: number, fecha: string) => {
+    if (!asistencia) return;
     try {
-      await asistenciasApi.eliminarAsistencia(id);
-      setAsistencias((prev) =>
-        prev.filter((asistencia) => asistencia.id !== id)
-      );
-    } catch (err) {
-      console.error("Error al eliminar asistencia:", err);
-      setError("Error al eliminar asistencia.");
+      const asistenciaDiaria: AsistenciaDiariaRegistroRequest = {
+        asistenciaMensualId: asistencia.id,
+        alumnoId,
+        fecha,
+        estado: EstadoAsistencia.Presente,
+      };
+
+      await asistenciasApi.registrarAsistenciaDiaria(asistenciaDiaria);
+
+      setAsistencia((prev) => {
+        if (!prev) return null;
+        const asistenciasDiarias = [...prev.asistenciasDiarias];
+        const index = asistenciasDiarias.findIndex(
+          (ad) => ad.alumnoId === alumnoId && ad.fecha === fecha
+        );
+        if (index >= 0) {
+          asistenciasDiarias[index] = {
+            ...asistenciasDiarias[index],
+            estado:
+              asistenciasDiarias[index].estado === EstadoAsistencia.Presente
+                ? EstadoAsistencia.Ausente
+                : EstadoAsistencia.Presente,
+          };
+        } else {
+          asistenciasDiarias.push({
+            id: 0,
+            asistenciaMensualId: asistencia.id,
+            alumnoId,
+            fecha,
+            estado: EstadoAsistencia.Presente,
+          });
+        }
+        return {
+          ...prev,
+          asistenciasDiarias,
+        };
+      });
+
+      toast.success("Asistencia actualizada");
+    } catch (error) {
+      console.error("Error al registrar asistencia:", error);
+      toast.error("Error al registrar la asistencia");
     }
   };
 
-  const pageCount = useMemo(
-    () => Math.ceil(asistencias.length / itemsPerPage),
-    [asistencias.length]
-  );
-
-  const currentItems = useMemo(
-    () =>
-      asistencias.slice(
-        currentPage * itemsPerPage,
-        (currentPage + 1) * itemsPerPage
-      ),
-    [asistencias, currentPage]
-  );
-
-  const handlePageClick = useCallback(
-    ({ selected }: { selected: number }) => {
-      if (selected < pageCount) {
-        setCurrentPage(selected);
+  const debouncedActualizarObservacion = useCallback(
+    debounce(async (alumnoId: number, obs: string) => {
+      if (!asistencia) return;
+      try {
+        await asistenciasApi.actualizarAsistenciaMensual(asistencia.id, {
+          observaciones: Object.entries({
+            ...observaciones,
+            [alumnoId]: obs,
+          }).map(([id, observacion]) => ({
+            alumnoId: Number(id),
+            observacion,
+          })),
+        });
+        toast.success("Observación actualizada");
+      } catch (error) {
+        console.error("Error al guardar observación:", error);
+        toast.error("Error al guardar la observación");
       }
-    },
-    [pageCount]
+    }, 500),
+    [asistencia, observaciones]
   );
 
-  if (loading) return <div className="text-center py-4">Cargando...</div>;
-  if (error)
-    return <div className="text-center py-4 text-red-500">{error}</div>;
+  const handleObservacionChange = (alumnoId: number, obs: string) => {
+    setObservaciones((prev) => ({
+      ...prev,
+      [alumnoId]: obs,
+    }));
+    debouncedActualizarObservacion(alumnoId, obs);
+  };
 
   return (
     <div className="page-container">
-      <h1 className="page-title">Registro de Asistencias</h1>
-      <div className="flex justify-end mb-4">
-        <Boton
-          onClick={() => navigate("/asistencias/formulario")}
-          className="page-button"
-        >
-          <PlusCircle className="w-5 h-5 mr-2" />
-          Registrar Nueva Asistencia
-        </Boton>
+      <h1 className="page-title">Control de Asistencias</h1>
+      <div className="form-grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <div>
+          <label htmlFor="disciplina" className="auth-label">
+            Disciplina:
+          </label>
+          <Field
+            as="select"
+            id="disciplina"
+            name="disciplina"
+            className="form-input"
+            value={selectedPD}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+              setSelectedPD(Number(e.target.value))
+            }
+          >
+            <option value="0">Seleccione disciplina...</option>
+            <option value="1">BALLET PROFESORADO CIAD</option>
+            {/* Agregar más opciones según tus datos */}
+          </Field>
+        </div>
+        <div>
+          <label htmlFor="mes" className="auth-label">
+            Mes:
+          </label>
+          <Field
+            as="select"
+            id="mes"
+            name="mes"
+            className="form-input"
+            value={mes}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+              setMes(Number(e.target.value))
+            }
+          >
+            {meses.map((m) => (
+              <option key={m.value} value={m.value}>
+                {m.label}
+              </option>
+            ))}
+          </Field>
+        </div>
+        <div>
+          <label htmlFor="anio" className="auth-label">
+            Año:
+          </label>
+          <Field
+            as="select"
+            id="anio"
+            name="anio"
+            className="form-input"
+            value={anio}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+              setAnio(Number(e.target.value))
+            }
+          >
+            {Array.from({ length: 5 }, (_, i) => {
+              const year = new Date().getFullYear() - 2 + i;
+              return (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              );
+            })}
+          </Field>
+        </div>
       </div>
-      <div className="page-card">
-        <Tabla
-          encabezados={[
-            "ID",
-            "Alumno",
-            "Disciplina",
-            "Profesor",
-            "Fecha",
-            "Presente",
-            "Activo", // ✅ Nueva columna para mostrar el estado activo del alumno
-            "Acciones",
-          ]}
-          datos={currentItems}
-          acciones={(fila) => (
-            <div className="flex gap-2">
-              <Boton
-                onClick={() =>
-                  navigate(`/asistencias/formulario?id=${fila.id}`)
+
+      <Boton onClick={cargarAsistencia} className="page-button mb-6">
+        <Search className="w-5 h-5 mr-2" />
+        Buscar Asistencias
+      </Boton>
+
+      {loading ? (
+        <div className="text-center py-4">Cargando...</div>
+      ) : asistencia ? (
+        <div className="page-card">
+          <h2 className="text-xl font-bold mb-4">
+            {asistencia.disciplina} -{" "}
+            {new Date(asistencia.anio, asistencia.mes - 1).toLocaleDateString("es", {
+              month: "long",
+              year: "numeric",
+            })}
+          </h2>
+          <Tabla
+            encabezados={[
+              "Nombre",
+              ...getSabadosDelMes(mes, anio).map((sabado) =>
+                sabado.getDate().toString()
+              ),
+              "Observaciones",
+            ]}
+            datos={asistencia.alumnos}
+            acciones={() => <></>}
+            extraRender={(alumno) => [
+              `${alumno.apellido}, ${alumno.nombre}`,
+              ...getSabadosDelMes(mes, anio).map((sabado, index) => {
+                const fecha = sabado.toISOString().split("T")[0];
+                const asistenciaDiaria = asistencia.asistenciasDiarias.find(
+                  (ad) => ad.alumnoId === alumno.id && ad.fecha === fecha
+                );
+                return (
+                  <input
+                    key={index}
+                    type="checkbox"
+                    checked={
+                      asistenciaDiaria?.estado === EstadoAsistencia.Presente
+                    }
+                    onChange={() => toggleAsistencia(alumno.id, fecha)}
+                    className="form-checkbox"
+                  />
+                );
+              }),
+              <input
+                type="text"
+                key={alumno.id}
+                value={observaciones[alumno.id] || ""}
+                onChange={(e) =>
+                  handleObservacionChange(alumno.id, e.target.value)
                 }
-                className="page-button-secondary"
-                aria-label={`Editar asistencia de ${fila.alumno.nombre} en ${fila.disciplina.nombre}`}
-              >
-                <Pencil className="w-4 h-4 mr-2" />
-                Editar
-              </Boton>
-              <Boton
-                onClick={() => eliminarAsistencia(fila.id)}
-                className="page-button-danger"
-                aria-label={`Eliminar asistencia de ${fila.alumno.nombre}`}
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Eliminar
-              </Boton>
-            </div>
-          )}
-          extraRender={(fila) => [
-            fila.id,
-            `${fila.alumno.nombre} ${fila.alumno.apellido}`,
-            fila.disciplina.nombre,
-            fila.profesor
-              ? `${fila.profesor.nombre} ${fila.profesor.apellido}`
-              : "N/A",
-            fila.fecha,
-            fila.presente ? "Sí" : "No",
-            fila.alumno.activo ? "Activo" : "Inactivo", // ✅ Mostrar estado del alumno
-          ]}
-        />
-      </div>
-      {pageCount > 1 && (
-        <ReactPaginate
-          previousLabel={"← Anterior"}
-          nextLabel={"Siguiente →"}
-          breakLabel={"..."}
-          pageCount={pageCount}
-          onPageChange={handlePageClick}
-          containerClassName={"pagination"}
-          activeClassName={"active"}
-          disabledClassName={"disabled"}
-        />
-      )}
+                className="form-input"
+                placeholder="Observaciones..."
+              />,
+            ]}
+          />
+        </div>
+      ) : selectedPD > 0 ? (
+        <div className="text-center py-4">
+          No se encontraron datos para el período seleccionado
+        </div>
+      ) : null}
     </div>
   );
 };
 
-export default Asistencias;
+export default AsistenciasPage;

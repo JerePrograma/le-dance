@@ -1,8 +1,9 @@
 package ledance.controladores;
 
+import ledance.dto.request.ProfesorModificacionRequest;
 import ledance.dto.request.ProfesorRegistroRequest;
-import ledance.dto.response.DatosRegistroProfesorResponse;
-import ledance.dto.response.DisciplinaResponse;
+import ledance.dto.response.DisciplinaListadoResponse;
+import ledance.dto.response.ProfesorDetalleResponse;
 import ledance.dto.response.ProfesorListadoResponse;
 import ledance.servicios.ProfesorServicio;
 import org.slf4j.Logger;
@@ -19,53 +20,82 @@ import java.util.List;
 public class ProfesorControlador {
 
     private static final Logger log = LoggerFactory.getLogger(ProfesorControlador.class);
-    private final ProfesorServicio profesorService;
+    private final ProfesorServicio profesorServicio;
 
-    public ProfesorControlador(ProfesorServicio profesorService) {
-        this.profesorService = profesorService;
+    public ProfesorControlador(ProfesorServicio profesorServicio) {
+        this.profesorServicio = profesorServicio;
     }
 
+    /**
+     * ✅ Registrar un nuevo profesor.
+     */
     @PostMapping
-    public ResponseEntity<DatosRegistroProfesorResponse> registrarProfesor(@RequestBody @Validated ProfesorRegistroRequest request) {
+    public ResponseEntity<ProfesorDetalleResponse> registrarProfesor(@RequestBody @Validated ProfesorRegistroRequest request) {
         log.info("Registrando profesor: {} {}", request.nombre(), request.apellido());
-        DatosRegistroProfesorResponse response = profesorService.registrarProfesor(request);
+        ProfesorDetalleResponse response = profesorServicio.registrarProfesor(request);
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * ✅ Obtener un profesor por ID.
+     */
     @GetMapping("/{id}")
-    public ResponseEntity<DatosRegistroProfesorResponse> obtenerProfesorPorId(@PathVariable Long id) {
-        DatosRegistroProfesorResponse response = profesorService.obtenerProfesorPorId(id);
+    public ResponseEntity<ProfesorDetalleResponse> obtenerProfesorPorId(@PathVariable Long id) {
+        ProfesorDetalleResponse response = profesorServicio.obtenerProfesorPorId(id);
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * ✅ Listar todos los profesores.
+     */
     @GetMapping
-    public ResponseEntity<List<DatosRegistroProfesorResponse>> listarProfesores() {
-        List<DatosRegistroProfesorResponse> respuesta = profesorService.listarProfesores();
-        return ResponseEntity.ok(respuesta);
+    public ResponseEntity<List<ProfesorListadoResponse>> listarProfesores() {
+        List<ProfesorListadoResponse> profesores = profesorServicio.listarProfesores();
+        return ResponseEntity.ok(profesores);
     }
 
-    @PatchMapping("/{id}/asignar-usuario")
-    public ResponseEntity<String> asignarUsuario(@PathVariable Long id, @RequestParam Long usuarioId) {
-        profesorService.asignarUsuario(id, usuarioId);
-        return ResponseEntity.ok("Usuario asignado al profesor correctamente.");
+    /**
+     * ✅ Listar profesores activos.
+     */
+    @GetMapping("/activos")
+    public ResponseEntity<List<ProfesorListadoResponse>> listarProfesoresActivos() {
+        List<ProfesorListadoResponse> profesores = profesorServicio.listarProfesoresActivos();
+        return ResponseEntity.ok(profesores);
     }
 
-    @PatchMapping("/{profesorId}/asignar-disciplina/{disciplinaId}")
-    public ResponseEntity<String> asignarDisciplina(@PathVariable Long profesorId, @PathVariable Long disciplinaId) {
-        profesorService.asignarDisciplina(profesorId, disciplinaId);
-        return ResponseEntity.ok("Disciplina asignada al profesor correctamente.");
+    /**
+     * ✅ Buscar profesores por nombre.
+     */
+    @GetMapping("/buscar")
+    public ResponseEntity<List<ProfesorListadoResponse>> buscarPorNombre(@RequestParam String nombre) {
+        List<ProfesorListadoResponse> profesores = profesorServicio.buscarPorNombre(nombre);
+        return ResponseEntity.ok(profesores);
     }
 
-    @GetMapping("/simplificados")
-    public ResponseEntity<List<ProfesorListadoResponse>> listarProfesoresSimplificados() {
-        List<ProfesorListadoResponse> respuesta = profesorService.listarProfesoresSimplificados();
-        return ResponseEntity.ok(respuesta);
+    /**
+     * ✅ Actualizar un profesor.
+     */
+    @PutMapping("/{id}")
+    public ResponseEntity<ProfesorDetalleResponse> actualizarProfesor(@PathVariable Long id,
+                                                                      @RequestBody @Validated ProfesorModificacionRequest request) {
+        log.info("Actualizando profesor con id: {}", id);
+        ProfesorDetalleResponse response = profesorServicio.actualizarProfesor(id, request);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * ✅ Eliminar un profesor (baja lógica).
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> eliminarProfesor(@PathVariable Long id) {
+        log.info("Eliminando profesor con id: {}", id);
+        profesorServicio.eliminarProfesor(id);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{profesorId}/disciplinas")
-    public ResponseEntity<List<DisciplinaResponse>> obtenerDisciplinasDeProfesor(@PathVariable Long profesorId) {
-        List<DisciplinaResponse> disciplinas = profesorService.obtenerDisciplinasDeProfesor(profesorId);
+    public ResponseEntity<List<DisciplinaListadoResponse>> obtenerDisciplinasDeProfesor(@PathVariable Long profesorId) {
+        List<DisciplinaListadoResponse> disciplinas = profesorServicio.obtenerDisciplinasDeProfesor(profesorId);
         return ResponseEntity.ok(disciplinas);
     }
-
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import api from "../utilidades/axiosConfig";
+import api from "../api/axiosConfig";
 import Tabla from "./comunes/Tabla";
 import Boton from "./comunes/Boton";
 import { X } from "lucide-react";

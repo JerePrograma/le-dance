@@ -1,27 +1,35 @@
 package ledance.repositorios;
 
-import jakarta.validation.constraints.NotNull;
 import ledance.entidades.Alumno;
 import ledance.entidades.Disciplina;
+import ledance.entidades.Profesor;
+import ledance.entidades.DiaSemana;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface DisciplinaRepositorio extends JpaRepository<Disciplina, Long> {
+
     boolean existsByNombre(String nombre);
 
-    boolean existsByNombreAndHorario(@NotNull String nombre, String horario);
-
-    @Query("SELECT d FROM Disciplina d WHERE LOWER(d.horario) LIKE %:diaSemana%")
-    List<Disciplina> findDisciplinasPorDia(@Param("diaSemana") String diaSemana);
+    boolean existsByNombreAndHorarioInicio(String nombre, LocalTime horarioInicio);
 
     List<Disciplina> findByActivoTrue();
 
-    @Query("SELECT i.alumno FROM Inscripcion i WHERE i.disciplina.id = :disciplinaId")
+    @Query("SELECT d FROM Disciplina d WHERE :diaSemana MEMBER OF d.diasSemana AND d.activo = true")
+    List<Disciplina> findDisciplinasPorDiaSemana(@Param("diaSemana") DiaSemana diaSemana);
+
+    @Query("SELECT i.alumno FROM Inscripcion i WHERE i.disciplina.id = :disciplinaId AND i.alumno.activo = true")
     List<Alumno> findAlumnosPorDisciplina(@Param("disciplinaId") Long disciplinaId);
 
+    @Query("SELECT d.profesor FROM Disciplina d WHERE d.id = :disciplinaId AND d.activo = true")
+    Optional<Profesor> findProfesorPorDisciplina(@Param("disciplinaId") Long disciplinaId);
+
+    List<Disciplina> findByHorarioInicio(LocalTime horarioInicio);
 }

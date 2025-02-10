@@ -1,14 +1,17 @@
 package ledance.servicios;
 
 import ledance.dto.mappers.AlumnoMapper;
+import ledance.dto.mappers.DisciplinaMapper;
 import ledance.dto.mappers.ProfesorMapper;
-import ledance.dto.request.DisciplinaRequest;
+import ledance.dto.request.DisciplinaModificacionRequest;
+import ledance.dto.request.DisciplinaRegistroRequest;
 import ledance.dto.response.AlumnoListadoResponse;
-import ledance.dto.response.DisciplinaResponse;
+import ledance.dto.response.DisciplinaDetalleResponse;
+import ledance.dto.response.DisciplinaListadoResponse;
 import ledance.dto.response.ProfesorListadoResponse;
+import ledance.entidades.DiaSemana;
 import ledance.entidades.Disciplina;
 import ledance.entidades.Profesor;
-import ledance.dto.mappers.DisciplinaMapper;
 import ledance.repositorios.DisciplinaRepositorio;
 import ledance.repositorios.ProfesorRepositorio;
 import jakarta.transaction.Transactional;
@@ -18,7 +21,10 @@ import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.util.List;
+import java.time.LocalTime;
+import java.time.YearMonth;
+import java.time.format.DateTimeParseException;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -34,7 +40,9 @@ public class DisciplinaServicio implements IDisciplinaServicio {
 
     public DisciplinaServicio(DisciplinaRepositorio disciplinaRepositorio,
                               ProfesorRepositorio profesorRepositorio,
-                              DisciplinaMapper disciplinaMapper, AlumnoMapper alumnoMapper, ProfesorMapper profesorMapper) {
+                              DisciplinaMapper disciplinaMapper,
+                              AlumnoMapper alumnoMapper,
+                              ProfesorMapper profesorMapper) {
         this.disciplinaRepositorio = disciplinaRepositorio;
         this.profesorRepositorio = profesorRepositorio;
         this.disciplinaMapper = disciplinaMapper;
@@ -42,90 +50,152 @@ public class DisciplinaServicio implements IDisciplinaServicio {
         this.profesorMapper = profesorMapper;
     }
 
+    /**
+     * ✅ Registrar una nueva disciplina.
+     */
     @Override
     @Transactional
-    public DisciplinaResponse crearDisciplina(DisciplinaRequest requestDTO) {
-        log.info("Creando disciplina: {}", requestDTO.nombre());
-        if (disciplinaRepositorio.existsByNombre(requestDTO.nombre())) {
-            throw new IllegalArgumentException("Ya existe una disciplina con el mismo nombre.");
+    public DisciplinaDetalleResponse crearDisciplina(DisciplinaRegistroRequest requestDTO) {
+        log.info("Creando disciplina: {} a las {}", requestDTO.nombre(), requestDTO.horarioInicio());
+
+        if (disciplinaRepositorio.existsByNombreAndHorarioInicio(requestDTO.nombre(), requestDTO.horarioInicio())) {
+            throw new IllegalArgumentException("Ya existe una disciplina con el mismo nombre y horario.");
         }
+
         Profesor profesor = profesorRepositorio.findById(requestDTO.profesorId())
                 .orElseThrow(() -> new IllegalArgumentException("Profesor no encontrado."));
-        // AquI puedes agregar validaciones adicionales de horario si lo deseas.
+
         Disciplina disciplina = disciplinaMapper.toEntity(requestDTO);
         disciplina.setProfesor(profesor);
+
         Disciplina guardada = disciplinaRepositorio.save(disciplina);
-        return disciplinaMapper.toDTO(guardada);
+        return disciplinaMapper.toDetalleResponse(guardada);
     }
 
     @Override
-    public List<DisciplinaResponse> listarDisciplinas() {
-        return disciplinaRepositorio.findAll().stream()
-                .map(disciplinaMapper::toDTO)
+    public List<DisciplinaDetalleResponse> listarDisciplinas() {
+        return disciplinaRepositorio.findByActivoTrue().stream()
+                .map(disciplinaMapper::toDetalleResponse)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public DisciplinaResponse obtenerDisciplinaPorId(Long id) {
+    public List<DisciplinaListadoResponse> listarDisciplinasSimplificadas() {
+        return disciplinaRepositorio.findByActivoTrue().stream()
+                .map(disciplinaMapper::toListadoResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public DisciplinaDetalleResponse obtenerDisciplinaPorId(Long id) {
         Disciplina disciplina = disciplinaRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Disciplina no encontrada."));
-        return disciplinaMapper.toDTO(disciplina);
+        return disciplinaMapper.toDetalleResponse(disciplina);
     }
 
     @Override
     @Transactional
-    public DisciplinaResponse actualizarDisciplina(Long id, DisciplinaRequest requestDTO) {
+    public DisciplinaDetalleResponse actualizarDisciplina(Long id, DisciplinaModificacionRequest requestDTO) {
         log.info("Actualizando disciplina con id: {}", id);
+
         Disciplina existente = disciplinaRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Disciplina no encontrada."));
         Profesor profesor = profesorRepositorio.findById(requestDTO.profesorId())
                 .orElseThrow(() -> new IllegalArgumentException("Profesor no encontrado."));
-        // Se puede utilizar el mapper para crear una nueva entidad, pero luego es necesario mantener el id
-        Disciplina disciplinaActualizada = disciplinaMapper.toEntity(requestDTO);
-        disciplinaActualizada.setId(id);
-        disciplinaActualizada.setProfesor(profesor);
-        Disciplina guardada = disciplinaRepositorio.save(disciplinaActualizada);
-        return disciplinaMapper.toDTO(guardada);
+
+        // 🔹 Aplicar cambios y guardar
+        disciplinaMapper.updateEntityFromRequest(requestDTO, existente);
+        existente.setProfesor(profesor);
+        return disciplinaMapper.toDetalleResponse(disciplinaRepositorio.save(existente));
     }
 
     @Override
     @Transactional
     public void eliminarDisciplina(Long id) {
-        if (!disciplinaRepositorio.existsById(id)) {
-            throw new IllegalArgumentException("Disciplina no encontrada.");
-        }
         Disciplina disciplina = disciplinaRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Disciplina no encontrada."));
+
+        log.info("Dando de baja la disciplina con id: {}", id);
         disciplina.setActivo(false);
         disciplinaRepositorio.save(disciplina);
     }
 
+    public List<LocalDate> obtenerDiasClase(Long disciplinaId, Integer mes, Integer anio) {
+        Disciplina disciplina = disciplinaRepositorio.findById(disciplinaId)
+                .orElseThrow(() -> new IllegalArgumentException("No se encontró la disciplina con ID: " + disciplinaId));
+
+        Map<String, DayOfWeek> traduccionDias = Map.of(
+                "LUNES", DayOfWeek.MONDAY,
+                "MARTES", DayOfWeek.TUESDAY,
+                "MIERCOLES", DayOfWeek.WEDNESDAY,
+                "JUEVES", DayOfWeek.THURSDAY,
+                "VIERNES", DayOfWeek.FRIDAY,
+                "SABADO", DayOfWeek.SATURDAY,
+                "DOMINGO", DayOfWeek.SUNDAY
+        );
+
+        Set<DayOfWeek> diasSemana = disciplina.getDiasSemana().stream()
+                .map(d -> traduccionDias.get(d.name().toUpperCase()))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        List<LocalDate> fechas = new ArrayList<>();
+        YearMonth yearMonth = YearMonth.of(anio, mes);
+        for (int dia = 1; dia <= yearMonth.lengthOfMonth(); dia++) {
+            LocalDate fecha = LocalDate.of(anio, mes, dia);
+            if (diasSemana.contains(fecha.getDayOfWeek())) {
+                fechas.add(fecha);
+            }
+        }
+        return fechas;
+    }
+
+
     @Override
-    public List<DisciplinaResponse> obtenerDisciplinasPorFecha(String fecha) {
-        return disciplinaRepositorio.findAll().stream()
-                .filter(d -> {
-                    LocalDate targetDate = LocalDate.parse(fecha);
-                    DayOfWeek dayOfWeek = targetDate.getDayOfWeek();
-                    return d.getHorario() != null && d.getHorario().toLowerCase().contains(dayOfWeek.name().toLowerCase());
-                })
-                .map(disciplinaMapper::toDTO)
+    public List<DisciplinaListadoResponse> obtenerDisciplinasPorFecha(String fecha) {
+        try {
+            // Convertir la fecha a LocalDate
+            LocalDate targetDate = LocalDate.parse(fecha);
+            DiaSemana diaSemana = DiaSemana.valueOf(targetDate.getDayOfWeek().name());
+
+            // Buscar disciplinas que se imparten en ese dia de la semana
+            List<Disciplina> disciplinas = disciplinaRepositorio.findDisciplinasPorDiaSemana(diaSemana);
+
+            // Mapear a DisciplinaListadoResponse
+            return disciplinas.stream()
+                    .map(disciplinaMapper::toListadoResponse)
+                    .collect(Collectors.toList());
+
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException("Formato de fecha invalido. Use 'YYYY-MM-DD'.");
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("El dia de la semana no es valido.");
+        }
+    }
+
+
+    /**
+     * ✅ Obtener disciplinas por horario de inicio.
+     */
+    @Override
+    public List<DisciplinaListadoResponse> obtenerDisciplinasPorHorario(LocalTime horarioInicio) {
+        return disciplinaRepositorio.findByHorarioInicio(horarioInicio).stream()
+                .map(disciplinaMapper::toListadoResponse)
                 .collect(Collectors.toList());
     }
 
     @Override
     public List<AlumnoListadoResponse> obtenerAlumnosDeDisciplina(Long disciplinaId) {
-        Disciplina disciplina = disciplinaRepositorio.findById(disciplinaId)
-                .orElseThrow(() -> new IllegalArgumentException("Disciplina no encontrada."));
-        return disciplina.getInscripciones().stream()
-                .map(inscripcion -> alumnoMapper.toListadoResponse(inscripcion.getAlumno()))
+        return disciplinaRepositorio.findAlumnosPorDisciplina(disciplinaId).stream()
+                .map(alumnoMapper::toListadoResponse)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public List<ProfesorListadoResponse> obtenerProfesoresDeDisciplina(Long disciplinaId) {
-        Disciplina disciplina = disciplinaRepositorio.findById(disciplinaId)
-                .orElseThrow(() -> new IllegalArgumentException("Disciplina no encontrada."));
-        return List.of(profesorMapper.toListadoDTO(disciplina.getProfesor()));
-    }
+    public ProfesorListadoResponse obtenerProfesorDeDisciplina(Long disciplinaId) {
+        Optional<Profesor> profesor = disciplinaRepositorio.findProfesorPorDisciplina(disciplinaId);
 
+        return profesor.map(profesorMapper::toListadoResponse)
+                .orElseThrow(() -> new IllegalArgumentException("No se encontro profesor para la disciplina."));
+    }
 }

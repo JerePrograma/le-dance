@@ -2,9 +2,7 @@ package ledance.infra.seguridad;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
-import com.auth0.jwt.exceptions.TokenExpiredException;
 import com.auth0.jwt.exceptions.JWTVerificationException;
-import com.auth0.jwt.exceptions.JWTCreationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import ledance.entidades.Usuario;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,17 +18,14 @@ public class TokenService {
     @Value("${jwt.secret}")
     private String secret;
 
-    // Genera un Access Token (corto plazo), p. ej. 2 horas
     public String generarAccessToken(Usuario usuario) {
         return generarToken(usuario, 2, "ACCESS");
     }
 
-    // Genera un Refresh Token (largo plazo), p. ej. 7 dIas
     public String generarRefreshToken(Usuario usuario) {
         return generarToken(usuario, 24 * 7, "REFRESH");
     }
 
-    // Metodo privado para crear un token con un "claim" de tipo (ACCESS o REFRESH)
     private String generarToken(Usuario usuario, int horas, String tipo) {
         try {
             Algorithm algorithm = Algorithm.HMAC256(secret);
@@ -39,17 +34,17 @@ public class TokenService {
                     .withSubject(usuario.getEmail())
                     .withClaim("id", usuario.getId())
                     .withClaim("type", tipo)
+                    .withClaim("rol", usuario.getRol().getDescripcion()) // ✅ Añadir rol al token
                     .withExpiresAt(generarFechaExpiracion(horas))
                     .sign(algorithm);
-
-        } catch (JWTCreationException e) {
+        } catch (Exception e) {
             throw new RuntimeException("Error al generar el token", e);
         }
     }
 
     public String getSubject(String token) {
-        if (token == null) {
-            throw new RuntimeException("El token es nulo");
+        if (token == null || token.isEmpty()) {
+            throw new RuntimeException("El token es nulo o vacío");
         }
         try {
             Algorithm algorithm = Algorithm.HMAC256(secret);
@@ -58,14 +53,28 @@ public class TokenService {
                     .build()
                     .verify(token);
             return verifier.getSubject();
-        } catch (TokenExpiredException e) {
-            throw new RuntimeException("El token ha expirado", e);
         } catch (JWTVerificationException e) {
-            throw new RuntimeException("Token invalido o no verificable", e);
+            throw new RuntimeException("Token inválido o expirado", e);
         }
     }
 
-    // Opcional: para verificar si es Access o Refresh
+    public String getRolFromToken(String token) {
+        try {
+            Algorithm algorithm = Algorithm.HMAC256(secret);
+            DecodedJWT verifier = JWT.require(algorithm)
+                    .withIssuer("ledance")
+                    .build()
+                    .verify(token);
+            return verifier.getClaim("rol").asString();
+        } catch (JWTVerificationException e) {
+            throw new RuntimeException("Error al obtener el rol del token", e);
+        }
+    }
+
+    private Instant generarFechaExpiracion(int horas) {
+        return LocalDateTime.now().plusHours(horas).toInstant(ZoneOffset.of("-03:00"));
+    }
+
     public String getTokenType(String token) {
         try {
             Algorithm algorithm = Algorithm.HMAC256(secret);
@@ -73,15 +82,10 @@ public class TokenService {
                     .withIssuer("ledance")
                     .build()
                     .verify(token);
-            return verifier.getClaim("type").asString(); // "ACCESS" o "REFRESH"
-        } catch (TokenExpiredException e) {
-            throw new RuntimeException("El token ha expirado", e);
+            return verifier.getClaim("type").asString(); // ✅ Extraer tipo de token
         } catch (JWTVerificationException e) {
-            throw new RuntimeException("Token invalido o no verificable", e);
+            throw new RuntimeException("Error al obtener el tipo de token", e);
         }
     }
 
-    private Instant generarFechaExpiracion(int horas) {
-        return LocalDateTime.now().plusHours(horas).toInstant(ZoneOffset.of("-03:00"));
-    }
 }

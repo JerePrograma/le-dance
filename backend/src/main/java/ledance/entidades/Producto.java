@@ -30,6 +30,8 @@ public class Producto {
 
     private Boolean requiereControlDeStock;
 
+    private String codigoBarras;
+
     @Column(nullable = false)
     private Boolean activo = true;
 }

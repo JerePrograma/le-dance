@@ -64,5 +64,6 @@ public class AutenticacionControlador {
         }
     }
 
-    record TokensDTO(String accessToken, String refreshToken) {}
+    record TokensDTO(String accessToken, String refreshToken) {
+    }
 }

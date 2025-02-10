@@ -6,7 +6,7 @@ import React, {
   ReactNode,
 } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../../utilidades/axiosConfig";
+import api from "../../api/axiosConfig";
 
 interface AuthContextProps {
   isAuth: boolean;
@@ -38,14 +38,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Revisar localStorage
     const storedAccess = localStorage.getItem("accessToken");
     const storedRefresh = localStorage.getItem("refreshToken");
+
     if (storedAccess && storedRefresh) {
       setAccessToken(storedAccess);
       setRefreshToken(storedRefresh);
       setIsAuth(true);
     }
+
     setLoading(false);
   }, []);
 
@@ -60,7 +61,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
   const login = async (email: string, contrasena: string): Promise<void> => {
     const { data } = await api.post("/api/login", { email, contrasena });
-    // data = { accessToken, refreshToken }
+
     localStorage.setItem("accessToken", data.accessToken);
     localStorage.setItem("refreshToken", data.refreshToken);
 

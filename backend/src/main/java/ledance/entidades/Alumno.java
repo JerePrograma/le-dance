@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.Period;
 import java.util.List;
 
 @Entity
@@ -28,11 +29,11 @@ public class Alumno {
 
     private LocalDate fechaNacimiento;
 
-    private Integer edad; // Se recalcula en el servicio
+    /** ✅ Se almacenará en la BD y se actualizará automáticamente */
+    private Integer edad;
 
     private String celular1;
     private String celular2;
-    private String telefono;
 
     @Email
     private String email1;
@@ -46,16 +47,21 @@ public class Alumno {
     @NotNull
     private LocalDate fechaIncorporacion;
 
+    private LocalDate fechaDeBaja; // ✅ NUEVO: Filtrar alumnos dados de baja
+
+    private Boolean deudaPendiente = false; // ✅ NUEVO: Identificar si debe cuotas
+
     private String nombrePadres;
     private Boolean autorizadoParaSalirSolo;
     private String otrasNotas;
 
-    private Double cuotaTotal; // Si deseas persistir la suma final
+    private Double cuotaTotal; // Suma final de cuotas
 
     @Column(nullable = false)
     private Boolean activo = true;
 
     @OneToMany(mappedBy = "alumno", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Inscripcion> inscripciones;
+
 
 }

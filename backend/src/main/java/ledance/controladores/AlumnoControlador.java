@@ -1,10 +1,12 @@
 package ledance.controladores;
 
-import ledance.dto.request.AlumnoRequest;
+import jakarta.validation.Valid;
+import ledance.dto.request.AlumnoModificacionRequest;
+import ledance.dto.request.AlumnoRegistroRequest;
+import ledance.dto.response.AlumnoDetalleResponse;
 import ledance.dto.response.AlumnoListadoResponse;
-import ledance.dto.response.AlumnoResponse;
-import ledance.dto.response.DisciplinaResponse;
-import ledance.servicios.IAlumnoServicio;
+import ledance.dto.response.DisciplinaListadoResponse;
+import ledance.servicios.AlumnoServicio;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -19,42 +21,43 @@ import java.util.List;
 public class AlumnoControlador {
 
     private static final Logger log = LoggerFactory.getLogger(AlumnoControlador.class);
-    private final IAlumnoServicio alumnoServicio;
+    private final AlumnoServicio alumnoServicio;
 
-    public AlumnoControlador(IAlumnoServicio alumnoServicio) {
+    public AlumnoControlador(AlumnoServicio alumnoServicio) {
         this.alumnoServicio = alumnoServicio;
     }
 
     @PostMapping
-    public ResponseEntity<AlumnoResponse> registrarAlumno(@RequestBody @Validated AlumnoRequest requestDTO) {
+    public ResponseEntity<AlumnoDetalleResponse> registrarAlumno(@Valid @RequestBody AlumnoRegistroRequest requestDTO) {
         log.info("Registrando alumno: {}", requestDTO.nombre());
-        AlumnoResponse response = alumnoServicio.registrarAlumno(requestDTO);
+        AlumnoDetalleResponse response = alumnoServicio.registrarAlumno(requestDTO);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping
-    public ResponseEntity<List<AlumnoResponse>> listarAlumnos() {
-        List<AlumnoResponse> alumnos = alumnoServicio.listarAlumnos();
+    public ResponseEntity<List<AlumnoListadoResponse>> listarAlumnos() {
+        List<AlumnoListadoResponse> alumnos = alumnoServicio.listarAlumnos();
         return ResponseEntity.ok(alumnos);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<AlumnoResponse> obtenerAlumnoPorId(@PathVariable Long id) {
-        AlumnoResponse alumno = alumnoServicio.obtenerAlumnoPorId(id);
+    public ResponseEntity<AlumnoDetalleResponse> obtenerAlumnoPorId(@PathVariable Long id) {
+        AlumnoDetalleResponse alumno = alumnoServicio.obtenerAlumnoPorId(id);
         return ResponseEntity.ok(alumno);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<AlumnoResponse> actualizarAlumno(@PathVariable Long id,
-                                                           @RequestBody @Validated AlumnoRequest requestDTO) {
-        AlumnoResponse alumno = alumnoServicio.actualizarAlumno(id, requestDTO);
+    public ResponseEntity<AlumnoDetalleResponse> actualizarAlumno(@PathVariable Long id,
+                                                                  @RequestBody @Validated AlumnoModificacionRequest requestDTO) {
+        AlumnoDetalleResponse alumno = alumnoServicio.actualizarAlumno(id, requestDTO);
         return ResponseEntity.ok(alumno);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> eliminarAlumno(@PathVariable Long id) {
-        alumnoServicio.eliminarAlumno(id);
-        return ResponseEntity.ok("Alumno eliminado (baja logica) exitosamente.");
+    public ResponseEntity<Void> darBajaAlumno(@PathVariable Long id) {
+        log.info("Dando de baja al alumno con id: {}", id);
+        alumnoServicio.darBajaAlumno(id);
+        return ResponseEntity.noContent().build(); // ✅ 204 No Content
     }
 
     @GetMapping("/listado")
@@ -70,8 +73,8 @@ public class AlumnoControlador {
     }
 
     @GetMapping("/{alumnoId}/disciplinas")
-    public ResponseEntity<List<DisciplinaResponse>> obtenerDisciplinasDeAlumno(@PathVariable Long alumnoId) {
-        List<DisciplinaResponse> disciplinas = alumnoServicio.obtenerDisciplinasDeAlumno(alumnoId);
+    public ResponseEntity<List<DisciplinaListadoResponse>> obtenerDisciplinasDeAlumno(@PathVariable Long alumnoId) {
+        List<DisciplinaListadoResponse> disciplinas = alumnoServicio.obtenerDisciplinasDeAlumno(alumnoId);
         return ResponseEntity.ok(disciplinas);
     }
 
