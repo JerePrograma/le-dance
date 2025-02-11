@@ -56,12 +56,12 @@ export default function AsistenciaMensualGrid({
     }
   };
 
-  // Función debounce sencilla (sin dependencias externas)
+  // Debounce simple sin dependencias externas
   function debounce<T extends (...args: any[]) => void>(fn: T, delay: number): T {
-    let timer: ReturnType<typeof setTimeout>;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
     return function (...args: any[]) {
-      if (timer) clearTimeout(timer);
-      timer = setTimeout(() => fn(...args), delay);
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => fn(...args), delay);
     } as T;
   }
 

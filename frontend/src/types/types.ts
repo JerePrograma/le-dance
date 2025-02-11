@@ -119,6 +119,11 @@ export interface AlumnoDetalleResponse {
   inscripciones: InscripcionResponse[];
 }
 
+export interface Alumno {
+  id: number;
+  nombre: string;
+  apellido: string;
+}
 // ==========================================
 // Profesor
 // ==========================================
@@ -238,6 +243,24 @@ export interface DisciplinaDetalleResponse {
 export enum EstadoAsistencia {
   PRESENTE = "PRESENTE",
   AUSENTE = "AUSENTE",
+}
+
+export interface AsistenciaDiaria {
+  id: number;
+  fecha: string;
+  estado: EstadoAsistencia;
+  alumnoId: number;
+  asistenciaMensualId: number;
+  observacion?: string;
+}
+
+export interface AsistenciaMensualDetalleRequest {
+  id: number;
+  disciplina: string;
+  mes: number;
+  anio: number;
+  alumnos: Alumno[];
+  asistenciasDiarias: AsistenciaDiaria[];
 }
 
 export type AsistenciaMensualRegistroRequest = {

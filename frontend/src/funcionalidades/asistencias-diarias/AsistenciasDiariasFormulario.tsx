@@ -22,38 +22,14 @@ import {
   TableRow,
 } from "../../componentes/ui/table";
 import { Input } from "../../componentes/ui/input";
-import { EstadoAsistencia } from "../../types/types";
-
-interface Alumno {
-  id: number;
-  nombre: string;
-  apellido: string;
-}
-
-interface AsistenciaDiaria {
-  id: number;
-  fecha: string;
-  estado: EstadoAsistencia;
-  alumnoId: number;
-  asistenciaMensualId: number;
-  observacion?: string;
-}
-
-interface AsistenciaMensualDetalle {
-  id: number;
-  disciplina: string;
-  mes: number;
-  anio: number;
-  alumnos: Alumno[];
-  asistenciasDiarias: AsistenciaDiaria[];
-}
+import { AsistenciaDiaria, AsistenciaMensualDetalleRequest, EstadoAsistencia } from "../../types/types";
 
 const AsistenciaDiariaFormulario = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
   const [asistenciaMensual, setAsistenciaMensual] =
-    useState<AsistenciaMensualDetalle | null>(null);
+    useState<AsistenciaMensualDetalleRequest | null>(null);
   const [asistenciasDiarias, setAsistenciasDiarias] = useState<
     AsistenciaDiaria[]
   >([]);
@@ -69,7 +45,7 @@ const AsistenciaDiariaFormulario = () => {
     if (!id) return;
     setLoading(true);
     try {
-      const response = await api.get<AsistenciaMensualDetalle>(
+      const response = await api.get<AsistenciaMensualDetalleRequest>(
         `/api/asistencias-mensuales/${id}/detalle`
       );
 
@@ -104,10 +80,8 @@ const AsistenciaDiariaFormulario = () => {
   /** 🔹 Alternar asistencia */
   const toggleAsistencia = async (alumnoId: number, fecha: string) => {
     if (!asistenciaMensual) return;
-
     const registro = asistenciasDiarias.find(a => a.alumnoId === alumnoId && a.fecha === fecha);
     if (!registro) return;
-
     const nuevoEstado = registro.estado === EstadoAsistencia.PRESENTE ? EstadoAsistencia.AUSENTE : EstadoAsistencia.PRESENTE;
 
     // Actualización optimista
@@ -118,22 +92,21 @@ const AsistenciaDiariaFormulario = () => {
     try {
       await asistenciasApi.registrarAsistenciaDiaria({
         id: registro.id,
-        fecha: registro.fecha,             // Valor actual de fecha
-        estado: nuevoEstado,               // Utilizamos el nuevo estado calculado
-        alumnoId: registro.alumnoId,         // Campo obligatorio
-        asistenciaMensualId: registro.asistenciaMensualId, // Campo obligatorio
+        fecha: registro.fecha,
+        estado: nuevoEstado,
+        alumnoId: registro.alumnoId,
+        asistenciaMensualId: registro.asistenciaMensualId,
         observacion: registro.observacion || "",
       });
       toast.success("Asistencia actualizada");
     } catch (error) {
       toast.error("Error al actualizar la asistencia.");
-      // Revertir el cambio en caso de error
+      // Revertir cambio en caso de error
       setAsistenciasDiarias(prev =>
         prev.map(a => a.id === registro.id ? { ...a, estado: registro.estado } : a)
       );
     }
   };
-
 
   const handleObservacionChange = (alumnoId: number, observacion: string) => {
     setObservaciones((prev) => ({ ...prev, [alumnoId]: observacion }));

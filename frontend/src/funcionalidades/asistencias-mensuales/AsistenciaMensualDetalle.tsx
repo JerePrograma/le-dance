@@ -8,36 +8,13 @@ import { Button } from "../../componentes/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../componentes/ui/table";
 import { Input } from "../../componentes/ui/input";
 import asistenciasApi from "../../api/asistenciasApi";
-import { EstadoAsistencia } from "../../types/types";
-
-interface Alumno {
-  id: number;
-  nombre: string;
-  apellido: string;
-}
-
-interface AsistenciaDiaria {
-  id: number;
-  fecha: string;
-  estado: EstadoAsistencia;
-  alumnoId: number;
-  observacion?: string;
-}
-
-interface AsistenciaMensualDetalle {
-  id: number;
-  disciplina: string;
-  mes: number;
-  anio: number;
-  alumnos: Alumno[];
-  asistenciasDiarias: AsistenciaDiaria[];
-}
+import { AsistenciaDiaria, EstadoAsistencia, AsistenciaMensualDetalleRequest } from "../../types/types";
 
 const AsistenciaMensualDetalle: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const [asistenciaMensual, setAsistenciaMensual] = useState<AsistenciaMensualDetalle | null>(null);
+  const [asistenciaMensual, setAsistenciaMensual] = useState<AsistenciaMensualDetalleRequest | null>(null);
   const [asistenciasDiarias, setAsistenciasDiarias] = useState<AsistenciaDiaria[]>([]);
   const [diasClase, setDiasClase] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,7 +25,7 @@ const AsistenciaMensualDetalle: React.FC = () => {
     if (!id) return;
     setLoading(true);
     try {
-      const response = await api.get<AsistenciaMensualDetalle>(`/api/asistencias-mensuales/${id}/detalle`);
+      const response = await api.get<AsistenciaMensualDetalleRequest>(`/api/asistencias-mensuales/${id}/detalle`);
       const data = response.data;
       setAsistenciaMensual(data);
       setAsistenciasDiarias(data.asistenciasDiarias);
@@ -80,28 +57,30 @@ const AsistenciaMensualDetalle: React.FC = () => {
   // Función para alternar la asistencia usando el valor actual de fecha
   const toggleAsistencia = async (alumnoId: number, fecha: string) => {
     if (!asistenciaMensual) return;
-    const asistencia = asistenciasDiarias.find(a => a.alumnoId === alumnoId && a.fecha === fecha);
-    if (!asistencia) return;
-    const nuevoEstado = asistencia.estado === EstadoAsistencia.PRESENTE ? EstadoAsistencia.AUSENTE : EstadoAsistencia.PRESENTE;
+    const registro = asistenciasDiarias.find(a => a.alumnoId === alumnoId && a.fecha === fecha);
+    if (!registro) return;
+    const nuevoEstado = registro.estado === EstadoAsistencia.PRESENTE ? EstadoAsistencia.AUSENTE : EstadoAsistencia.PRESENTE;
 
+    // Actualización optimista
     setAsistenciasDiarias(prev =>
-      prev.map(a => a.id === asistencia.id ? { ...a, estado: nuevoEstado } : a)
+      prev.map(a => a.id === registro.id ? { ...a, estado: nuevoEstado } : a)
     );
 
     try {
       await asistenciasApi.registrarAsistenciaDiaria({
-        id: asistencia.id,
-        fecha: asistencia.fecha, // Se envía el valor actual de fecha
+        id: registro.id,
+        fecha: registro.fecha,
         estado: nuevoEstado,
-        observacion: asistencia.observacion || "",
-        alumnoId: 0,
-        asistenciaMensualId: 0
+        alumnoId: registro.alumnoId,
+        asistenciaMensualId: registro.asistenciaMensualId,
+        observacion: registro.observacion || "",
       });
       toast.success("Asistencia actualizada");
     } catch (error) {
       toast.error("Error al actualizar la asistencia.");
+      // Revertir cambio en caso de error
       setAsistenciasDiarias(prev =>
-        prev.map(a => a.id === asistencia.id ? { ...a, estado: asistencia.estado } : a)
+        prev.map(a => a.id === registro.id ? { ...a, estado: registro.estado } : a)
       );
     }
   };
