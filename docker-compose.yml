@@ -1,24 +1,25 @@
+version: "3.8"
+
 services:
   backend:
-    build: ./backend
+    image: jereprograma/le-dance-backend:latest  # Imagen desde Docker Hub
     container_name: le-dance-backend
     restart: always
     ports:
-      - "8080:8080"
+      - "8080:8080"  # Backend: Contenedor expone 8080, se mapea al 8080 del host.
     environment:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/ledance_db
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=root
-      - SPRING_JPA_DATABASE-PLATFORM=org.hibernate.dialect.PostgreSQLDialect
     depends_on:
       - db
 
   frontend:
-    build: ./frontend
+    image: jereprograma/le-dance-frontend:latest  # Imagen desde Docker Hub
     container_name: le-dance-frontend
     restart: always
     ports:
-      - "80:80"
+      - "8081:80"    # Frontend: Contenedor expone 80, se mapea al 8081 del host.
     depends_on:
       - backend
 
@@ -37,3 +38,4 @@ services:
 
 volumes:
   db_data:
+
