@@ -82,7 +82,7 @@ const AsistenciaMensualDetalle: React.FC = () => {
     if (!asistenciaMensual) return;
     const asistencia = asistenciasDiarias.find(a => a.alumnoId === alumnoId && a.fecha === fecha);
     if (!asistencia) return;
-    const nuevoEstado = asistencia.estado === EstadoAsistencia.Presente ? EstadoAsistencia.Ausente : EstadoAsistencia.Presente;
+    const nuevoEstado = asistencia.estado === EstadoAsistencia.PRESENTE ? EstadoAsistencia.AUSENTE : EstadoAsistencia.PRESENTE;
 
     setAsistenciasDiarias(prev =>
       prev.map(a => a.id === asistencia.id ? { ...a, estado: nuevoEstado } : a)
@@ -144,10 +144,10 @@ const AsistenciaMensualDetalle: React.FC = () => {
                       <TableCell key={fecha} className="text-center">
                         <Button
                           size="sm"
-                          variant={ad?.estado === EstadoAsistencia.Presente ? "default" : "outline"}
+                          variant={ad?.estado === EstadoAsistencia.PRESENTE ? "default" : "outline"}
                           onClick={() => toggleAsistencia(alumno.id, fecha)}
                         >
-                          {ad?.estado === EstadoAsistencia.Presente ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
+                          {ad?.estado === EstadoAsistencia.PRESENTE ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
                         </Button>
                       </TableCell>
                     );

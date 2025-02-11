@@ -86,7 +86,7 @@ const AsistenciasPage: React.FC = () => {
         asistenciaMensualId: asistencia.id,
         alumnoId,
         fecha,
-        estado: EstadoAsistencia.Presente,
+        estado: EstadoAsistencia.PRESENTE,
       };
 
       await asistenciasApi.registrarAsistenciaDiaria(asistenciaDiaria);
@@ -101,9 +101,9 @@ const AsistenciasPage: React.FC = () => {
           asistenciasDiarias[index] = {
             ...asistenciasDiarias[index],
             estado:
-              asistenciasDiarias[index].estado === EstadoAsistencia.Presente
-                ? EstadoAsistencia.Ausente
-                : EstadoAsistencia.Presente,
+              asistenciasDiarias[index].estado === EstadoAsistencia.PRESENTE
+                ? EstadoAsistencia.AUSENTE
+                : EstadoAsistencia.PRESENTE,
           };
         } else {
           asistenciasDiarias.push({
@@ -111,7 +111,7 @@ const AsistenciasPage: React.FC = () => {
             asistenciaMensualId: asistencia.id,
             alumnoId,
             fecha,
-            estado: EstadoAsistencia.Presente,
+            estado: EstadoAsistencia.PRESENTE,
           });
         }
         return {
@@ -265,7 +265,7 @@ const AsistenciasPage: React.FC = () => {
                     key={index}
                     type="checkbox"
                     checked={
-                      asistenciaDiaria?.estado === EstadoAsistencia.Presente
+                      asistenciaDiaria?.estado === EstadoAsistencia.PRESENTE
                     }
                     onChange={() => toggleAsistencia(alumno.id, fecha)}
                     className="form-checkbox"

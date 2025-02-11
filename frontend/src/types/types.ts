@@ -4,11 +4,6 @@
 type LocalDate = string;
 type LocalTime = string;
 
-export enum EstadoAsistencia {
-  Presente = "Presente",
-  Ausente = "Ausente",
-}
-
 export enum DiaSemana {
   LUNES = "LUNES",
   MARTES = "MARTES",
@@ -239,6 +234,12 @@ export interface DisciplinaDetalleResponse {
 // ==========================================
 // Asistencia
 // ==========================================
+
+export enum EstadoAsistencia {
+  PRESENTE = "PRESENTE",
+  AUSENTE = "AUSENTE",
+}
+
 export type AsistenciaMensualRegistroRequest = {
   mes: number;
   anio: number;

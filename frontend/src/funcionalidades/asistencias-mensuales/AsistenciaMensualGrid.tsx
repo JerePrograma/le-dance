@@ -44,7 +44,7 @@ export default function AsistenciaMensualGrid({
         asistenciaMensualId: asistencia.id,
         alumnoId,
         fecha,
-        estado: EstadoAsistencia.Presente,
+        estado: EstadoAsistencia.PRESENTE,
       };
 
       await asistenciasApi.registrarAsistenciaDiaria(asistenciaDiaria);
@@ -139,7 +139,7 @@ export default function AsistenciaMensualGrid({
                           type="checkbox"
                           checked={
                             asistenciaDiaria?.estado ===
-                            EstadoAsistencia.Presente
+                            EstadoAsistencia.PRESENTE
                           }
                           onChange={() => toggleAsistencia(alumno.id, fecha)}
                           className="form-checkbox h-5 w-5 text-primary"

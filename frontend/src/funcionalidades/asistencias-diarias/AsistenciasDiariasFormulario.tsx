@@ -22,16 +22,12 @@ import {
   TableRow,
 } from "../../componentes/ui/table";
 import { Input } from "../../componentes/ui/input";
+import { EstadoAsistencia } from "../../types/types";
 
 interface Alumno {
   id: number;
   nombre: string;
   apellido: string;
-}
-
-enum EstadoAsistencia {
-  Presente = "Presente",
-  Ausente = "Ausente",
 }
 
 interface AsistenciaDiaria {
@@ -112,7 +108,7 @@ const AsistenciaDiariaFormulario = () => {
     const registro = asistenciasDiarias.find(a => a.alumnoId === alumnoId && a.fecha === fecha);
     if (!registro) return;
 
-    const nuevoEstado = registro.estado === EstadoAsistencia.Presente ? EstadoAsistencia.Ausente : EstadoAsistencia.Presente;
+    const nuevoEstado = registro.estado === EstadoAsistencia.PRESENTE ? EstadoAsistencia.AUSENTE : EstadoAsistencia.PRESENTE;
 
     // Actualización optimista
     setAsistenciasDiarias(prev =>
@@ -181,13 +177,13 @@ const AsistenciaDiariaFormulario = () => {
                         <Button
                           size="sm"
                           variant={
-                            asistencia?.estado === EstadoAsistencia.Presente
+                            asistencia?.estado === EstadoAsistencia.PRESENTE
                               ? "default"
                               : "outline"
                           }
                           onClick={() => toggleAsistencia(alumno.id, fecha)}
                         >
-                          {asistencia?.estado === EstadoAsistencia.Presente ? (
+                          {asistencia?.estado === EstadoAsistencia.PRESENTE ? (
                             <Check className="h-4 w-4" />
                           ) : (
                             <X className="h-4 w-4" />
