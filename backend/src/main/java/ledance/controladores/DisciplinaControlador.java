@@ -1,12 +1,12 @@
 package ledance.controladores;
 
-import ledance.dto.request.DisciplinaModificacionRequest;
-import ledance.dto.request.DisciplinaRegistroRequest;
-import ledance.dto.response.AlumnoListadoResponse;
-import ledance.dto.response.DisciplinaDetalleResponse;
-import ledance.dto.response.DisciplinaListadoResponse;
-import ledance.dto.response.ProfesorListadoResponse;
-import ledance.servicios.DisciplinaServicio;
+import ledance.dto.disciplina.request.DisciplinaModificacionRequest;
+import ledance.dto.disciplina.request.DisciplinaRegistroRequest;
+import ledance.dto.alumno.response.AlumnoListadoResponse;
+import ledance.dto.disciplina.response.DisciplinaDetalleResponse;
+import ledance.dto.disciplina.response.DisciplinaListadoResponse;
+import ledance.dto.profesor.response.ProfesorListadoResponse;
+import ledance.servicios.disciplina.DisciplinaServicio;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

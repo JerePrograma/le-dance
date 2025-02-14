@@ -1,12 +1,12 @@
 package ledance.controladores;
 
 import jakarta.validation.Valid;
-import ledance.dto.request.AlumnoModificacionRequest;
-import ledance.dto.request.AlumnoRegistroRequest;
-import ledance.dto.response.AlumnoDetalleResponse;
-import ledance.dto.response.AlumnoListadoResponse;
-import ledance.dto.response.DisciplinaListadoResponse;
-import ledance.servicios.AlumnoServicio;
+import ledance.dto.alumno.request.AlumnoModificacionRequest;
+import ledance.dto.alumno.request.AlumnoRegistroRequest;
+import ledance.dto.alumno.response.AlumnoDetalleResponse;
+import ledance.dto.alumno.response.AlumnoListadoResponse;
+import ledance.dto.disciplina.response.DisciplinaListadoResponse;
+import ledance.servicios.alumno.AlumnoServicio;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;

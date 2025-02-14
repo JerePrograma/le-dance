@@ -32,6 +32,3 @@ public interface InscripcionRepositorio extends JpaRepository<Inscripcion, Long>
     // Nuevo método: buscar inscripciones con un estado específico (ej.: ACTIVA)
     List<Inscripcion> findByEstado(EstadoInscripcion estado);
 }
-
-
-

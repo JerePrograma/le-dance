@@ -38,5 +38,4 @@ public interface AsistenciaDiariaRepositorio extends JpaRepository<AsistenciaDia
             @Param("disciplinaId") Long disciplinaId,
             @Param("fechaInicio") LocalDate fechaInicio,
             @Param("fechaFin") LocalDate fechaFin);
-
 }

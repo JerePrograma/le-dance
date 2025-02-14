@@ -25,6 +25,4 @@ public class AutenticacionService implements UserDetailsService {
                 // Casteas a UserDetails (porque Usuario implementa UserDetails)
                 .orElseThrow(() -> new UsernameNotFoundException("No se encontro un usuario con el email: " + email));
     }
-
-
 }

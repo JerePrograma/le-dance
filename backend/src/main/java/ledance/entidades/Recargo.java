@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -23,6 +24,22 @@ public class Recargo {
     private String descripcion;
 
     @OneToMany(mappedBy = "recargo", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<RecargoDetalle> detalles; // ✅ Nueva entidad con reglas dinámicas.
+    private List<RecargoDetalle> detalles;
 
+    // Método auxiliar para agregar un detalle
+    public void addDetalle(RecargoDetalle detalle) {
+        if (detalles == null) {
+            detalles = new ArrayList<>();
+        }
+        detalles.add(detalle);
+        detalle.setRecargo(this);
+    }
+
+    // Método auxiliar para remover un detalle
+    public void removeDetalle(RecargoDetalle detalle) {
+        if (detalles != null) {
+            detalles.remove(detalle);
+            detalle.setRecargo(null);
+        }
+    }
 }

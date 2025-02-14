@@ -87,5 +87,4 @@ public class TokenService {
             throw new RuntimeException("Error al obtener el tipo de token", e);
         }
     }
-
 }

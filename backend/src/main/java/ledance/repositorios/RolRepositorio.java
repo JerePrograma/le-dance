@@ -15,4 +15,3 @@ public interface RolRepositorio extends JpaRepository<Rol, Long> {
 
     List<Rol> findByActivoTrue();
 }
-

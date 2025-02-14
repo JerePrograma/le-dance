@@ -1,6 +1,6 @@
 package ledance.validaciones.alumnos;
 
-import ledance.dto.request.AlumnoRegistroRequest;
+import ledance.dto.alumno.request.AlumnoRegistroRequest;
 import ledance.repositorios.AlumnoRepositorio;
 import ledance.validaciones.Validador;
 import org.springframework.stereotype.Component;

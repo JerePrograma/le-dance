@@ -68,9 +68,6 @@ export default function ResumenAsistenciasMensuales({
               <tr>
                 <th className="border px-4 py-2">Profesor</th>
                 <th className="border px-4 py-2">Disciplina</th>
-                <th className="border px-4 py-2">Total Alumnos</th>
-                <th className="border px-4 py-2">Total Asistencias</th>
-                <th className="border px-4 py-2">Total Ausencias</th>
                 <th className="border px-4 py-2">Acciones</th>
               </tr>
             </thead>

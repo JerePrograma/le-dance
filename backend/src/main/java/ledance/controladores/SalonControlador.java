@@ -1,9 +1,9 @@
 package ledance.controladores;
 
-import ledance.dto.request.SalonModificacionRequest;
-import ledance.dto.request.SalonRegistroRequest;
-import ledance.dto.response.SalonResponse;
-import ledance.servicios.SalonServicio;
+import ledance.dto.salon.request.SalonModificacionRequest;
+import ledance.dto.salon.request.SalonRegistroRequest;
+import ledance.dto.salon.response.SalonResponse;
+import ledance.servicios.salon.SalonServicio;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -11,7 +11,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/salones")

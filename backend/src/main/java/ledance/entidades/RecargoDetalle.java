@@ -26,5 +26,4 @@ public class RecargoDetalle {
 
     @NotNull
     private Double porcentaje; // ✅ Porcentaje del recargo.
-
 }

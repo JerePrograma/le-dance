@@ -29,7 +29,9 @@ public class Alumno {
 
     private LocalDate fechaNacimiento;
 
-    /** ✅ Se almacenará en la BD y se actualizará automáticamente */
+    /**
+     * ✅ Se almacenará en la BD y se actualizará automáticamente
+     */
     private Integer edad;
 
     private String celular1;
@@ -62,6 +64,4 @@ public class Alumno {
 
     @OneToMany(mappedBy = "alumno", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Inscripcion> inscripciones;
-
-
 }

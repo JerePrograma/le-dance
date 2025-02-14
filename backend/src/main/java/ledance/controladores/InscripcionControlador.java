@@ -1,10 +1,10 @@
 package ledance.controladores;
 
-import ledance.dto.request.InscripcionModificacionRequest;
-import ledance.dto.request.InscripcionRegistroRequest;
+import ledance.dto.inscripcion.request.InscripcionModificacionRequest;
+import ledance.dto.inscripcion.request.InscripcionRegistroRequest;
 import ledance.dto.response.EstadisticasInscripcionResponse;
-import ledance.dto.response.InscripcionResponse;
-import ledance.servicios.InscripcionServicio;
+import ledance.dto.inscripcion.response.InscripcionResponse;
+import ledance.servicios.inscripcion.InscripcionServicio;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;

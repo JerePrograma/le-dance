@@ -4,4 +4,5 @@ public record ObservacionMensualResponse(
         Long id,
         Long alumnoId,
         String observacion
-) {}
+) {
+}

@@ -1,10 +1,10 @@
 package ledance.controladores;
 
-import ledance.dto.request.UsuarioModificacionRequest;
-import ledance.dto.request.UsuarioRegistroRequest;
-import ledance.dto.response.UsuarioResponse;
+import ledance.dto.usuario.request.UsuarioModificacionRequest;
+import ledance.dto.usuario.request.UsuarioRegistroRequest;
+import ledance.dto.usuario.response.UsuarioResponse;
 import ledance.entidades.Usuario;
-import ledance.servicios.UsuarioServicio;
+import ledance.servicios.usuario.UsuarioServicio;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;

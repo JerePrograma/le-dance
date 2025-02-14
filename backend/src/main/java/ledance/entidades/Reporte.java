@@ -33,5 +33,4 @@ public class Reporte {
     @ManyToOne
     @JoinColumn(name = "usuario_id", nullable = false)
     private Usuario usuario;
-
 }

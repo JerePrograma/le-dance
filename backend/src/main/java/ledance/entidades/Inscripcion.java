@@ -43,11 +43,15 @@ public class Inscripcion {
 
     private String notas;
 
-    /** ✅ Relación con pagos */
+    /**
+     * ✅ Relación con pagos
+     */
     @OneToMany(mappedBy = "inscripcion", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Pago> pagos;
 
-    /** ✅ Relación con asistencias mensuales */
+    /**
+     * ✅ Relación con asistencias mensuales
+     */
     @OneToMany(mappedBy = "inscripcion", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<AsistenciaMensual> asistenciasMensuales;
 }

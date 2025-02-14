@@ -1,11 +1,11 @@
 package ledance.controladores;
 
-import ledance.dto.request.ProfesorModificacionRequest;
-import ledance.dto.request.ProfesorRegistroRequest;
-import ledance.dto.response.DisciplinaListadoResponse;
-import ledance.dto.response.ProfesorDetalleResponse;
-import ledance.dto.response.ProfesorListadoResponse;
-import ledance.servicios.ProfesorServicio;
+import ledance.dto.profesor.request.ProfesorModificacionRequest;
+import ledance.dto.profesor.request.ProfesorRegistroRequest;
+import ledance.dto.disciplina.response.DisciplinaListadoResponse;
+import ledance.dto.profesor.response.ProfesorDetalleResponse;
+import ledance.dto.profesor.response.ProfesorListadoResponse;
+import ledance.servicios.profesor.ProfesorServicio;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;

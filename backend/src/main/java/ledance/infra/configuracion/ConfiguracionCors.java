@@ -19,7 +19,7 @@ public class ConfiguracionCors implements WebMvcConfigurer {
                 "http://localhost:8100",
                 "http://localhost:5173",
                 "https://jereprograma.com",
-                "http://149.56.68.32"
+                "http://82.29.61.150"
         ));
         configuration.setAllowedMethods(List.of("GET", "POST", "OPTIONS", "PUT", "DELETE", "PATCH"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
@@ -30,5 +30,4 @@ public class ConfiguracionCors implements WebMvcConfigurer {
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
-
 }

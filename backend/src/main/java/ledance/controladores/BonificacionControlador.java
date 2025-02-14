@@ -1,9 +1,9 @@
 package ledance.controladores;
 
-import ledance.dto.request.BonificacionModificacionRequest;
-import ledance.dto.request.BonificacionRegistroRequest;
-import ledance.dto.response.BonificacionResponse;
-import ledance.servicios.BonificacionServicio;
+import ledance.dto.bonificacion.request.BonificacionModificacionRequest;
+import ledance.dto.bonificacion.request.BonificacionRegistroRequest;
+import ledance.dto.bonificacion.response.BonificacionResponse;
+import ledance.servicios.bonificacion.BonificacionServicio;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;

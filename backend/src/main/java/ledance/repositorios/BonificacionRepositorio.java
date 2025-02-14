@@ -9,5 +9,6 @@ import java.util.List;
 @Repository
 public interface BonificacionRepositorio extends JpaRepository<Bonificacion, Long> {
     List<Bonificacion> findByActivoTrue();
+
     boolean existsByDescripcion(String descripcion);
 }

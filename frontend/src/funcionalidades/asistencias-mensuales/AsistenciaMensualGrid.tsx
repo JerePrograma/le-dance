@@ -8,6 +8,7 @@ import {
   EstadoAsistencia,
 } from "../../types/types";
 import asistenciasApi from "../../api/asistenciasApi";
+import { debounce } from "../../utils/debounce";
 
 interface AsistenciaMensualGridProps {
   asistencia: AsistenciaMensualDetalleResponse;
@@ -55,15 +56,6 @@ export default function AsistenciaMensualGrid({
       toast.error("Error al registrar la asistencia");
     }
   };
-
-  // Debounce simple sin dependencias externas
-  function debounce<T extends (...args: any[]) => void>(fn: T, delay: number): T {
-    let timeoutId: ReturnType<typeof setTimeout> | undefined;
-    return function (...args: any[]) {
-      if (timeoutId) clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => fn(...args), delay);
-    } as T;
-  }
 
   const debouncedActualizarObservacion = useCallback(
     debounce(async (alumnoId: number, obs: string) => {

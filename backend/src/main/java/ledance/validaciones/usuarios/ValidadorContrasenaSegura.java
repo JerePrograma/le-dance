@@ -1,6 +1,6 @@
 package ledance.validaciones.usuarios;
 
-import ledance.dto.request.UsuarioRegistroRequest;
+import ledance.dto.usuario.request.UsuarioRegistroRequest;
 import ledance.validaciones.Validador;
 import org.springframework.stereotype.Component;
 

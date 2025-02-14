@@ -7,6 +7,4 @@ public record EstadisticasInscripcionResponse(
         Map<String, Long> inscripcionesPorDisciplina,
         Map<Integer, Long> inscripcionesPorMes
 ) {
-    // El constructor se genera automáticamente por ser un record
 }
-

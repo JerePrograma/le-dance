@@ -1,6 +1,6 @@
 package ledance.validaciones.disciplinas;
 
-import ledance.dto.request.DisciplinaRegistroRequest;
+import ledance.dto.disciplina.request.DisciplinaRegistroRequest;
 import ledance.repositorios.DisciplinaRepositorio;
 import ledance.validaciones.Validador;
 import org.springframework.stereotype.Component;

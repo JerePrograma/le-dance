@@ -122,19 +122,26 @@ public class TratadorDeErrores {
     }
 
     // ✅ Estructura para errores generales
-    private record DatosErrorGeneral(String codigo, String tipo, String detalle, LocalDateTime timestamp) {}
+    private record DatosErrorGeneral(String codigo, String tipo, String detalle, LocalDateTime timestamp) {
+    }
 
     // ✅ Excepciones personalizadas
     public static class RecursoNoEncontradoException extends RuntimeException {
-        public RecursoNoEncontradoException(String mensaje) { super(mensaje); }
+        public RecursoNoEncontradoException(String mensaje) {
+            super(mensaje);
+        }
     }
 
     public static class OperacionNoPermitidaException extends RuntimeException {
-        public OperacionNoPermitidaException(String mensaje) { super(mensaje); }
+        public OperacionNoPermitidaException(String mensaje) {
+            super(mensaje);
+        }
     }
 
     public static class ErrorDeAutenticacionException extends RuntimeException {
-        public ErrorDeAutenticacionException(String mensaje) { super(mensaje); }
+        public ErrorDeAutenticacionException(String mensaje) {
+            super(mensaje);
+        }
     }
 
     public class ResourceNotFoundException extends RuntimeException {

@@ -19,5 +19,4 @@ public class Rol {
 
     @Column(nullable = false)
     private Boolean activo = true;
-
 }

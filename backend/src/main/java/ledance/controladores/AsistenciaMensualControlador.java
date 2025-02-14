@@ -1,10 +1,10 @@
 package ledance.controladores;
 
-import ledance.dto.request.AsistenciaMensualRegistroRequest;
-import ledance.dto.request.AsistenciaMensualModificacionRequest;
-import ledance.dto.response.AsistenciaMensualDetalleResponse;
-import ledance.dto.response.AsistenciaMensualListadoResponse;
-import ledance.servicios.AsistenciaMensualServicio;
+import ledance.dto.asistencia.request.AsistenciaMensualRegistroRequest;
+import ledance.dto.asistencia.request.AsistenciaMensualModificacionRequest;
+import ledance.dto.asistencia.response.AsistenciaMensualDetalleResponse;
+import ledance.dto.asistencia.response.AsistenciaMensualListadoResponse;
+import ledance.servicios.asistencia.AsistenciaMensualServicio;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

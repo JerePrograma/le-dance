@@ -1,8 +1,8 @@
 package ledance.controladores;
 
-import ledance.dto.request.ReporteRegistroRequest;
-import ledance.dto.response.ReporteResponse;
-import ledance.servicios.ReporteServicio;
+import ledance.dto.reporte.request.ReporteRegistroRequest;
+import ledance.dto.reporte.response.ReporteResponse;
+import ledance.servicios.reporte.ReporteServicio;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;

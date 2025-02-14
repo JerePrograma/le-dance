@@ -14,6 +14,4 @@ public interface RecargoDetalleRepositorio extends JpaRepository<RecargoDetalle,
     // Para eliminar todos los detalles de un recargo antes de actualizar
     @Query("delete from RecargoDetalle d where d.recargo.id = :recargoId")
     void deleteAllByRecargoId(Long recargoId);
-
-    // ...Otros métodos personalizados si los necesitas
 }

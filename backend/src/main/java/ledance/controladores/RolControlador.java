@@ -1,8 +1,8 @@
 package ledance.controladores;
 
-import ledance.dto.request.RolRegistroRequest;
-import ledance.dto.response.RolResponse;
-import ledance.servicios.RolServicio;
+import ledance.dto.rol.request.RolRegistroRequest;
+import ledance.dto.rol.response.RolResponse;
+import ledance.servicios.rol.RolServicio;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;

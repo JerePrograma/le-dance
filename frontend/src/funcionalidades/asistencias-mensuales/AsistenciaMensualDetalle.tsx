@@ -1,3 +1,4 @@
+// src/funcionalidades/asistencias-mensuales/AsistenciaMensualDetalle.tsx
 import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -8,41 +9,43 @@ import { Button } from "../../componentes/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../componentes/ui/table";
 import { Input } from "../../componentes/ui/input";
 import asistenciasApi from "../../api/asistenciasApi";
-import { AsistenciaDiaria, EstadoAsistencia, AsistenciaMensualDetalleRequest } from "../../types/types";
+import { AsistenciaMensualDetalleResponse, EstadoAsistencia } from "../../types/types";
 
 const AsistenciaMensualDetalle: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const [asistenciaMensual, setAsistenciaMensual] = useState<AsistenciaMensualDetalleRequest | null>(null);
-  const [asistenciasDiarias, setAsistenciasDiarias] = useState<AsistenciaDiaria[]>([]);
-  const [diasClase, setDiasClase] = useState<string[]>([]);
+  const [asistencia, setAsistencia] = useState<AsistenciaMensualDetalleResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [observaciones, setObservaciones] = useState<Record<number, string>>({});
 
-  const cargarAsistenciaMensual = useCallback(async () => {
+  // Función de debounce sencilla sin dependencias adicionales
+  const debounce = (func: (...args: any[]) => void, delay: number) => {
+    let timer: NodeJS.Timeout;
+    return (...args: any[]) => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        func(...args);
+      }, delay);
+    };
+  };
+
+  const cargarAsistencia = useCallback(async () => {
     if (!id) return;
     setLoading(true);
     try {
-      const response = await api.get<AsistenciaMensualDetalleRequest>(`/api/asistencias-mensuales/${id}/detalle`);
+      const response = await api.get<AsistenciaMensualDetalleResponse>(`/api/asistencias-mensuales/${id}/detalle`);
       const data = response.data;
-      setAsistenciaMensual(data);
-      setAsistenciasDiarias(data.asistenciasDiarias);
-
-      // Calcular días únicos a partir de los registros diarios
-      const fechas = data.asistenciasDiarias.map(ad => ad.fecha);
-      const uniqueFechas = Array.from(new Set(fechas)).sort();
-      setDiasClase(uniqueFechas);
-
-      // Inicializar observaciones
-      const obs = data.asistenciasDiarias.reduce((acc, ad) => {
-        acc[ad.alumnoId] = ad.observacion || "";
+      setAsistencia(data);
+      // Inicializar observaciones a partir de las observaciones guardadas
+      const obs = data.observaciones.reduce((acc, o) => {
+        acc[o.alumnoId] = o.observacion;
         return acc;
       }, {} as Record<number, string>);
       setObservaciones(obs);
     } catch (error) {
-      console.error("Error al obtener asistencia mensual:", error);
+      console.error("Error al cargar asistencia:", error);
       setError("Error al cargar la asistencia.");
       toast.error("No se pudo cargar la asistencia.");
     } finally {
@@ -51,25 +54,31 @@ const AsistenciaMensualDetalle: React.FC = () => {
   }, [id]);
 
   useEffect(() => {
-    cargarAsistenciaMensual();
-  }, [cargarAsistenciaMensual]);
+    cargarAsistencia();
+  }, [cargarAsistencia]);
 
-  // Función para alternar la asistencia usando el valor actual de fecha
+  // Función para alternar el estado de una asistencia diaria
   const toggleAsistencia = async (alumnoId: number, fecha: string) => {
-    if (!asistenciaMensual) return;
-    const registro = asistenciasDiarias.find(a => a.alumnoId === alumnoId && a.fecha === fecha);
+    if (!asistencia) return;
+    const registro = asistencia.asistenciasDiarias.find(a => a.alumnoId === alumnoId && a.fecha === fecha);
     if (!registro) return;
-    const nuevoEstado = registro.estado === EstadoAsistencia.PRESENTE ? EstadoAsistencia.AUSENTE : EstadoAsistencia.PRESENTE;
+    // Normalizamos el valor a mayúsculas para la comparación
+    const currentEstado = String(registro.estado).toUpperCase();
+    const nuevoEstado = currentEstado === EstadoAsistencia.PRESENTE ? EstadoAsistencia.AUSENTE : EstadoAsistencia.PRESENTE;
 
     // Actualización optimista
-    setAsistenciasDiarias(prev =>
-      prev.map(a => a.id === registro.id ? { ...a, estado: nuevoEstado } : a)
-    );
+    setAsistencia(prev => {
+      if (!prev) return prev;
+      const nuevasAsistencias = prev.asistenciasDiarias.map(a =>
+        a.id === registro.id ? { ...a, estado: nuevoEstado } : a
+      );
+      return { ...prev, asistenciasDiarias: nuevasAsistencias };
+    });
 
     try {
       await asistenciasApi.registrarAsistenciaDiaria({
         id: registro.id,
-        fecha: registro.fecha,
+        fecha: registro.fecha, // La fecha es inmutable
         estado: nuevoEstado,
         alumnoId: registro.alumnoId,
         asistenciaMensualId: registro.asistenciaMensualId,
@@ -78,27 +87,57 @@ const AsistenciaMensualDetalle: React.FC = () => {
       toast.success("Asistencia actualizada");
     } catch (error) {
       toast.error("Error al actualizar la asistencia.");
-      // Revertir cambio en caso de error
-      setAsistenciasDiarias(prev =>
-        prev.map(a => a.id === registro.id ? { ...a, estado: registro.estado } : a)
-      );
+      // Revertir el cambio en caso de error
+      setAsistencia(prev => {
+        if (!prev) return prev;
+        const revertidas = prev.asistenciasDiarias.map(a =>
+          a.id === registro.id ? { ...a, estado: registro.estado } : a
+        );
+        return { ...prev, asistenciasDiarias: revertidas };
+      });
     }
   };
 
-  // Actualización de observaciones sin debounce (ya que en este caso optamos por no usar debounce)
+  // Actualización de observaciones con debounce
+  const debouncedActualizarObservacion = useCallback(
+    debounce(async (alumnoId: number, obs: string) => {
+      if (!asistencia) return;
+      try {
+        await asistenciasApi.actualizarAsistenciaMensual(asistencia.id, {
+          observaciones: Object.entries({
+            ...observaciones,
+            [alumnoId]: obs,
+          }).map(([id, observacion]) => ({
+            alumnoId: Number(id),
+            observacion,
+          })),
+        });
+        toast.success("Observación actualizada");
+      } catch (error) {
+        console.error("Error al guardar observación:", error);
+        toast.error("Error al guardar la observación");
+      }
+    }, 500),
+    [asistencia, observaciones]
+  );
+
   const handleObservacionChange = (alumnoId: number, obs: string) => {
     setObservaciones(prev => ({ ...prev, [alumnoId]: obs }));
-    // Aquí podrías invocar un endpoint para actualizar la observación, incluyendo el valor de fecha si es necesario
+    debouncedActualizarObservacion(alumnoId, obs);
   };
 
   if (loading) return <div className="text-center py-4">Cargando asistencia...</div>;
   if (error) return <div className="text-center py-4 text-red-500">{error}</div>;
+  if (!asistencia) return <div className="text-center py-4">No se encontró asistencia.</div>;
+
+  // Calcular días únicos a partir de los registros diarios
+  const diasClase = Array.from(new Set(asistencia.asistenciasDiarias.map(a => a.fecha))).sort();
 
   return (
     <div className="container mx-auto py-6">
       <Card>
         <CardHeader>
-          <CardTitle>Detalle de Asistencia Mensual - {asistenciaMensual?.disciplina}</CardTitle>
+          <CardTitle>Detalle de Asistencia Mensual - {asistencia.disciplina}</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
@@ -114,19 +153,19 @@ const AsistenciaMensualDetalle: React.FC = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {asistenciaMensual?.alumnos.map(alumno => (
+              {asistencia.alumnos.map(alumno => (
                 <TableRow key={alumno.id}>
                   <TableCell>{`${alumno.apellido}, ${alumno.nombre}`}</TableCell>
                   {diasClase.map(fecha => {
-                    const ad = asistenciasDiarias.find(a => a.fecha === fecha && a.alumnoId === alumno.id);
+                    const registro = asistencia.asistenciasDiarias.find(a => a.alumnoId === alumno.id && a.fecha === fecha);
                     return (
                       <TableCell key={fecha} className="text-center">
                         <Button
                           size="sm"
-                          variant={ad?.estado === EstadoAsistencia.PRESENTE ? "default" : "outline"}
+                          variant={registro?.estado === EstadoAsistencia.PRESENTE ? "default" : "outline"}
                           onClick={() => toggleAsistencia(alumno.id, fecha)}
                         >
-                          {ad?.estado === EstadoAsistencia.PRESENTE ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
+                          {registro?.estado === EstadoAsistencia.PRESENTE ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
                         </Button>
                       </TableCell>
                     );

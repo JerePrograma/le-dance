@@ -26,12 +26,16 @@ public class Profesor {
 
     private String especialidad;
 
-    /** ✅ Nueva información personal */
+    /**
+     * ✅ Nueva información personal
+     */
     private LocalDate fechaNacimiento; // ✅ Fecha de nacimiento del profesor.
 
     private String telefono; // ✅ Número de contacto principal.
 
-    /** ✅ Se almacenará en la BD y se actualizará automáticamente */
+    /**
+     * ✅ Se almacenará en la BD y se actualizará automáticamente
+     */
     private Integer edad;
 
     @OneToMany(mappedBy = "profesor")
@@ -43,5 +47,4 @@ public class Profesor {
 
     @Column(nullable = false)
     private Boolean activo = true;
-
 }

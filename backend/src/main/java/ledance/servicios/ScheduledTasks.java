@@ -1,5 +1,6 @@
 package ledance.servicios;
 
+import ledance.servicios.asistencia.AsistenciaMensualServicio;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -17,4 +18,3 @@ public class ScheduledTasks {
         asistenciaMensualServicio.crearAsistenciasMensualesAutomaticamente();
     }
 }
-

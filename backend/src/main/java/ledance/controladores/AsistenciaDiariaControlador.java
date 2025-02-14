@@ -1,9 +1,9 @@
 package ledance.controladores;
 
-import ledance.dto.request.AsistenciaDiariaRegistroRequest;
-import ledance.dto.request.AsistenciaDiariaModificacionRequest;
-import ledance.dto.response.AsistenciaDiariaResponse;
-import ledance.servicios.AsistenciaDiariaServicio;
+import ledance.dto.asistencia.request.AsistenciaDiariaRegistroRequest;
+import ledance.dto.asistencia.request.AsistenciaDiariaModificacionRequest;
+import ledance.dto.asistencia.response.AsistenciaDiariaResponse;
+import ledance.servicios.asistencia.AsistenciaDiariaServicio;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;

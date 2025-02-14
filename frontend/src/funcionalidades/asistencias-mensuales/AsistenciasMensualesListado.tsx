@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Tabla from "../../componentes/comunes/Tabla";
 import ReactPaginate from "react-paginate";
 import Boton from "../../componentes/comunes/Boton";
-import { PlusCircle, Pencil, Trash2, Eye } from "lucide-react";
+import { PlusCircle, Eye } from "lucide-react";
 import asistenciasApi from "../../api/asistenciasApi";
 import type { AsistenciaMensualListadoResponse } from "../../types/types";
 
@@ -20,12 +20,11 @@ const AsistenciasMensualesListado: React.FC = () => {
         try {
             setLoading(true);
             setError(null);
-            // Llamamos al endpoint de asistencias mensuales
             const data = await asistenciasApi.listarAsistenciasMensuales();
             setAsistencias(data);
         } catch (error) {
             console.error("Error al cargar asistencias mensuales:", error);
-            setError("Error al cargar las asistencias mensuales.");
+            setError("Error al cargar las asistencias.");
         } finally {
             setLoading(false);
         }
@@ -41,14 +40,11 @@ const AsistenciasMensualesListado: React.FC = () => {
         [asistencias, currentPage]
     );
 
-    const handlePageClick = useCallback(
-        ({ selected }: { selected: number }) => {
-            if (selected < pageCount) {
-                setCurrentPage(selected);
-            }
-        },
-        [pageCount]
-    );
+    const handlePageClick = useCallback(({ selected }: { selected: number }) => {
+        if (selected < pageCount) {
+            setCurrentPage(selected);
+        }
+    }, [pageCount]);
 
     if (loading) return <div className="text-center py-4">Cargando...</div>;
     if (error) return <div className="text-center py-4 text-destructive">{error}</div>;
@@ -57,25 +53,14 @@ const AsistenciasMensualesListado: React.FC = () => {
         <div className="page-container">
             <h1 className="page-title">Asistencias Mensuales</h1>
             <div className="page-button-group flex justify-end mb-4">
-                <Boton
-                    onClick={() => navigate("/asistencias-mensuales/formulario")}
-                    className="page-button"
-                    aria-label="Registrar nueva asistencia mensual"
-                >
+                <Boton onClick={() => navigate("/asistencias-mensuales/formulario")} className="page-button" aria-label="Registrar nueva asistencia mensual">
                     <PlusCircle className="w-5 h-5 mr-2" />
                     Registrar Nueva Asistencia Mensual
                 </Boton>
             </div>
             <div className="page-card">
                 <Tabla
-                    encabezados={[
-                        "ID",
-                        "Mes",
-                        "Año",
-                        "Disciplina",
-                        "Profesor",
-                        "Acciones",
-                    ]}
+                    encabezados={["ID", "Mes", "Año", "Disciplina", "Profesor", "Acciones"]}
                     datos={currentItems}
                     acciones={(fila) => (
                         <div className="flex gap-2">
@@ -87,30 +72,10 @@ const AsistenciasMensualesListado: React.FC = () => {
                                 <Eye className="w-4 h-4 mr-2" />
                                 Ver
                             </Boton>
-                            <Boton
-                                onClick={() => navigate(`/asistencias-mensuales/formulario?id=${fila.id}`)}
-                                className="page-button-secondary"
-                                aria-label={`Editar asistencia mensual ${fila.mes}/${fila.anio}`}
-                            >
-                                <Pencil className="w-4 h-4 mr-2" />
-                                Editar
-                            </Boton>
-                            <Boton
-                                className="page-button-danger"
-                                aria-label={`Eliminar asistencia mensual ${fila.mes}/${fila.anio}`}
-                            >
-                                <Trash2 className="w-4 h-4 mr-2" />
-                                Eliminar
-                            </Boton>
+                            {/* Opciones de editar/eliminar si se requieren */}
                         </div>
                     )}
-                    extraRender={(fila) => [
-                        fila.id,
-                        fila.mes,
-                        fila.anio,
-                        fila.disciplina,
-                        fila.profesor,
-                    ]}
+                    extraRender={(fila) => [fila.id, fila.mes, fila.anio, fila.disciplina, fila.profesor]}
                 />
             </div>
             {pageCount > 1 && (

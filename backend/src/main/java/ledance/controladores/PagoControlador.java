@@ -1,9 +1,9 @@
 package ledance.controladores;
 
-import ledance.dto.request.PagoModificacionRequest;
-import ledance.dto.request.PagoRegistroRequest;
-import ledance.dto.response.PagoResponse;
-import ledance.servicios.PagoServicio;
+import ledance.dto.pago.request.PagoModificacionRequest;
+import ledance.dto.pago.request.PagoRegistroRequest;
+import ledance.dto.pago.response.PagoResponse;
+import ledance.servicios.pago.PagoServicio;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;

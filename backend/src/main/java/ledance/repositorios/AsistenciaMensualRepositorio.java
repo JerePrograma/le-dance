@@ -26,5 +26,5 @@ public interface AsistenciaMensualRepositorio extends JpaRepository<AsistenciaMe
 
     List<AsistenciaMensual> findByInscripcion_Disciplina_IdAndMesAndAnio(Long disciplinaId, Integer mes, Integer anio);
 
-    Optional<AsistenciaMensual>    findByInscripcionAndMesAndAnio(Inscripcion inscripcion, int monthValue, int year);
+    Optional<AsistenciaMensual> findByInscripcionAndMesAndAnio(Inscripcion inscripcion, int monthValue, int year);
 }
