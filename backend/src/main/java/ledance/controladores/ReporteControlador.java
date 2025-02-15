@@ -24,9 +24,7 @@ public class ReporteControlador {
         this.reporteServicio = reporteServicio;
     }
 
-    /**
-     * ✅ Generar un nuevo reporte basado en el tipo seleccionado.
-     */
+    // Endpoint genérico de generación (si fuera necesario)
     @PostMapping("/generar")
     public ResponseEntity<ReporteResponse> generarReporte(@RequestBody @Validated ReporteRegistroRequest request) {
         log.info("Generando reporte de tipo: {}", request.tipo());
@@ -42,9 +40,78 @@ public class ReporteControlador {
         }
     }
 
+    // Endpoint para Recaudación por Disciplina
+    @GetMapping("/recaudacion-disciplina")
+    public ResponseEntity<ReporteResponse> generarReporteRecaudacionPorDisciplina(
+            @RequestParam Long disciplinaId,
+            @RequestParam(required = false) Long usuarioId) {
+        try {
+            ReporteResponse reporte = reporteServicio.generarReporteRecaudacionPorDisciplina(disciplinaId, usuarioId);
+            return ResponseEntity.status(HttpStatus.CREATED).body(reporte);
+        } catch (Exception e) {
+            log.error("Error generando reporte de recaudación por disciplina: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    // Endpoint para Asistencias por Alumno
+    @GetMapping("/asistencias-alumno")
+    public ResponseEntity<ReporteResponse> generarReporteAsistenciasPorAlumno(
+            @RequestParam Long alumnoId,
+            @RequestParam(required = false) Long usuarioId) {
+        try {
+            ReporteResponse reporte = reporteServicio.generarReporteAsistenciasPorAlumno(alumnoId, usuarioId);
+            return ResponseEntity.status(HttpStatus.CREATED).body(reporte);
+        } catch (Exception e) {
+            log.error("Error generando reporte de asistencias por alumno: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    // Endpoint para Asistencias por Disciplina
+    @GetMapping("/asistencias-disciplina")
+    public ResponseEntity<ReporteResponse> generarReporteAsistenciasPorDisciplina(
+            @RequestParam Long disciplinaId,
+            @RequestParam(required = false) Long usuarioId) {
+        try {
+            ReporteResponse reporte = reporteServicio.generarReporteAsistenciasPorDisciplina(disciplinaId, usuarioId);
+            return ResponseEntity.status(HttpStatus.CREATED).body(reporte);
+        } catch (Exception e) {
+            log.error("Error generando reporte de asistencias por disciplina: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    // Endpoint para Asistencias por Disciplina y Alumno
+    @GetMapping("/asistencias-disciplina-alumno")
+    public ResponseEntity<ReporteResponse> generarReporteAsistenciasPorDisciplinaAlumno(
+            @RequestParam Long disciplinaId,
+            @RequestParam Long alumnoId,
+            @RequestParam(required = false) Long usuarioId) {
+        try {
+            ReporteResponse reporte = reporteServicio.generarReporteAsistenciasPorDisciplinaAlumno(disciplinaId, alumnoId, usuarioId);
+            return ResponseEntity.status(HttpStatus.CREATED).body(reporte);
+        } catch (Exception e) {
+            log.error("Error generando reporte de asistencias por disciplina y alumno: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
     /**
-     * ✅ Obtener un reporte específico por ID.
+     * Listar, obtener por ID y eliminar reportes (métodos ya existentes)
      */
+    @GetMapping
+    public ResponseEntity<List<ReporteResponse>> listarReportes() {
+        log.info("Listando todos los reportes");
+        try {
+            List<ReporteResponse> reportes = reporteServicio.listarReportes();
+            return ResponseEntity.ok(reportes);
+        } catch (Exception e) {
+            log.error("Error interno listando reportes: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ReporteResponse> obtenerReportePorId(@PathVariable Long id) {
         log.info("Obteniendo reporte con id: {}", id);
@@ -60,30 +127,12 @@ public class ReporteControlador {
         }
     }
 
-    /**
-     * ✅ Listar todos los reportes generados.
-     */
-    @GetMapping
-    public ResponseEntity<List<ReporteResponse>> listarReportes() {
-        log.info("Listando todos los reportes");
-        try {
-            List<ReporteResponse> reportes = reporteServicio.listarReportes();
-            return ResponseEntity.ok(reportes);
-        } catch (Exception e) {
-            log.error("Error interno listando reportes: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    }
-
-    /**
-     * ✅ Eliminar un reporte (baja lógica).
-     */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminarReporte(@PathVariable Long id) {
         log.info("Eliminando reporte con id: {}", id);
         try {
             reporteServicio.eliminarReporte(id);
-            return ResponseEntity.noContent().build(); // 204 No Content
+            return ResponseEntity.noContent().build();
         } catch (IllegalArgumentException e) {
             log.error("Error eliminando reporte: {}", e.getMessage());
             return ResponseEntity.notFound().build();

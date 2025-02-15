@@ -27,7 +27,7 @@ public class PagoServicio implements IPagoServicio {
     private final InscripcionRepositorio inscripcionRepositorio;
     private final MetodoPagoRepositorio metodoPagoRepositorio;
     private final PagoMapper pagoMapper;
-    private final PaymentCalculationService calculationService; // Inyectamos el servicio auxiliar
+    private final PaymentCalculationService calculationService;
 
     public PagoServicio(PagoRepositorio pagoRepositorio,
                         InscripcionRepositorio inscripcionRepositorio,
@@ -42,17 +42,16 @@ public class PagoServicio implements IPagoServicio {
     }
 
     /**
-     * Registra un nuevo pago utilizando la lógica centralizada para el cálculo.
+     * Registra un nuevo pago utilizando la lógica de cálculo.
      */
     @Override
     @Transactional
     public PagoResponse registrarPago(PagoRegistroRequest request) {
         log.info("Registrando pago para inscripcionId: {}", request.inscripcionId());
-
         Inscripcion inscripcion = inscripcionRepositorio.findById(request.inscripcionId())
                 .orElseThrow(() -> new IllegalArgumentException("Inscripcion no encontrada."));
         MetodoPago metodoPago = metodoPagoRepositorio.findById(request.metodoPagoId())
-                .orElseThrow(() -> new IllegalArgumentException("Metodo de pago no encontrado."));
+                .orElseThrow(() -> new IllegalArgumentException("Método de pago no encontrado."));
 
         double costoBase = calculationService.calcularCostoBase(inscripcion);
         double costoFinal = calculationService.calcularCostoFinal(request, inscripcion, costoBase);
@@ -63,6 +62,9 @@ public class PagoServicio implements IPagoServicio {
         Pago pago = pagoMapper.toEntity(request);
         pago.setMonto(costoFinal);
         pago.setSaldoRestante(saldoRestante);
+        // Se puede definir lógica adicional para aplicar saldoAFavor (por ejemplo, si el alumno tiene crédito)
+        // Por ahora, se mantiene en 0 y se podría actualizar en otro proceso.
+        pago.setSaldoAFavor(0.0);
         pago.setInscripcion(inscripcion);
         pago.setMetodoPago(metodoPago);
 
@@ -70,8 +72,8 @@ public class PagoServicio implements IPagoServicio {
         return pagoMapper.toDTO(guardado);
     }
 
-    // Los demás métodos (obtenerPagoPorId, listarPagos, actualizarPago, eliminarPago, etc.) se mantienen sin cambios,
-    // utilizando el mapper para las conversiones.
+    // Los demás métodos (obtener, listar, actualizar y eliminar) permanecen similares,
+    // usando el mapper para conversiones y sin cambios en la lógica de cálculo.
 
     @Override
     public PagoResponse obtenerPagoPorId(Long id) {
@@ -96,12 +98,12 @@ public class PagoServicio implements IPagoServicio {
         pago.setFecha(request.fecha());
         pago.setMonto(request.monto());
         pago.setFechaVencimiento(request.fechaVencimiento());
-        pago.setRecargoAplicado(request.recargoAplicada());
+        pago.setRecargoAplicado(request.recargoAplicado());
         pago.setBonificacionAplicada(request.bonificacionAplicada());
         pago.setSaldoRestante(request.saldoRestante());
         if (request.metodoPagoId() != null) {
             MetodoPago metodoPago = metodoPagoRepositorio.findById(request.metodoPagoId())
-                    .orElseThrow(() -> new IllegalArgumentException("Metodo de pago no encontrado."));
+                    .orElseThrow(() -> new IllegalArgumentException("Método de pago no encontrado."));
             pago.setMetodoPago(metodoPago);
         }
         Pago actualizado = pagoRepositorio.save(pago);

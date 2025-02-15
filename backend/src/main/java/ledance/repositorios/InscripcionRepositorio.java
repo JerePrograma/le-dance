@@ -5,6 +5,7 @@ import ledance.entidades.Inscripcion;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -31,4 +32,11 @@ public interface InscripcionRepositorio extends JpaRepository<Inscripcion, Long>
 
     // Nuevo método: buscar inscripciones con un estado específico (ej.: ACTIVA)
     List<Inscripcion> findByEstado(EstadoInscripcion estado);
+
+    @Query("SELECT i.disciplina.nombre, SUM(i.disciplina.valorCuota + i.disciplina.matricula) " +
+            "FROM Inscripcion i " +
+            "WHERE i.disciplina.id = :disciplinaId " +
+            "GROUP BY i.disciplina.nombre")
+    List<Object[]> obtenerRecaudacionPorDisciplina(@Param("disciplinaId") Long disciplinaId);
+
 }

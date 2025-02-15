@@ -143,7 +143,7 @@ const asistenciasApi = {
       }
 
       const response = await api.put(
-        `/api/asistencias-diarias/${request.id}`,
+        `/api/asistencias-diarias/${request.id}`, // ✅ Ahora usa el ID real
         request
       );
       return response.data;

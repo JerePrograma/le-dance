@@ -81,42 +81,39 @@ const AsistenciasPage: React.FC = () => {
 
   const toggleAsistencia = async (alumnoId: number, fecha: string) => {
     if (!asistencia) return;
+
+    // Buscar la asistencia diaria existente
+    const asistenciaDiaria = asistencia.asistenciasDiarias.find(
+      (ad) => ad.alumnoId === alumnoId && ad.fecha === fecha
+    );
+
+    if (!asistenciaDiaria) {
+      console.error("No se encontró una asistencia diaria para este alumno en esta fecha.");
+      toast.error("Error al actualizar la asistencia.");
+      return;
+    }
+
     try {
-      const asistenciaDiaria: AsistenciaDiariaRegistroRequest = {
+      const asistenciaDiariaRequest: AsistenciaDiariaRegistroRequest = {
+        id: asistenciaDiaria.id, // ✅ Ahora usa el ID correcto
         asistenciaMensualId: asistencia.id,
         alumnoId,
         fecha,
-        estado: EstadoAsistencia.PRESENTE,
+        estado: asistenciaDiaria.estado === EstadoAsistencia.PRESENTE ? EstadoAsistencia.AUSENTE : EstadoAsistencia.PRESENTE,
       };
 
-      await asistenciasApi.registrarAsistenciaDiaria(asistenciaDiaria);
+      await asistenciasApi.registrarAsistenciaDiaria(asistenciaDiariaRequest);
 
+      // Actualizar el estado en el frontend
       setAsistencia((prev) => {
         if (!prev) return null;
-        const asistenciasDiarias = [...prev.asistenciasDiarias];
-        const index = asistenciasDiarias.findIndex(
-          (ad) => ad.alumnoId === alumnoId && ad.fecha === fecha
-        );
-        if (index >= 0) {
-          asistenciasDiarias[index] = {
-            ...asistenciasDiarias[index],
-            estado:
-              asistenciasDiarias[index].estado === EstadoAsistencia.PRESENTE
-                ? EstadoAsistencia.AUSENTE
-                : EstadoAsistencia.PRESENTE,
-          };
-        } else {
-          asistenciasDiarias.push({
-            id: 0,
-            asistenciaMensualId: asistencia.id,
-            alumnoId,
-            fecha,
-            estado: EstadoAsistencia.PRESENTE,
-          });
-        }
         return {
           ...prev,
-          asistenciasDiarias,
+          asistenciasDiarias: prev.asistenciasDiarias.map(ad =>
+            ad.id === asistenciaDiaria.id
+              ? { ...ad, estado: asistenciaDiariaRequest.estado }
+              : ad
+          ),
         };
       });
 

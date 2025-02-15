@@ -89,9 +89,9 @@ public class AsistenciaDiariaServicio {
         asistencia.setAsistenciaMensual(asistenciaMensual);
         asistencia.setAlumno(asistenciaMensual.getInscripcion().getAlumno());
 
-        return asistenciaDiariaMapper.toDTO(asistenciaDiariaRepositorio.save(asistencia));
+        asistencia = asistenciaDiariaRepositorio.save(asistencia); // ✅ Se guarda y se obtiene el ID generado
+        return asistenciaDiariaMapper.toDTO(asistencia);
     }
-
 
     private void validarAsistenciaDiaria(AsistenciaDiariaRegistroRequest request) {
         if (request.fecha().isAfter(LocalDate.now())) {
@@ -153,9 +153,15 @@ public class AsistenciaDiariaServicio {
 
         List<AsistenciaDiaria> nuevasAsistencias = fechasClase.stream()
                 .filter(fecha -> !fecha.isBefore(inscripcion.getFechaInscripcion()))
-                .map(fecha -> new AsistenciaDiaria(null, fecha, EstadoAsistencia.AUSENTE, inscripcion.getAlumno(), asistenciaMensual, null))
+                .map(fecha -> new AsistenciaDiaria(
+                        null, fecha, EstadoAsistencia.AUSENTE, inscripcion.getAlumno(), asistenciaMensual, null
+                ))
                 .collect(Collectors.toList());
 
         asistenciaDiariaRepositorio.saveAll(nuevasAsistencias);
+
+        // Retornar las asistencias con sus ID generados
+        asistenciaMensual.setAsistenciasDiarias(nuevasAsistencias);
     }
+
 }

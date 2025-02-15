@@ -24,7 +24,7 @@ public class Pago {
     @NotNull
     private LocalDate fechaVencimiento;
 
-    // Total del pago calculado como suma de importes de DetallePago
+    // Total del pago calculado como suma de importes de los conceptos (DetallePago)
     @NotNull
     @Min(value = 0, message = "El monto debe ser mayor o igual a 0")
     private Double monto;
@@ -34,33 +34,41 @@ public class Pago {
     @JoinColumn(name = "inscripcion_id", nullable = false)
     private Inscripcion inscripcion;
 
-    // Agregamos la relación con MetodoPago
+    // Relación con Método de Pago (puede ser nulo si se usa más de uno)
     @ManyToOne
     @JoinColumn(name = "metodo_pago_id")
     private MetodoPago metodoPago;
 
+    // Indicador para aplicar recargos (la lógica de cálculo usará este flag)
     @Column(nullable = false)
     private Boolean recargoAplicado = false;
 
+    // Monto de bonificación aplicado (antes era un booleano, ahora es un monto)
     @Column(nullable = false)
-    private Boolean bonificacionAplicada = false;
+    private Double bonificacionAplicada = 0.0;
 
-    // Saldo restante de la transacción (total a pagar menos lo abonado mediante PagoMedio)
+    // Saldo restante de la transacción (total a pagar menos lo abonado)
     @NotNull
     @Min(value = 0, message = "El saldo restante no puede ser negativo")
     private Double saldoRestante;
 
+    // Saldo a favor que se puede aplicar a este pago
+    @NotNull
+    @Column(name = "saldo_a_favor", nullable = false)
+    @Min(value = 0, message = "El saldo a favor no puede ser negativo")
+    private Double saldoAFavor = 0.0;
+
     @Column(nullable = false)
     private Boolean activo = true;
 
-    // Observaciones sobre el pago (por ejemplo, "deuda mes de enero")
+    // Observaciones (por ejemplo, "deuda mes de enero")
     private String observaciones;
 
-    // Relación con DetallePago: un pago puede tener múltiples conceptos
+    // Relación con los conceptos que componen el pago
     @OneToMany(mappedBy = "pago", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<DetallePago> detallePagos;
 
-    // Relación con PagoMedio: pagos parciales o múltiples métodos
+    // Relación con pagos parciales o métodos múltiples
     @OneToMany(mappedBy = "pago", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PagoMedio> pagoMedios;
 }

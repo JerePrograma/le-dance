@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import jakarta.validation.Valid;
+
 import java.util.List;
 
 @RestController
@@ -36,7 +37,6 @@ public class AsistenciaMensualControlador {
 
         return ResponseEntity.ok(response);
     }
-
 
     @GetMapping
     public ResponseEntity<List<AsistenciaMensualListadoResponse>> listarAsistenciasMensuales(

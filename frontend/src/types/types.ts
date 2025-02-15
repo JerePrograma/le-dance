@@ -1,8 +1,8 @@
 // ==========================================
-// Utility Types & Enums
+// UTILITY TYPES & ENUMS
 // ==========================================
-type LocalDate = string;
-type LocalTime = string;
+export type LocalDate = string;
+export type LocalTime = string;
 
 export enum DiaSemana {
   LUNES = "LUNES",
@@ -20,6 +20,11 @@ export enum EstadoInscripcion {
   FINALIZADA = "FINALIZADA",
 }
 
+export enum EstadoAsistencia {
+  PRESENTE = "PRESENTE",
+  AUSENTE = "AUSENTE",
+}
+
 export interface Page<T> {
   content: T[];
   totalPages: number;
@@ -28,8 +33,16 @@ export interface Page<T> {
   number: number;
 }
 
+export interface PageResponse<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+}
+
 // ==========================================
-// Alumno
+// ALUMNO
 // ==========================================
 export interface AlumnoRegistroRequest {
   nombre: string;
@@ -124,8 +137,9 @@ export interface Alumno {
   nombre: string;
   apellido: string;
 }
+
 // ==========================================
-// Profesor
+// PROFESOR
 // ==========================================
 export interface ProfesorRegistroRequest {
   nombre: string;
@@ -164,7 +178,7 @@ export interface ProfesorListadoResponse {
 }
 
 // ==========================================
-// Disciplina
+// DISCIPLINA
 // ==========================================
 export interface DisciplinaRegistroRequest {
   nombre: string;
@@ -237,15 +251,27 @@ export interface DisciplinaDetalleResponse {
 }
 
 // ==========================================
-// Asistencia
+// ASISTENCIA
 // ==========================================
-
-export enum EstadoAsistencia {
-  PRESENTE = "PRESENTE",
-  AUSENTE = "AUSENTE",
+export interface AsistenciaDiaria {
+  id: number;
+  fecha: string;
+  estado: EstadoAsistencia;
+  alumnoId: number;
+  asistenciaMensualId: number;
+  observacion?: string;
 }
 
-export interface AsistenciaDiaria {
+export interface AsistenciaDiariaRegistroRequest {
+  id?: number;
+  fecha: string;
+  estado: EstadoAsistencia;
+  alumnoId: number;
+  asistenciaMensualId: number;
+  observacion?: string;
+}
+
+export interface AsistenciaDiariaResponse {
   id: number;
   fecha: string;
   estado: EstadoAsistencia;
@@ -266,27 +292,9 @@ export interface AsistenciaMensualDetalleRequest {
 export type AsistenciaMensualRegistroRequest = {
   mes: number;
   anio: number;
-  inscripcionId?: number; // Hacerlo opcional si puede no tener alumnos
+  inscripcionId?: number; // Opcional si puede no tener alumnos
   asistenciasDiarias?: AsistenciaDiariaRegistroRequest[];
 };
-
-export interface AsistenciaDiariaRegistroRequest {
-  id?: number;
-  fecha: string;
-  estado: EstadoAsistencia;
-  alumnoId: number;
-  asistenciaMensualId: number;
-  observacion?: string;
-}
-
-export interface AsistenciaDiariaResponse {
-  id: number;
-  fecha: string;
-  estado: EstadoAsistencia;
-  alumnoId: number;
-  asistenciaMensualId: number;
-  observacion?: string;
-}
 
 export interface AsistenciaMensualModificacionRequest {
   observaciones: {
@@ -324,16 +332,8 @@ export interface AsistenciaMensualListadoResponse {
   cantidadAlumnos: number;
 }
 
-export interface PageResponse<T> {
-  content: T[];
-  totalElements: number;
-  totalPages: number;
-  size: number;
-  number: number;
-}
-
 // ==========================================
-// Inscripción
+// INSCRIPCIÓN
 // ==========================================
 export interface InscripcionDisciplinaRequest {
   disciplinaId: number;
@@ -343,7 +343,7 @@ export interface InscripcionDisciplinaRequest {
 export interface InscripcionRegistroRequest {
   alumnoId: number;
   inscripcion: InscripcionDisciplinaRequest;
-  fechaInscripcion?: string; // 👈 Hacerla opcional
+  fechaInscripcion?: string; // Opcional
   notas?: string;
 }
 
@@ -351,7 +351,7 @@ export interface InscripcionModificacionRequest {
   alumnoId: number;
   disciplinaId: number;
   bonificacionId?: number;
-  fechaBaja?: string; // Changed from LocalDate to string
+  fechaBaja?: string; // Cambiado de LocalDate a string
   activo?: boolean;
   costoParticular?: number;
   notas?: string;
@@ -377,7 +377,7 @@ export interface InscripcionResponse {
 }
 
 // ==========================================
-// Bonificación
+// BONIFICACIÓN
 // ==========================================
 export interface BonificacionRegistroRequest {
   descripcion: string;
@@ -401,19 +401,8 @@ export interface BonificacionResponse {
 }
 
 // ==========================================
-// Pagos y Métodos de Pago
+// PAGO Y MÉTODOS DE PAGO
 // ==========================================
-export interface PagoRegistroRequest {
-  fecha: LocalDate;
-  fechaVencimiento: LocalDate;
-  monto: number;
-  inscripcionId: number;
-  metodoPagoId?: number;
-  recargoAplicado?: boolean;
-  bonificacionAplicada?: boolean;
-  saldoRestante: number;
-}
-
 export interface PagoModificacionRequest {
   fecha: LocalDate;
   fechaVencimiento: LocalDate;
@@ -434,8 +423,79 @@ export interface MetodoPagoModificacionRequest {
   activo: boolean;
 }
 
+export interface DetallePagoResponse {
+  id: number;
+  codigoConcepto?: string;
+  concepto: string;
+  cuota?: string;
+  valorBase: number;
+  bonificacion: number;
+  recargo: number;
+  aFavor: number;
+  importe: number;
+  aCobrar: number;
+}
+
+export interface PagoMedioRegistroRequest {
+  monto: number;
+  metodoPagoId: number;
+}
+
+export interface PagoMedioResponse {
+  id: number;
+  monto: number;
+  metodo: MetodoPagoResponse;
+}
+
+export interface MetodoPagoResponse {
+  id: number;
+  descripcion: string;
+  activo: boolean;
+}
+
+export interface PagoResponse {
+  id: number;
+  fecha: string;
+  fechaVencimiento: string;
+  monto: number;
+  metodosPago: PagoMedioResponse[]; // Soporta pagos parciales
+  recargoAplicado: boolean;
+  bonificacionAplicada: number; // Ahora es un monto
+  saldoRestante: number;
+  saldoAFavor: number; // Nuevo campo para "A Favor"
+  activo: boolean;
+  inscripcionId: number;
+  detallePagos: DetallePagoResponse[];
+}
+
+export interface DetallePagoRegistroRequest {
+  codigoConcepto?: string;
+  concepto: string;
+  cuota?: string;
+  valorBase: number;
+  bonificacion: number;
+  recargo: number;
+  aFavor: number;
+  importe?: number;
+  aCobrar?: number;
+}
+
+export interface PagoRegistroRequest {
+  fecha: string; // YYYY-MM-DD
+  fechaVencimiento: string; // YYYY-MM-DD
+  monto: number;
+  inscripcionId: number;
+  metodoPagoId?: number;
+  recargoAplicado: boolean;
+  bonificacionAplicada: number;
+  saldoRestante: number;
+  saldoAFavor: number;
+  detallePagos: DetallePagoRegistroRequest[];
+  pagoMedios: PagoMedioRegistroRequest[];
+}
+
 // ==========================================
-// Caja
+// CAJA
 // ==========================================
 export interface CajaRegistroRequest {
   fecha: LocalDate;
@@ -456,8 +516,19 @@ export interface CajaModificacionRequest {
   activo: boolean;
 }
 
+export interface CajaResponse {
+  id: number;
+  fecha: LocalDate;
+  totalEfectivo: number;
+  totalTransferencia: number;
+  totalTarjeta: number;
+  rangoDesdeHasta: string;
+  observaciones: string;
+  activo: boolean;
+}
+
 // ==========================================
-// Recargos
+// RECARGOS
 // ==========================================
 export interface RecargoRegistroRequest {
   descripcion: string;
@@ -475,7 +546,7 @@ export interface RecargoDetalleModificacionRegistroRequest {
 }
 
 // ==========================================
-// Salón
+// SALÓN
 // ==========================================
 export interface SalonRegistroRequest {
   nombre: string;
@@ -494,7 +565,7 @@ export interface SalonResponse {
 }
 
 // ==========================================
-// Productos
+// PRODUCTOS
 // ==========================================
 export interface ProductoRegistroRequest {
   nombre: string;
@@ -525,7 +596,7 @@ export interface TipoProductoModificacionRequest {
 }
 
 // ==========================================
-// Usuario y Roles
+// USUARIO Y ROLES
 // ==========================================
 export interface UsuarioRegistroRequest {
   nombreUsuario: string;
@@ -550,7 +621,7 @@ export interface RolModificacionRequest {
 }
 
 // ==========================================
-// Reportes
+// REPORTES
 // ==========================================
 export interface ReporteRegistroRequest {
   tipo: string;
@@ -560,5 +631,14 @@ export interface ReporteRegistroRequest {
 
 export interface ReporteModificacionRequest {
   descripcion: string;
+  activo: boolean;
+}
+
+export interface ReporteResponse {
+  id: number;
+  tipo: string;
+  descripcion: string;
+  fechaGeneracion: string; // O LocalDate, según prefieras
+  usuarioId?: number;
   activo: boolean;
 }

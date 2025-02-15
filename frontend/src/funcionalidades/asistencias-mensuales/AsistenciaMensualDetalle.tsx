@@ -9,7 +9,7 @@ import { Button } from "../../componentes/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../componentes/ui/table";
 import { Input } from "../../componentes/ui/input";
 import asistenciasApi from "../../api/asistenciasApi";
-import { AsistenciaMensualDetalleResponse, EstadoAsistencia } from "../../types/types";
+import { AsistenciaDiariaRegistroRequest, AsistenciaMensualDetalleResponse, EstadoAsistencia } from "../../types/types";
 
 const AsistenciaMensualDetalle: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -60,41 +60,46 @@ const AsistenciaMensualDetalle: React.FC = () => {
   // Función para alternar el estado de una asistencia diaria
   const toggleAsistencia = async (alumnoId: number, fecha: string) => {
     if (!asistencia) return;
-    const registro = asistencia.asistenciasDiarias.find(a => a.alumnoId === alumnoId && a.fecha === fecha);
-    if (!registro) return;
-    // Normalizamos el valor a mayúsculas para la comparación
-    const currentEstado = String(registro.estado).toUpperCase();
-    const nuevoEstado = currentEstado === EstadoAsistencia.PRESENTE ? EstadoAsistencia.AUSENTE : EstadoAsistencia.PRESENTE;
 
-    // Actualización optimista
-    setAsistencia(prev => {
-      if (!prev) return prev;
-      const nuevasAsistencias = prev.asistenciasDiarias.map(a =>
-        a.id === registro.id ? { ...a, estado: nuevoEstado } : a
-      );
-      return { ...prev, asistenciasDiarias: nuevasAsistencias };
-    });
+    // Buscar la asistencia diaria existente
+    const asistenciaDiaria = asistencia.asistenciasDiarias.find(
+      (ad) => ad.alumnoId === alumnoId && ad.fecha === fecha
+    );
+
+    if (!asistenciaDiaria) {
+      console.error("No se encontró una asistencia diaria para este alumno en esta fecha.");
+      toast.error("Error al actualizar la asistencia.");
+      return;
+    }
 
     try {
-      await asistenciasApi.registrarAsistenciaDiaria({
-        id: registro.id,
-        fecha: registro.fecha, // La fecha es inmutable
-        estado: nuevoEstado,
-        alumnoId: registro.alumnoId,
-        asistenciaMensualId: registro.asistenciaMensualId,
-        observacion: registro.observacion || "",
+      const asistenciaDiariaRequest: AsistenciaDiariaRegistroRequest = {
+        id: asistenciaDiaria.id, // ✅ Ahora usa el ID correcto
+        asistenciaMensualId: asistencia.id,
+        alumnoId,
+        fecha,
+        estado: asistenciaDiaria.estado === EstadoAsistencia.PRESENTE ? EstadoAsistencia.AUSENTE : EstadoAsistencia.PRESENTE,
+      };
+
+      await asistenciasApi.registrarAsistenciaDiaria(asistenciaDiariaRequest);
+
+      // Actualizar el estado en el frontend
+      setAsistencia((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          asistenciasDiarias: prev.asistenciasDiarias.map(ad =>
+            ad.id === asistenciaDiaria.id
+              ? { ...ad, estado: asistenciaDiariaRequest.estado }
+              : ad
+          ),
+        };
       });
+
       toast.success("Asistencia actualizada");
     } catch (error) {
-      toast.error("Error al actualizar la asistencia.");
-      // Revertir el cambio en caso de error
-      setAsistencia(prev => {
-        if (!prev) return prev;
-        const revertidas = prev.asistenciasDiarias.map(a =>
-          a.id === registro.id ? { ...a, estado: registro.estado } : a
-        );
-        return { ...prev, asistenciasDiarias: revertidas };
-      });
+      console.error("Error al registrar asistencia:", error);
+      toast.error("Error al registrar la asistencia");
     }
   };
 

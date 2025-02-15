@@ -1,4 +1,3 @@
-// src/rutas/AppRouter.tsx
 import { lazy, Suspense } from "react";
 import { Routes, Route } from "react-router-dom";
 import Encabezado from "../componentes/comunes/Encabezado";
@@ -10,9 +9,7 @@ const Inicio = lazy(() => import("../paginas/Dashboard"));
 const Reportes = lazy(() => import("../paginas/Reportes"));
 
 // Gestión de asistencias
-const AsistenciaDiariaFormulario = lazy(() =>
-  import("../funcionalidades/asistencias-diarias/AsistenciasDiariasFormulario")
-);
+
 const AsistenciasMensualesListado = lazy(() =>
   import("../funcionalidades/asistencias-mensuales/AsistenciasMensualesListado")
 );
@@ -50,8 +47,10 @@ const FormularioBonificaciones = lazy(() => import("../funcionalidades/bonificac
 const Inscripciones = lazy(() => import("../funcionalidades/inscripciones/InscripcionesPagina"));
 const FormularioInscripciones = lazy(() => import("../funcionalidades/inscripciones/InscripcionesFormulario"));
 
-// (Opcional) Gestión de pagos, si es necesario
-// const Pagos = lazy(() => import("../funcionalidades/pagos/PagosPagina"));
+// Gestión de pagos y caja
+const Pagos = lazy(() => import("../funcionalidades/pagos/PagosPagina"));
+const FormularioPagos = lazy(() => import("../funcionalidades/pagos/PagosFormulario"));
+const Caja = lazy(() => import("../funcionalidades/caja/CajaPagina"));
 
 const AppRouter = () => {
   return (
@@ -93,18 +92,16 @@ const AppRouter = () => {
             <Route path="/inscripciones/formulario" element={<FormularioInscripciones />} />
 
             {/* Gestión de asistencias */}
-            {/* Pantalla de selección */}
             <Route path="/asistencias" element={<AsistenciasSeleccion />} />
-            {/* Formulario de registro de asistencias mensuales */}
             <Route path="/asistencias-mensuales/formulario" element={<AsistenciasMensualesFormulario />} />
-            {/* Listado de asistencias mensuales */}
             <Route path="/asistencias-mensuales" element={<AsistenciasMensualesListado />} />
-            {/* Detalle de asistencia mensual */}
             <Route path="/asistencias-mensuales/:id" element={<AsistenciaMensualDetalle />} />
-            {/* Listado de asistencias diarias (sin id) */}
             <Route path="/asistencias-diarias" element={<AsistenciasMensualesListado />} />
-            {/* Formulario para modificar asistencia diaria (por alumno) */}
-            <Route path="/asistencias-diarias/:id" element={<AsistenciaDiariaFormulario />} />
+
+            {/* Gestión de pagos y caja */}
+            <Route path="/pagos" element={<Pagos />} />
+            <Route path="/pagos/formulario" element={<FormularioPagos />} />
+            <Route path="/caja" element={<Caja />} />
           </Route>
         </Routes>
       </Suspense>

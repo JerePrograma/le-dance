@@ -14,7 +14,7 @@ public record PagoModificacionRequest(
         @NotNull @Min(0) Double monto,
         Long metodoPagoId, // ✅ Opcional
         Boolean recargoAplicado,
-        Boolean bonificacionAplicada,
+        Double bonificacionAplicada,
         @NotNull @Min(0) Double saldoRestante,
         @NotNull Boolean activo // ✅ Ahora se puede modificar el estado
 ) {}
