@@ -16,8 +16,8 @@ public class ValidadorUsuarioDuplicado implements Validador<UsuarioRegistroReque
 
     @Override
     public void validar(UsuarioRegistroRequest datos) {
-        if (usuarioRepositorio.findByEmail(datos.email()).isPresent()) {
-            throw new RuntimeException("El email ya esta registrado: " + datos.email());
+        if (usuarioRepositorio.findByNombreUsuario(datos.nombreUsuario()).isPresent()) {
+            throw new RuntimeException("El nombre de usuario ya esta registrado: " + datos.nombreUsuario());
         }
     }
 }

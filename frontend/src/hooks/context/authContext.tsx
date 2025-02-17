@@ -11,7 +11,7 @@ import api from "../../api/axiosConfig";
 interface AuthContextProps {
   isAuth: boolean;
   loading: boolean;
-  login: (email: string, contrasena: string) => Promise<void>;
+  login: (nombreUsuario: string, contrasena: string) => Promise<void>;
   logout: () => void;
   accessToken: string | null;
   refreshToken: string | null;
@@ -59,8 +59,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     }
   }, [loading, isAuth, navigate]);
 
-  const login = async (email: string, contrasena: string): Promise<void> => {
-    const { data } = await api.post("/api/login", { email, contrasena });
+  const login = async (nombreUsuario: string, contrasena: string): Promise<void> => {
+    const { data } = await api.post("/api/login", { nombreUsuario, contrasena });
 
     localStorage.setItem("accessToken", data.accessToken);
     localStorage.setItem("refreshToken", data.refreshToken);

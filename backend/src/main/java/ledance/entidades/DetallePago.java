@@ -3,6 +3,8 @@ package ledance.entidades;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 @Entity
 @Data
@@ -18,14 +20,12 @@ public class DetallePago {
     // Código único del concepto (opcional)
     private String codigoConcepto;
 
-    // Nombre del concepto (por ejemplo, "Flex y Contorsión")
     @NotNull
     private String concepto;
 
     // Ejemplo: "01/2025"
     private String cuota;
 
-    // Valor base del concepto
     @NotNull
     private Double valorBase;
 
@@ -44,20 +44,22 @@ public class DetallePago {
     // Monto pendiente a cobrar (para pagos parciales)
     private Double aCobrar;
 
-    // Relación con el pago principal
     @ManyToOne
     @JoinColumn(name = "pago_id", nullable = false)
     private Pago pago;
 
     /**
-     * Calcula el importe y asigna aCobrar igual a importe.
+     * Calcula el importe y asigna aCobrar igual a importe, redondeado a dos decimales.
      */
     public void calcularImporte() {
         double base = (valorBase != null ? valorBase : 0.0);
         double desc = (bonificacion != null ? bonificacion : 0.0);
         double rec = (recargo != null ? recargo : 0.0);
-        double aF = (aFavor != null ? aFavor : 0.0);
-        this.importe = base - desc + rec - aF;
+        double favor = (aFavor != null ? aFavor : 0.0);
+        double calculado = base - desc + rec - favor;
+        // Redondear a 2 decimales
+        BigDecimal bd = new BigDecimal(calculado).setScale(2, RoundingMode.HALF_UP);
+        this.importe = bd.doubleValue();
         this.aCobrar = this.importe;
     }
 }

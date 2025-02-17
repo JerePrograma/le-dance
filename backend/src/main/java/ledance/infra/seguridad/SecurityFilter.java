@@ -33,12 +33,12 @@ public class SecurityFilter extends OncePerRequestFilter {
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.replace("Bearer ", "");
             try {
-                String email = tokenService.getSubject(token);
+                String nombreUsuario = tokenService.getSubject(token);
                 String tipo = tokenService.getTokenType(token);
                 if (!"ACCESS".equals(tipo)) {
                     throw new JWTVerificationException("Token no es de tipo ACCESS");
                 }
-                var usuarioOpt = usuarioRepositorio.findByEmail(email);
+                var usuarioOpt = usuarioRepositorio.findByNombreUsuario(nombreUsuario);
                 if (usuarioOpt.isPresent()) {
                     var userEntity = usuarioOpt.get();
                     var authentication = new UsernamePasswordAuthenticationToken(

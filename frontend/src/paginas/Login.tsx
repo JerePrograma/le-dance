@@ -6,7 +6,7 @@ import * as Yup from "yup";
 import { toast } from "react-toastify";
 
 const loginSchema = Yup.object().shape({
-  email: Yup.string().email("Email inválido").required("Email es requerido"),
+  nombreUsuario: Yup.string().required("Nombre de Usuario es requerido"),
   contrasena: Yup.string().required("Contraseña es requerida"),
 });
 
@@ -14,9 +14,9 @@ const Login: React.FC = () => {
   const { login } = useAuth();
   const [error, setError] = useState("");
 
-  const handleLogin = async (values: { email: string; contrasena: string }) => {
+  const handleLogin = async (values: { nombreUsuario: string; contrasena: string }) => {
     try {
-      await login(values.email, values.contrasena);
+      await login(values.nombreUsuario, values.contrasena);
       window.location.href = "/";
     } catch (err) {
       setError("Credenciales incorrectas. Intenta nuevamente.");
@@ -28,25 +28,25 @@ const Login: React.FC = () => {
     <div className="page-container">
       <h1 className="page-title">Iniciar Sesión</h1>
       <Formik
-        initialValues={{ email: "", contrasena: "" }}
+        initialValues={{ nombreUsuario: "", contrasena: "" }}
         validationSchema={loginSchema}
         onSubmit={handleLogin}
       >
         {({ isSubmitting }) => (
           <Form className="formulario max-w-md mx-auto">
             <div className="mb-4">
-              <label htmlFor="email" className="auth-label">
-                Email:
+              <label htmlFor="nombreUsuario" className="auth-label">
+                Nombre de Usuario:
               </label>
               <Field
-                type="email"
-                id="email"
-                name="email"
+                type="nombreUsuario"
+                id="nombreUsuario"
+                name="nombreUsuario"
                 className="form-input"
-                placeholder="Ingrese su email"
+                placeholder="Ingrese su Nombre de Usuario"
               />
               <ErrorMessage
-                name="email"
+                name="nombreUsuario"
                 component="div"
                 className="auth-error"
               />

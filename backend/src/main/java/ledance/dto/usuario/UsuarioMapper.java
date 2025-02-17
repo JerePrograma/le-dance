@@ -27,7 +27,6 @@ public interface UsuarioMapper {
      */
     @Mapping(target = "id", source = "id")
     @Mapping(target = "nombreUsuario", source = "nombreUsuario")
-    @Mapping(target = "email", source = "email")
     @Mapping(target = "rolDescripcion", source = "rol.descripcion") // ✅ Se extrae el nombre del rol
     @Mapping(target = "activo", source = "activo")
     UsuarioResponse toDTO(Usuario usuario);

@@ -17,12 +17,12 @@ public class AutenticacionService implements UserDetailsService {
     }
 
     @Override
-    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+    public UserDetails loadUserByUsername(String nombreUsuario) throws UsernameNotFoundException {
         // El repositorio retorna Optional<Usuario>
-        return repositorio.findByEmail(email)
+        return repositorio.findByNombreUsuario(nombreUsuario)
                 // El repositorio da la entidad
                 .map(usuario -> (UserDetails) usuario)
                 // Casteas a UserDetails (porque Usuario implementa UserDetails)
-                .orElseThrow(() -> new UsernameNotFoundException("No se encontro un usuario con el email: " + email));
+                .orElseThrow(() -> new UsernameNotFoundException("No se encontro un usuario con el nombreUsuario: " + nombreUsuario));
     }
 }

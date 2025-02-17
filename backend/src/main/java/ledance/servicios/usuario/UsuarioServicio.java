@@ -38,9 +38,9 @@ public class UsuarioServicio implements IUsuarioServicio {
     @Override
     @Transactional
     public String registrarUsuario(UsuarioRegistroRequest datosRegistro) {
-        log.info("Registrando usuario con email: {}", datosRegistro.email());
-        if (usuarioRepositorio.findByEmail(datosRegistro.email()).isPresent()) {
-            throw new IllegalArgumentException("El email ya esta en uso.");
+        log.info("Registrando usuario con nombre de usuario: {}", datosRegistro.nombreUsuario());
+        if (usuarioRepositorio.findByNombreUsuario(datosRegistro.nombreUsuario()).isPresent()) {
+            throw new IllegalArgumentException("El nombre de usuario ya esta en uso.");
         }
         Rol rol = rolRepositorio.findByDescripcion(datosRegistro.rol().toUpperCase())
                 .orElseThrow(() -> new IllegalArgumentException("Rol no valido: " + datosRegistro.rol()));

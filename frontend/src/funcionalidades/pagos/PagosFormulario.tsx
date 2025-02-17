@@ -1,69 +1,186 @@
-import { Formik, Form, Field, FieldArray } from "formik";
+import React, { useEffect, useState, useCallback } from "react";
+import { Formik, Form, Field, FieldArray, ErrorMessage, FormikHelpers } from "formik";
 import * as Yup from "yup";
 import { toast } from "react-toastify";
+import axios from "axios";
+import pagosApi from "../../api/pagosApi";
 
-// Valores iniciales del formulario
-const initialValues = {
-    reciboNro: "AUTO-001", // Valor autogenerado (podría actualizarse dinámicamente)
-    alumno: "", // Aquí se podría implementar un autocomplete para buscar por ID/nombre
-    fecha: new Date().toISOString().split("T")[0],
-    detalles: [], // Array de conceptos agregados a la factura
+// Importar los tipos definidos en tu sistema
+import {
+    AlumnoListadoResponse,
+    InscripcionResponse,
+    DisciplinaListadoResponse,
+    StockResponse,
+    PagoRegistroRequest,
+    DetallePagoRegistroRequest,
+    PagoMedioRegistroRequest,
+} from "../../types/types";
+
+// Interfaces internas para select (opcional)
+interface StockItem {
+    id: number;
+    nombre: string;
+    precio: number;
+}
+
+interface CobranzasFormValues {
+    reciboNro: string;
+    alumno: string;
+    inscripcionId: string;
+    fecha: string;
+    detalles: Array<{
+        codigo?: string;
+        concepto: string;
+        cuota?: string;
+        valor: number;
+        bonificacion: number;
+        recargo: number;
+        aFavor: number;
+        importe?: number;
+        aCobrar?: number;
+    }>;
     // Campos para agregar conceptos
+    disciplina: string;
+    conceptoSeleccionado: string;
+    cantidad: number;
+    // Totales y pagos
+    aFavor: number;
+    totalCobrado: number;
+    pagos: Array<{
+        metodo: number;
+        monto: number;
+    }>;
+    observaciones: string;
+}
+
+const initialValues: CobranzasFormValues = {
+    reciboNro: "AUTO-001",
+    alumno: "",
+    inscripcionId: "",
+    fecha: new Date().toISOString().split("T")[0],
+    detalles: [],
     disciplina: "",
     conceptoSeleccionado: "",
     cantidad: 1,
-    // Totales y Pagos
-    aFavor: 0, // Valor obtenido del alumno (ej: alumno.aFavor)
+    aFavor: 0,
     totalCobrado: 0,
-    pagos: [], // Array para métodos de pago
-    // Observaciones
-    observaciones: ""
+    pagos: [],
+    observaciones: "",
 };
 
-// Validaciones básicas (se pueden ampliar según se requiera)
+// Validación básica
 const validationSchema = Yup.object().shape({
     alumno: Yup.string().required("El alumno es obligatorio"),
-    fecha: Yup.string().required("La fecha es obligatoria")
+    fecha: Yup.string().required("La fecha es obligatoria"),
 });
 
-// Opciones de ejemplo para disciplinas, productos y métodos de pago
-const disciplinasOptions = [
-    { id: 1, nombre: "Fútbol" },
-    { id: 2, nombre: "Básquet" },
-    { id: 3, nombre: "Natación" }
-];
+const CobranzasForm: React.FC = () => {
+    // Estados para cargar dinámicamente
+    const [alumnos, setAlumnos] = useState<AlumnoListadoResponse[]>([]);
+    const [inscripciones, setInscripciones] = useState<InscripcionResponse[]>([]);
+    const [disciplinas, setDisciplinas] = useState<DisciplinaListadoResponse[]>([]);
+    const [stocks, setStocks] = useState<StockResponse[]>([]);
+    const [metodosPago, setMetodosPago] = useState<Array<{ id: number; nombre: string }>>([]);
 
-const productosOptions = [
-    { id: 33, nombre: "MATRÍCULA 2024", valor: 15000 },
-    { id: 7, nombre: "Ballet Intermedio/Avanz.", valor: 26000 },
-    { id: 8, nombre: "MALLA", valor: 28000 }
-];
+    // Cargar alumnos, disciplinas, stocks y métodos de pago al montar
+    useEffect(() => {
+        axios.get("/api/alumnos")
+            .then((res) => {
+                const data = res.data;
+                if (Array.isArray(data)) setAlumnos(data);
+                else if (data.content && Array.isArray(data.content)) setAlumnos(data.content);
+                else setAlumnos([]);
+            })
+            .catch((err) => console.error("Error al cargar alumnos:", err));
 
-const metodosPagoOptions = [
-    { id: 1, nombre: "Efectivo" },
-    { id: 2, nombre: "Tarjeta" },
-    { id: 3, nombre: "Cuotas" }
-];
+        pagosApi.listarDisciplinasBasicas()
+            .then(setDisciplinas)
+            .catch((err) => console.error("Error al cargar disciplinas:", err));
 
-const CobranzasForm = () => {
-    // Función para calcular el total a pagar sumando los importes de cada concepto
-    const calculateTotalAPagar = (detalles) =>
+        pagosApi.listarStocksBasicos()
+            .then(setStocks)
+            .catch((err) => console.error("Error al cargar stocks:", err));
+
+        pagosApi.listarAlumnosBasicos()
+            .then(setAlumnos) // Si prefieres usar el mismo listado, o ajusta según necesidad
+            .catch((err) => console.error("Error al cargar alumnos (básicos):", err));
+
+        // Métodos de pago: si tienes un endpoint, úsalo; de lo contrario, opciones estáticas
+        axios.get("/api/metodos-pago")
+            .then((res) => setMetodosPago(res.data))
+            .catch((err) => {
+                console.error("Error al cargar métodos de pago:", err);
+                setMetodosPago([
+                    { id: 1, nombre: "Efectivo" },
+                    { id: 2, nombre: "Tarjeta" },
+                    { id: 3, nombre: "Cuotas" },
+                ]);
+            });
+    }, []);
+
+    // Al seleccionar un alumno, cargar sus inscripciones y disciplinas
+    const handleAlumnoChange = useCallback((alumnoId: string, setFieldValue: (field: string, value: any) => void) => {
+        setFieldValue("alumno", alumnoId);
+        axios.get(`/api/inscripciones?alumnoId=${alumnoId}`)
+            .then((res) => setInscripciones(res.data))
+            .catch((err) => console.error("Error al cargar inscripciones:", err));
+        axios.get(`/api/alumnos/${alumnoId}/disciplinas`)
+            .then((res) => {
+                const data = res.data;
+                if (Array.isArray(data)) {
+                    setDisciplinas(data);
+                } else if (data.content && Array.isArray(data.content)) {
+                    setDisciplinas(data.content);
+                } else {
+                    setDisciplinas([]);
+                }
+            })
+            .catch((err) => console.error("Error al cargar disciplinas:", err));
+    }, []);
+
+    // Función para calcular el total a pagar
+    const calculateTotalAPagar = (detalles: CobranzasFormValues["detalles"]) =>
         detalles.reduce((total, item) => total + Number(item.importe || 0), 0);
+
+    // Actualiza importe y aCobrar de un detalle
+    const actualizarDetalleImporte = (detalle: CobranzasFormValues["detalles"][0]) => {
+        const valor = Number(detalle.valor) || 0;
+        const bonificacion = Number(detalle.bonificacion) || 0;
+        const recargo = Number(detalle.recargo) || 0;
+        const aFavor = Number(detalle.aFavor) || 0;
+        const importe = valor - bonificacion + recargo - aFavor;
+        return { ...detalle, importe, aCobrar: importe };
+    };
+
+    const onSubmit = async (values: CobranzasFormValues, actions: FormikHelpers<CobranzasFormValues>) => {
+        try {
+            const detallesConImporte = values.detalles.map(actualizarDetalleImporte);
+            const pagoRegistroRequest: PagoRegistroRequest = {
+                fecha: values.fecha,
+                fechaVencimiento: values.fecha, // Ajustar según convenga
+                monto: calculateTotalAPagar(detallesConImporte),
+                inscripcionId: Number(values.inscripcionId),
+                metodoPagoId: undefined,
+                recargoAplicado: false,
+                bonificacionAplicada: 0,
+                saldoRestante: calculateTotalAPagar(detallesConImporte),
+                saldoAFavor: values.aFavor,
+                detallePagos: detallesConImporte,
+                pagoMedios: values.pagos,
+            };
+            await pagosApi.registrarPago(pagoRegistroRequest);
+            toast.success("Cobranza registrada correctamente");
+            actions.resetForm();
+        } catch (error) {
+            console.error("Error al registrar la cobranza:", error);
+            toast.error("Error al registrar la cobranza");
+        }
+    };
 
     return (
         <div className="page-container p-4">
-            <h1 className="page-title text-2xl font-bold mb-4">
-                Gestión de Cobranzas
-            </h1>
-            <Formik
-                initialValues={initialValues}
-                validationSchema={validationSchema}
-                onSubmit={(values) => {
-                    console.log("Valores del formulario:", values);
-                    toast.success("Cobranza registrada correctamente");
-                    // Aquí se podría invocar una API para registrar el pago
-                }}
-            >
+            <h1 className="page-title text-2xl font-bold mb-4">Gestión de Cobranzas</h1>
+            <Formik initialValues={initialValues} validationSchema={validationSchema} onSubmit={onSubmit}>
                 {({ values, setFieldValue }) => (
                     <Form className="max-w-5xl mx-auto">
                         {/* ─── DATOS GENERALES ────────────────────────────── */}
@@ -73,22 +190,27 @@ const CobranzasForm = () => {
                                 {/* Recibo Nro (solo lectura) */}
                                 <div>
                                     <label className="block font-medium">Recibo Nro:</label>
-                                    <Field
-                                        name="reciboNro"
-                                        readOnly
-                                        className="border p-2 w-full bg-gray-100"
-                                    />
+                                    <Field name="reciboNro" readOnly className="border p-2 w-full bg-gray-100" />
                                 </div>
                                 {/* Alumno: búsqueda por ID o nombre */}
                                 <div>
                                     <label className="block font-medium">Alumno:</label>
                                     <Field
+                                        as="select"
                                         name="alumno"
-                                        type="text"
-                                        placeholder="Buscar por ID o nombre"
                                         className="border p-2 w-full"
-                                    />
-                                    {/* Aquí se podría integrar un componente de autocompletado */}
+                                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                                            handleAlumnoChange(e.target.value, setFieldValue)
+                                        }
+                                    >
+                                        <option value="">Seleccione un alumno</option>
+                                        {alumnos.map((alumno) => (
+                                            <option key={alumno.id} value={alumno.id}>
+                                                {alumno.nombre} {alumno.apellido}
+                                            </option>
+                                        ))}
+                                    </Field>
+                                    {/* Aquí se podría integrar un autocomplete */}
                                 </div>
                                 {/* Fecha */}
                                 <div>
@@ -122,62 +244,34 @@ const CobranzasForm = () => {
                                             <tbody>
                                                 {values.detalles && values.detalles.length > 0 ? (
                                                     values.detalles.map((detalle, index) => {
-                                                        // Cálculo automático de "A Cobrar"
                                                         const valor = Number(detalle.valor) || 0;
                                                         const bonificacion = Number(detalle.bonificacion) || 0;
                                                         const recargo = Number(detalle.recargo) || 0;
                                                         const aFavor = Number(detalle.aFavor) || 0;
                                                         const aCobrar = valor - bonificacion + recargo - aFavor;
-
                                                         return (
                                                             <tr key={index}>
                                                                 <td className="border p-2">
-                                                                    <Field
-                                                                        name={`detalles.${index}.codigo`}
-                                                                        type="text"
-                                                                        className="w-full"
-                                                                    />
+                                                                    <Field name={`detalles.${index}.codigo`} type="text" className="w-full" />
                                                                 </td>
                                                                 <td className="border p-2">
-                                                                    <Field
-                                                                        name={`detalles.${index}.concepto`}
-                                                                        type="text"
-                                                                        className="w-full"
-                                                                    />
+                                                                    <Field name={`detalles.${index}.concepto`} type="text" className="w-full" />
                                                                 </td>
                                                                 <td className="border p-2">
-                                                                    <Field
-                                                                        name={`detalles.${index}.cuota`}
-                                                                        type="text"
-                                                                        className="w-full"
-                                                                    />
+                                                                    <Field name={`detalles.${index}.cuota`} type="text" className="w-full" />
                                                                 </td>
                                                                 <td className="border p-2">
                                                                     <Field
                                                                         name={`detalles.${index}.valor`}
                                                                         type="number"
                                                                         className="w-full"
-                                                                        onChange={(e) => {
+                                                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                                                                             const newValor = Number(e.target.value);
-                                                                            setFieldValue(
-                                                                                `detalles.${index}.valor`,
-                                                                                newValor
-                                                                            );
-                                                                            // Recalcular importe y aCobrar
-                                                                            const newImporte = newValor; // Se asume importe = valor
-                                                                            const newACobrar =
-                                                                                newValor -
-                                                                                bonificacion +
-                                                                                recargo -
-                                                                                aFavor;
-                                                                            setFieldValue(
-                                                                                `detalles.${index}.importe`,
-                                                                                newImporte
-                                                                            );
-                                                                            setFieldValue(
-                                                                                `detalles.${index}.aCobrar`,
-                                                                                newACobrar
-                                                                            );
+                                                                            setFieldValue(`detalles.${index}.valor`, newValor);
+                                                                            const newImporte = newValor;
+                                                                            const newACobrar = newValor - bonificacion + recargo - aFavor;
+                                                                            setFieldValue(`detalles.${index}.importe`, newImporte);
+                                                                            setFieldValue(`detalles.${index}.aCobrar`, newACobrar);
                                                                         }}
                                                                     />
                                                                 </td>
@@ -186,18 +280,11 @@ const CobranzasForm = () => {
                                                                         name={`detalles.${index}.bonificacion`}
                                                                         type="number"
                                                                         className="w-full"
-                                                                        onChange={(e) => {
+                                                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                                                                             const newBonificacion = Number(e.target.value);
-                                                                            setFieldValue(
-                                                                                `detalles.${index}.bonificacion`,
-                                                                                newBonificacion
-                                                                            );
-                                                                            const newACobrar =
-                                                                                valor - newBonificacion + recargo - aFavor;
-                                                                            setFieldValue(
-                                                                                `detalles.${index}.aCobrar`,
-                                                                                newACobrar
-                                                                            );
+                                                                            setFieldValue(`detalles.${index}.bonificacion`, newBonificacion);
+                                                                            const newACobrar = valor - newBonificacion + recargo - aFavor;
+                                                                            setFieldValue(`detalles.${index}.aCobrar`, newACobrar);
                                                                         }}
                                                                     />
                                                                 </td>
@@ -206,18 +293,11 @@ const CobranzasForm = () => {
                                                                         name={`detalles.${index}.recargo`}
                                                                         type="number"
                                                                         className="w-full"
-                                                                        onChange={(e) => {
+                                                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                                                                             const newRecargo = Number(e.target.value);
-                                                                            setFieldValue(
-                                                                                `detalles.${index}.recargo`,
-                                                                                newRecargo
-                                                                            );
-                                                                            const newACobrar =
-                                                                                valor - bonificacion + newRecargo - aFavor;
-                                                                            setFieldValue(
-                                                                                `detalles.${index}.aCobrar`,
-                                                                                newACobrar
-                                                                            );
+                                                                            setFieldValue(`detalles.${index}.recargo`, newRecargo);
+                                                                            const newACobrar = valor - bonificacion + newRecargo - aFavor;
+                                                                            setFieldValue(`detalles.${index}.aCobrar`, newACobrar);
                                                                         }}
                                                                     />
                                                                 </td>
@@ -226,37 +306,19 @@ const CobranzasForm = () => {
                                                                         name={`detalles.${index}.aFavor`}
                                                                         type="number"
                                                                         className="w-full"
-                                                                        onChange={(e) => {
+                                                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                                                                             const newAFavor = Number(e.target.value);
-                                                                            setFieldValue(
-                                                                                `detalles.${index}.aFavor`,
-                                                                                newAFavor
-                                                                            );
-                                                                            const newACobrar =
-                                                                                valor - bonificacion + recargo - newAFavor;
-                                                                            setFieldValue(
-                                                                                `detalles.${index}.aCobrar`,
-                                                                                newACobrar
-                                                                            );
+                                                                            setFieldValue(`detalles.${index}.aFavor`, newAFavor);
+                                                                            const newACobrar = valor - bonificacion + recargo - newAFavor;
+                                                                            setFieldValue(`detalles.${index}.aCobrar`, newACobrar);
                                                                         }}
                                                                     />
                                                                 </td>
                                                                 <td className="border p-2">
-                                                                    <Field
-                                                                        name={`detalles.${index}.importe`}
-                                                                        type="number"
-                                                                        className="w-full"
-                                                                        readOnly
-                                                                    />
+                                                                    <Field name={`detalles.${index}.importe`} type="number" className="w-full" readOnly />
                                                                 </td>
                                                                 <td className="border p-2">
-                                                                    <Field
-                                                                        name={`detalles.${index}.aCobrar`}
-                                                                        type="number"
-                                                                        className="w-full"
-                                                                        readOnly
-                                                                        value={aCobrar}
-                                                                    />
+                                                                    <Field name={`detalles.${index}.aCobrar`} type="number" className="w-full" readOnly value={aCobrar} />
                                                                 </td>
                                                                 <td className="border p-2 text-center">
                                                                     <button
@@ -285,13 +347,9 @@ const CobranzasForm = () => {
                                             {/* Selector de Disciplina */}
                                             <div>
                                                 <label className="block font-medium">Disciplina:</label>
-                                                <Field
-                                                    as="select"
-                                                    name="disciplina"
-                                                    className="border p-2 w-full"
-                                                >
-                                                    <option value="">Seleccione</option>
-                                                    {disciplinasOptions.map((disc) => (
+                                                <Field as="select" name="disciplina" className="border p-2 w-full">
+                                                    <option value="">Seleccione una disciplina</option>
+                                                    {disciplinas.map((disc) => (
                                                         <option key={disc.id} value={disc.nombre}>
                                                             {disc.nombre}
                                                         </option>
@@ -322,18 +380,12 @@ const CobranzasForm = () => {
                                                     Grabar Disciplinas
                                                 </button>
                                             </div>
-                                            {/* Selector de Concepto (Producto) */}
+                                            {/* Selector de Concepto (Stock) */}
                                             <div>
-                                                <label className="block font-medium">
-                                                    Concepto (Producto):
-                                                </label>
-                                                <Field
-                                                    as="select"
-                                                    name="conceptoSeleccionado"
-                                                    className="border p-2 w-full"
-                                                >
-                                                    <option value="">Seleccione</option>
-                                                    {productosOptions.map((prod) => (
+                                                <label className="block font-medium">Concepto (Stock):</label>
+                                                <Field as="select" name="conceptoSeleccionado" className="border p-2 w-full">
+                                                    <option value="">Seleccione un stock</option>
+                                                    {stocks.map((prod) => (
                                                         <option key={prod.id} value={prod.id}>
                                                             {prod.nombre}
                                                         </option>
@@ -342,29 +394,22 @@ const CobranzasForm = () => {
                                             </div>
                                             <div>
                                                 <label className="block font-medium">Cantidad:</label>
-                                                <Field
-                                                    name="cantidad"
-                                                    type="number"
-                                                    className="border p-2 w-full"
-                                                    min="1"
-                                                />
+                                                <Field name="cantidad" type="number" className="border p-2 w-full" min="1" />
                                             </div>
                                             <div className="col-span-2">
                                                 <button
                                                     type="button"
                                                     className="bg-green-500 text-white p-2 rounded mt-4"
                                                     onClick={() => {
-                                                        const selectedProduct = productosOptions.find(
-                                                            (p) =>
-                                                                p.id === Number(values.conceptoSeleccionado)
-                                                        );
+                                                        const selectedProductId = Number(values.conceptoSeleccionado);
+                                                        const selectedProduct = stocks.find((p) => p.id === selectedProductId);
                                                         if (selectedProduct) {
                                                             const cantidad = Number(values.cantidad) || 1;
-                                                            const valor = selectedProduct.valor * cantidad;
+                                                            const valor = selectedProduct.precio * cantidad;
                                                             push({
-                                                                codigo: selectedProduct.id,
+                                                                codigo: selectedProduct.id.toString(),
                                                                 concepto: selectedProduct.nombre,
-                                                                cuota: cantidad,
+                                                                cuota: cantidad.toString(),
                                                                 valor: valor,
                                                                 bonificacion: 0,
                                                                 recargo: 0,
@@ -375,14 +420,13 @@ const CobranzasForm = () => {
                                                             setFieldValue("conceptoSeleccionado", "");
                                                             setFieldValue("cantidad", 1);
                                                         } else {
-                                                            toast.error("Seleccione un producto válido");
+                                                            toast.error("Seleccione un stock válido");
                                                         }
                                                     }}
                                                 >
                                                     Agregar
                                                 </button>
                                             </div>
-                                            {/* Botón para eliminar (Borrar Dis) */}
                                             <div className="col-span-2">
                                                 <button
                                                     type="button"
@@ -423,47 +467,26 @@ const CobranzasForm = () => {
                                 </div>
                                 <div>
                                     <label className="block font-medium">A Favor:</label>
-                                    <Field
-                                        name="aFavor"
-                                        type="number"
-                                        className="border p-2 w-full"
-                                        readOnly
-                                    />
-                                    {/* Este campo podría completarse automáticamente según el alumno */}
+                                    <Field name="aFavor" type="number" className="border p-2 w-full" readOnly />
                                 </div>
                                 <div>
                                     <label className="block font-medium">Total Cobrado:</label>
-                                    <Field
-                                        name="totalCobrado"
-                                        type="number"
-                                        className="border p-2 w-full"
-                                        readOnly
-                                    />
+                                    <Field name="totalCobrado" type="number" className="border p-2 w-full" readOnly />
                                 </div>
                             </div>
-                            {/* Métodos de Pago */}
                             <FieldArray name="pagos">
                                 {({ push, remove }) => (
                                     <div className="mt-4">
                                         <h3 className="font-medium mb-2">Métodos de Pago</h3>
                                         {values.pagos && values.pagos.length > 0 ? (
                                             values.pagos.map((pago, index) => (
-                                                <div
-                                                    key={index}
-                                                    className="grid grid-cols-3 gap-4 items-end mb-2"
-                                                >
+                                                <div key={index} className="grid grid-cols-3 gap-4 items-end mb-2">
                                                     <div>
-                                                        <label className="block font-medium">
-                                                            Método de Pago:
-                                                        </label>
-                                                        <Field
-                                                            as="select"
-                                                            name={`pagos.${index}.metodo`}
-                                                            className="border p-2 w-full"
-                                                        >
+                                                        <label className="block font-medium">Método de Pago:</label>
+                                                        <Field as="select" name={`pagos.${index}.metodo`} className="border p-2 w-full">
                                                             <option value="">Seleccione</option>
-                                                            {metodosPagoOptions.map((mp) => (
-                                                                <option key={mp.id} value={mp.nombre}>
+                                                            {metodosPago.map((mp) => (
+                                                                <option key={mp.id} value={mp.id}>
                                                                     {mp.nombre}
                                                                 </option>
                                                             ))}
@@ -471,11 +494,7 @@ const CobranzasForm = () => {
                                                     </div>
                                                     <div>
                                                         <label className="block font-medium">Monto:</label>
-                                                        <Field
-                                                            name={`pagos.${index}.monto`}
-                                                            type="number"
-                                                            className="border p-2 w-full"
-                                                        />
+                                                        <Field name={`pagos.${index}.monto`} type="number" className="border p-2 w-full" />
                                                     </div>
                                                     <div>
                                                         <button
@@ -494,7 +513,7 @@ const CobranzasForm = () => {
                                         <button
                                             type="button"
                                             className="bg-blue-500 text-white p-2 rounded mt-2"
-                                            onClick={() => push({ metodo: "", monto: 0 })}
+                                            onClick={() => push({ metodo: 0, monto: 0 })}
                                         >
                                             Agregar Método de Pago
                                         </button>
@@ -506,12 +525,7 @@ const CobranzasForm = () => {
                         {/* ─── OBSERVACIONES ───────────────────────────── */}
                         <div className="border p-4 mb-4">
                             <label className="block font-medium">Observaciones:</label>
-                            <Field
-                                as="textarea"
-                                name="observaciones"
-                                className="border p-2 w-full"
-                                rows="3"
-                            />
+                            <Field as="textarea" name="observaciones" className="border p-2 w-full" rows="3" />
                         </div>
 
                         {/* ─── BOTONES DE ACCIÓN ────────────────────────── */}

@@ -1,6 +1,5 @@
 package ledance.dto.usuario.request;
 
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
 /**
@@ -8,7 +7,6 @@ import jakarta.validation.constraints.NotBlank;
  */
 public record UsuarioRegistroRequest(
         @NotBlank String nombreUsuario,
-        @Email @NotBlank String email,
         @NotBlank String contrasena,
         @NotBlank String rol // ✅ Nombre del rol (ADMIN, USER, etc.), se valida en el servicio
 ) {}

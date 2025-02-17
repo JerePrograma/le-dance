@@ -565,32 +565,51 @@ export interface SalonResponse {
 }
 
 // ==========================================
-// PRODUCTOS
+// STOCK
 // ==========================================
-export interface ProductoRegistroRequest {
+export interface StockRegistroRequest {
   nombre: string;
   precio: number;
-  tipoProductoId?: number;
+  tipoStockId?: number;
   stock: number;
   requiereControlDeStock: boolean;
   codigoBarras?: string;
 }
 
-export interface ProductoModificacionRequest {
+export interface StockModificacionRequest {
   nombre: string;
   precio: number;
-  tipoProductoId?: number;
+  tipoStockId?: number;
   stock: number;
   requiereControlDeStock: boolean;
   codigoBarras?: string;
   activo: boolean;
 }
 
-export interface TipoProductoRegistroRequest {
+export interface StockResponse {
+  id: number;
+  nombre: string;
+  precio: number;
+  tipo: TipoStockResponse; // se espera un objeto
+  stock: number;
+  requiereControlDeStock: boolean;
+  codigoBarras?: string;
+  activo: boolean;
+}
+// ==========================================
+// TIPO STOCK
+// ==========================================
+export interface TipoStockRegistroRequest {
   descripcion: string;
 }
 
-export interface TipoProductoModificacionRequest {
+export interface TipoStockModificacionRequest {
+  descripcion: string;
+  activo: boolean;
+}
+
+export interface TipoStockResponse {
+  id: number;
   descripcion: string;
   activo: boolean;
 }
@@ -600,14 +619,12 @@ export interface TipoProductoModificacionRequest {
 // ==========================================
 export interface UsuarioRegistroRequest {
   nombreUsuario: string;
-  email: string;
   contrasena: string;
   rol: string;
 }
 
 export interface UsuarioModificacionRequest {
   nombreUsuario: string;
-  email: string;
   activo: boolean;
 }
 

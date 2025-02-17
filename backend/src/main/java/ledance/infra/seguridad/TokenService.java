@@ -31,7 +31,7 @@ public class TokenService {
             Algorithm algorithm = Algorithm.HMAC256(secret);
             return JWT.create()
                     .withIssuer("ledance")
-                    .withSubject(usuario.getEmail())
+                    .withSubject(usuario.getNombreUsuario())
                     .withClaim("id", usuario.getId())
                     .withClaim("type", tipo)
                     .withClaim("rol", usuario.getRol().getDescripcion()) // ✅ Añadir rol al token

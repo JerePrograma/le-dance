@@ -6,7 +6,6 @@ package ledance.dto.usuario.response;
 public record UsuarioResponse(
         Long id,
         String nombreUsuario,
-        String email,
         String rolDescripcion, // ✅ Se mapea desde `rol.descripcion`
         Boolean activo
 ) {

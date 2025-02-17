@@ -10,8 +10,9 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "productos")
-public class Producto {
+@Table(name = "stocks")
+public class Stock {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -23,7 +24,8 @@ public class Producto {
     private Double precio;
 
     @ManyToOne
-    private TipoProducto tipo; // INDUMENTARIA, ACCESORIO
+    @JoinColumn(name = "tipo_stock_id") // Usamos el nombre real de la columna en la BD
+    private TipoStock tipo;
 
     @NotNull
     private Integer stock;

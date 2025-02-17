@@ -12,7 +12,6 @@ interface Rol {
 }
 
 const initialUserValues = {
-  email: "",
   nombreUsuario: "",
   contrasena: "",
   rol: "",
@@ -54,23 +53,6 @@ const UsuariosFormulario: React.FC = () => {
         {({ isSubmitting }) => (
           <Form className="formulario max-w-4xl mx-auto">
             <div className="form-grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="mb-4">
-                <label htmlFor="email" className="auth-label">
-                  Email:
-                </label>
-                <Field
-                  type="email"
-                  name="email"
-                  id="email"
-                  className="form-input"
-                />
-                <ErrorMessage
-                  name="email"
-                  component="div"
-                  className="auth-error"
-                />
-              </div>
-
               <div className="mb-4">
                 <label htmlFor="nombreUsuario" className="auth-label">
                   Nombre de Usuario:

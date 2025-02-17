@@ -14,15 +14,14 @@ CREATE TABLE roles
 CREATE TABLE usuarios
 (
     id             SERIAL PRIMARY KEY,
-    nombre_usuario VARCHAR(100) NOT NULL,
-    email          VARCHAR(100) NOT NULL UNIQUE,
+    nombre_usuario VARCHAR(100) NOT NULL UNIQUE,
     contrasena     VARCHAR(255) NOT NULL,
     rol_id         INTEGER REFERENCES roles (id) ON DELETE RESTRICT,
     activo         BOOLEAN NOT NULL DEFAULT TRUE
 );
 
 -- 3) TIPOS DE PRODUCTOS
-CREATE TABLE tipo_productos
+CREATE TABLE tipo_stocks
 (
     id          SERIAL PRIMARY KEY,
     descripcion VARCHAR(100) NOT NULL,
@@ -30,12 +29,12 @@ CREATE TABLE tipo_productos
 );
 
 -- 4) PRODUCTOS
-CREATE TABLE productos
+CREATE TABLE stocks
 (
     id                        SERIAL PRIMARY KEY,
     nombre                    VARCHAR(100) NOT NULL,
     precio                    NUMERIC(10, 2) NOT NULL,
-    tipo_producto_id          INTEGER REFERENCES tipo_productos (id) ON DELETE SET NULL,
+    tipo_stock_id          INTEGER REFERENCES tipo_stocks (id) ON DELETE SET NULL,
     stock                     INTEGER NOT NULL CHECK (stock >= 0),
     requiere_control_de_stock BOOLEAN NOT NULL DEFAULT TRUE,
     codigo_barras             VARCHAR(100),

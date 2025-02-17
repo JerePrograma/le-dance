@@ -33,8 +33,8 @@ public class AutenticacionControlador {
 
     @PostMapping
     public ResponseEntity<?> realizarLogin(@RequestBody @Valid LoginRequest datos) {
-        log.info("Intento de login para email: {}", datos.email());
-        var authToken = new UsernamePasswordAuthenticationToken(datos.email(), datos.contrasena());
+        log.info("Intento de login para nombreUsuario: {}", datos.nombreUsuario());
+        var authToken = new UsernamePasswordAuthenticationToken(datos.nombreUsuario(), datos.contrasena());
         var usuarioAutenticado = authManager.authenticate(authToken);
         var user = (Usuario) usuarioAutenticado.getPrincipal();
         var accessToken = tokenService.generarAccessToken(user);
@@ -45,12 +45,12 @@ public class AutenticacionControlador {
     @PostMapping("/refresh")
     public ResponseEntity<?> refreshToken(@RequestBody String refreshToken) {
         try {
-            var email = tokenService.getSubject(refreshToken);
+            var nombreUsuario = tokenService.getSubject(refreshToken);
             var tokenType = tokenService.getTokenType(refreshToken);
             if (!"REFRESH".equals(tokenType)) {
                 return ResponseEntity.status(401).body("El token no es de tipo REFRESH");
             }
-            var usuario = usuarioRepositorio.findByEmail(email)
+            var usuario = usuarioRepositorio.findByNombreUsuario(nombreUsuario)
                     .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
             if (!usuario.getActivo()) {
                 return ResponseEntity.status(403).body("Usuario inactivo");

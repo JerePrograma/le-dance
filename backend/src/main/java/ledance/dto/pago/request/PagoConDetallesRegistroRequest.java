@@ -10,7 +10,7 @@ public record PagoConDetallesRegistroRequest(
         @NotNull LocalDate fechaVencimiento,
         @NotNull Long inscripcionId,
         Boolean recargoAplicado,
-        Boolean bonificacionAplicada,
+        Double bonificacionAplicada,
         String observaciones,
         @NotNull List<DetallePagoRegistroRequest> detallePagos,
         List<PagoMedioRegistroRequest> pagoMedios

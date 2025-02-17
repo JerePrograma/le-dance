@@ -4,13 +4,13 @@ import type {
   PagoRegistroRequest,
   PagoModificacionRequest,
   PagoResponse,
+  DisciplinaListadoResponse,
+  StockResponse,
+  AlumnoListadoResponse,
 } from "../types/types";
-// Si quieres utilizar el tipo refinado para registro, podrías importarlo así:
-// import type { NewPagoRegistroRequest } from "../types/pagoTypes";
 
 /**
  * Registra un nuevo pago.
- * Se podría usar un tipo como NewPagoRegistroRequest si queremos que el front solo envíe los datos necesarios.
  */
 const registrarPago = async (
   pago: PagoRegistroRequest
@@ -36,7 +36,7 @@ const listarPagos = async (): Promise<PagoResponse[]> => {
 };
 
 /**
- * Actualiza un pago. Se utiliza Partial<PagoModificacionRequest> para permitir actualizar solo los campos necesarios.
+ * Actualiza un pago.
  */
 const actualizarPago = async (
   id: number,
@@ -54,7 +54,7 @@ const eliminarPago = async (id: number): Promise<void> => {
 };
 
 /**
- * Lista pagos filtrados por la inscripción.
+ * Lista pagos filtrados por inscripción.
  */
 const listarPagosPorInscripcion = async (
   inscripcionId: number
@@ -66,7 +66,7 @@ const listarPagosPorInscripcion = async (
 };
 
 /**
- * Lista pagos filtrados por el alumno.
+ * Lista pagos filtrados por alumno.
  */
 const listarPagosPorAlumno = async (
   alumnoId: number
@@ -85,6 +85,40 @@ const listarPagosVencidos = async (): Promise<PagoResponse[]> => {
   return data;
 };
 
+/**
+ * NUEVOS ENDPOINTS BASICOS:
+ */
+
+/**
+ * Lista de forma básica las disciplinas.
+ */
+const listarDisciplinasBasicas = async (): Promise<
+  DisciplinaListadoResponse[]
+> => {
+  const { data } = await api.get<DisciplinaListadoResponse[]>(
+    "/api/disciplinas/listado"
+  );
+  return data;
+};
+
+/**
+ * Lista de forma básica los stocks.
+ */
+const listarStocksBasicos = async (): Promise<StockResponse[]> => {
+  const { data } = await api.get<StockResponse[]>("/api/stocks/activos");
+  return data;
+};
+
+/**
+ * Lista de forma básica los alumnos.
+ */
+const listarAlumnosBasicos = async (): Promise<AlumnoListadoResponse[]> => {
+  const { data } = await api.get<AlumnoListadoResponse[]>(
+    "/api/alumnos/listado"
+  );
+  return data;
+};
+
 const pagosApi = {
   registrarPago,
   obtenerPagoPorId,
@@ -94,6 +128,10 @@ const pagosApi = {
   listarPagosPorInscripcion,
   listarPagosPorAlumno,
   listarPagosVencidos,
+  // Nuevos endpoints básicos
+  listarDisciplinasBasicas,
+  listarStocksBasicos,
+  listarAlumnosBasicos,
 };
 
 export default pagosApi;

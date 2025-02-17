@@ -1,13 +1,15 @@
+// src/componentes/comunes/Encabezado.tsx
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import BotonCerrarSesion from "./BotonCerrarSesion";
 import { Menu, X } from "lucide-react";
+import { navigationItems } from "../../config/navigation";
 
-function Encabezado() {
+const Encabezado: React.FC = () => {
   const [menuAbierto, setMenuAbierto] = useState(false);
 
   const alternarMenu = () => {
-    setMenuAbierto(!menuAbierto);
+    setMenuAbierto((prev) => !prev);
   };
 
   return (
@@ -26,49 +28,30 @@ function Encabezado() {
             className="container:hidden p-2 rounded-md bg-primary text-primary-foreground dark:bg-primary-light dark:text-background-dark hover:bg-primary/90 dark:hover:bg-primary-light/90 transition-colors"
             aria-label={menuAbierto ? "Cerrar menú" : "Abrir menú"}
           >
-            {menuAbierto ? (
-              <X className="h-6 w-6" />
-            ) : (
-              <Menu className="h-6 w-6" />
-            )}
+            {menuAbierto ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
       </header>
 
       <aside
-        className={`fixed inset-y-0 right-0 z-40 w-64 bg-background dark:bg-background-dark shadow-lg transform
-                    ${menuAbierto ? "translate-x-0" : "translate-x-full"}
-                    transition-transform duration-300 ease-in-out container:translate-x-0 container:static container:w-auto`}
+        className={`fixed inset-y-0 right-0 z-40 w-64 bg-background dark:bg-background-dark shadow-lg transform 
+          ${menuAbierto ? "translate-x-0" : "translate-x-full"} 
+          transition-transform duration-300 ease-in-out container:translate-x-0 container:static container:w-auto`}
       >
         <nav className="h-full flex flex-col p-4">
-          {[
-            { to: "/", label: "Inicio" },
-            { to: "/profesores", label: "Profesores" },
-            { to: "/disciplinas", label: "Disciplinas" },
-            { to: "/salones", label: "Salones" },
-            { to: "/alumnos", label: "Alumnos" },
-            { to: "/asistencias-diarias", label: "Asistencias Diarias" },
-            { to: "/asistencias-mensuales", label: "Asistencias Mensuales" },
-            { to: "/bonificaciones", label: "Bonificaciones" },
-            { to: "/pagos", label: "Pagos" },
-            { to: "/caja", label: "Caja" },
-            { to: "/reportes", label: "Reportes" },
-            { to: "/usuarios", label: "Usuarios" },
-            { to: "/roles", label: "Roles" },
-          ].map((link) => (
+          {navigationItems.map((item) => (
             <NavLink
-              key={link.to}
-              to={link.to}
+              key={item.id}
+              to={item.href ?? "#"}
               className={({ isActive }) =>
-                `block py-2 px-4 rounded-md transition-colors
-                 ${isActive
+                `block py-2 px-4 rounded-md transition-colors ${isActive
                   ? "bg-primary text-primary-foreground dark:bg-primary-light dark:text-background-dark"
                   : "text-foreground dark:text-text-dark hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent-dark dark:hover:text-accent-foreground-dark"
                 }`
               }
               onClick={() => setMenuAbierto(false)}
             >
-              {link.label}
+              {item.label}
             </NavLink>
           ))}
           <div className="mt-auto">
@@ -85,6 +68,6 @@ function Encabezado() {
       )}
     </>
   );
-}
+};
 
 export default Encabezado;

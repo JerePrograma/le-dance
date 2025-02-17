@@ -9,7 +9,6 @@ const Inicio = lazy(() => import("../paginas/Dashboard"));
 const Reportes = lazy(() => import("../paginas/Reportes"));
 
 // Gestión de asistencias
-
 const AsistenciasMensualesListado = lazy(() =>
   import("../funcionalidades/asistencias-mensuales/AsistenciasMensualesListado")
 );
@@ -25,32 +24,64 @@ const AsistenciasSeleccion = lazy(() =>
 
 // Gestión de usuarios y roles
 const Usuarios = lazy(() => import("../funcionalidades/usuarios/UsuariosPagina"));
-const FormularioUsuarios = lazy(() => import("../funcionalidades/usuarios/UsuariosFormulario"));
+const FormularioUsuarios = lazy(() =>
+  import("../funcionalidades/usuarios/UsuariosFormulario")
+);
 const Roles = lazy(() => import("../funcionalidades/roles/RolesPagina"));
-const FormularioRoles = lazy(() => import("../funcionalidades/roles/RolesFormulario"));
+const FormularioRoles = lazy(() =>
+  import("../funcionalidades/roles/RolesFormulario")
+);
 
 // Gestión de profesores y disciplinas
 const Profesores = lazy(() => import("../funcionalidades/profesores/ProfesoresPagina"));
-const FormularioProfesores = lazy(() => import("../funcionalidades/profesores/ProfesoresFormulario"));
+const FormularioProfesores = lazy(() =>
+  import("../funcionalidades/profesores/ProfesoresFormulario")
+);
 const Disciplinas = lazy(() => import("../funcionalidades/disciplinas/DisciplinasPagina"));
-const FormularioDisciplinas = lazy(() => import("../funcionalidades/disciplinas/DisciplinasFormulario"));
+const FormularioDisciplinas = lazy(() =>
+  import("../funcionalidades/disciplinas/DisciplinasFormulario")
+);
 
 // Gestión de alumnos y salones
 const Alumnos = lazy(() => import("../funcionalidades/alumnos/AlumnosPagina"));
-const FormularioAlumnos = lazy(() => import("../funcionalidades/alumnos/AlumnosFormulario"));
+const FormularioAlumnos = lazy(() =>
+  import("../funcionalidades/alumnos/AlumnosFormulario")
+);
 const Salones = lazy(() => import("../funcionalidades/salones/SalonesPagina"));
-const FormularioSalones = lazy(() => import("../funcionalidades/salones/SalonesFormulario"));
+const FormularioSalones = lazy(() =>
+  import("../funcionalidades/salones/SalonesFormulario")
+);
 
 // Gestión de bonificaciones e inscripciones
-const Bonificaciones = lazy(() => import("../funcionalidades/bonificaciones/BonificacionesPagina"));
-const FormularioBonificaciones = lazy(() => import("../funcionalidades/bonificaciones/BonificacionesFormulario"));
-const Inscripciones = lazy(() => import("../funcionalidades/inscripciones/InscripcionesPagina"));
-const FormularioInscripciones = lazy(() => import("../funcionalidades/inscripciones/InscripcionesFormulario"));
+const Bonificaciones = lazy(() =>
+  import("../funcionalidades/bonificaciones/BonificacionesPagina")
+);
+const FormularioBonificaciones = lazy(() =>
+  import("../funcionalidades/bonificaciones/BonificacionesFormulario")
+);
+const Inscripciones = lazy(() =>
+  import("../funcionalidades/inscripciones/InscripcionesPagina")
+);
+const FormularioInscripciones = lazy(() =>
+  import("../funcionalidades/inscripciones/InscripcionesFormulario")
+);
 
 // Gestión de pagos y caja
 const Pagos = lazy(() => import("../funcionalidades/pagos/PagosPagina"));
 const FormularioPagos = lazy(() => import("../funcionalidades/pagos/PagosFormulario"));
 const Caja = lazy(() => import("../funcionalidades/caja/CajaPagina"));
+
+// NUEVAS PÁGINAS: STOCKS y TIPO-STOCKS
+const Stocks = lazy(() => import("../funcionalidades/stock/StocksPagina"));
+const FormularioStocks = lazy(() =>
+  import("../funcionalidades/stock/StocksFormulario")
+);
+const TipoStocks = lazy(() =>
+  import("../funcionalidades/tipoStocks/TipoStocksPagina")
+);
+const FormularioTipoStocks = lazy(() =>
+  import("../funcionalidades/tipoStocks/TipoStocksFormulario")
+);
 
 const AppRouter = () => {
   return (
@@ -102,6 +133,12 @@ const AppRouter = () => {
             <Route path="/pagos" element={<Pagos />} />
             <Route path="/pagos/formulario" element={<FormularioPagos />} />
             <Route path="/caja" element={<Caja />} />
+
+            {/* NUEVAS RUTAS: STOCKS y TIPO-STOCKS */}
+            <Route path="/stocks" element={<Stocks />} />
+            <Route path="/stocks/formulario" element={<FormularioStocks />} />
+            <Route path="/tipo-stocks" element={<TipoStocks />} />
+            <Route path="/tipo-stocks/formulario" element={<FormularioTipoStocks />} />
           </Route>
         </Routes>
       </Suspense>

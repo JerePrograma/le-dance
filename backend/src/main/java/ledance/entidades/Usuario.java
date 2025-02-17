@@ -25,9 +25,6 @@ public class Usuario implements UserDetails {
     private String nombreUsuario;
 
     @NotNull
-    private String email;
-
-    @NotNull
     private String contrasena;
 
     @ManyToOne

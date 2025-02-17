@@ -8,6 +8,8 @@ import {
   BarChart3,
   UserCog,
   Shield,
+  ShoppingCart,
+  Tag,
 } from "lucide-react";
 
 export interface NavigationItem {
@@ -44,6 +46,18 @@ export const navigationItems: NavigationItem[] = [
     href: "/salones",
   },
   {
+    id: "stocks",
+    icon: ShoppingCart,
+    label: "Stocks",
+    href: "/stocks",
+  },
+  {
+    id: "tipo-stocks",
+    icon: Tag,
+    label: "Tipo Stocks",
+    href: "/tipo-stocks",
+  },
+  {
     id: "asistencias",
     label: "Asistencias",
     href: "/asistencias",
@@ -68,7 +82,7 @@ export const navigationItems: NavigationItem[] = [
   },
   {
     id: "caja",
-    icon: CreditCard, // Puedes cambiar el icono si lo deseas
+    icon: CreditCard,
     label: "Caja",
     href: "/caja",
   },
