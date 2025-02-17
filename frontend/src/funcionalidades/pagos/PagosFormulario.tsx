@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { Formik, Form, Field, FieldArray, ErrorMessage, FormikHelpers } from "formik";
+import { Formik, Form, Field, FieldArray, FormikHelpers } from "formik";
 import * as Yup from "yup";
 import { toast } from "react-toastify";
 import axios from "axios";
@@ -8,31 +8,23 @@ import pagosApi from "../../api/pagosApi";
 // Importar los tipos definidos en tu sistema
 import {
     AlumnoListadoResponse,
-    InscripcionResponse,
     DisciplinaListadoResponse,
     StockResponse,
     PagoRegistroRequest,
-    DetallePagoRegistroRequest,
-    PagoMedioRegistroRequest,
+    // Se omiten DetallePagoRegistroRequest y PagoMedioRegistroRequest, pues se usan los tipos en línea
 } from "../../types/types";
 
-// Interfaces internas para select (opcional)
-interface StockItem {
-    id: number;
-    nombre: string;
-    precio: number;
-}
-
+// Definición de los valores del formulario
 interface CobranzasFormValues {
     reciboNro: string;
     alumno: string;
     inscripcionId: string;
     fecha: string;
     detalles: Array<{
-        codigo?: string;
+        codigoConcepto?: string;
         concepto: string;
         cuota?: string;
-        valor: number;
+        valorBase: number;
         bonificacion: number;
         recargo: number;
         aFavor: number;
@@ -47,7 +39,7 @@ interface CobranzasFormValues {
     aFavor: number;
     totalCobrado: number;
     pagos: Array<{
-        metodo: number;
+        metodoPagoId: number;
         monto: number;
     }>;
     observaciones: string;
@@ -68,23 +60,23 @@ const initialValues: CobranzasFormValues = {
     observaciones: "",
 };
 
-// Validación básica
+// Validación básica con Yup
 const validationSchema = Yup.object().shape({
     alumno: Yup.string().required("El alumno es obligatorio"),
     fecha: Yup.string().required("La fecha es obligatoria"),
 });
 
 const CobranzasForm: React.FC = () => {
-    // Estados para cargar dinámicamente
+    // Estados para cargar dinámicamente los datos
     const [alumnos, setAlumnos] = useState<AlumnoListadoResponse[]>([]);
-    const [inscripciones, setInscripciones] = useState<InscripcionResponse[]>([]);
     const [disciplinas, setDisciplinas] = useState<DisciplinaListadoResponse[]>([]);
     const [stocks, setStocks] = useState<StockResponse[]>([]);
     const [metodosPago, setMetodosPago] = useState<Array<{ id: number; nombre: string }>>([]);
 
-    // Cargar alumnos, disciplinas, stocks y métodos de pago al montar
+    // Cargar datos al montar el componente
     useEffect(() => {
-        axios.get("/api/alumnos")
+        axios
+            .get("/api/alumnos")
             .then((res) => {
                 const data = res.data;
                 if (Array.isArray(data)) setAlumnos(data);
@@ -93,20 +85,23 @@ const CobranzasForm: React.FC = () => {
             })
             .catch((err) => console.error("Error al cargar alumnos:", err));
 
-        pagosApi.listarDisciplinasBasicas()
+        pagosApi
+            .listarDisciplinasBasicas()
             .then(setDisciplinas)
             .catch((err) => console.error("Error al cargar disciplinas:", err));
 
-        pagosApi.listarStocksBasicos()
+        pagosApi
+            .listarStocksBasicos()
             .then(setStocks)
             .catch((err) => console.error("Error al cargar stocks:", err));
 
-        pagosApi.listarAlumnosBasicos()
-            .then(setAlumnos) // Si prefieres usar el mismo listado, o ajusta según necesidad
+        pagosApi
+            .listarAlumnosBasicos()
+            .then(setAlumnos)
             .catch((err) => console.error("Error al cargar alumnos (básicos):", err));
 
-        // Métodos de pago: si tienes un endpoint, úsalo; de lo contrario, opciones estáticas
-        axios.get("/api/metodos-pago")
+        axios
+            .get("/api/metodos-pago")
             .then((res) => setMetodosPago(res.data))
             .catch((err) => {
                 console.error("Error al cargar métodos de pago:", err);
@@ -118,46 +113,57 @@ const CobranzasForm: React.FC = () => {
             });
     }, []);
 
-    // Al seleccionar un alumno, cargar sus inscripciones y disciplinas
-    const handleAlumnoChange = useCallback((alumnoId: string, setFieldValue: (field: string, value: any) => void) => {
-        setFieldValue("alumno", alumnoId);
-        axios.get(`/api/inscripciones?alumnoId=${alumnoId}`)
-            .then((res) => setInscripciones(res.data))
-            .catch((err) => console.error("Error al cargar inscripciones:", err));
-        axios.get(`/api/alumnos/${alumnoId}/disciplinas`)
-            .then((res) => {
-                const data = res.data;
-                if (Array.isArray(data)) {
-                    setDisciplinas(data);
-                } else if (data.content && Array.isArray(data.content)) {
-                    setDisciplinas(data.content);
-                } else {
-                    setDisciplinas([]);
-                }
-            })
-            .catch((err) => console.error("Error al cargar disciplinas:", err));
-    }, []);
+    // Al seleccionar un alumno, cargar sus disciplinas (y opcionalmente inscripciones)
+    const handleAlumnoChange = useCallback(
+        (alumnoId: string, setFieldValue: (field: string, value: any) => void) => {
+            setFieldValue("alumno", alumnoId);
+            axios
+                .get(`/api/inscripciones?alumnoId=${alumnoId}`)
+                .then(() => {
+                    // Se podrían utilizar las inscripciones, si es necesario
+                })
+                .catch((err) => console.error("Error al cargar inscripciones:", err));
+            axios
+                .get(`/api/alumnos/${alumnoId}/disciplinas`)
+                .then((res) => {
+                    const data = res.data;
+                    if (Array.isArray(data)) {
+                        setDisciplinas(data);
+                    } else if (data.content && Array.isArray(data.content)) {
+                        setDisciplinas(data.content);
+                    } else {
+                        setDisciplinas([]);
+                    }
+                })
+                .catch((err) => console.error("Error al cargar disciplinas:", err));
+        },
+        []
+    );
 
-    // Función para calcular el total a pagar
+    // Función para calcular el total a pagar sumando los importes de cada detalle
     const calculateTotalAPagar = (detalles: CobranzasFormValues["detalles"]) =>
         detalles.reduce((total, item) => total + Number(item.importe || 0), 0);
 
-    // Actualiza importe y aCobrar de un detalle
+    // Actualiza el importe y el monto a cobrar de un detalle basado en sus valores
     const actualizarDetalleImporte = (detalle: CobranzasFormValues["detalles"][0]) => {
-        const valor = Number(detalle.valor) || 0;
+        const valorBase = Number(detalle.valorBase) || 0;
         const bonificacion = Number(detalle.bonificacion) || 0;
         const recargo = Number(detalle.recargo) || 0;
         const aFavor = Number(detalle.aFavor) || 0;
-        const importe = valor - bonificacion + recargo - aFavor;
+        const importe = valorBase - bonificacion + recargo - aFavor;
         return { ...detalle, importe, aCobrar: importe };
     };
 
-    const onSubmit = async (values: CobranzasFormValues, actions: FormikHelpers<CobranzasFormValues>) => {
+    // Función de envío del formulario
+    const onSubmit = async (
+        values: CobranzasFormValues,
+        actions: FormikHelpers<CobranzasFormValues>
+    ) => {
         try {
             const detallesConImporte = values.detalles.map(actualizarDetalleImporte);
             const pagoRegistroRequest: PagoRegistroRequest = {
                 fecha: values.fecha,
-                fechaVencimiento: values.fecha, // Ajustar según convenga
+                fechaVencimiento: values.fecha,
                 monto: calculateTotalAPagar(detallesConImporte),
                 inscripcionId: Number(values.inscripcionId),
                 metodoPagoId: undefined,
@@ -187,12 +193,10 @@ const CobranzasForm: React.FC = () => {
                         <div className="border p-4 mb-4">
                             <h2 className="font-bold mb-2">Datos de Cobranza</h2>
                             <div className="grid grid-cols-3 gap-4">
-                                {/* Recibo Nro (solo lectura) */}
                                 <div>
                                     <label className="block font-medium">Recibo Nro:</label>
                                     <Field name="reciboNro" readOnly className="border p-2 w-full bg-gray-100" />
                                 </div>
-                                {/* Alumno: búsqueda por ID o nombre */}
                                 <div>
                                     <label className="block font-medium">Alumno:</label>
                                     <Field
@@ -210,9 +214,7 @@ const CobranzasForm: React.FC = () => {
                                             </option>
                                         ))}
                                     </Field>
-                                    {/* Aquí se podría integrar un autocomplete */}
                                 </div>
-                                {/* Fecha */}
                                 <div>
                                     <label className="block font-medium">Fecha:</label>
                                     <Field name="fecha" type="date" className="border p-2 w-full" />
@@ -232,7 +234,7 @@ const CobranzasForm: React.FC = () => {
                                                     <th className="border p-2">Código (ID)</th>
                                                     <th className="border p-2">Concepto</th>
                                                     <th className="border p-2">Cuota/Cantidad</th>
-                                                    <th className="border p-2">Valor</th>
+                                                    <th className="border p-2">Valor Base</th>
                                                     <th className="border p-2">Bonificación</th>
                                                     <th className="border p-2">Recargo</th>
                                                     <th className="border p-2">A Favor</th>
@@ -244,15 +246,15 @@ const CobranzasForm: React.FC = () => {
                                             <tbody>
                                                 {values.detalles && values.detalles.length > 0 ? (
                                                     values.detalles.map((detalle, index) => {
-                                                        const valor = Number(detalle.valor) || 0;
+                                                        const valorBase = Number(detalle.valorBase) || 0;
                                                         const bonificacion = Number(detalle.bonificacion) || 0;
                                                         const recargo = Number(detalle.recargo) || 0;
                                                         const aFavor = Number(detalle.aFavor) || 0;
-                                                        const aCobrar = valor - bonificacion + recargo - aFavor;
+                                                        const aCobrar = valorBase - bonificacion + recargo - aFavor;
                                                         return (
                                                             <tr key={index}>
                                                                 <td className="border p-2">
-                                                                    <Field name={`detalles.${index}.codigo`} type="text" className="w-full" />
+                                                                    <Field name={`detalles.${index}.codigoConcepto`} type="text" className="w-full" />
                                                                 </td>
                                                                 <td className="border p-2">
                                                                     <Field name={`detalles.${index}.concepto`} type="text" className="w-full" />
@@ -262,14 +264,14 @@ const CobranzasForm: React.FC = () => {
                                                                 </td>
                                                                 <td className="border p-2">
                                                                     <Field
-                                                                        name={`detalles.${index}.valor`}
+                                                                        name={`detalles.${index}.valorBase`}
                                                                         type="number"
                                                                         className="w-full"
                                                                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                                                                            const newValor = Number(e.target.value);
-                                                                            setFieldValue(`detalles.${index}.valor`, newValor);
-                                                                            const newImporte = newValor;
-                                                                            const newACobrar = newValor - bonificacion + recargo - aFavor;
+                                                                            const newValorBase = Number(e.target.value);
+                                                                            setFieldValue(`detalles.${index}.valorBase`, newValorBase);
+                                                                            const newImporte = newValorBase;
+                                                                            const newACobrar = newValorBase - bonificacion + recargo - aFavor;
                                                                             setFieldValue(`detalles.${index}.importe`, newImporte);
                                                                             setFieldValue(`detalles.${index}.aCobrar`, newACobrar);
                                                                         }}
@@ -283,7 +285,7 @@ const CobranzasForm: React.FC = () => {
                                                                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                                                                             const newBonificacion = Number(e.target.value);
                                                                             setFieldValue(`detalles.${index}.bonificacion`, newBonificacion);
-                                                                            const newACobrar = valor - newBonificacion + recargo - aFavor;
+                                                                            const newACobrar = valorBase - newBonificacion + recargo - aFavor;
                                                                             setFieldValue(`detalles.${index}.aCobrar`, newACobrar);
                                                                         }}
                                                                     />
@@ -296,7 +298,7 @@ const CobranzasForm: React.FC = () => {
                                                                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                                                                             const newRecargo = Number(e.target.value);
                                                                             setFieldValue(`detalles.${index}.recargo`, newRecargo);
-                                                                            const newACobrar = valor - bonificacion + newRecargo - aFavor;
+                                                                            const newACobrar = valorBase - bonificacion + newRecargo - aFavor;
                                                                             setFieldValue(`detalles.${index}.aCobrar`, newACobrar);
                                                                         }}
                                                                     />
@@ -309,7 +311,7 @@ const CobranzasForm: React.FC = () => {
                                                                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                                                                             const newAFavor = Number(e.target.value);
                                                                             setFieldValue(`detalles.${index}.aFavor`, newAFavor);
-                                                                            const newACobrar = valor - bonificacion + recargo - newAFavor;
+                                                                            const newACobrar = valorBase - bonificacion + recargo - newAFavor;
                                                                             setFieldValue(`detalles.${index}.aCobrar`, newACobrar);
                                                                         }}
                                                                     />
@@ -363,15 +365,15 @@ const CobranzasForm: React.FC = () => {
                                                     onClick={() => {
                                                         if (values.disciplina) {
                                                             push({
-                                                                codigo: `DISC-${values.disciplina}`,
+                                                                codigoConcepto: `DISC-${values.disciplina}`,
                                                                 concepto: values.disciplina,
                                                                 cuota: "",
-                                                                valor: 0,
+                                                                valorBase: 0,
                                                                 bonificacion: 0,
                                                                 recargo: 0,
                                                                 aFavor: 0,
                                                                 importe: 0,
-                                                                aCobrar: 0
+                                                                aCobrar: 0,
                                                             });
                                                             setFieldValue("disciplina", "");
                                                         }
@@ -407,15 +409,15 @@ const CobranzasForm: React.FC = () => {
                                                             const cantidad = Number(values.cantidad) || 1;
                                                             const valor = selectedProduct.precio * cantidad;
                                                             push({
-                                                                codigo: selectedProduct.id.toString(),
+                                                                codigoConcepto: selectedProduct.id.toString(),
                                                                 concepto: selectedProduct.nombre,
                                                                 cuota: cantidad.toString(),
-                                                                valor: valor,
+                                                                valorBase: valor,
                                                                 bonificacion: 0,
                                                                 recargo: 0,
                                                                 aFavor: 0,
                                                                 importe: valor,
-                                                                aCobrar: valor
+                                                                aCobrar: valor,
                                                             });
                                                             setFieldValue("conceptoSeleccionado", "");
                                                             setFieldValue("cantidad", 1);
@@ -434,7 +436,7 @@ const CobranzasForm: React.FC = () => {
                                                     onClick={() => {
                                                         // Elimina el primer concepto que corresponda a una disciplina
                                                         const indexToRemove = values.detalles.findIndex((item) =>
-                                                            String(item.codigo).startsWith("DISC-")
+                                                            String(item.codigoConcepto).startsWith("DISC-")
                                                         );
                                                         if (indexToRemove !== -1) {
                                                             remove(indexToRemove);
@@ -479,11 +481,11 @@ const CobranzasForm: React.FC = () => {
                                     <div className="mt-4">
                                         <h3 className="font-medium mb-2">Métodos de Pago</h3>
                                         {values.pagos && values.pagos.length > 0 ? (
-                                            values.pagos.map((pago, index) => (
+                                            values.pagos.map((_pago, index) => (
                                                 <div key={index} className="grid grid-cols-3 gap-4 items-end mb-2">
                                                     <div>
                                                         <label className="block font-medium">Método de Pago:</label>
-                                                        <Field as="select" name={`pagos.${index}.metodo`} className="border p-2 w-full">
+                                                        <Field as="select" name={`pagos.${index}.metodoPagoId`} className="border p-2 w-full">
                                                             <option value="">Seleccione</option>
                                                             {metodosPago.map((mp) => (
                                                                 <option key={mp.id} value={mp.id}>
@@ -513,7 +515,7 @@ const CobranzasForm: React.FC = () => {
                                         <button
                                             type="button"
                                             className="bg-blue-500 text-white p-2 rounded mt-2"
-                                            onClick={() => push({ metodo: 0, monto: 0 })}
+                                            onClick={() => push({ metodoPagoId: 0, monto: 0 })}
                                         >
                                             Agregar Método de Pago
                                         </button>

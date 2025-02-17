@@ -7,7 +7,11 @@ import stocksApi from "../../api/stocksApi";
 import tipoStocksApi from "../../api/tipoStocksApi";
 import Boton from "../../componentes/comunes/Boton";
 import { toast } from "react-toastify";
-import type { StockRegistroRequest, StockModificacionRequest, StockResponse } from "../../types/types";
+import type {
+    StockRegistroRequest,
+    StockModificacionRequest,
+    StockResponse,
+} from "../../types/types";
 import type { TipoStockResponse } from "../../types/types";
 
 const initialStockValues: StockRegistroRequest & Partial<StockModificacionRequest> = {
@@ -176,9 +180,23 @@ const StocksFormulario: React.FC = () => {
                                 <label htmlFor="requiereControlDeStock" className="auth-label">
                                     Requiere Control de Stock:
                                 </label>
-                                <Field as="select" name="requiereControlDeStock" className="form-input">
-                                    <option value={false}>No</option>
-                                    <option value={true}>Sí</option>
+                                {/* Uso de Field como función para convertir el valor de string a boolean */}
+                                <Field name="requiereControlDeStock">
+                                    {({ field, form }: any) => (
+                                        <select
+                                            {...field}
+                                            className="form-input"
+                                            onChange={(e) =>
+                                                form.setFieldValue(
+                                                    "requiereControlDeStock",
+                                                    e.target.value === "true"
+                                                )
+                                            }
+                                        >
+                                            <option value="false">No</option>
+                                            <option value="true">Sí</option>
+                                        </select>
+                                    )}
                                 </Field>
                                 <ErrorMessage name="requiereControlDeStock" component="div" className="auth-error" />
                             </div>
@@ -203,8 +221,8 @@ const StocksFormulario: React.FC = () => {
                         {mensaje && (
                             <p
                                 className={`form-mensaje ${mensaje.includes("Error") || mensaje.includes("no encontrado")
-                                    ? "form-mensaje-error"
-                                    : "form-mensaje-success"
+                                        ? "form-mensaje-error"
+                                        : "form-mensaje-success"
                                     }`}
                             >
                                 {mensaje}
@@ -225,7 +243,11 @@ const StocksFormulario: React.FC = () => {
                             >
                                 Limpiar
                             </Boton>
-                            <Boton type="button" onClick={() => navigate("/stocks")} className="page-button-secondary">
+                            <Boton
+                                type="button"
+                                onClick={() => navigate("/stocks")}
+                                className="page-button-secondary"
+                            >
                                 Volver al Listado
                             </Boton>
                         </div>
