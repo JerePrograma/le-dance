@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 
 @RestController
@@ -26,7 +27,6 @@ public class StockControlador {
 
     @PostMapping
     public ResponseEntity<StockResponse> crearStock(@RequestBody @Valid StockRegistroRequest request) {
-        log.info("Creando stock: {}", request.nombre());
         StockResponse nuevo = stockServicio.crearStock(request);
         return ResponseEntity.ok(nuevo);
     }
@@ -51,7 +51,7 @@ public class StockControlador {
 
     @PutMapping("/{id}")
     public ResponseEntity<StockResponse> actualizarStock(@PathVariable Long id,
-                                                               @RequestBody @Valid StockModificacionRequest request) {
+                                                         @RequestBody @Valid StockModificacionRequest request) {
         StockResponse actualizado = stockServicio.actualizarStock(id, request);
         return ResponseEntity.ok(actualizado);
     }
@@ -60,5 +60,11 @@ public class StockControlador {
     public ResponseEntity<Void> eliminarStock(@PathVariable Long id) {
         stockServicio.eliminarStock(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/conceptos")
+    public ResponseEntity<List<StockResponse>> listarStocksConceptos() {
+        List<StockResponse> stocks = stockServicio.listarStocksConceptos();
+        return ResponseEntity.ok(stocks);
     }
 }

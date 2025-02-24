@@ -7,6 +7,7 @@ import type {
   DisciplinaListadoResponse,
   StockResponse,
   AlumnoListadoResponse,
+  CobranzaDTO,
 } from "../types/types";
 
 /**
@@ -119,6 +120,15 @@ const listarAlumnosBasicos = async (): Promise<AlumnoListadoResponse[]> => {
   return data;
 };
 
+const obtenerCobranzaPorAlumno = async (
+  alumnoId: number
+): Promise<CobranzaDTO> => {
+  const { data } = await api.get<CobranzaDTO>(
+    `/api/pagos/alumno/${alumnoId}/cobranza`
+  );
+  return data;
+};
+
 const pagosApi = {
   registrarPago,
   obtenerPagoPorId,
@@ -132,6 +142,7 @@ const pagosApi = {
   listarDisciplinasBasicas,
   listarStocksBasicos,
   listarAlumnosBasicos,
+  obtenerCobranzaPorAlumno, // Agregado aquí
 };
 
 export default pagosApi;

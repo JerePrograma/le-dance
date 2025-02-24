@@ -1,3 +1,4 @@
+// src/main/java/ledance/servicios/pago/MetodoPagoServicio.java
 package ledance.servicios.pago;
 
 import ledance.dto.metodopago.MetodoPagoMapper;
@@ -25,60 +26,51 @@ public class MetodoPagoServicio {
     }
 
     /**
-     * Crear (registrar) un nuevo metodo de pago.
+     * Crea un nuevo método de pago.
      */
     public MetodoPagoResponse registrar(MetodoPagoRegistroRequest request) {
-        // Convertimos DTO a entidad
         MetodoPago nuevo = metodoPagoMapper.toEntity(request);
-        // Guardamos en la BD
         MetodoPago guardado = metodoPagoRepositorio.save(nuevo);
-        // Retornamos la respuesta
         return metodoPagoMapper.toDTO(guardado);
     }
 
     /**
-     * Listar todos los metodos de pago (puedes filtrar solo activos si gustas).
+     * Lista todos los métodos de pago.
      */
     @Transactional(readOnly = true)
     public List<MetodoPagoResponse> listar() {
-        // Si deseas solo los activos, puedes usar un custom query: findByActivoTrue()
         return metodoPagoRepositorio.findAll().stream()
                 .map(metodoPagoMapper::toDTO)
                 .toList();
     }
 
     /**
-     * Obtener un metodo de pago por ID.
+     * Obtiene un método de pago por su ID.
      */
     @Transactional(readOnly = true)
     public MetodoPagoResponse obtenerPorId(Long id) {
         MetodoPago metodo = metodoPagoRepositorio.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "No se encontro el metodo de pago con ID: " + id));
+                .orElseThrow(() -> new IllegalArgumentException("No se encontró el método de pago con ID: " + id));
         return metodoPagoMapper.toDTO(metodo);
     }
 
     /**
-     * Actualizar un metodo de pago existente.
+     * Actualiza un método de pago existente.
      */
     public MetodoPagoResponse actualizar(Long id, MetodoPagoModificacionRequest request) {
         MetodoPago metodo = metodoPagoRepositorio.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "No se encontro el metodo de pago con ID: " + id));
-        // MapStruct actualiza campos en la entidad
+                .orElseThrow(() -> new IllegalArgumentException("No se encontró el método de pago con ID: " + id));
         metodoPagoMapper.updateEntityFromRequest(request, metodo);
-        // Guardamos cambios
         MetodoPago actualizado = metodoPagoRepositorio.save(metodo);
         return metodoPagoMapper.toDTO(actualizado);
     }
 
     /**
-     * Baja logica: setear activo=false.
+     * Realiza la baja lógica de un método de pago.
      */
     public void eliminar(Long id) {
         MetodoPago metodo = metodoPagoRepositorio.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "No se encontro el metodo de pago con ID: " + id));
+                .orElseThrow(() -> new IllegalArgumentException("No se encontró el método de pago con ID: " + id));
         metodo.setActivo(false);
         metodoPagoRepositorio.save(metodo);
     }

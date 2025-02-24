@@ -5,61 +5,62 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="ccb8f120-972c-4a18-b18b-4ae7da723dfa" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/TipoStockControlador.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/stock/StockMapper.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/stock/TipoStockMapper.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/stock/request/StockModificacionRequest.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/stock/request/StockRegistroRequest.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/stock/request/TipoStockModificacionRequest.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/stock/request/TipoStockRegistroRequest.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/stock/response/StockResponse.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/stock/response/TipoStockResponse.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/AutenticacionControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/AutenticacionControlador.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/InscripcionControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/InscripcionControlador.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/MetodoPagoControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/MetodoPagoControlador.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/PagoControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/PagoControlador.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/TipoProductoControlador.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/StockControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/StockControlador.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/alumno/AlumnoMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/alumno/AlumnoMapper.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/disciplina/DisciplinaMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/disciplina/DisciplinaMapper.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/disciplina/response/DisciplinaListadoResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/disciplina/response/DisciplinaListadoResponse.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/inscripcion/InscripcionMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/inscripcion/InscripcionMapper.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/inscripcion/response/InscripcionResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/inscripcion/response/InscripcionResponse.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/metodopago/MetodoPagoMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/metodopago/MetodoPagoMapper.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/metodopago/request/MetodoPagoModificacionRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/metodopago/request/MetodoPagoModificacionRequest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/metodopago/request/MetodoPagoRegistroRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/metodopago/request/MetodoPagoRegistroRequest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/metodopago/response/MetodoPagoResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/metodopago/response/MetodoPagoResponse.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/pago/PagoMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/pago/PagoMapper.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/pago/request/PagoConDetallesRegistroRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/pago/request/PagoConDetallesRegistroRequest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/pago/request/PagoModificacionRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/pago/request/PagoModificacionRequest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/pago/request/DetallePagoRegistroRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/pago/request/DetallePagoRegistroRequest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/pago/request/PagoMedioRegistroRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/pago/request/PagoMedioRegistroRequest.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/pago/request/PagoRegistroRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/pago/request/PagoRegistroRequest.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/pago/response/PagoResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/pago/response/PagoResponse.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/producto/ProductoMapper.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/producto/request/ProductoModificacionRequest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/producto/request/ProductoRegistroRequest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/producto/response/ProductoResponse.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/request/LoginRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/request/LoginRequest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/tipoproducto/TipoProductoMapper.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/tipoproducto/request/TipoProductoModificacionRequest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/tipoproducto/request/TipoProductoRegistroRequest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/tipoproducto/response/TipoProductoResponse.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/usuario/UsuarioMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/usuario/UsuarioMapper.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/usuario/request/UsuarioModificacionRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/usuario/request/UsuarioModificacionRequest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/usuario/request/UsuarioRegistroRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/usuario/request/UsuarioRegistroRequest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/usuario/response/UsuarioResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/usuario/response/UsuarioResponse.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/profesor/request/ProfesorModificacionRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/profesor/request/ProfesorModificacionRequest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/profesor/request/ProfesorRegistroRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/profesor/request/ProfesorRegistroRequest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/profesor/response/ProfesorDetalleResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/profesor/response/ProfesorDetalleResponse.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/entidades/Alumno.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/entidades/Alumno.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/ledance/entidades/DetallePago.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/entidades/DetallePago.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/entidades/Disciplina.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/entidades/Disciplina.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/entidades/Inscripcion.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/entidades/Inscripcion.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/ledance/entidades/Pago.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/entidades/Pago.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/entidades/Producto.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/entidades/Stock.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/entidades/TipoProducto.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/entidades/TipoStock.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/entidades/Usuario.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/entidades/Usuario.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/infra/seguridad/AutenticacionService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/infra/seguridad/AutenticacionService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/infra/seguridad/SecurityFilter.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/infra/seguridad/SecurityFilter.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/infra/seguridad/TokenService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/infra/seguridad/TokenService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/repositorios/UsuarioRepositorio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/repositorios/UsuarioRepositorio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/entidades/Profesor.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/entidades/Profesor.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/entidades/Recargo.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/entidades/Recargo.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/entidades/Stock.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/entidades/Stock.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/repositorios/InscripcionRepositorio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/repositorios/InscripcionRepositorio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/repositorios/ProfesorRepositorio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/repositorios/ProfesorRepositorio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/repositorios/StockRepositorio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/repositorios/StockRepositorio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/ScheduledTasks.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/ScheduledTasks.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/inscripcion/InscripcionServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/inscripcion/InscripcionServicio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/pago/MetodoPagoServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/pago/MetodoPagoServicio.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/pago/PagoServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/pago/PagoServicio.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/pago/PaymentCalculationService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/pago/PaymentCalculationService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/usuario/UsuarioServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/usuario/UsuarioServicio.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/validaciones/usuarios/ValidadorUsuarioDuplicado.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/validaciones/usuarios/ValidadorUsuarioDuplicado.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/profesor/ProfesorServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/profesor/ProfesorServicio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/stock/StockServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/stock/StockServicio.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/resources/db/migration/V1__create-database-ledance.sql" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/db/migration/V1__create-database-ledance.sql" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/resources/db/migration/V2__update_pagos_schema.sql" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/db/migration/V2__update_pagos_schema.sql" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/api/pagosApi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/api/pagosApi.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/componentes/comunes/Encabezado.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/componentes/comunes/Encabezado.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/api/inscripcionesApi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/api/inscripcionesApi.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/api/stocksApi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/api/stocksApi.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../frontend/src/config/navigation.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/config/navigation.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/alumnos/AlumnosFormulario.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/alumnos/AlumnosFormulario.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/disciplinas/DisciplinasFormulario.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/disciplinas/DisciplinasFormulario.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/pagos/PagosFormulario.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/pagos/PagosFormulario.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/profesores/ProfesoresFormulario.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/profesores/ProfesoresFormulario.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/profesores/ProfesoresPagina.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/profesores/ProfesoresPagina.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/usuarios/UsuariosFormulario.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/usuarios/UsuariosFormulario.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/hooks/context/authContext.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/hooks/context/authContext.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/paginas/Login.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/paginas/Login.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../frontend/src/rutas/AppRouter.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/rutas/AppRouter.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../frontend/src/types/types.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/types/types.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/validaciones/alumnoEsquema.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/validaciones/alumnoEsquema.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/validaciones/profesorEsquema.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/validaciones/profesorEsquema.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/validaciones/usuarioEsquema.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/validaciones/usuarioEsquema.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -90,50 +91,50 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "RequestMappingsPanelOrder0": "0",
-    "RequestMappingsPanelOrder1": "1",
-    "RequestMappingsPanelWidth0": "75",
-    "RequestMappingsPanelWidth1": "75",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "Spring Boot.Main.executor": "Run",
-    "git-widget-placeholder": "main",
-    "kotlin-language-version-configured": "true",
-    "last_directory_selection": "D:/laburo/LE Dance/backend/src/main/java/ledance/validaciones",
-    "last_opened_file_path": "D:/laburo/LE Dance/backend/src/main/java/ledance/servicios/producto",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "project.structure.last.edited": "Project",
-    "project.structure.proportion": "0.0",
-    "project.structure.side.proportion": "0.15977012",
-    "settings.editor.selected.configurable": "preferences.lookFeel",
-    "ts.external.directory.path": "D:\\IntelliJ IDEA 2024.1\\plugins\\javascript-impl\\jsLanguageServicesImpl\\external",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RequestMappingsPanelOrder0&quot;: &quot;0&quot;,
+    &quot;RequestMappingsPanelOrder1&quot;: &quot;1&quot;,
+    &quot;RequestMappingsPanelWidth0&quot;: &quot;75&quot;,
+    &quot;RequestMappingsPanelWidth1&quot;: &quot;75&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;Spring Boot.Main.executor&quot;: &quot;Run&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;last_directory_selection&quot;: &quot;D:/laburo/LE Dance/backend/src/main/java/ledance/validaciones&quot;,
+    &quot;last_opened_file_path&quot;: &quot;D:/laburo/hackathon-caixabank-fullstack-javareact-blockchain/Backend/blockchain&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.0&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.15977012&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.lookFeel&quot;,
+    &quot;ts.external.directory.path&quot;: &quot;D:\\IntelliJ IDEA 2024.1\\plugins\\javascript-impl\\jsLanguageServicesImpl\\external&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   },
-  "keyToStringList": {
-    "DatabaseDriversLRU": [
-      "postgresql"
+  &quot;keyToStringList&quot;: {
+    &quot;DatabaseDriversLRU&quot;: [
+      &quot;postgresql&quot;
     ]
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CreateClassDialog.RecentsKey">
+      <recent name="ledance.dto" />
+      <recent name="ledance.dto.pago" />
+      <recent name="ledance.entidades" />
       <recent name="ledance.dto.pago.request" />
       <recent name="ledance.dto.response" />
-      <recent name="ledance.entidades" />
-      <recent name="ledance.dto.mappers" />
-      <recent name="ledance.servicios" />
     </key>
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="D:\laburo\LE Dance\backend\src\main\java\ledance\dto\matricula" />
+      <recent name="D:\laburo\LE Dance\backend\src\main\resources\db\migration" />
       <recent name="D:\laburo\LE Dance\backend\src\main\java\ledance\servicios\producto" />
       <recent name="D:\laburo\LE Dance\backend\src\main\java\ledance\dto" />
       <recent name="D:\laburo\LE Dance\backend\src\main\java\ledance\servicios" />
-      <recent name="D:\laburo\LE Dance\backend\src\main\java\ledance\validaciones" />
-      <recent name="D:\laburo\LE Dance\backend\src\main\java\ledance" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="D:\laburo\LE Dance\backend\src\main\resources\db\migration" />
@@ -143,11 +144,11 @@
       <recent name="ledance.dto.producto" />
     </key>
     <key name="CopyClassDialog.RECENTS_KEY">
+      <recent name="ledance.dto.matricula.request" />
       <recent name="ledance.repositorios" />
       <recent name="ledance.dto.response" />
       <recent name="ledance.dto.request" />
       <recent name="ledance.servicios" />
-      <recent name="ledance" />
     </key>
   </component>
   <component name="RunManager">
@@ -244,6 +245,41 @@
       <workItem from="1739665928166" duration="406000" />
       <workItem from="1739711558516" duration="4744000" />
       <workItem from="1739792865515" duration="4648000" />
+      <workItem from="1739845005849" duration="693000" />
+      <workItem from="1739892359960" duration="748000" />
+      <workItem from="1739926374080" duration="181000" />
+      <workItem from="1739926663258" duration="17000" />
+      <workItem from="1739926791653" duration="13000" />
+      <workItem from="1739927422578" duration="11000" />
+      <workItem from="1739927483393" duration="9000" />
+      <workItem from="1739927507001" duration="4000" />
+      <workItem from="1739927644790" duration="3000" />
+      <workItem from="1739927943419" duration="11000" />
+      <workItem from="1739927992169" duration="16000" />
+      <workItem from="1739928018347" duration="5000" />
+      <workItem from="1740055047418" duration="5201000" />
+      <workItem from="1740085374038" duration="1079000" />
+      <workItem from="1740094938092" duration="2648000" />
+      <workItem from="1740099340338" duration="70000" />
+      <workItem from="1740099561920" duration="208000" />
+      <workItem from="1740100431493" duration="155000" />
+      <workItem from="1740101181768" duration="15000" />
+      <workItem from="1740101571573" duration="44000" />
+      <workItem from="1740101996387" duration="17000" />
+      <workItem from="1740139650423" duration="1524000" />
+      <workItem from="1740149708715" duration="7440000" />
+      <workItem from="1740172304605" duration="10113000" />
+      <workItem from="1740187403340" duration="475000" />
+      <workItem from="1740225492100" duration="9607000" />
+      <workItem from="1740241391353" duration="156000" />
+      <workItem from="1740241902735" duration="6000" />
+      <workItem from="1740259770712" duration="3615000" />
+      <workItem from="1740279484494" duration="8000" />
+      <workItem from="1740349553207" duration="13000" />
+      <workItem from="1740351843516" duration="647000" />
+      <workItem from="1740356376202" duration="5000" />
+      <workItem from="1740358454026" duration="1314000" />
+      <workItem from="1740423146926" duration="6451000" />
     </task>
     <servers />
   </component>

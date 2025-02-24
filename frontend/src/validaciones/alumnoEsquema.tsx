@@ -15,7 +15,4 @@ export const alumnoEsquema = Yup.object().shape({
   documento: Yup.string()
     .matches(/^\d+$/, "Debe contener solo números")
     .required("El documento es obligatorio"),
-  cuit: Yup.string()
-    .matches(/^\d{11}$/, "El CUIT debe tener 11 dígitos")
-    .required("El CUIT es obligatorio"),
 });

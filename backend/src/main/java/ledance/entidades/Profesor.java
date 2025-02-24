@@ -24,8 +24,6 @@ public class Profesor {
     @NotNull
     private String apellido;
 
-    private String especialidad;
-
     /**
      * ✅ Nueva información personal
      */
@@ -47,4 +45,6 @@ public class Profesor {
 
     @Column(nullable = false)
     private Boolean activo = true;
+
+    //Agregar fecha cobro
 }

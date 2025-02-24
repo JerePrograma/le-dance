@@ -2,10 +2,7 @@ package ledance.entidades;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
+import lombok.*;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -33,25 +30,19 @@ public class Inscripcion {
     private Bonificacion bonificacion;
 
     @NotNull
-    private LocalDate fechaInscripcion; // ✅ Fecha de inicio
+    private LocalDate fechaInscripcion;
 
-    private LocalDate fechaBaja; // ✅ Fecha de baja (si corresponde)
+    private LocalDate fechaBaja;
 
     @Enumerated(EnumType.STRING)
     @NotNull
-    private EstadoInscripcion estado = EstadoInscripcion.ACTIVA; // ✅ Estado de la inscripción
+    private EstadoInscripcion estado = EstadoInscripcion.ACTIVA;
 
     private String notas;
 
-    /**
-     * ✅ Relación con pagos
-     */
     @OneToMany(mappedBy = "inscripcion", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Pago> pagos;
 
-    /**
-     * ✅ Relación con asistencias mensuales
-     */
     @OneToMany(mappedBy = "inscripcion", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<AsistenciaMensual> asistenciasMensuales;
 }

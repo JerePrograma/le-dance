@@ -4,6 +4,7 @@ import ledance.entidades.Inscripcion;
 import ledance.entidades.Recargo;
 import ledance.dto.pago.request.PagoRegistroRequest;
 import org.springframework.stereotype.Service;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
@@ -15,10 +16,9 @@ public class PaymentCalculationService {
      */
     public double calcularCostoBase(Inscripcion inscripcion) {
         double cuota = inscripcion.getDisciplina().getValorCuota() != null ? inscripcion.getDisciplina().getValorCuota() : 0.0;
-        double matricula = inscripcion.getDisciplina().getMatricula() != null ? inscripcion.getDisciplina().getMatricula() : 0.0;
         double claseSuelta = inscripcion.getDisciplina().getClaseSuelta() != null ? inscripcion.getDisciplina().getClaseSuelta() : 0.0;
         double clasePrueba = inscripcion.getDisciplina().getClasePrueba() != null ? inscripcion.getDisciplina().getClasePrueba() : 0.0;
-        return redondear(cuota + matricula + claseSuelta + clasePrueba);
+        return redondear(cuota + claseSuelta + clasePrueba);
     }
 
     /**

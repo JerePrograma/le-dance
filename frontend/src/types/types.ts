@@ -144,7 +144,6 @@ export interface Alumno {
 export interface ProfesorRegistroRequest {
   nombre: string;
   apellido: string;
-  especialidad?: string;
   fechaNacimiento?: LocalDate;
   telefono?: string;
 }
@@ -152,7 +151,6 @@ export interface ProfesorRegistroRequest {
 export interface ProfesorModificacionRequest {
   nombre: string;
   apellido: string;
-  especialidad?: string;
   fechaNacimiento?: LocalDate;
   telefono?: string;
   activo: boolean;
@@ -162,7 +160,6 @@ export interface ProfesorDetalleResponse {
   id: number;
   nombre: string;
   apellido: string;
-  especialidad?: string;
   fechaNacimiento: string;
   edad: number;
   telefono?: string;
@@ -231,6 +228,9 @@ export interface DisciplinaListadoResponse {
   horarioInicio: string;
   activo: boolean;
   profesorNombre: string;
+  claseSuelta: number;
+  clasePrueba: number;
+  valorCuota: number;
 }
 
 export interface DisciplinaDetalleResponse {
@@ -481,17 +481,29 @@ export interface DetallePagoRegistroRequest {
 }
 
 export interface PagoRegistroRequest {
-  fecha: string; // YYYY-MM-DD
-  fechaVencimiento: string; // YYYY-MM-DD
+  fecha: string;
+  fechaVencimiento: string;
   monto: number;
   inscripcionId: number;
   metodoPagoId?: number;
-  recargoAplicado: boolean;
+  recargoAplicado?: boolean;
   bonificacionAplicada: number;
   saldoRestante: number;
   saldoAFavor: number;
-  detallePagos: DetallePagoRegistroRequest[];
-  pagoMedios: PagoMedioRegistroRequest[];
+  detallePagos: Array<{
+    codigoConcepto?: string;
+    concepto: string;
+    cuota?: string;
+    valorBase: number;
+    bonificacion: number;
+    recargo: number;
+    aFavor: number;
+    importe?: number;
+    aCobrar?: number;
+  }>;
+  pagoMedios?: any[];
+  // Agregamos la propiedad faltante:
+  pagoMatricula: boolean;
 }
 
 // ==========================================
@@ -658,4 +670,112 @@ export interface ReporteResponse {
   fechaGeneracion: string; // O LocalDate, según prefieras
   usuarioId?: number;
   activo: boolean;
+}
+
+// src/types/conceptosTypes.ts
+export interface ConceptoRegistroRequest {
+  descripcion: string;
+  precio: number;
+  subConceptoId: number;
+}
+
+export interface ConceptoModificacionRequest {
+  descripcion: string;
+  precio: number;
+  subConceptoId: number;
+  activo: boolean;
+}
+
+export interface ConceptoResponse {
+  id: number;
+  descripcion: string;
+  precio: number;
+  subConcepto: SubConceptoResponse;
+}
+
+export interface SubConceptoResponse {
+  id: number;
+  descripcion: string;
+}
+
+export interface MatriculaRegistroRequest {
+  alumnoId: number;
+  anio: number;
+  valor: number;
+}
+
+export interface MatriculaModificacionRequest {
+  pagada: boolean;
+  fechaPago: string; // Formato YYYY-MM-DD
+}
+
+export interface MatriculaResponse {
+  id: number;
+  anio: number;
+  pagada: boolean;
+  fechaPago?: string;
+  alumnoId: number;
+  valor: number;
+}
+
+// --- Métodos de Pago ---
+export interface MetodoPagoRegistroRequest {
+  descripcion: string;
+}
+
+export interface MetodoPagoModificacionRequest {
+  descripcion: string;
+  activo: boolean;
+}
+
+export interface MetodoPagoResponse {
+  id: number;
+  descripcion: string;
+  activo: boolean;
+}
+
+// --- Valores para el formulario de cobranza ---
+export interface CobranzasFormValues {
+  reciboNro: string;
+  alumno: string;
+  inscripcionId: string;
+  fecha: string;
+  detalles: Array<{
+    codigoConcepto?: string;
+    concepto: string;
+    cuota?: string;
+    valorBase: number;
+    bonificacion: number;
+    recargo: number;
+    aFavor: number;
+    importe?: number;
+    aCobrar?: number;
+  }>;
+  // Grupo para Disciplina y Tarifa
+  disciplina: string;
+  tarifa: string;
+  claseSuelta?: number;
+  clasePrueba?: number;
+  // Grupo para Concepto y Stock
+  conceptoSeleccionado: string;
+  stockSeleccionado: string;
+  cantidad: number;
+  aFavor: number;
+  totalCobrado: number;
+  // Nuevo: campo para seleccionar un único método de pago
+  metodoPagoId: string;
+  observaciones: string;
+  matriculaRemoved: boolean;
+}
+
+export interface DetalleCobranzaDTO {
+  concepto: string;
+  pendiente: number;
+}
+
+export interface CobranzaDTO {
+  alumnoId: number;
+  alumnoNombre: string;
+  totalPendiente: number;
+  detalles: DetalleCobranzaDTO[];
 }

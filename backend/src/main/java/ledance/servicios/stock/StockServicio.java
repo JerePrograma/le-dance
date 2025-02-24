@@ -81,4 +81,13 @@ public class StockServicio {
         stock.setActivo(false);
         stockRepositorio.save(stock);
     }
+
+    @Transactional(readOnly = true)
+    public List<StockResponse> listarStocksConceptos() {
+        return stockRepositorio.findByTipoDescripcion("Concepto")
+                .stream()
+                .map(stockMapper::toDTO)
+                .collect(Collectors.toList());
+    }
+
 }

@@ -50,7 +50,6 @@ public class InscripcionControlador {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-
     /**
      * ✅ Listar TODAS las inscripciones o filtrar por alumno.
      */
@@ -119,5 +118,11 @@ public class InscripcionControlador {
     public ResponseEntity<?> crearAsistenciasMensuales(@RequestParam int mes, @RequestParam int anio) {
         inscripcionServicio.crearAsistenciaMensualParaInscripcionesActivas(mes, anio);
         return ResponseEntity.ok("Asistencias mensuales creadas exitosamente.");
+    }
+
+    @GetMapping("/alumno/{alumnoId}")
+    public ResponseEntity<InscripcionResponse> obtenerInscripcionActiva(@PathVariable Long alumnoId) {
+        InscripcionResponse response = inscripcionServicio.obtenerInscripcionActiva(alumnoId);
+        return ResponseEntity.ok(response);
     }
 }

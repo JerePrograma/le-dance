@@ -13,7 +13,6 @@ import { format, parse } from "date-fns"
 const initialProfesorValues: ProfesorRegistroRequest & Partial<ProfesorModificacionRequest> = {
   nombre: "",
   apellido: "",
-  especialidad: "",
   fechaNacimiento: "",
   telefono: "",
   activo: true,
@@ -34,7 +33,6 @@ const ProfesoresFormulario: React.FC = () => {
       return {
         nombre: profesor.nombre || "",
         apellido: profesor.apellido || "",
-        especialidad: profesor.especialidad || "",
         fechaNacimiento: profesor.fechaNacimiento || "",
         telefono: profesor.telefono || "",
         activo: profesor.activo,
@@ -148,15 +146,6 @@ const ProfesoresFormulario: React.FC = () => {
                 <Field name="apellido" type="text" className="form-input" />
                 <ErrorMessage name="apellido" component="div" className="auth-error" />
               </div>
-
-              <div className="mb-4">
-                <label htmlFor="especialidad" className="auth-label">
-                  Especialidad:
-                </label>
-                <Field name="especialidad" type="text" className="form-input" />
-                <ErrorMessage name="especialidad" component="div" className="auth-error" />
-              </div>
-
               <div className="mb-4">
                 <label htmlFor="fechaNacimiento" className="auth-label">
                   Fecha de Nacimiento:
@@ -186,11 +175,10 @@ const ProfesoresFormulario: React.FC = () => {
 
             {mensaje && (
               <p
-                className={`form-mensaje ${
-                  mensaje.includes("Error") || mensaje.includes("no encontrado")
+                className={`form-mensaje ${mensaje.includes("Error") || mensaje.includes("no encontrado")
                     ? "form-mensaje-error"
                     : "form-mensaje-success"
-                }`}
+                  }`}
               >
                 {mensaje}
               </p>

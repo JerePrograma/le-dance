@@ -40,6 +40,11 @@ const eliminarStock = async (id: number): Promise<void> => {
   await api.delete(`/api/stocks/${id}`);
 };
 
+const listarStocksConceptos = async (): Promise<StockResponse[]> => {
+  const { data } = await api.get<StockResponse[]>("/api/stocks/conceptos");
+  return data;
+};
+
 const stocksApi = {
   registrarStock,
   obtenerStockPorId,
@@ -47,6 +52,7 @@ const stocksApi = {
   listarStocksActivos,
   actualizarStock,
   eliminarStock,
+  listarStocksConceptos,
 };
 
 export default stocksApi;

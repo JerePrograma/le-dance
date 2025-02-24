@@ -33,14 +33,18 @@ const UsuariosFormulario: React.FC = () => {
   }, []);
 
   const handleRegistro = async (values: typeof initialUserValues) => {
+    console.log("handleRegistro llamado con:", values);
     try {
-      await api.post("/api/usuarios/registro", values);
+      const response = await api.post("/api/usuarios/registro", values);
+      console.log("Respuesta del backend:", response);
       toast.success("Usuario registrado correctamente.");
       window.location.href = "/login";
-    } catch {
+    } catch (error: any) {
+      console.error("Error en registro:", error);
       toast.error("Error al registrar el usuario. Verifica los datos.");
     }
   };
+
 
   return (
     <div className="page-container">
@@ -69,7 +73,6 @@ const UsuariosFormulario: React.FC = () => {
                   className="auth-error"
                 />
               </div>
-
               <div className="mb-4">
                 <label htmlFor="contrasena" className="auth-label">
                   Contraseña:

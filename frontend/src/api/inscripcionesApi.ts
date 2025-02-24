@@ -1,3 +1,4 @@
+// src/api/inscripcionesApi.ts
 import api from "./axiosConfig";
 import type {
   InscripcionRegistroRequest,
@@ -5,47 +6,64 @@ import type {
   InscripcionResponse,
 } from "../types/types";
 
+const crear = async (
+  request: InscripcionRegistroRequest
+): Promise<InscripcionResponse> => {
+  const response = await api.post("/api/inscripciones", request);
+  return response.data;
+};
+
+const listar = async (alumnoId?: number): Promise<InscripcionResponse[]> => {
+  const url = alumnoId
+    ? `/api/inscripciones?alumnoId=${alumnoId}`
+    : "/api/inscripciones";
+  const response = await api.get(url);
+  return response.data;
+};
+
+const obtenerPorId = async (id: number): Promise<InscripcionResponse> => {
+  const response = await api.get(`/api/inscripciones/${id}`);
+  return response.data;
+};
+
+const listarPorDisciplina = async (
+  disciplinaId: number
+): Promise<InscripcionResponse[]> => {
+  const response = await api.get(
+    `/api/inscripciones/disciplina/${disciplinaId}`
+  );
+  return response.data;
+};
+
+const actualizar = async (
+  id: number,
+  request: InscripcionModificacionRequest
+): Promise<InscripcionResponse> => {
+  const response = await api.put(`/api/inscripciones/${id}`, request);
+  return response.data;
+};
+
+const eliminar = async (id: number): Promise<void> => {
+  await api.delete(`/api/inscripciones/${id}`);
+};
+
+const obtenerInscripcionActiva = async (
+  alumnoId: number
+): Promise<InscripcionResponse> => {
+  const { data } = await api.get<InscripcionResponse>(
+    `/api/inscripciones/alumno/${alumnoId}`
+  );
+  return data;
+};
+
 const inscripcionesApi = {
-  crear: async (
-    request: InscripcionRegistroRequest
-  ): Promise<InscripcionResponse> => {
-    const response = await api.post("/api/inscripciones", request);
-    return response.data;
-  },
-
-  listar: async (alumnoId?: number): Promise<InscripcionResponse[]> => {
-    const url = alumnoId
-      ? `/api/inscripciones?alumnoId=${alumnoId}`
-      : "/api/inscripciones";
-    const response = await api.get(url);
-    return response.data;
-  },
-
-  obtenerPorId: async (id: number): Promise<InscripcionResponse> => {
-    const response = await api.get(`/api/inscripciones/${id}`);
-    return response.data;
-  },
-
-  listarPorDisciplina: async (
-    disciplinaId: number
-  ): Promise<InscripcionResponse[]> => {
-    const response = await api.get(
-      `/api/inscripciones/disciplina/${disciplinaId}`
-    );
-    return response.data;
-  },
-
-  actualizar: async (
-    id: number,
-    request: InscripcionModificacionRequest
-  ): Promise<InscripcionResponse> => {
-    const response = await api.put(`/api/inscripciones/${id}`, request);
-    return response.data;
-  },
-
-  eliminar: async (id: number): Promise<void> => {
-    await api.delete(`/api/inscripciones/${id}`);
-  },
+  crear,
+  listar,
+  obtenerPorId,
+  listarPorDisciplina,
+  actualizar,
+  eliminar,
+  obtenerInscripcionActiva,
 };
 
 export default inscripcionesApi;

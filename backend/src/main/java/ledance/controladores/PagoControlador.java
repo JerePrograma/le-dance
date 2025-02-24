@@ -3,6 +3,7 @@ package ledance.controladores;
 import ledance.dto.pago.request.PagoModificacionRequest;
 import ledance.dto.pago.request.PagoRegistroRequest;
 import ledance.dto.pago.response.PagoResponse;
+import ledance.dto.cobranza.CobranzaDTO;
 import ledance.servicios.pago.PagoServicio;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/pagos")
@@ -24,7 +26,6 @@ public class PagoControlador {
         this.pagoServicio = pagoServicio;
     }
 
-    // Registrar un nuevo pago
     @PostMapping
     public ResponseEntity<PagoResponse> registrarPago(@RequestBody @Validated PagoRegistroRequest request) {
         log.info("Registrando pago para inscripcionId: {}", request.inscripcionId());
@@ -32,7 +33,6 @@ public class PagoControlador {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    // Obtener un pago por ID
     @GetMapping("/{id}")
     public ResponseEntity<PagoResponse> obtenerPagoPorId(@PathVariable Long id) {
         log.info("Obteniendo pago con id: {}", id);
@@ -40,15 +40,13 @@ public class PagoControlador {
         return ResponseEntity.ok(response);
     }
 
-    // Listar todos los pagos activos
     @GetMapping
     public ResponseEntity<List<PagoResponse>> listarPagos() {
-        log.info("Listando todos los pagos activos");
+        log.info("Listando todos los pagos");
         List<PagoResponse> pagos = pagoServicio.listarPagos();
         return pagos.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(pagos);
     }
 
-    // Listar pagos por inscripción
     @GetMapping("/inscripcion/{inscripcionId}")
     public ResponseEntity<List<PagoResponse>> listarPagosPorInscripcion(@PathVariable Long inscripcionId) {
         log.info("Listando pagos para inscripcionId: {}", inscripcionId);
@@ -56,7 +54,6 @@ public class PagoControlador {
         return pagos.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(pagos);
     }
 
-    // Listar pagos por alumno
     @GetMapping("/alumno/{alumnoId}")
     public ResponseEntity<List<PagoResponse>> listarPagosPorAlumno(@PathVariable Long alumnoId) {
         log.info("Listando pagos para alumnoId: {}", alumnoId);
@@ -64,7 +61,6 @@ public class PagoControlador {
         return pagos.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(pagos);
     }
 
-    // Listar pagos vencidos
     @GetMapping("/vencidos")
     public ResponseEntity<List<PagoResponse>> listarPagosVencidos() {
         log.info("Listando pagos vencidos");
@@ -72,7 +68,6 @@ public class PagoControlador {
         return pagos.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(pagos);
     }
 
-    // Actualizar un pago
     @PutMapping("/{id}")
     public ResponseEntity<PagoResponse> actualizarPago(@PathVariable Long id,
                                                        @RequestBody @Validated PagoModificacionRequest request) {
@@ -81,11 +76,32 @@ public class PagoControlador {
         return ResponseEntity.ok(response);
     }
 
-    // Baja lógica de un pago
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminarPago(@PathVariable Long id) {
         log.info("Eliminando pago con id: {}", id);
         pagoServicio.eliminarPago(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/alumno/{alumnoId}/facturas")
+    public ResponseEntity<List<PagoResponse>> listarFacturasPorAlumno(@PathVariable Long alumnoId) {
+        List<PagoResponse> facturas = pagoServicio.listarPagosPorAlumno(alumnoId)
+                .stream()
+                .filter(p -> p.observaciones() != null && p.observaciones().contains("FACTURA"))
+                .collect(Collectors.toList());
+        return facturas.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(facturas);
+    }
+
+    @PutMapping("/{id}/quitar-recargo")
+    public ResponseEntity<PagoResponse> quitarRecargo(@PathVariable Long id) {
+        PagoResponse response = pagoServicio.quitarRecargoManual(id);
+        return ResponseEntity.ok(response);
+    }
+
+    // Nuevo endpoint para obtener la cobranza consolidada de un alumno
+    @GetMapping("/alumno/{alumnoId}/cobranza")
+    public ResponseEntity<CobranzaDTO> obtenerCobranzaPorAlumno(@PathVariable Long alumnoId) {
+        CobranzaDTO cobranza = pagoServicio.generarCobranzaPorAlumno(alumnoId);
+        return ResponseEntity.ok(cobranza);
     }
 }

@@ -21,7 +21,7 @@ CREATE TABLE usuarios
 );
 
 -- 3) TIPOS DE PRODUCTOS
-CREATE TABLE tipo_stocks
+CREATE TABLE tipo_productos
 (
     id          SERIAL PRIMARY KEY,
     descripcion VARCHAR(100) NOT NULL,
@@ -29,12 +29,12 @@ CREATE TABLE tipo_stocks
 );
 
 -- 4) PRODUCTOS
-CREATE TABLE stocks
+CREATE TABLE productos
 (
     id                        SERIAL PRIMARY KEY,
     nombre                    VARCHAR(100) NOT NULL,
     precio                    NUMERIC(10, 2) NOT NULL,
-    tipo_stock_id          INTEGER REFERENCES tipo_stocks (id) ON DELETE SET NULL,
+    tipo_productos_id          INTEGER REFERENCES tipo_productos (id) ON DELETE SET NULL,
     stock                     INTEGER NOT NULL CHECK (stock >= 0),
     requiere_control_de_stock BOOLEAN NOT NULL DEFAULT TRUE,
     codigo_barras             VARCHAR(100),

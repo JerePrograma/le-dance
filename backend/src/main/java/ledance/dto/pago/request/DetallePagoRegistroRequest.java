@@ -11,5 +11,4 @@ public record DetallePagoRegistroRequest(
         @Min(0) Double bonificacion,
         @Min(0) Double recargo,
         @Min(0) Double aFavor
-) {
-}
+) { }

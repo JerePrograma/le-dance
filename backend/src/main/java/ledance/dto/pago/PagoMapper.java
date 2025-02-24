@@ -8,24 +8,19 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = {DetallePagoMapper.class, PagoMedioMapper.class})
 public interface PagoMapper {
 
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "detallePagos", ignore = true)
-    @Mapping(target = "pagoMedios", ignore = true)
     @Mapping(target = "inscripcion", ignore = true)
     @Mapping(target = "metodoPago", ignore = true)
     Pago toEntity(PagoRegistroRequest request);
 
     @Mapping(target = "inscripcionId", source = "inscripcion.id")
-    @Mapping(target = "metodoPago", expression = "java(pago.getMetodoPago()!=null ? pago.getMetodoPago().getDescripcion() : \"\")")
+    @Mapping(target = "metodoPago", expression = "java(pago.getMetodoPago() != null ? pago.getMetodoPago().getDescripcion() : \"\")")
+    @Mapping(target = "estadoPago", expression = "java(pago.getEstado())")
     PagoResponse toDTO(Pago pago);
 
-    /**
-     * Actualiza una entidad Pago existente con los datos del request.
-     * Se ignoran propiedades que no se desean actualizar desde el request (inscripcion y método de pago).
-     */
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "inscripcion", ignore = true)
     @Mapping(target = "metodoPago", ignore = true)

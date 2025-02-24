@@ -146,7 +146,7 @@ public class InscripcionServicio implements IInscripcionServicio {
      */
     @Override
     public List<InscripcionResponse> listarPorAlumno(Long alumnoId) {
-        List<Inscripcion> inscripciones = inscripcionRepositorio.findByAlumno_IdAndEstado(alumnoId, EstadoInscripcion.ACTIVA);
+        List<Inscripcion> inscripciones = inscripcionRepositorio.findAllByAlumno_IdAndEstado(alumnoId, EstadoInscripcion.ACTIVA);
         if (inscripciones.isEmpty()) {
             throw new IllegalArgumentException("No hay inscripciones para este alumno.");
         }
@@ -208,4 +208,13 @@ public class InscripcionServicio implements IInscripcionServicio {
 
         return new EstadisticasInscripcionResponse(totalInscripciones, inscripcionesPorDisciplina, inscripcionesPorMes);
     }
+
+    @Transactional
+    public InscripcionResponse obtenerInscripcionActiva(Long alumnoId) {
+        Inscripcion inscripcion = inscripcionRepositorio
+                .findByAlumno_IdAndEstado(alumnoId, EstadoInscripcion.ACTIVA)
+                .orElseThrow(() -> new IllegalArgumentException("Inscripción activa no encontrada para el alumno " + alumnoId));
+        return inscripcionMapper.toDTO(inscripcion);
+    }
+
 }

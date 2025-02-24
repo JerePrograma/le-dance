@@ -91,7 +91,6 @@ const Profesores = () => {
             "ID",
             "Nombre",
             "Apellido",
-            "Especialidad",
             "Acciones",
             "Activo",
           ]}

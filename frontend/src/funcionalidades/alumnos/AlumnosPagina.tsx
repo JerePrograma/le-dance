@@ -4,7 +4,7 @@ import Tabla from "../../componentes/comunes/Tabla";
 import alumnosApi from "../../api/alumnosApi";
 import ReactPaginate from "react-paginate";
 import Boton from "../../componentes/comunes/Boton";
-import { PlusCircle, Pencil } from "lucide-react";
+import { PlusCircle, Pencil, CreditCard } from "lucide-react";
 
 interface AlumnoListado {
   id: number;
@@ -38,30 +38,19 @@ const Alumnos = () => {
     fetchAlumnos();
   }, [fetchAlumnos]);
 
-  const pageCount = useMemo(
-    () => Math.ceil(alumnos.length / itemsPerPage),
-    [alumnos.length]
-  );
-
+  const pageCount = useMemo(() => Math.ceil(alumnos.length / itemsPerPage), [alumnos.length]);
   const currentItems = useMemo(() => {
-    return alumnos.slice(
-      currentPage * itemsPerPage,
-      (currentPage + 1) * itemsPerPage
-    );
+    return alumnos.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
   }, [alumnos, currentPage]);
 
-  const handlePageClick = useCallback(
-    ({ selected }: { selected: number }) => {
-      if (selected < pageCount) {
-        setCurrentPage(selected);
-      }
-    },
-    [pageCount]
-  );
+  const handlePageClick = useCallback(({ selected }: { selected: number }) => {
+    if (selected < pageCount) {
+      setCurrentPage(selected);
+    }
+  }, [pageCount]);
 
   if (loading) return <div className="text-center py-4">Cargando...</div>;
-  if (error)
-    return <div className="text-center py-4 text-destructive">{error}</div>;
+  if (error) return <div className="text-center py-4 text-destructive">{error}</div>;
 
   return (
     <div className="page-container">
@@ -82,17 +71,27 @@ const Alumnos = () => {
         <Tabla
           encabezados={["ID", "Nombre", "Apellido", "Acciones"]}
           datos={currentItems}
-          acciones={(fila) => (
-            <Boton
-              onClick={() => navigate(`/alumnos/formulario?id=${fila.id}`)}
-              className="page-button-secondary"
-              aria-label={`Editar alumno ${fila.nombre} ${fila.apellido}`}
-            >
-              <Pencil className="w-4 h-4 mr-2" />
-              Editar
-            </Boton>
-          )}
           extraRender={(fila) => [fila.id, fila.nombre, fila.apellido]}
+          acciones={(fila) => (
+            <div className="flex gap-2">
+              <Boton
+                onClick={() => navigate(`/alumnos/formulario?id=${fila.id}`)}
+                className="page-button-secondary"
+                aria-label={`Editar alumno ${fila.nombre} ${fila.apellido}`}
+              >
+                <Pencil className="w-4 h-4 mr-2" />
+                Editar
+              </Boton>
+              <Boton
+                onClick={() => navigate(`/cobranza/${fila.id}`)}
+                className="page-button-secondary"
+                aria-label={`Ver cobranza consolidada de ${fila.nombre} ${fila.apellido}`}
+              >
+                <CreditCard className="w-4 h-4 mr-2" />
+                Cobranza
+              </Boton>
+            </div>
+          )}
         />
       </div>
 

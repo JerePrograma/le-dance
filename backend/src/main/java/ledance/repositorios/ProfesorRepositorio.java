@@ -22,14 +22,6 @@ public interface ProfesorRepositorio extends JpaRepository<Profesor, Long> {
     Optional<Profesor> findByUsuarioId(Long usuarioId);
 
     /**
-     * Busca profesores por su especialidad.
-     *
-     * @param especialidad La especialidad del profesor.
-     * @return Una lista de profesores que coinciden con la especialidad.
-     */
-    List<Profesor> findByEspecialidad(String especialidad);
-
-    /**
      * Busca profesores por una parte de su nombre o apellido.
      *
      * @param nombre Fragmento del nombre o apellido.

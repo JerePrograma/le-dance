@@ -261,7 +261,7 @@ const AlumnosFormulario: React.FC = () => {
 
               {/* Datos Personales */}
               {[
-                { name: "nombre", label: "Nombre (obligatorio)" },
+                { name: "nombre", label: "Nombre" },
                 { name: "apellido", label: "Apellido" },
                 {
                   name: "fechaNacimiento",
@@ -273,12 +273,10 @@ const AlumnosFormulario: React.FC = () => {
                   label: "Fecha de Incorporación",
                   type: "date",
                 },
-                { name: "celular1", label: "Celular 1 (obligatorio)" },
-                { name: "celular2", label: "Celular 2" },
+                { name: "celular1", label: "Celular 1" },
                 { name: "email1", label: "Email 1", type: "email" },
                 { name: "email2", label: "Email 2", type: "email" },
                 { name: "documento", label: "Documento" },
-                { name: "cuit", label: "CUIT" },
                 { name: "nombrePadres", label: "Nombre de Padres" },
               ].map(({ name, label, type = "text" }) => (
                 <div key={name} className="mb-4">
@@ -376,8 +374,8 @@ const AlumnosFormulario: React.FC = () => {
             {mensaje && (
               <p
                 className={`form-mensaje ${mensaje.includes("correctamente")
-                    ? "form-mensaje-success"
-                    : "form-mensaje-error"
+                  ? "form-mensaje-success"
+                  : "form-mensaje-error"
                   }`}
               >
                 {mensaje}

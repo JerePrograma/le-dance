@@ -7,10 +7,12 @@ public record PagoResponse(
         LocalDate fecha,
         LocalDate fechaVencimiento,
         Double monto,
-        String metodoPago,  // Texto legible del método de pago
+        String metodoPago,
         Boolean recargoAplicado,
         Double bonificacionAplicada,
         Double saldoRestante,
         Boolean activo,
-        Long inscripcionId
+        String estadoPago,
+        Long inscripcionId,
+        String observaciones
 ) { }

@@ -20,4 +20,3 @@ public interface AlumnoMapper {
     void updateEntityFromRequest(AlumnoModificacionRequest request, @MappingTarget Alumno alumno);
 
 }
-

@@ -9,7 +9,6 @@ public record ProfesorDetalleResponse(
         Long id,
         String nombre,
         String apellido,
-        String especialidad,
         LocalDate fechaNacimiento, // ✅ NUEVO
         Integer edad, // ✅ Se calcula automáticamente
         String telefono, // ✅ NUEVO

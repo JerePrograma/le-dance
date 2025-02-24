@@ -2,10 +2,7 @@ package ledance.entidades;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
+import lombok.*;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Set;
@@ -54,10 +51,10 @@ public class Disciplina {
     @NotNull
     private Double valorCuota;
 
-    @NotNull
-    private Double matricula;
-
+    // Valor de clase suelta y de clase prueba (para el cálculo de costo)
     private Double claseSuelta;
+
+    // Descontar de la matrícula cuando la persona se inscribe (UNA ESPECIE DE SALDO A FAVOR)
     private Double clasePrueba;
 
     @Column(nullable = false)

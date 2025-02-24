@@ -24,7 +24,7 @@ public class Stock {
     private Double precio;
 
     @ManyToOne
-    @JoinColumn(name = "tipo_stock_id") // Usamos el nombre real de la columna en la BD
+    @JoinColumn(name = "tipo_stocks_id")
     private TipoStock tipo;
 
     @NotNull
@@ -36,4 +36,9 @@ public class Stock {
 
     @Column(nullable = false)
     private Boolean activo = true;
+
+    //Agregar ingreso y egreso(se vende o se devuelve) con rango de fecha
+
+    //Agregar fecha ingreso
+    //Agregar fecha egreso
 }

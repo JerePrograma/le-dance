@@ -7,7 +7,10 @@ public record DisciplinaListadoResponse(
         String nombre,
         LocalTime horarioInicio,
         Boolean activo,
-        Long profesorId,       // Nuevo campo para el id del profesor
-        String profesorNombre  // Nuevo campo para el nombre del profesor
+        Long profesorId,
+        String profesorNombre,
+        Double claseSuelta,  // Agregado
+        Double clasePrueba,  // Agregado
+        Double valorCuota   // Agregado
 ) {
 }

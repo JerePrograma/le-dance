@@ -12,8 +12,8 @@ import org.mapstruct.*;
 public interface InscripcionMapper {
 
     @Mapping(target = "id", source = "id")
-    @Mapping(target = "alumno", source = "alumno", qualifiedByName = "mapAlumnoResumen")
-    @Mapping(target = "disciplina", source = "disciplina", qualifiedByName = "mapDisciplinaResumen")
+    @Mapping(source = "alumno.id", target = "alumnoId")
+    @Mapping(source = "disciplina.id", target = "disciplinaId")
     @Mapping(target = "fechaInscripcion", source = "fechaInscripcion")
     @Mapping(target = "estado", source = "estado")
     @Mapping(target = "notas", source = "notas")
@@ -21,24 +21,13 @@ public interface InscripcionMapper {
     @Mapping(target = "costoCalculado", expression = "java(mapCostoCalculado(inscripcion))")
     InscripcionResponse toDTO(Inscripcion inscripcion);
 
-    @Named("mapAlumnoResumen")
-    default InscripcionResponse.AlumnoResumen mapAlumnoResumen(Alumno alumno) {
-        return new InscripcionResponse.AlumnoResumen(alumno.getId(), alumno.getNombre(), alumno.getApellido());
-    }
-
-    @Named("mapDisciplinaResumen")
-    default InscripcionResponse.DisciplinaResumen mapDisciplinaResumen(Disciplina disciplina) {
-        return new InscripcionResponse.DisciplinaResumen(disciplina.getId(), disciplina.getNombre(), disciplina.getProfesor().getNombre());
-    }
-
     // Método auxiliar para calcular el costo
     default Double mapCostoCalculado(Inscripcion inscripcion) {
         Disciplina d = inscripcion.getDisciplina();
         double valorCuota = (d.getValorCuota() != null ? d.getValorCuota() : 0.0);
-        double matricula = (d.getMatricula() != null ? d.getMatricula() : 0.0);
         double claseSuelta = (d.getClaseSuelta() != null ? d.getClaseSuelta() : 0.0);
         double clasePrueba = (d.getClasePrueba() != null ? d.getClasePrueba() : 0.0);
-        double total = valorCuota + matricula + claseSuelta + clasePrueba;
+        double total = valorCuota + claseSuelta + clasePrueba;
         if (inscripcion.getBonificacion() != null) {
             int descuento = inscripcion.getBonificacion().getPorcentajeDescuento();
             total = total * (100 - descuento) / 100.0;

@@ -83,6 +83,24 @@ const FormularioTipoStocks = lazy(() =>
   import("../funcionalidades/tipoStocks/TipoStocksFormulario")
 );
 
+// NUEVAS PÁGINAS: Conceptos
+const ConceptosPagina = lazy(() =>
+  import("../funcionalidades/conceptos/ConceptosPagina")
+);
+const ConceptosFormulario = lazy(() =>
+  import("../funcionalidades/conceptos/ConceptosFormulario")
+);
+
+// NUEVAS PÁGINAS: Métodos de Pago (CRUD)
+const MetodosPagoPagina = lazy(() =>
+  import("../funcionalidades/metodos-pago/MetodosPagoPagina")
+);
+const MetodosPagoFormulario = lazy(() =>
+  import("../funcionalidades/metodos-pago/MetodosPagoFormulario")
+);
+
+const CobranzaPagina = lazy(() => import("../funcionalidades/pagos/CobranzaPagina"));
+
 const AppRouter = () => {
   return (
     <>
@@ -139,6 +157,16 @@ const AppRouter = () => {
             <Route path="/stocks/formulario" element={<FormularioStocks />} />
             <Route path="/tipo-stocks" element={<TipoStocks />} />
             <Route path="/tipo-stocks/formulario" element={<FormularioTipoStocks />} />
+
+            {/* Nuevas rutas para Conceptos */}
+            <Route path="/conceptos" element={<ConceptosPagina />} />
+            <Route path="/conceptos/formulario-concepto" element={<ConceptosFormulario />} />
+
+            {/* NUEVAS RUTAS: Métodos de Pago */}
+            <Route path="/metodos-pago" element={<MetodosPagoPagina />} />
+            <Route path="/metodos-pago/formulario" element={<MetodosPagoFormulario />} />
+
+            <Route path="/cobranza/:alumnoId" element={<CobranzaPagina />} />
           </Route>
         </Routes>
       </Suspense>

@@ -19,6 +19,9 @@ public interface DisciplinaMapper {
     @Mapping(target = "activo", source = "activo")
     @Mapping(target = "profesorId", source = "profesor.id")
     @Mapping(target = "profesorNombre", source = "profesor.nombre")
+    @Mapping(target = "claseSuelta", source = "claseSuelta")
+    @Mapping(target = "clasePrueba", source = "clasePrueba")
+    @Mapping(target = "valorCuota", source = "valorCuota")
     DisciplinaListadoResponse toListadoResponse(Disciplina disciplina);
 
     /**
@@ -31,7 +34,6 @@ public interface DisciplinaMapper {
     @Mapping(target = "salon", source = "salon.nombre")
     @Mapping(target = "salonId", source = "salon.id")
     @Mapping(target = "valorCuota", source = "valorCuota")
-    @Mapping(target = "matricula", source = "matricula")
     @Mapping(target = "profesorNombre", source = "profesor.nombre")
     @Mapping(target = "profesorApellido", source = "profesor.apellido")
     @Mapping(target = "profesorId", source = "profesor.id")

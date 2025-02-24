@@ -1,13 +1,12 @@
+// src/main/java/ledance/dto/metodopago/request/MetodoPagoModificacionRequest.java
 package ledance.dto.metodopago.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-/**
- * Petición para modificar un método de pago existente.
- * - `activo` ahora se puede modificar.
- */
 public record MetodoPagoModificacionRequest(
-        @NotBlank String descripcion, // Nombre del método de pago
-        @NotNull Boolean activo // ✅ Ahora se puede modificar el estado
-) {}
+        @NotBlank(message = "La descripción es obligatoria")
+        String descripcion,
+        @NotNull(message = "El estado activo es obligatorio")
+        Boolean activo
+) { }

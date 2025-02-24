@@ -11,6 +11,7 @@ import {
   ShoppingCart,
   Tag,
 } from "lucide-react";
+import type React from "react";
 
 export interface NavigationItem {
   id: string;
@@ -87,6 +88,12 @@ export const navigationItems: NavigationItem[] = [
     href: "/caja",
   },
   {
+    id: "metodos-pago",
+    icon: CreditCard,
+    label: "Métodos de Pago",
+    href: "/metodos-pago",
+  },
+  {
     id: "reportes",
     icon: BarChart3,
     label: "Reportes",
@@ -103,5 +110,11 @@ export const navigationItems: NavigationItem[] = [
     icon: Shield,
     label: "Roles",
     href: "/roles",
+  },
+  {
+    id: "conceptos",
+    icon: Tag,
+    label: "Conceptos",
+    href: "/conceptos",
   },
 ];

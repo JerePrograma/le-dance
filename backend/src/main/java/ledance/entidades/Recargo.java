@@ -2,10 +2,7 @@ package ledance.entidades;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
+import lombok.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,7 +23,6 @@ public class Recargo {
     @OneToMany(mappedBy = "recargo", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<RecargoDetalle> detalles;
 
-    // Método auxiliar para agregar un detalle
     public void addDetalle(RecargoDetalle detalle) {
         if (detalles == null) {
             detalles = new ArrayList<>();
@@ -35,7 +31,6 @@ public class Recargo {
         detalle.setRecargo(this);
     }
 
-    // Método auxiliar para remover un detalle
     public void removeDetalle(RecargoDetalle detalle) {
         if (detalles != null) {
             detalles.remove(detalle);

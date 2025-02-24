@@ -147,7 +147,10 @@ public class ProfesorServicio implements IProfesorServicio {
                 disciplina.getHorarioInicio(),
                 disciplina.getActivo(),
                 disciplina.getProfesor().getId(),      // Agregado: id del profesor
-                disciplina.getProfesor().getNombre()     // Agregado: nombre del profesor
+                disciplina.getProfesor().getNombre(),     // Agregado: nombre del profesor
+                disciplina.getClaseSuelta(),
+                disciplina.getClasePrueba(),
+                disciplina.getValorCuota()
         );
     }
 }
