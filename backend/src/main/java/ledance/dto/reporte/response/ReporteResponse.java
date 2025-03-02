@@ -6,7 +6,7 @@ public record ReporteResponse(
         Long id,
         String tipo,
         String descripcion,
-        LocalDate fechaGeneracion, // ✅ Se almacena la fecha de generación
+        LocalDate fechaGeneracion, // ✅ Se almacena la fecha de generacion
         Boolean activo
 ) {
 }

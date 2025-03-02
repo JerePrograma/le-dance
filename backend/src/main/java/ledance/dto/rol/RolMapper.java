@@ -11,7 +11,7 @@ public interface RolMapper {
 
     /**
      * ✅ Convierte `RolRegistroRequest` en una entidad `Rol`.
-     * ✔ `id` se ignora porque se genera automáticamente.
+     * ✔ `id` se ignora porque se genera automaticamente.
      * ✔ `activo` se establece en `true` por defecto.
      */
     @Mapping(target = "id", ignore = true)

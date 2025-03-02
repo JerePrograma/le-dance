@@ -8,9 +8,7 @@ import type {
 const obtenerMatricula = async (
   alumnoId: number
 ): Promise<MatriculaResponse> => {
-  const { data } = await api.get<MatriculaResponse>(
-    `/api/matriculas/${alumnoId}`
-  );
+  const { data } = await api.get<MatriculaResponse>(`/matriculas/${alumnoId}`);
   return data;
 };
 
@@ -19,7 +17,7 @@ const actualizarMatricula = async (
   request: MatriculaModificacionRequest
 ): Promise<MatriculaResponse> => {
   const { data } = await api.put<MatriculaResponse>(
-    `/api/matriculas/${matriculaId}`,
+    `/matriculas/${matriculaId}`,
     request
   );
   return data;

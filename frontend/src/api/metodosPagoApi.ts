@@ -1,4 +1,4 @@
-// src/api/metodosPagoApi.ts
+// src/metodosPagoApi.ts
 import api from "./axiosConfig";
 import type {
   MetodoPagoRegistroRequest,
@@ -9,22 +9,19 @@ import type {
 const registrarMetodoPago = async (
   request: MetodoPagoRegistroRequest
 ): Promise<MetodoPagoResponse> => {
-  const { data } = await api.post<MetodoPagoResponse>(
-    "/api/metodos-pago",
-    request
-  );
+  const { data } = await api.post<MetodoPagoResponse>("/metodos-pago", request);
   return data;
 };
 
 const obtenerMetodoPagoPorId = async (
   id: number
 ): Promise<MetodoPagoResponse> => {
-  const { data } = await api.get<MetodoPagoResponse>(`/api/metodos-pago/${id}`);
+  const { data } = await api.get<MetodoPagoResponse>(`/metodos-pago/${id}`);
   return data;
 };
 
 const listarMetodosPago = async (): Promise<MetodoPagoResponse[]> => {
-  const { data } = await api.get<MetodoPagoResponse[]>("/api/metodos-pago");
+  const { data } = await api.get<MetodoPagoResponse[]>("/metodos-pago");
   return data;
 };
 
@@ -33,14 +30,14 @@ const actualizarMetodoPago = async (
   request: MetodoPagoModificacionRequest
 ): Promise<MetodoPagoResponse> => {
   const { data } = await api.put<MetodoPagoResponse>(
-    `/api/metodos-pago/${id}`,
+    `/metodos-pago/${id}`,
     request
   );
   return data;
 };
 
 const eliminarMetodoPago = async (id: number): Promise<void> => {
-  await api.delete(`/api/metodos-pago/${id}`);
+  await api.delete(`/metodos-pago/${id}`);
 };
 
 const metodosPagoApi = {

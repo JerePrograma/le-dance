@@ -8,7 +8,7 @@ public record InscripcionRegistroRequest(
         InscripcionDisciplinaRequest inscripcion,
 
         // ✅ Dejamos que sea null y, si NO es null, validamos que no sea futura
-        @PastOrPresent(message = "La fecha de inscripción no puede ser futura")
+        @PastOrPresent(message = "La fecha de inscripcion no puede ser futura")
         LocalDate fechaInscripcion,
 
         String notas

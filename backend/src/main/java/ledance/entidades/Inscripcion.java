@@ -1,5 +1,6 @@
 package ledance.entidades;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
@@ -41,8 +42,15 @@ public class Inscripcion {
     private String notas;
 
     @OneToMany(mappedBy = "inscripcion", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
     private List<Pago> pagos;
 
     @OneToMany(mappedBy = "inscripcion", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
     private List<AsistenciaMensual> asistenciasMensuales;
+
+    @OneToMany(mappedBy = "inscripcion", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private List<Mensualidad> mensualidades;
+
 }

@@ -1,5 +1,6 @@
 package ledance.controladores;
 
+import ledance.dto.alumno.response.AlumnoListadoResponse;
 import ledance.dto.profesor.request.ProfesorModificacionRequest;
 import ledance.dto.profesor.request.ProfesorRegistroRequest;
 import ledance.dto.disciplina.response.DisciplinaListadoResponse;
@@ -64,15 +65,6 @@ public class ProfesorControlador {
     }
 
     /**
-     * ✅ Buscar profesores por nombre.
-     */
-    @GetMapping("/buscar")
-    public ResponseEntity<List<ProfesorListadoResponse>> buscarPorNombre(@RequestParam String nombre) {
-        List<ProfesorListadoResponse> profesores = profesorServicio.buscarPorNombre(nombre);
-        return ResponseEntity.ok(profesores);
-    }
-
-    /**
      * ✅ Actualizar un profesor.
      */
     @PutMapping("/{id}")
@@ -84,7 +76,7 @@ public class ProfesorControlador {
     }
 
     /**
-     * ✅ Eliminar un profesor (baja lógica).
+     * ✅ Eliminar un profesor (baja logica).
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminarProfesor(@PathVariable Long id) {
@@ -97,5 +89,11 @@ public class ProfesorControlador {
     public ResponseEntity<List<DisciplinaListadoResponse>> obtenerDisciplinasDeProfesor(@PathVariable Long profesorId) {
         List<DisciplinaListadoResponse> disciplinas = profesorServicio.obtenerDisciplinasDeProfesor(profesorId);
         return ResponseEntity.ok(disciplinas);
+    }
+
+    @GetMapping("/buscar")
+    public ResponseEntity<List<ProfesorListadoResponse>> buscarPorNombre(@RequestParam String nombre) {
+        List<ProfesorListadoResponse> resultado = profesorServicio.buscarPorNombre(nombre);
+        return ResponseEntity.ok(resultado);
     }
 }

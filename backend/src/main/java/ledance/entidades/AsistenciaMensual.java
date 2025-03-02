@@ -7,7 +7,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
-import java.util.Map;
 
 @Entity
 @Data
@@ -32,7 +31,6 @@ public class AsistenciaMensual {
     @OneToMany(mappedBy = "asistenciaMensual", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<AsistenciaDiaria> asistenciasDiarias;
 
-    // Cambiamos el Map por una lista de observaciones mensuales
     @OneToMany(mappedBy = "asistenciaMensual", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ObservacionMensual> observaciones;
 }

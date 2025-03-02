@@ -3,8 +3,6 @@ package ledance.entidades;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Data
@@ -20,21 +18,11 @@ public class Recargo {
     @NotNull
     private String descripcion;
 
-    @OneToMany(mappedBy = "recargo", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<RecargoDetalle> detalles;
+    @NotNull
+    private Double porcentaje; // Porcentaje del recargo
 
-    public void addDetalle(RecargoDetalle detalle) {
-        if (detalles == null) {
-            detalles = new ArrayList<>();
-        }
-        detalles.add(detalle);
-        detalle.setRecargo(this);
-    }
+    private Double valorFijo; // Valor fijo opcional del recargo
 
-    public void removeDetalle(RecargoDetalle detalle) {
-        if (detalles != null) {
-            detalles.remove(detalle);
-            detalle.setRecargo(null);
-        }
-    }
+    @NotNull
+    private Integer diaDelMesAplicacion; // ✅ Día específico del mes donde se aplica
 }

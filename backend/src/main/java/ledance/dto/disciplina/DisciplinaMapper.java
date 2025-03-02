@@ -7,21 +7,21 @@ import ledance.dto.disciplina.response.DisciplinaListadoResponse;
 import ledance.entidades.Disciplina;
 import org.mapstruct.*;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = {DisciplinaHorarioMapper.class})
 public interface DisciplinaMapper {
 
     /**
-     * ✅ Mapea una disciplina a su versión simplificada para listados.
+     * Mapea una disciplina a su versión simplificada para listados.
      */
     @Mapping(target = "id", source = "id")
     @Mapping(target = "nombre", source = "nombre")
-    @Mapping(target = "horarioInicio", source = "horarioInicio")
     @Mapping(target = "activo", source = "activo")
     @Mapping(target = "profesorId", source = "profesor.id")
     @Mapping(target = "profesorNombre", source = "profesor.nombre")
     @Mapping(target = "claseSuelta", source = "claseSuelta")
     @Mapping(target = "clasePrueba", source = "clasePrueba")
     @Mapping(target = "valorCuota", source = "valorCuota")
+    @Mapping(target = "horarioInicio", expression = "java((disciplina.getHorarios() != null && !disciplina.getHorarios().isEmpty()) ? disciplina.getHorarios().get(0).getHorarioInicio() : null)")
     DisciplinaListadoResponse toListadoResponse(Disciplina disciplina);
 
     /**
@@ -29,8 +29,6 @@ public interface DisciplinaMapper {
      */
     @Mapping(target = "id", source = "id")
     @Mapping(target = "nombre", source = "nombre")
-    @Mapping(target = "horarioInicio", source = "horarioInicio")
-    @Mapping(target = "duracion", source = "duracion")
     @Mapping(target = "salon", source = "salon.nombre")
     @Mapping(target = "salonId", source = "salon.id")
     @Mapping(target = "valorCuota", source = "valorCuota")
@@ -39,11 +37,9 @@ public interface DisciplinaMapper {
     @Mapping(target = "profesorId", source = "profesor.id")
     @Mapping(target = "inscritos", expression = "java(disciplina.getInscripciones() != null ? disciplina.getInscripciones().size() : 0)")
     @Mapping(target = "activo", source = "activo")
+    @Mapping(target = "horarios", source = "horarios", qualifiedByName = "toResponseList") // ✅ Convierte horarios correctamente
     DisciplinaDetalleResponse toDetalleResponse(Disciplina disciplina);
 
-    /**
-     * ✅ Convierte un `DisciplinaRegistroRequest` en una entidad `Disciplina`.
-     */
     /**
      * ✅ Convierte un `DisciplinaRegistroRequest` en una entidad `Disciplina`.
      */

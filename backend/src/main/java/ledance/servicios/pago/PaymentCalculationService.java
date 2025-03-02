@@ -1,7 +1,7 @@
 package ledance.servicios.pago;
 
+import ledance.entidades.Bonificacion;
 import ledance.entidades.Inscripcion;
-import ledance.entidades.Recargo;
 import ledance.dto.pago.request.PagoRegistroRequest;
 import org.springframework.stereotype.Service;
 
@@ -12,7 +12,7 @@ import java.math.RoundingMode;
 public class PaymentCalculationService {
 
     /**
-     * Calcula el costo base de una inscripción sumando los valores de cuota, matrícula, clase suelta y clase prueba.
+     * Calcula el costo base de una inscripcion sumando los valores de cuota, clase suelta y clase prueba.
      */
     public double calcularCostoBase(Inscripcion inscripcion) {
         double cuota = inscripcion.getDisciplina().getValorCuota() != null ? inscripcion.getDisciplina().getValorCuota() : 0.0;
@@ -22,23 +22,19 @@ public class PaymentCalculationService {
     }
 
     /**
-     * Calcula el costo final aplicando descuento (bonificación) y recargo.
+     * Calcula el costo final aplicando el descuento global de la bonificacion.
+     * El recargo se calcula a nivel de DetallePago, por lo que no se aplica aqui.
      */
     public double calcularCostoFinal(PagoRegistroRequest request, Inscripcion inscripcion, double costoBase) {
-        double descuento = 0.0;
+        double descuentoFijo = 0.0;
+        double descuentoPorcentaje = 0.0;
         if (Boolean.TRUE.equals(request.bonificacionAplicada()) && inscripcion.getBonificacion() != null) {
-            // Se usa el porcentaje de descuento (por ejemplo, 50% se traduce a 0.50)
-            descuento = inscripcion.getBonificacion().getPorcentajeDescuento() / 100.0;
+            Bonificacion b = inscripcion.getBonificacion();
+            descuentoFijo = (b.getValorFijo() != null ? b.getValorFijo() : 0.0);
+            descuentoPorcentaje = (b.getPorcentajeDescuento() != null ?
+                    (b.getPorcentajeDescuento() / 100.0 * costoBase) : 0.0);
         }
-        double incremento = 0.0;
-        if (Boolean.TRUE.equals(request.recargoAplicado()) && inscripcion.getDisciplina().getRecargo() != null) {
-            Recargo recargo = inscripcion.getDisciplina().getRecargo();
-            if (recargo.getDetalles() != null && !recargo.getDetalles().isEmpty()) {
-                // Para este ejemplo se utiliza el porcentaje del primer detalle
-                incremento = recargo.getDetalles().get(0).getPorcentaje() / 100.0;
-            }
-        }
-        double costoFinal = costoBase * (1 - descuento) * (1 + incremento);
+        double costoFinal = costoBase - (descuentoFijo + descuentoPorcentaje);
         return redondear(costoFinal);
     }
 

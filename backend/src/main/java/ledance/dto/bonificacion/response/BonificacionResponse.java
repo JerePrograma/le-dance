@@ -5,6 +5,8 @@ public record BonificacionResponse(
         String descripcion,
         Integer porcentajeDescuento,
         Boolean activo,
-        String observaciones
+        String observaciones,
+        // Nuevo campo en la respuesta
+        Double valorFijo
 ) {
 }

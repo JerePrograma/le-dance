@@ -16,7 +16,7 @@ public interface SubConceptoMapper {
     @Mapping(target = "descripcion", expression = "java(request.descripcion().toUpperCase())")
     SubConcepto toEntity(SubConceptoRegistroRequest request);
 
-    // Aseguramos que la descripción se convierta a mayúsculas al mapear a respuesta
+    // Aseguramos que la descripcion se convierta a mayusculas al mapear a respuesta
     @Mapping(target = "descripcion", expression = "java(subConcepto.getDescripcion().toUpperCase())")
     SubConceptoResponse toResponse(SubConcepto subConcepto);
 

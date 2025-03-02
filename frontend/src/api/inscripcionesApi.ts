@@ -1,4 +1,4 @@
-// src/api/inscripcionesApi.ts
+// src/inscripcionesApi.ts
 import api from "./axiosConfig";
 import type {
   InscripcionRegistroRequest,
@@ -9,29 +9,27 @@ import type {
 const crear = async (
   request: InscripcionRegistroRequest
 ): Promise<InscripcionResponse> => {
-  const response = await api.post("/api/inscripciones", request);
+  const response = await api.post("/inscripciones", request);
   return response.data;
 };
 
 const listar = async (alumnoId?: number): Promise<InscripcionResponse[]> => {
   const url = alumnoId
-    ? `/api/inscripciones?alumnoId=${alumnoId}`
-    : "/api/inscripciones";
+    ? `/inscripciones?alumnoId=${alumnoId}`
+    : "/inscripciones";
   const response = await api.get(url);
   return response.data;
 };
 
 const obtenerPorId = async (id: number): Promise<InscripcionResponse> => {
-  const response = await api.get(`/api/inscripciones/${id}`);
+  const response = await api.get(`/inscripciones/${id}`);
   return response.data;
 };
 
 const listarPorDisciplina = async (
   disciplinaId: number
 ): Promise<InscripcionResponse[]> => {
-  const response = await api.get(
-    `/api/inscripciones/disciplina/${disciplinaId}`
-  );
+  const response = await api.get(`/inscripciones/disciplina/${disciplinaId}`);
   return response.data;
 };
 
@@ -39,19 +37,19 @@ const actualizar = async (
   id: number,
   request: InscripcionModificacionRequest
 ): Promise<InscripcionResponse> => {
-  const response = await api.put(`/api/inscripciones/${id}`, request);
+  const response = await api.put(`/inscripciones/${id}`, request);
   return response.data;
 };
 
 const eliminar = async (id: number): Promise<void> => {
-  await api.delete(`/api/inscripciones/${id}`);
+  await api.delete(`/inscripciones/${id}`);
 };
 
 const obtenerInscripcionActiva = async (
   alumnoId: number
 ): Promise<InscripcionResponse> => {
   const { data } = await api.get<InscripcionResponse>(
-    `/api/inscripciones/alumno/${alumnoId}`
+    `/inscripciones/alumno/${alumnoId}`
   );
   return data;
 };

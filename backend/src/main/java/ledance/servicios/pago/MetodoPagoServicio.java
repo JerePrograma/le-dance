@@ -26,7 +26,7 @@ public class MetodoPagoServicio {
     }
 
     /**
-     * Crea un nuevo método de pago.
+     * Crea un nuevo metodo de pago.
      */
     public MetodoPagoResponse registrar(MetodoPagoRegistroRequest request) {
         MetodoPago nuevo = metodoPagoMapper.toEntity(request);
@@ -35,7 +35,7 @@ public class MetodoPagoServicio {
     }
 
     /**
-     * Lista todos los métodos de pago.
+     * Lista todos los metodos de pago.
      */
     @Transactional(readOnly = true)
     public List<MetodoPagoResponse> listar() {
@@ -45,32 +45,32 @@ public class MetodoPagoServicio {
     }
 
     /**
-     * Obtiene un método de pago por su ID.
+     * Obtiene un metodo de pago por su ID.
      */
     @Transactional(readOnly = true)
     public MetodoPagoResponse obtenerPorId(Long id) {
         MetodoPago metodo = metodoPagoRepositorio.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("No se encontró el método de pago con ID: " + id));
+                .orElseThrow(() -> new IllegalArgumentException("No se encontro el metodo de pago con ID: " + id));
         return metodoPagoMapper.toDTO(metodo);
     }
 
     /**
-     * Actualiza un método de pago existente.
+     * Actualiza un metodo de pago existente.
      */
     public MetodoPagoResponse actualizar(Long id, MetodoPagoModificacionRequest request) {
         MetodoPago metodo = metodoPagoRepositorio.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("No se encontró el método de pago con ID: " + id));
+                .orElseThrow(() -> new IllegalArgumentException("No se encontro el metodo de pago con ID: " + id));
         metodoPagoMapper.updateEntityFromRequest(request, metodo);
         MetodoPago actualizado = metodoPagoRepositorio.save(metodo);
         return metodoPagoMapper.toDTO(actualizado);
     }
 
     /**
-     * Realiza la baja lógica de un método de pago.
+     * Realiza la baja logica de un metodo de pago.
      */
     public void eliminar(Long id) {
         MetodoPago metodo = metodoPagoRepositorio.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("No se encontró el método de pago con ID: " + id));
+                .orElseThrow(() -> new IllegalArgumentException("No se encontro el metodo de pago con ID: " + id));
         metodo.setActivo(false);
         metodoPagoRepositorio.save(metodo);
     }

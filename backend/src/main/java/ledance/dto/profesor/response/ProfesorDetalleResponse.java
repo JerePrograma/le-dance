@@ -10,7 +10,7 @@ public record ProfesorDetalleResponse(
         String nombre,
         String apellido,
         LocalDate fechaNacimiento, // ✅ NUEVO
-        Integer edad, // ✅ Se calcula automáticamente
+        Integer edad, // ✅ Se calcula automaticamente
         String telefono, // ✅ NUEVO
         Boolean activo,
         List<DisciplinaListadoResponse> disciplinas // ✅ Lista de disciplinas que imparte

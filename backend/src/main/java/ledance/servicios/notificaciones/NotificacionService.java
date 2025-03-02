@@ -14,22 +14,22 @@ public class NotificacionService implements INotificacionService {
 
     @Override
     public void notificarPagoProximo(Pago pago) {
-        // Implementar lógica de notificación (por correo y notificación interna)
+        // Implementar logica de notificacion (por correo y notificacion interna)
         // Por ahora, solo se registra el evento en el log.
-        log.info("Notificación: Pago próximo a vencer para inscripcionId: {} (pago id: {})",
+        log.info("Notificacion: Pago proximo a vencer para inscripcionId: {} (pago id: {})",
                 pago.getInscripcion().getId(), pago.getId());
     }
 
     @Override
     public void notificarPagoVencido(Pago pago) {
-        // Lógica de notificación para pagos vencidos
-        log.info("Notificación: Pago vencido para inscripcionId: {} (pago id: {})",
+        // Logica de notificacion para pagos vencidos
+        log.info("Notificacion: Pago vencido para inscripcionId: {} (pago id: {})",
                 pago.getInscripcion().getId(), pago.getId());
     }
 
     @Override
     public void notificarIngresoCaja(LocalDate fecha, double totalIngresos) {
-        // Lógica para notificar o registrar ingresos diarios
-        log.info("Notificación: Ingresos del día {}: ${}", fecha, totalIngresos);
+        // Logica para notificar o registrar ingresos diarios
+        log.info("Notificacion: Ingresos del dia {}: ${}", fecha, totalIngresos);
     }
 }

@@ -23,7 +23,7 @@ const RolesPagina = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await api.get<Rol[]>("/api/roles");
+      const response = await api.get<Rol[]>("/roles");
       setRoles(response.data);
     } catch (error) {
       console.error("Error al cargar roles:", error);

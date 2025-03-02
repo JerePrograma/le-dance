@@ -17,11 +17,11 @@ public interface InscripcionMapper {
     @Mapping(target = "fechaInscripcion", source = "fechaInscripcion")
     @Mapping(target = "estado", source = "estado")
     @Mapping(target = "notas", source = "notas")
-    // Calcula el costo utilizando el método auxiliar
+    // Calcula el costo utilizando el metodo auxiliar
     @Mapping(target = "costoCalculado", expression = "java(mapCostoCalculado(inscripcion))")
     InscripcionResponse toDTO(Inscripcion inscripcion);
 
-    // Método auxiliar para calcular el costo
+    // Metodo auxiliar para calcular el costo
     default Double mapCostoCalculado(Inscripcion inscripcion) {
         Disciplina d = inscripcion.getDisciplina();
         double valorCuota = (d.getValorCuota() != null ? d.getValorCuota() : 0.0);

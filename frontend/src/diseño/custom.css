@@ -1,0 +1,162 @@
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 262.1 83.3% 57.8%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 262.1 83.3% 57.8%;
+
+    --sidebar-width: 250px;
+    --header-height: 60px;
+    --content-max-width: 1200px;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 263.4 70% 50.4%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 263.4 70% 50.4%;
+  }
+}
+
+@layer components {
+  .layout {
+    @apply flex min-h-screen bg-background;
+  }
+
+  .sidebar {
+    @apply fixed top-0 left-0 h-screen w-[var(--sidebar-width)] bg-background border-r border-border py-6 z-20
+      transition-transform duration-300 ease-in-out
+      md:translate-x-0;
+  }
+
+  .sidebar.open {
+    @apply translate-x-0;
+  }
+
+  .sidebar-brand {
+    @apply px-6 mb-8 text-xl font-semibold text-foreground;
+  }
+
+  .sidebar-nav {
+    @apply px-3;
+  }
+
+  .nav-item {
+    @apply flex items-center px-3 py-2 rounded-md text-muted-foreground no-underline
+      transition-colors duration-200 ease-in-out my-1
+      hover:bg-muted hover:text-foreground;
+  }
+
+  .nav-item.active {
+    @apply bg-primary text-primary-foreground font-medium;
+  }
+
+  .nav-item-icon {
+    @apply w-5 h-5 mr-3 opacity-75;
+  }
+
+  .main-content {
+    @apply ml-[var(--sidebar-width)] w-[calc(100%-var(--sidebar-width))] p-8
+      transition-all duration-300 ease-in-out
+      md:ml-0 md:w-full;
+  }
+
+  .card {
+    @apply bg-card text-card-foreground rounded-lg border border-border p-6 mb-4
+      shadow-sm transition-shadow duration-200
+      hover:shadow-md;
+  }
+
+  .header {
+    @apply sticky top-0 h-[var(--header-height)] bg-background/80 backdrop-blur-md
+      border-b border-border flex items-center px-6 z-30;
+  }
+
+  .search-bar {
+    @apply relative max-w-[300px] w-full;
+  }
+
+  .search-input {
+    @apply w-full px-4 py-2 rounded-full text-sm
+      bg-muted border border-border
+      focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10;
+  }
+
+  .btn {
+    @apply px-4 py-2 rounded-md text-sm font-medium
+      border border-border bg-background text-foreground
+      transition-colors duration-200 cursor-pointer
+      hover:bg-muted;
+  }
+
+  .btn-primary {
+    @apply bg-primary text-primary-foreground border-0
+      hover:bg-primary/90;
+  }
+
+  .grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6;
+  }
+
+  .grid-card {
+    @apply bg-card border border-border rounded-lg overflow-hidden;
+  }
+
+  .grid-card-header {
+    @apply p-4 border-b border-border;
+  }
+
+  .grid-card-content {
+    @apply p-6;
+  }
+
+  .text-muted {
+    @apply text-muted-foreground;
+  }
+
+  .badge {
+    @apply inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+      bg-muted text-muted-foreground;
+  }
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    @apply -translate-x-full;
+  }
+
+  .main-content {
+    @apply ml-0 w-full;
+  }
+}

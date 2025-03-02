@@ -16,7 +16,7 @@ public interface ReporteMapper {
     @Mapping(target = "activo", constant = "true") // ✅ Siempre inicia activo
     @Mapping(target = "usuario", ignore = true) // ✅ Se asigna en el servicio
     @Mapping(target = "tipo", source = "tipo") // ✅ Se mapea correctamente el tipo
-    @Mapping(target = "descripcion", source = "descripcion", defaultValue = "Sin descripción") // ✅ Manejo de valores nulos
+    @Mapping(target = "descripcion", source = "descripcion", defaultValue = "Sin descripcion") // ✅ Manejo de valores nulos
     Reporte toEntity(ReporteRegistroRequest request);
 
     /**

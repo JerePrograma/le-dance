@@ -9,19 +9,19 @@ const bonificacionesApi = {
   crearBonificacion: async (
     bonificacion: BonificacionRegistroRequest
   ): Promise<BonificacionResponse> => {
-    const response = await api.post("/api/bonificaciones", bonificacion);
+    const response = await api.post("/bonificaciones", bonificacion);
     return response.data;
   },
 
   listarBonificaciones: async (): Promise<BonificacionResponse[]> => {
-    const response = await api.get("/api/bonificaciones");
+    const response = await api.get("/bonificaciones");
     return response.data;
   },
 
   obtenerBonificacionPorId: async (
     id: number
   ): Promise<BonificacionResponse> => {
-    const response = await api.get(`/api/bonificaciones/${id}`);
+    const response = await api.get(`/bonificaciones/${id}`);
     return response.data;
   },
 
@@ -29,12 +29,12 @@ const bonificacionesApi = {
     id: number,
     bonificacion: BonificacionModificacionRequest
   ): Promise<BonificacionResponse> => {
-    const response = await api.put(`/api/bonificaciones/${id}`, bonificacion);
+    const response = await api.put(`/bonificaciones/${id}`, bonificacion);
     return response.data;
   },
 
   eliminarBonificacion: async (id: number): Promise<void> => {
-    await api.delete(`/api/bonificaciones/${id}`);
+    await api.delete(`/bonificaciones/${id}`);
   },
 };
 

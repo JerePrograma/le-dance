@@ -11,7 +11,7 @@ public interface UsuarioMapper {
 
     /**
      * ✅ Convierte `UsuarioRegistroRequest` en una entidad `Usuario`.
-     * ✔ `id` se ignora porque se genera automáticamente.
+     * ✔ `id` se ignora porque se genera automaticamente.
      * ✔ `contrasena` y `rol` se asignan en el servicio.
      * ✔ `activo` se establece en `true` por defecto.
      */
@@ -33,11 +33,11 @@ public interface UsuarioMapper {
 
     /**
      * ✅ Modifica una entidad `Usuario` con datos de `UsuarioModificacionRequest`.
-     * ✔ `id`, `contrasena` y `rol` no se modifican aquí.
+     * ✔ `id`, `contrasena` y `rol` no se modifican aqui.
      */
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "contrasena", ignore = true) // Se mantiene sin cambios
-    @Mapping(target = "rol", ignore = true) // No se permite cambiar el rol en la modificación
+    @Mapping(target = "rol", ignore = true) // No se permite cambiar el rol en la modificacion
     @Mapping(target = "authorities", ignore = true)
     void updateEntityFromRequest(UsuarioModificacionRequest request, @MappingTarget Usuario usuario);
 }

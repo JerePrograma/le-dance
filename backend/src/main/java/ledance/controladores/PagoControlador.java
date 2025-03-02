@@ -104,4 +104,11 @@ public class PagoControlador {
         CobranzaDTO cobranza = pagoServicio.generarCobranzaPorAlumno(alumnoId);
         return ResponseEntity.ok(cobranza);
     }
+
+    @GetMapping("/alumno/{alumnoId}/ultimo")
+    public ResponseEntity<PagoResponse> obtenerUltimoPagoPorAlumno(@PathVariable Long alumnoId) {
+        PagoResponse pago = pagoServicio.obtenerUltimoPagoPorAlumno(alumnoId);
+        return ResponseEntity.ok(pago);
+    }
+
 }

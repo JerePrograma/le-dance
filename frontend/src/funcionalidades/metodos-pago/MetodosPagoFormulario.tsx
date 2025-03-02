@@ -12,10 +12,12 @@ import type { MetodoPagoResponse } from "../../types/types";
 interface MetodoPago {
   id?: number;
   descripcion: string;
+  recargo: number;
 }
 
 const initialValues: MetodoPago = {
   descripcion: "",
+  recargo: 0, // valor por defecto, puedes ajustarlo según tus necesidades
 };
 
 const MetodosPagoFormulario: React.FC = () => {
@@ -30,7 +32,7 @@ const MetodosPagoFormulario: React.FC = () => {
           toast.error("ID inválido");
           return;
         }
-        const response = await api.get<MetodoPagoResponse>(`/api/metodos-pago/${idNum}`);
+        const response = await api.get<MetodoPagoResponse>(`/metodos-pago/${idNum}`);
         setValues(response.data);
         toast.success("Método de pago cargado correctamente.");
       } catch {
@@ -51,10 +53,10 @@ const MetodosPagoFormulario: React.FC = () => {
   const handleGuardar = async (values: MetodoPago) => {
     try {
       if (values.id) {
-        await api.put(`/api/metodos-pago/${values.id}`, values);
+        await api.put(`/metodos-pago/${values.id}`, values);
         toast.success("Método de pago actualizado correctamente.");
       } else {
-        await api.post("/api/metodos-pago", values);
+        await api.post("/metodos-pago", values);
         toast.success("Método de pago creado correctamente.");
       }
     } catch {
@@ -108,6 +110,13 @@ const MetodosPagoFormulario: React.FC = () => {
                 </label>
                 <Field name="descripcion" type="text" id="descripcion" className="form-input" />
                 <ErrorMessage name="descripcion" component="div" className="auth-error" />
+              </div>
+              <div className="col-span-full mb-4">
+                <label htmlFor="recargo" className="auth-label">
+                  Recargo:
+                </label>
+                <Field name="recargo" type="number" id="recargo" className="form-input" />
+                <ErrorMessage name="recargo" component="div" className="auth-error" />
               </div>
             </div>
 

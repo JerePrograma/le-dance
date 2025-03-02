@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Year;
-import java.util.Optional;
+import java.util.List;
 
 @Service
 public class MatriculaServicio {
@@ -29,43 +29,43 @@ public class MatriculaServicio {
     }
 
     /**
-     * Obtiene la matrícula de un alumno para el año actual.
+     * Obtiene la matricula de un alumno para el año actual.
      * Si no existe, se crea un registro pendiente.
      */
     @Transactional
     public MatriculaResponse obtenerOMarcarPendiente(Long alumnoId) {
-        try {
-            int anioActual = Year.now().getValue();
-            Optional<Matricula> opt = matriculaRepositorio.findByAlumnoIdAndAnio(alumnoId, anioActual);
-            Matricula matricula;
-            if (opt.isPresent()) {
-                matricula = opt.get();
-            } else {
-                Alumno alumno = alumnoRepositorio.findById(alumnoId)
-                        .orElseThrow(() -> new IllegalArgumentException("Alumno no encontrado."));
-                matricula = new Matricula();
-                matricula.setAlumno(alumno);
-                matricula.setAnio(anioActual);
-                matricula.setPagada(false);
-                matricula = matriculaRepositorio.save(matricula);
-            }
-            // Log para verificar el contenido de la matrícula antes de mapearla
-            System.out.println("Matrícula obtenida: " + matricula);
-            return matriculaMapper.toResponse(matricula);
-        } catch (Exception e) {
-            // Log de la excepción completa para depuración
-            e.printStackTrace();
-            throw e; // o lanzar una excepción personalizada
+        int anioActual = Year.now().getValue();
+        List<Matricula> matriculas = matriculaRepositorio.findByAlumnoIdAndAnio(alumnoId, anioActual);
+        Matricula matricula;
+
+        if (matriculas.isEmpty()) {
+            // Si no existen matrículas para el año actual, se crea una nueva
+            Alumno alumno = alumnoRepositorio.findById(alumnoId)
+                    .orElseThrow(() -> new IllegalArgumentException("Alumno no encontrado."));
+            matricula = new Matricula();
+            matricula.setAlumno(alumno);
+            matricula.setAnio(anioActual);
+            matricula.setPagada(false);
+            matricula = matriculaRepositorio.save(matricula);
+        } else {
+            // Se selecciona la matrícula que no esté pagada.
+            // Si todas están pagadas, se retorna la primera.
+            matricula = matriculas.stream()
+                    .filter(m -> !m.getPagada())
+                    .findFirst()
+                    .orElse(matriculas.get(0));
         }
+
+        return matriculaMapper.toResponse(matricula);
     }
 
     /**
-     * Actualiza el estado de la matrícula.
+     * Actualiza el estado de la matricula.
      */
     @Transactional
     public MatriculaResponse actualizarEstadoMatricula(Long matriculaId, MatriculaModificacionRequest request) {
         Matricula m = matriculaRepositorio.findById(matriculaId)
-                .orElseThrow(() -> new IllegalArgumentException("Matrícula no encontrada."));
+                .orElseThrow(() -> new IllegalArgumentException("Matricula no encontrada."));
         matriculaMapper.updateEntityFromRequest(request, m);
         return matriculaMapper.toResponse(matriculaRepositorio.save(m));
     }

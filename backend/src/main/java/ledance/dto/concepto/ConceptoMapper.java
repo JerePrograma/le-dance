@@ -13,7 +13,7 @@ import org.mapstruct.factory.Mappers;
 public interface ConceptoMapper {
     ConceptoMapper INSTANCE = Mappers.getMapper(ConceptoMapper.class);
 
-    // Mapea de registro a entidad; se ignora la asociación subConcepto, que se asignará en el servicio.
+    // Mapea de registro a entidad; se ignora la asociacion subConcepto, que se asignara en el servicio.
     @Mapping(target = "subConcepto", ignore = true)
     Concepto toEntity(ConceptoRegistroRequest request);
 

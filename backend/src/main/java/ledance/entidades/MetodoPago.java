@@ -21,4 +21,6 @@ public class MetodoPago {
 
     @Column(nullable = false)
     private Boolean activo = true;
+
+    private Double recargo;
 }

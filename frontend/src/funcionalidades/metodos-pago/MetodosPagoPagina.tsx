@@ -77,7 +77,7 @@ const MetodosPagoPagina = () => {
       </div>
       <div className="page-card">
         <Tabla
-          encabezados={["ID", "Descripción", "Acciones"]}
+          encabezados={["ID", "Descripción", "Recargo", "Acciones"]}
           datos={currentItems}
           acciones={(fila: MetodoPagoResponse) => (
             <div className="flex gap-2">
@@ -99,7 +99,7 @@ const MetodosPagoPagina = () => {
               </Boton>
             </div>
           )}
-          extraRender={(fila: MetodoPagoResponse) => [fila.id, fila.descripcion]}
+          extraRender={(fila: MetodoPagoResponse) => [fila.id, fila.descripcion, fila.recargo]}
         />
       </div>
       {pageCount > 1 && (

@@ -25,7 +25,7 @@ const UsuariosPagina = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await api.get<Usuario[]>("/api/usuarios");
+      const response = await api.get<Usuario[]>("/usuarios");
       setUsuarios(response.data);
     } catch (error) {
       console.error("Error al cargar usuarios:", error);
@@ -64,7 +64,7 @@ const UsuariosPagina = () => {
   const handleEliminarUsuario = useCallback(async (id: number) => {
     if (window.confirm("¿Seguro que deseas eliminar este usuario?")) {
       try {
-        await api.delete(`/api/usuarios/${id}`);
+        await api.delete(`/usuarios/${id}`);
         setUsuarios((prev) => prev.filter((u) => u.id !== id));
       } catch (error) {
         console.error("Error al eliminar usuario:", error);

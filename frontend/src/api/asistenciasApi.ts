@@ -15,6 +15,58 @@ import type {
 const asistenciaCache = new Map<number, AsistenciaMensualDetalleResponse>();
 
 const asistenciasApi = {
+  // Método para obtener el detalle de la asistencia mensual (solo obtener, sin crear)
+  // En asistenciasApi.ts
+
+  obtenerAsistenciaMensualDetallePorParametros: async (
+    disciplinaId: number,
+    mes: number,
+    anio: number
+  ): Promise<AsistenciaMensualDetalleResponse | null> => {
+    try {
+      const response = await api.get(
+        "/asistencias-mensuales/por-disciplina/detalle",
+        {
+          params: { disciplinaId, mes, anio },
+        }
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error(
+        "Error al obtener asistencia mensual por parámetros:",
+        error
+      );
+      toast.error(
+        "Error al obtener la asistencia mensual. Intente nuevamente."
+      );
+      return null;
+    }
+  },
+
+  // Método para crear la asistencia mensual (solo crear, sin buscar)
+  crearAsistenciaMensualPorDisciplina: async (
+    disciplinaId: number,
+    mes: number,
+    anio: number
+  ): Promise<AsistenciaMensualDetalleResponse> => {
+    try {
+      const response = await api.post(
+        "/asistencias-mensuales/por-disciplina/crear",
+        {
+          disciplinaId,
+          mes,
+          anio,
+        }
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error("Error al crear asistencia mensual por disciplina:", error);
+      toast.error("Error al crear la asistencia mensual. Intente nuevamente.");
+      throw error;
+    }
+  },
+
+  // Los métodos existentes permanecen sin cambios (listar, actualizar, etc.)
   listarAsistenciasMensuales: async (
     profesorId?: number,
     disciplinaId?: number,
@@ -22,7 +74,7 @@ const asistenciasApi = {
     anio?: number
   ): Promise<AsistenciaMensualListadoResponse[]> => {
     try {
-      const response = await api.get("/api/asistencias-mensuales", {
+      const response = await api.get("/asistencias-mensuales", {
         params: { profesorId, disciplinaId, mes, anio },
       });
       return response.data;
@@ -44,13 +96,26 @@ const asistenciasApi = {
     }
   },
 
+  obtenerAsistenciasDiarias: async (
+    asistenciaMensualId: number
+  ): Promise<AsistenciaDiariaResponse[]> => {
+    try {
+      const response = await api.get(
+        `/asistencias-diarias/por-asistencia-mensual/${asistenciaMensualId}`
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error("Error al obtener asistencias diarias:", error);
+      toast.error("Error al obtener asistencias. Intente nuevamente.");
+      throw error;
+    }
+  },
+
   obtenerAsistenciaMensualDetalle: async (
     id: number
   ): Promise<AsistenciaMensualDetalleResponse | null> => {
     try {
-      const response = await api.get(
-        `/api/asistencias-mensuales/${id}/detalle`
-      );
+      const response = await api.get(`/asistencias-mensuales/${id}/detalle`);
       return response.data;
     } catch (error: any) {
       console.error("Error al obtener detalle de asistencia mensual:", error);
@@ -71,7 +136,7 @@ const asistenciasApi = {
   ): Promise<AsistenciaMensualDetalleResponse> => {
     try {
       const response = await api.put(
-        `/api/asistencias-mensuales/${id}`,
+        `/asistencias-mensuales/${id}`,
         asistencia
       );
       // Update cache
@@ -84,21 +149,6 @@ const asistenciasApi = {
     }
   },
 
-  obtenerAsistenciasDiarias: async (
-    asistenciaMensualId: number
-  ): Promise<AsistenciaDiariaResponse[]> => {
-    try {
-      const response = await api.get(
-        `/api/asistencias-diarias/por-asistencia-mensual/${asistenciaMensualId}`
-      );
-      return response.data;
-    } catch (error: any) {
-      console.error("Error al obtener asistencias diarias:", error);
-      toast.error("Error al obtener asistencias. Intente nuevamente.");
-      throw error;
-    }
-  },
-
   obtenerAsistenciasPorDisciplinaYFecha: async (
     disciplinaId: number,
     fecha: string,
@@ -107,7 +157,7 @@ const asistenciasApi = {
   ): Promise<PageResponse<AsistenciaDiariaResponse>> => {
     try {
       const response = await api.get(
-        "/api/asistencias-diarias/por-disciplina-y-fecha",
+        "/asistencias-diarias/por-disciplina-y-fecha",
         {
           params: { disciplinaId, fecha, page, size },
         }
@@ -125,7 +175,7 @@ const asistenciasApi = {
 
   eliminarAsistenciaDiaria: async (id: number): Promise<void> => {
     try {
-      await api.delete(`/api/asistencias-diarias/${id}`);
+      await api.delete(`/asistencias-diarias/${id}`);
       toast.success("Asistencia eliminada correctamente.");
     } catch (error: any) {
       console.error("Error al eliminar asistencia diaria:", error);
@@ -143,7 +193,7 @@ const asistenciasApi = {
       }
 
       const response = await api.put(
-        `/api/asistencias-diarias/${request.id}`, // ✅ Ahora usa el ID real
+        `/asistencias-diarias/${request.id}`, // ✅ Ahora usa el ID real
         request
       );
       return response.data;
@@ -160,17 +210,12 @@ const asistenciasApi = {
     anio: number
   ): Promise<AsistenciaMensualDetalleResponse> => {
     try {
-      const response = await api.get(
-        "/api/asistencias-mensuales/por-disciplina",
-        {
-          params: { disciplinaId, mes, anio },
-        }
-      );
-
+      const response = await api.get("/asistencias-mensuales/por-disciplina", {
+        params: { disciplinaId, mes, anio },
+      });
       if (!response.data) {
         throw new Error("No se encontró asistencia para esta disciplina.");
       }
-
       return response.data;
     } catch (error: any) {
       console.error("Error al obtener asistencia:", error);
@@ -183,7 +228,7 @@ const asistenciasApi = {
     DisciplinaListadoResponse[]
   > => {
     try {
-      const response = await api.get("/api/disciplinas/listado");
+      const response = await api.get("/disciplinas/listado");
       return response.data;
     } catch (error: any) {
       console.error("Error al obtener disciplinas:", error);
@@ -195,7 +240,7 @@ const asistenciasApi = {
     request: AsistenciaMensualRegistroRequest
   ): Promise<AsistenciaMensualDetalleResponse> => {
     try {
-      const response = await api.post("/api/asistencias-mensuales", request);
+      const response = await api.post("/asistencias-mensuales", request);
       return response.data;
     } catch (error: any) {
       console.error("Error al registrar asistencia mensual:", error);
@@ -205,7 +250,7 @@ const asistenciasApi = {
   },
   listarAsistenciasDiarias: async (): Promise<AsistenciaDiariaResponse[]> => {
     try {
-      const response = await api.get("/api/asistencias-diarias");
+      const response = await api.get("/asistencias-diarias");
       return response.data;
     } catch (error: any) {
       console.error("Error al obtener asistencias diarias:", error);

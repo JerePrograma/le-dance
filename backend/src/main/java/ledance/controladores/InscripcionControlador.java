@@ -39,11 +39,11 @@ public class InscripcionControlador {
     }
 
     /**
-     * ✅ Registrar una nueva inscripción.
+     * ✅ Registrar una nueva inscripcion.
      */
     @PostMapping
     public ResponseEntity<InscripcionResponse> crear(@RequestBody @Validated InscripcionRegistroRequest request) {
-        log.info("Creando inscripción para alumnoId: {} en disciplinaId: {}",
+        log.info("Creando inscripcion para alumnoId: {} en disciplinaId: {}",
                 request.alumnoId(), request.inscripcion().disciplinaId()); // ✅ Se accede correctamente a la disciplina
 
         InscripcionResponse response = inscripcionServicio.crearInscripcion(request);
@@ -63,7 +63,7 @@ public class InscripcionControlador {
     }
 
     /**
-     * ✅ Obtener una inscripción por ID.
+     * ✅ Obtener una inscripcion por ID.
      */
     @GetMapping("/{id}")
     public ResponseEntity<?> obtenerPorId(@PathVariable Long id) {
@@ -71,7 +71,7 @@ public class InscripcionControlador {
             InscripcionResponse response = inscripcionServicio.obtenerPorId(id);
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
-            log.error("Error al obtener inscripción con id {}: {}", id, e.getMessage());
+            log.error("Error al obtener inscripcion con id {}: {}", id, e.getMessage());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }
@@ -89,27 +89,27 @@ public class InscripcionControlador {
     }
 
     /**
-     * ✅ Actualizar una inscripción.
+     * ✅ Actualizar una inscripcion.
      */
     @PutMapping("/{id}")
     public ResponseEntity<InscripcionResponse> actualizar(@PathVariable Long id,
                                                           @RequestBody @Validated InscripcionModificacionRequest request) {
-        log.info("Actualizando inscripción con id: {}", id);
+        log.info("Actualizando inscripcion con id: {}", id);
         InscripcionResponse response = inscripcionServicio.actualizarInscripcion(id, request);
         return ResponseEntity.ok(response);
     }
 
     /**
-     * ✅ Eliminar una inscripción (baja lógica).
+     * ✅ Eliminar una inscripcion (baja logica).
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<?> eliminar(@PathVariable Long id) {
         try {
-            log.info("Eliminando inscripción con id: {}", id);
+            log.info("Eliminando inscripcion con id: {}", id);
             inscripcionServicio.eliminarInscripcion(id);
-            return ResponseEntity.ok("Inscripción eliminada exitosamente.");
+            return ResponseEntity.ok("Inscripcion eliminada exitosamente.");
         } catch (IllegalArgumentException e) {
-            log.error("Error al eliminar inscripción con id {}: {}", id, e.getMessage());
+            log.error("Error al eliminar inscripcion con id {}: {}", id, e.getMessage());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }

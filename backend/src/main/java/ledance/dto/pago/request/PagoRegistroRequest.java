@@ -1,6 +1,5 @@
 package ledance.dto.pago.request;
 
-// ledance/dto/pago/request/PagoRegistroRequest.java
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
@@ -12,10 +11,10 @@ public record PagoRegistroRequest(
         @NotNull @Min(0) Double monto,
         @NotNull Long inscripcionId,
         Long metodoPagoId,         // Opcional
-        Boolean recargoAplicado,
-        Double bonificacionAplicada,
-        @NotNull Double saldoRestante,
+        Boolean recargoAplicado,   // Indica si se aplico el recargo global
+        Boolean bonificacionAplicada, // Flag que indica si se aplico la bonificacion global
+        @NotNull @Min(0) Double saldoRestante,
         Boolean pagoMatricula,
         @NotNull List<DetallePagoRegistroRequest> detallePagos,
-        List<PagoMedioRegistroRequest> pagoMedios
+        List<PagoMedioRegistroRequest> pagoMedios  // Puede venir vacio en el registro inicial
 ) { }

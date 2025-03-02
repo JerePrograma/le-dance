@@ -4,5 +4,6 @@ package ledance.dto.metodopago.response;
 public record MetodoPagoResponse(
         Long id,
         String descripcion,
-        Boolean activo
+        Boolean activo,
+        Double recargo
 ) { }

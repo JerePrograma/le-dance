@@ -18,6 +18,7 @@ const initialBonificacionValues: BonificacionRegistroRequest &
   descripcion: "",
   porcentajeDescuento: 0,
   observaciones: "",
+  valorFijo: 0, // Valor fijo por defecto
   activo: true,
 };
 
@@ -40,6 +41,7 @@ const BonificacionesFormulario: React.FC = () => {
         descripcion: bonificacion.descripcion,
         porcentajeDescuento: bonificacion.porcentajeDescuento,
         observaciones: bonificacion.observaciones || "",
+        valorFijo: bonificacion.valorFijo ?? 0,
         activo: bonificacion.activo,
       };
     },
@@ -89,9 +91,7 @@ const BonificacionesFormulario: React.FC = () => {
     async (
       values: BonificacionRegistroRequest &
         Partial<BonificacionModificacionRequest>,
-      {
-        setSubmitting,
-      }: FormikHelpers<
+      { setSubmitting }: FormikHelpers<
         BonificacionRegistroRequest & Partial<BonificacionModificacionRequest>
       >
     ) => {
@@ -158,7 +158,7 @@ const BonificacionesFormulario: React.FC = () => {
 
               <div className="mb-4">
                 <label htmlFor="descripcion" className="auth-label">
-                  Descripción (obligatoria):
+                  Descripción:
                 </label>
                 <Field
                   type="text"
@@ -187,6 +187,24 @@ const BonificacionesFormulario: React.FC = () => {
                 />
                 <ErrorMessage
                   name="porcentajeDescuento"
+                  component="div"
+                  className="auth-error"
+                />
+              </div>
+
+              <div className="mb-4">
+                <label htmlFor="valorFijo" className="auth-label">
+                  Valor Fijo:
+                </label>
+                <Field
+                  type="number"
+                  id="valorFijo"
+                  name="valorFijo"
+                  placeholder="Ejemplo: 1000"
+                  className="form-input"
+                />
+                <ErrorMessage
+                  name="valorFijo"
                   component="div"
                   className="auth-error"
                 />
@@ -230,11 +248,10 @@ const BonificacionesFormulario: React.FC = () => {
 
             {mensaje && (
               <p
-                className={`form-mensaje ${
-                  mensaje.includes("Error") || mensaje.includes("no encontrada")
-                    ? "form-mensaje-error"
-                    : "form-mensaje-success"
-                }`}
+                className={`form-mensaje ${mensaje.includes("Error") || mensaje.includes("no encontrada")
+                  ? "form-mensaje-error"
+                  : "form-mensaje-success"
+                  }`}
               >
                 {mensaje}
               </p>

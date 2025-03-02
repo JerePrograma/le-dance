@@ -29,7 +29,7 @@ const RolesFormulario: React.FC = () => {
           toast.error("ID inválido");
           return;
         }
-        const response = await api.get<Rol>(`/api/roles/${idNum}`);
+        const response = await api.get<Rol>(`/roles/${idNum}`);
         setValues(response.data);
         toast.success("Rol cargado correctamente.");
       } catch {
@@ -42,16 +42,16 @@ const RolesFormulario: React.FC = () => {
 
   useEffect(() => {
     const id = searchParams.get("id");
-    if (id) handleBuscar(id, () => {});
+    if (id) handleBuscar(id, () => { });
   }, [searchParams, handleBuscar]);
 
   const handleGuardarRol = async (values: Rol) => {
     try {
       if (values.id) {
-        await api.put(`/api/roles/${values.id}`, values);
+        await api.put(`/roles/${values.id}`, values);
         toast.success("Rol actualizado correctamente.");
       } else {
-        await api.post("/api/roles", values);
+        await api.post("/roles", values);
         toast.success("Rol creado correctamente.");
       }
     } catch {

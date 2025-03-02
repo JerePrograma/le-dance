@@ -9,10 +9,10 @@ import java.time.LocalDate;
 import java.util.List;
 
 /**
- * Petición para registrar un alumno.
+ * Peticion para registrar un alumno.
  * - "edad" no se recibe, se calcula en el backend.
  * - "disciplinas" son las disciplinas en las que se inscribe con sus bonificaciones.
- * - "activo" no se recibe, se establece automáticamente como `true`.
+ * - "activo" no se recibe, se establece automaticamente como `true`.
  */
 public record AlumnoRegistroRequest(
         @NotBlank String nombre,
@@ -29,5 +29,5 @@ public record AlumnoRegistroRequest(
         Boolean autorizadoParaSalirSolo,
         String otrasNotas,
         Double cuotaTotal,
-        List<InscripcionDisciplinaRequest> disciplinas // ✅ Relación con disciplinas y bonificaciones
+        List<InscripcionDisciplinaRequest> disciplinas // ✅ Relacion con disciplinas y bonificaciones
 ) {}

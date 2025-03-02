@@ -6,5 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface SubConceptoRepositorio extends JpaRepository<SubConcepto, Long> {
-    // Métodos adicionales si fueran necesarios
+    // Metodos adicionales si fueran necesarios
 }

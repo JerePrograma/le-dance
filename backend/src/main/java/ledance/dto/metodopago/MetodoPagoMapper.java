@@ -16,5 +16,6 @@ public interface MetodoPagoMapper {
 
     MetodoPagoResponse toDTO(MetodoPago metodoPago);
 
+    // MapStruct actualizara recargo automaticamente si el campo tiene el mismo nombre
     void updateEntityFromRequest(MetodoPagoModificacionRequest request, @MappingTarget MetodoPago metodoPago);
 }

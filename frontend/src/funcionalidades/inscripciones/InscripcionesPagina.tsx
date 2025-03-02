@@ -101,8 +101,8 @@ const InscripcionesPagina = () => {
           datos={currentItems}
           extraRender={(fila) => [
             fila.id,
-            `${fila.alumno.nombre} ${fila.alumno.apellido}`,
-            fila.disciplina.nombre,
+            fila.alumno.id,
+            fila.disciplina.id,
             fila.bonificacion ? fila.bonificacion.descripcion : "N/A",
             fila.notas || "-",
           ]}

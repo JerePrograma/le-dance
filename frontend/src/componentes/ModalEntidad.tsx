@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import api from "../api/axiosConfig";
+import api from "../axiosConfig";
 import Tabla from "./comunes/Tabla";
 import Boton from "./comunes/Boton";
 import { X } from "lucide-react";
@@ -21,7 +21,7 @@ const ModalEntidad = <T extends object>({
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await api.get(`/api/${entidad.toLowerCase()}`);
+        const response = await api.get(`/${entidad.toLowerCase()}`);
         setDatos(response.data);
       } catch (error) {
         console.error("Error al obtener datos:", error);

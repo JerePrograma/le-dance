@@ -67,7 +67,7 @@ public class InscripcionServicio implements IInscripcionServicio {
                     .orElse(null);
         }
 
-        // Convertir request -> entidad base (sin asignar fecha todavía)
+        // Convertir request -> entidad base (sin asignar fecha todavia)
         Inscripcion inscripcion = inscripcionMapper.toEntity(request);
         inscripcion.setAlumno(alumno);
         inscripcion.setDisciplina(disciplina);
@@ -105,17 +105,17 @@ public class InscripcionServicio implements IInscripcionServicio {
     public InscripcionResponse actualizarInscripcion(Long id, InscripcionModificacionRequest request) {
         log.info("Actualizando inscripcion con id: {}", id);
 
-        // 1) Buscar la inscripción existente
+        // 1) Buscar la inscripcion existente
         Inscripcion inscripcion = inscripcionRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Inscripcion no encontrada."));
 
         // 2) Mapear los cambios desde el DTO
         inscripcionMapper.updateEntityFromRequest(request, inscripcion);
 
-        // 3) Lógica adicional: si la fechaBaja no es null, cambiar estado a BAJA
+        // 3) Logica adicional: si la fechaBaja no es null, cambiar estado a BAJA
         if (request.fechaBaja() != null) {
             inscripcion.setFechaBaja(request.fechaBaja());
-            // opcional: si tu mapper no asignó ya la fechaBaja
+            // opcional: si tu mapper no asigno ya la fechaBaja
             inscripcion.setEstado(EstadoInscripcion.BAJA);
             // asume que "EstadoInscripcion" tiene un valor "BAJA"
         }
@@ -123,7 +123,7 @@ public class InscripcionServicio implements IInscripcionServicio {
         // 4) Guardar los cambios
         Inscripcion actualizada = inscripcionRepositorio.save(inscripcion);
 
-        // 5) Retornar la inscripción actualizada
+        // 5) Retornar la inscripcion actualizada
         return inscripcionMapper.toDTO(actualizada);
     }
 
@@ -171,7 +171,7 @@ public class InscripcionServicio implements IInscripcionServicio {
     @Transactional
     public void eliminarInscripcion(Long id) {
         Inscripcion inscripcion = inscripcionRepositorio.findById(id)
-                .orElseThrow(() -> new TratadorDeErrores.RecursoNoEncontradoException("Inscripción no encontrada."));
+                .orElseThrow(() -> new TratadorDeErrores.RecursoNoEncontradoException("Inscripcion no encontrada."));
         inscripcion.setEstado(EstadoInscripcion.BAJA);
         inscripcionRepositorio.save(inscripcion);
     }
@@ -212,9 +212,8 @@ public class InscripcionServicio implements IInscripcionServicio {
     @Transactional
     public InscripcionResponse obtenerInscripcionActiva(Long alumnoId) {
         Inscripcion inscripcion = inscripcionRepositorio
-                .findByAlumno_IdAndEstado(alumnoId, EstadoInscripcion.ACTIVA)
-                .orElseThrow(() -> new IllegalArgumentException("Inscripción activa no encontrada para el alumno " + alumnoId));
+                .findFirstByAlumno_IdAndEstadoOrderByIdAsc(alumnoId, EstadoInscripcion.ACTIVA)
+                .orElseThrow(() -> new IllegalArgumentException("Inscripcion activa no encontrada para el alumno " + alumnoId));
         return inscripcionMapper.toDTO(inscripcion);
     }
-
 }

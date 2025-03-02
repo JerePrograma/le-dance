@@ -30,7 +30,8 @@ public class Reporte {
     @Column(nullable = false)
     private Boolean activo = true;
 
-    @ManyToOne
-    @JoinColumn(name = "usuario_id", nullable = false)
+    @ManyToOne(optional = true)
+    @JoinColumn(name = "usuario_id", nullable = true)
     private Usuario usuario;
+
 }

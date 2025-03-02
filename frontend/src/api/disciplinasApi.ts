@@ -12,19 +12,19 @@ const disciplinasApi = {
   registrarDisciplina: async (
     disciplina: DisciplinaRegistroRequest
   ): Promise<DisciplinaDetalleResponse> => {
-    const response = await api.post("/api/disciplinas", disciplina);
+    const response = await api.post("/disciplinas", disciplina);
     return response.data;
   },
 
   listarDisciplinas: async (): Promise<DisciplinaDetalleResponse[]> => {
-    const response = await api.get("/api/disciplinas");
+    const response = await api.get("/disciplinas");
     return response.data;
   },
 
   obtenerDisciplinaPorId: async (
     id: number
   ): Promise<DisciplinaDetalleResponse> => {
-    const response = await api.get(`/api/disciplinas/${id}`);
+    const response = await api.get(`/disciplinas/${id}`);
     return response.data;
   },
 
@@ -32,18 +32,18 @@ const disciplinasApi = {
     id: number,
     disciplina: DisciplinaModificacionRequest
   ): Promise<DisciplinaDetalleResponse> => {
-    const response = await api.put(`/api/disciplinas/${id}`, disciplina);
+    const response = await api.put(`/disciplinas/${id}`, disciplina);
     return response.data;
   },
 
   darBajaDisciplina: async (id: number): Promise<void> => {
-    await api.delete(`/api/disciplinas/${id}`);
+    await api.delete(`/disciplinas/${id}`);
   },
 
   listarDisciplinasSimplificadas: async (): Promise<
     DisciplinaListadoResponse[]
   > => {
-    const response = await api.get("/api/disciplinas/listado");
+    const response = await api.get("/disciplinas/listado");
     return response.data;
   },
 
@@ -51,7 +51,7 @@ const disciplinasApi = {
     fecha: string
   ): Promise<DisciplinaListadoResponse[]> => {
     const response = await api.get(
-      `/api/disciplinas/por-fecha?fecha=${encodeURIComponent(fecha)}`
+      `/disciplinas/por-fecha?fecha=${encodeURIComponent(fecha)}`
     );
     return response.data;
   },
@@ -59,14 +59,14 @@ const disciplinasApi = {
   obtenerAlumnosDeDisciplina: async (
     disciplinaId: number
   ): Promise<AlumnoListadoResponse[]> => {
-    const response = await api.get(`/api/disciplinas/${disciplinaId}/alumnos`);
+    const response = await api.get(`/disciplinas/${disciplinaId}/alumnos`);
     return response.data;
   },
 
   obtenerProfesorDeDisciplina: async (
     disciplinaId: number
   ): Promise<ProfesorListadoResponse> => {
-    const response = await api.get(`/api/disciplinas/${disciplinaId}/profesor`);
+    const response = await api.get(`/disciplinas/${disciplinaId}/profesor`);
     return response.data;
   },
 
@@ -74,7 +74,14 @@ const disciplinasApi = {
     horario: string
   ): Promise<DisciplinaListadoResponse[]> => {
     const response = await api.get(
-      `/api/disciplinas/por-horario?horario=${encodeURIComponent(horario)}`
+      `/disciplinas/por-horario?horario=${encodeURIComponent(horario)}`
+    );
+    return response.data;
+  },
+
+  buscarPorNombre: async (nombre: string): Promise<DisciplinaListadoResponse[]> => {
+    const response = await api.get(
+      `/disciplinas/buscar?nombre=${encodeURIComponent(nombre)}`
     );
     return response.data;
   },

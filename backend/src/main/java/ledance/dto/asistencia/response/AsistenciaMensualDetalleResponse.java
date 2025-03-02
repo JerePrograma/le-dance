@@ -11,7 +11,7 @@ public record AsistenciaMensualDetalleResponse(
         Integer anio,
         String disciplina,
         String profesor,
-        Long disciplinaId,  // ✅ Se obtiene desde inscripción
+        Long disciplinaId,  // ✅ Se obtiene desde inscripcion
         List<AsistenciaDiariaResponse> asistenciasDiarias,
         List<ObservacionMensualResponse> observaciones,
         Long inscripcionId,

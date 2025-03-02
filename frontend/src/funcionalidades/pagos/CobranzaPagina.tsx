@@ -15,7 +15,7 @@ const CobranzaPagina: React.FC = () => {
             try {
                 setLoading(true);
                 setError(null);
-                const response = await api.get<CobranzaDTO>(`/api/pagos/alumno/${alumnoId}/cobranza`);
+                const response = await api.get<CobranzaDTO>(`/pagos/alumno/${alumnoId}/cobranza`);
                 setCobranza(response.data);
             } catch (err) {
                 console.error("Error al cargar la cobranza:", err);

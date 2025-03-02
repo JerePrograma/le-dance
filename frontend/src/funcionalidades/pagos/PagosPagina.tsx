@@ -31,7 +31,7 @@ const PaymentList: React.FC = () => {
         try {
             setLoading(true);
             setError(null);
-            const response = await api.get<Pago[]>("/api/pagos");
+            const response = await api.get<Pago[]>("/pagos");
             setPagos(response.data);
         } catch (error) {
             console.error("Error al cargar pagos:", error);
@@ -59,7 +59,7 @@ const PaymentList: React.FC = () => {
 
     const handleEliminar = async (id: number) => {
         try {
-            await api.delete(`/api/pagos/${id}`);
+            await api.delete(`/pagos/${id}`);
             // Actualizamos la lista después de "eliminar" (marcar como inactivo)
             fetchPagos();
         } catch (error) {

@@ -6,5 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ConceptoRepositorio extends JpaRepository<Concepto, Long> {
-    // Puedes agregar métodos de consulta adicionales si lo requieres
+    // Puedes agregar metodos de consulta adicionales si lo requieres
 }

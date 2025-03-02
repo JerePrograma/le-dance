@@ -1,8 +1,7 @@
-// src/funcionalidades/stocks/StocksFormulario.tsx
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Formik, Form, Field, ErrorMessage } from "formik";
-import { stockEsquema } from "../../validaciones/stockEsquema"; // Define tu esquema de validación
+import { Formik, Form, Field, ErrorMessage, type FormikHelpers } from "formik";
+import { stockEsquema } from "../../validaciones/stockEsquema";
 import stocksApi from "../../api/stocksApi";
 import tipoStocksApi from "../../api/tipoStocksApi";
 import Boton from "../../componentes/comunes/Boton";
@@ -17,11 +16,14 @@ import type { TipoStockResponse } from "../../types/types";
 const initialStockValues: StockRegistroRequest & Partial<StockModificacionRequest> = {
     nombre: "",
     precio: 0,
-    tipoStockId: undefined,
+    tipoStockId: 0,
     stock: 0,
     requiereControlDeStock: false,
     codigoBarras: "",
+    // Para el registro, no es necesario enviar "activo" (lo agregamos solo en edición)
     activo: true,
+    fechaIngreso: new Date().toISOString().split("T")[0],
+    fechaEgreso: undefined,
 };
 
 const StocksFormulario: React.FC = () => {
@@ -52,6 +54,9 @@ const StocksFormulario: React.FC = () => {
                 requiereControlDeStock: stock.requiereControlDeStock,
                 codigoBarras: stock.codigoBarras,
                 activo: stock.activo,
+                // Nuevos atributos
+                fechaIngreso: stock.fechaIngreso,
+                fechaEgreso: stock.fechaEgreso,
             };
         },
         []
@@ -91,15 +96,41 @@ const StocksFormulario: React.FC = () => {
         }
     }, [searchParams, handleBuscar, fetchTipoStocks]);
 
+
+    const convertirAStockModificacionRequest = (
+        values: StockRegistroRequest & Partial<StockModificacionRequest>
+    ): StockModificacionRequest => ({
+        nombre: values.nombre,
+        precio: values.precio,
+        // Convertimos el campo para que coincida con lo que espera el backend:
+        tipoStockId: values.tipoStockId,
+        stock: values.stock,
+        requiereControlDeStock: values.requiereControlDeStock,
+        codigoBarras: values.codigoBarras,
+        // Para la modificación el backend requiere "activo"
+        activo: values.activo as boolean,
+        fechaIngreso: values.fechaIngreso,
+        fechaEgreso: values.fechaEgreso,
+    });
+
     const handleGuardar = useCallback(
-        async (values: StockRegistroRequest & Partial<StockModificacionRequest>) => {
+        async (
+            values: StockRegistroRequest & Partial<StockModificacionRequest>,
+            { setSubmitting }: FormikHelpers<StockRegistroRequest & Partial<StockModificacionRequest>>
+        ) => {
             try {
+                // Convierte el valor vacío de tipoEgreso a null
+                const valoresAEnviar = {
+                    ...values,
+                };
+
                 if (stockId) {
-                    await stocksApi.actualizarStock(stockId, values as StockModificacionRequest);
+                    // Para actualización, si es necesario, realiza la transformación también en la función de conversión
+                    const stockModificacion = convertirAStockModificacionRequest(valoresAEnviar);
+                    await stocksApi.actualizarStock(stockId, stockModificacion);
                     toast.success("Stock actualizado correctamente.");
                 } else {
-                    const nuevoStock = await stocksApi.registrarStock(values as StockRegistroRequest);
-                    setStockId(nuevoStock.id);
+                    await stocksApi.registrarStock(valoresAEnviar as StockRegistroRequest);
                     toast.success("Stock creado correctamente.");
                 }
                 setMensaje("Stock guardado exitosamente.");
@@ -107,6 +138,8 @@ const StocksFormulario: React.FC = () => {
                 console.error("Error al guardar el stock:", error);
                 toast.error("Error al guardar el stock.");
                 setMensaje("Error al guardar el stock.");
+            } finally {
+                setSubmitting(false);
             }
         },
         [stockId]
@@ -180,17 +213,13 @@ const StocksFormulario: React.FC = () => {
                                 <label htmlFor="requiereControlDeStock" className="auth-label">
                                     Requiere Control de Stock:
                                 </label>
-                                {/* Uso de Field como función para convertir el valor de string a boolean */}
                                 <Field name="requiereControlDeStock">
                                     {({ field, form }: any) => (
                                         <select
                                             {...field}
                                             className="form-input"
                                             onChange={(e) =>
-                                                form.setFieldValue(
-                                                    "requiereControlDeStock",
-                                                    e.target.value === "true"
-                                                )
+                                                form.setFieldValue("requiereControlDeStock", e.target.value === "true")
                                             }
                                         >
                                             <option value="false">No</option>
@@ -207,6 +236,20 @@ const StocksFormulario: React.FC = () => {
                                 <Field name="codigoBarras" type="text" className="form-input" />
                                 <ErrorMessage name="codigoBarras" component="div" className="auth-error" />
                             </div>
+                            <div className="mb-4">
+                                <label htmlFor="fechaIngreso" className="auth-label">
+                                    Fecha de Ingreso:
+                                </label>
+                                <Field name="fechaIngreso" type="date" className="form-input" />
+                                <ErrorMessage name="fechaIngreso" component="div" className="auth-error" />
+                            </div>
+                            <div className="mb-4">
+                                <label htmlFor="fechaEgreso" className="auth-label">
+                                    Fecha de Egreso (opcional):
+                                </label>
+                                <Field name="fechaEgreso" type="date" className="form-input" />
+                                <ErrorMessage name="fechaEgreso" component="div" className="auth-error" />
+                            </div>
                             {stockId !== null && (
                                 <div className="col-span-full mb-4">
                                     <label className="flex items-center space-x-2">
@@ -221,8 +264,8 @@ const StocksFormulario: React.FC = () => {
                         {mensaje && (
                             <p
                                 className={`form-mensaje ${mensaje.includes("Error") || mensaje.includes("no encontrado")
-                                        ? "form-mensaje-error"
-                                        : "form-mensaje-success"
+                                    ? "form-mensaje-error"
+                                    : "form-mensaje-success"
                                     }`}
                             >
                                 {mensaje}

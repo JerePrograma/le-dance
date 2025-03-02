@@ -7,7 +7,7 @@ WORKDIR /app
 # Copiar el JAR del backend
 COPY target/backend-1.0.jar app.jar
 
-# Exponer el puerto donde correrá la app
+# Exponer el puerto donde correra la app
 EXPOSE 8080
 
 # Comando de inicio del backend

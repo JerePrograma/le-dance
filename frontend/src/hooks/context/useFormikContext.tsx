@@ -22,33 +22,35 @@ export const MatriculaAutoAdd: React.FC<MatriculaAutoAddProps> = ({ matricula, c
                 return;
             }
             if (values.matriculaRemoved) return;
-            // Comparamos por descripción, por ejemplo, si algún detalle tiene concepto igual a "matricula"
-            const hasMatriculaDetail = values.detalles.some(
+
+            // Cambiamos "detalles" por "detallePagos"
+            const hasMatriculaDetail = values.detallePagos.some(
                 (detail) => detail.concepto?.toLowerCase().trim() === "matricula"
             );
+
             if (!matricula.pagada && !hasMatriculaDetail) {
                 const matriculaDetail = {
                     codigoConcepto: conceptoMatricula.id.toString(),
                     concepto: conceptoMatricula.descripcion, // debe ser "Matricula" según lo definido
                     cuota: "1",
                     valorBase: conceptoMatricula.precio,
-                    bonificacion: 0,
-                    recargo: 0,
+                    bonificacionId: undefined,
+                    recargoId: undefined,
                     aFavor: 0,
                     importe: conceptoMatricula.precio,
                     aCobrar: conceptoMatricula.precio,
+                    abono: 0,
                 };
-                setFieldValue("detalles", [...values.detalles, matriculaDetail]);
+                setFieldValue("detallePagos", [...values.detallePagos, matriculaDetail]);
             } else if (matricula.pagada && hasMatriculaDetail) {
-                const nuevosDetalles = values.detalles.filter(
-                    (detail) =>
-                        detail.concepto?.toLowerCase().trim() !== "matricula"
+                const nuevosDetalles = values.detallePagos.filter(
+                    (detail) => detail.concepto?.toLowerCase().trim() !== "matricula"
                 );
-                setFieldValue("detalles", nuevosDetalles);
+                setFieldValue("detallePagos", nuevosDetalles);
                 setFieldValue("matriculaRemoved", false);
             }
         }
-    }, [values.alumno, values.detalles, matricula, setFieldValue, conceptos]);
+    }, [values.alumno, values.detallePagos, matricula, setFieldValue, conceptos]);
 
     return null;
 };

@@ -1,4 +1,4 @@
-// src/api/stocksApi.ts
+// src/stocksApi.ts
 import api from "./axiosConfig";
 import type {
   StockRegistroRequest,
@@ -9,22 +9,12 @@ import type {
 const registrarStock = async (
   stock: StockRegistroRequest
 ): Promise<StockResponse> => {
-  const { data } = await api.post<StockResponse>("/api/stocks", stock);
+  const { data } = await api.post<StockResponse>("/stocks", stock);
   return data;
 };
 
 const obtenerStockPorId = async (id: number): Promise<StockResponse> => {
-  const { data } = await api.get<StockResponse>(`/api/stocks/${id}`);
-  return data;
-};
-
-const listarStocks = async (): Promise<StockResponse[]> => {
-  const { data } = await api.get<StockResponse[]>("/api/stocks");
-  return data;
-};
-
-const listarStocksActivos = async (): Promise<StockResponse[]> => {
-  const { data } = await api.get<StockResponse[]>("/api/stocks/activos");
+  const { data } = await api.get<StockResponse>(`/stocks/${id}`);
   return data;
 };
 
@@ -32,16 +22,26 @@ const actualizarStock = async (
   id: number,
   stock: StockModificacionRequest
 ): Promise<StockResponse> => {
-  const { data } = await api.put<StockResponse>(`/api/stocks/${id}`, stock);
+  const { data } = await api.put<StockResponse>(`/stocks/${id}`, stock);
   return data;
 };
 
 const eliminarStock = async (id: number): Promise<void> => {
-  await api.delete(`/api/stocks/${id}`);
+  await api.delete(`/stocks/${id}`);
+};
+
+const listarStocks = async (): Promise<StockResponse[]> => {
+  const { data } = await api.get<StockResponse[]>("/stocks");
+  return data;
+};
+
+const listarStocksActivos = async (): Promise<StockResponse[]> => {
+  const { data } = await api.get<StockResponse[]>("/stocks/activos");
+  return data;
 };
 
 const listarStocksConceptos = async (): Promise<StockResponse[]> => {
-  const { data } = await api.get<StockResponse[]>("/api/stocks/conceptos");
+  const { data } = await api.get<StockResponse[]>("/stocks/conceptos");
   return data;
 };
 

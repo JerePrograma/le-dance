@@ -26,7 +26,7 @@ public class SubConceptoServicio {
 
     @Transactional
     public SubConceptoResponse crearSubConcepto(SubConceptoRegistroRequest request) {
-        // Forzamos la descripción a mayúsculas
+        // Forzamos la descripcion a mayusculas
         SubConceptoRegistroRequest modRequest = new SubConceptoRegistroRequest(request.descripcion().toUpperCase());
         SubConcepto subConcepto = subConceptoMapper.toEntity(modRequest);
         SubConcepto saved = subConceptoRepositorio.save(subConcepto);
@@ -37,7 +37,7 @@ public class SubConceptoServicio {
     public SubConceptoResponse actualizarSubConcepto(Long id, SubConceptoModificacionRequest request) {
         SubConcepto subConcepto = subConceptoRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("SubConcepto no encontrado con id: " + id));
-        // Actualiza manualmente el campo transformándolo a mayúsculas
+        // Actualiza manualmente el campo transformandolo a mayusculas
         subConcepto.setDescripcion(request.descripcion().toUpperCase());
         SubConcepto updated = subConceptoRepositorio.save(subConcepto);
         return subConceptoMapper.toResponse(updated);

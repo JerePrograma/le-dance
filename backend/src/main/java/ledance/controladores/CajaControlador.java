@@ -1,65 +1,90 @@
 package ledance.controladores;
 
-import ledance.dto.caja.request.CajaRegistroRequest;
-import ledance.dto.caja.request.CajaModificacionRequest;
-import ledance.dto.caja.response.CajaResponse;
+import ledance.dto.caja.CajaDetalleDTO;
+import ledance.dto.caja.CajaDiariaDTO;
+import ledance.dto.caja.RendicionDTO;
+import ledance.entidades.Egreso;
+import ledance.entidades.MetodoPago;
+import ledance.repositorios.MetodoPagoRepositorio;
 import ledance.servicios.caja.CajaServicio;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @RestController
-@RequestMapping("/api/cajas")
-@Validated
+@RequestMapping("/api/caja")
 public class CajaControlador {
 
-    private static final Logger log = LoggerFactory.getLogger(CajaControlador.class);
     private final CajaServicio cajaServicio;
+    private final MetodoPagoRepositorio metodoPagoRepositorio;
 
-    public CajaControlador(CajaServicio cajaServicio) {
+    public CajaControlador(CajaServicio cajaServicio,
+                           MetodoPagoRepositorio metodoPagoRepositorio) {
         this.cajaServicio = cajaServicio;
+        this.metodoPagoRepositorio = metodoPagoRepositorio;
     }
 
-    @PostMapping
-    public ResponseEntity<CajaResponse> registrarCaja(@RequestBody @Validated CajaRegistroRequest request) {
-        log.info("Registrando nuevo movimiento de caja para la fecha: {}", request.fecha());
-        CajaResponse response = cajaServicio.registrarCaja(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    /**
+     * 1) Planilla general de caja en un rango
+     */
+    @GetMapping("/planilla")
+    public List<CajaDiariaDTO> obtenerPlanilla(
+            @RequestParam("startDate")
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
+
+            @RequestParam("endDate")
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end
+    ) {
+        return cajaServicio.obtenerPlanillaGeneral(start, end);
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<CajaResponse> actualizarCaja(@PathVariable Long id, @RequestBody @Validated CajaModificacionRequest request) {
-        log.info("Actualizando caja con id: {}", id);
-        CajaResponse response = cajaServicio.actualizarCaja(id, request);
-        return ResponseEntity.ok(response);
+    /**
+     * 2) Caja diaria (detalle) para una fecha dada
+     */
+    @GetMapping("/dia/{fecha}")
+    public CajaDetalleDTO obtenerCajaDia(
+            @PathVariable("fecha")
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha
+    ) {
+        return cajaServicio.obtenerCajaDiaria(fecha);
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<CajaResponse> obtenerCajaPorId(@PathVariable Long id) {
-        log.info("Obteniendo caja con id: {}", id);
-        CajaResponse response = cajaServicio.obtenerCajaPorId(id);
-        return ResponseEntity.ok(response);
+    /**
+     * 3) Agregar Egreso en la fecha dada.
+     *    En lugar de mandarlo por query params, se puede mandar un JSON.
+     *    En este ejemplo, se mandan via query (monto, observaciones).
+     */
+    @PostMapping("/dia/{fecha}/egresos")
+    public Egreso agregarEgreso(
+            @PathVariable("fecha") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha,
+            @RequestParam Double monto,
+            @RequestParam(required = false) String observaciones,
+            @RequestParam(required = false, defaultValue = "1") Long metodoPagoId
+    ) {
+        // Obtenemos el metodo de pago (por defecto ID=1 => EFECTIVO, por ejemplo)
+        MetodoPago metodo = metodoPagoRepositorio.findById(metodoPagoId)
+                .orElseThrow(() -> new IllegalArgumentException("Metodo de pago no encontrado"));
+
+        return cajaServicio.agregarEgreso(fecha, monto, observaciones, metodo);
     }
 
-    @GetMapping
-    public ResponseEntity<Page<CajaResponse>> listarCajas(Pageable pageable) {
-        Page<CajaResponse> response = cajaServicio.listarCajas(pageable);
-        return ResponseEntity.ok(response);
+    /**
+     * 4) Rendicion general en un rango de fechas
+     */
+    @GetMapping("/rendicion")
+    public RendicionDTO obtenerRendicion(
+            @RequestParam("startDate")
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
+
+            @RequestParam("endDate")
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end
+    ) {
+        return cajaServicio.obtenerRendicionGeneral(start, end);
     }
 
-    // Endpoint adicional para listar cajas por fecha
-    @GetMapping("/fecha/{fecha}")
-    public ResponseEntity<Page<CajaResponse>> listarCajasPorFecha(@PathVariable String fecha, Pageable pageable) {
-        // Se debe parsear la fecha (formato YYYY-MM-DD)
-        LocalDate targetDate = LocalDate.parse(fecha);
-        Page<CajaResponse> response = cajaServicio.listarCajasPorFecha(targetDate, pageable);
-        return ResponseEntity.ok(response);
-    }
+    // Opcional: endpoints para eliminar/actualizar egresos si deseas
+    // anularEgreso(...)
+    // actualizarEgreso(...)
 }

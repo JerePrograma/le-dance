@@ -1,13 +1,13 @@
 import type React from "react";
 
-interface TableProps extends React.HTMLAttributes<HTMLTableElement> {}
+interface TableProps extends React.HTMLAttributes<HTMLTableElement> { }
 
 export const Table: React.FC<TableProps> = ({ className = "", ...props }) => (
   <table className={`w-full caption-bottom text-sm ${className}`} {...props} />
 );
 
 interface TableHeaderProps
-  extends React.HTMLAttributes<HTMLTableSectionElement> {}
+  extends React.HTMLAttributes<HTMLTableSectionElement> { }
 
 export const TableHeader: React.FC<TableHeaderProps> = ({
   className = "",
@@ -15,7 +15,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
 }) => <thead className={`[&_tr]:border-b ${className}`} {...props} />;
 
 interface TableBodyProps
-  extends React.HTMLAttributes<HTMLTableSectionElement> {}
+  extends React.HTMLAttributes<HTMLTableSectionElement> { }
 
 export const TableBody: React.FC<TableBodyProps> = ({
   className = "",
@@ -24,7 +24,7 @@ export const TableBody: React.FC<TableBodyProps> = ({
   <tbody className={`[&_tr:last-child]:border-0 ${className}`} {...props} />
 );
 
-interface TableRowProps extends React.HTMLAttributes<HTMLTableRowElement> {}
+interface TableRowProps extends React.HTMLAttributes<HTMLTableRowElement> { }
 
 export const TableRow: React.FC<TableRowProps> = ({
   className = "",
@@ -36,7 +36,7 @@ export const TableRow: React.FC<TableRowProps> = ({
   />
 );
 
-interface TableHeadProps extends React.ThHTMLAttributes<HTMLTableCellElement> {}
+interface TableHeadProps extends React.ThHTMLAttributes<HTMLTableCellElement> { }
 
 export const TableHead: React.FC<TableHeadProps> = ({
   className = "",
@@ -48,7 +48,7 @@ export const TableHead: React.FC<TableHeadProps> = ({
   />
 );
 
-interface TableCellProps extends React.TdHTMLAttributes<HTMLTableCellElement> {}
+interface TableCellProps extends React.TdHTMLAttributes<HTMLTableCellElement> { }
 
 export const TableCell: React.FC<TableCellProps> = ({
   className = "",

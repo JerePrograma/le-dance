@@ -28,10 +28,10 @@ public interface InscripcionRepositorio extends JpaRepository<Inscripcion, Long>
 
     List<Inscripcion> findAllByDisciplinaIdAndEstado(Long disciplinaId, EstadoInscripcion estado);
 
-    // Nuevo método: buscar inscripciones de un alumno con estado = X
+    // Nuevo metodo: buscar inscripciones de un alumno con estado = X
     List<Inscripcion> findAllByAlumno_IdAndEstado(Long alumnoId, EstadoInscripcion estado);
 
-    // Nuevo método: buscar inscripciones con un estado específico (ej.: ACTIVA)
+    // Nuevo metodo: buscar inscripciones con un estado especifico (ej.: ACTIVA)
     List<Inscripcion> findByEstado(EstadoInscripcion estado);
 
     @Query("SELECT i.disciplina.nombre, SUM(i.disciplina.valorCuota) " +
@@ -41,5 +41,7 @@ public interface InscripcionRepositorio extends JpaRepository<Inscripcion, Long>
     List<Object[]> obtenerRecaudacionPorDisciplina(@Param("disciplinaId") Long disciplinaId);
 
     Optional<Inscripcion> findByAlumno_IdAndEstado(Long alumnoId, EstadoInscripcion estado);
+
+    Optional<Inscripcion> findFirstByAlumno_IdAndEstadoOrderByIdAsc(Long alumnoId, EstadoInscripcion estado);
 
 }

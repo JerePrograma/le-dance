@@ -17,6 +17,9 @@ import java.util.stream.Collectors;
 @Mapper(componentModel = "spring", uses = {AsistenciaDiariaMapper.class})
 public interface AsistenciaMensualMapper {
 
+    /**
+     * Mapea una entidad AsistenciaMensual a su detalle de respuesta.
+     */
     @Mapping(target = "id", source = "id")
     @Mapping(target = "inscripcionId", source = "inscripcion.id")
     @Mapping(target = "disciplina", source = "inscripcion.disciplina.nombre")
@@ -25,25 +28,39 @@ public interface AsistenciaMensualMapper {
     @Mapping(target = "anio", source = "anio")
     @Mapping(target = "asistenciasDiarias", source = "asistenciasDiarias")
     @Mapping(target = "observaciones", source = "observaciones")
-    @Mapping(target = "totalClases", source = "inscripcion.disciplina.frecuenciaSemanal") // ✅ Agregado
     @Mapping(target = "disciplinaId", source = "inscripcion.disciplina.id")
-    @Mapping(target = "alumnos", expression = "java(mapAlumnosToResumen(asistenciaMensual.getInscripcion().getDisciplina().getInscripciones()))")
-        // ✅ Ahora mapea correctamente la lista de alumnos
+    @Mapping(
+            target = "alumnos",
+            expression = "java(mapAlumnosToResumen(asistenciaMensual.getInscripcion().getDisciplina().getInscripciones()))"
+    )
     AsistenciaMensualDetalleResponse toDetalleDTO(AsistenciaMensual asistenciaMensual);
 
+    /**
+     * Convierte un request de registro a la entidad, ignorando datos que se setean luego.
+     */
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "inscripcion", ignore = true)
     @Mapping(target = "asistenciasDiarias", ignore = true)
     @Mapping(target = "observaciones", ignore = true)
     AsistenciaMensual toEntity(AsistenciaMensualRegistroRequest request);
 
+    /**
+     * Actualiza una AsistenciaMensual existente con datos del request de modificación.
+     * Se ignoran campos que no deben ser sobreescritos (por ejemplo: mes, año, etc.).
+     */
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "inscripcion", ignore = true)
     @Mapping(target = "asistenciasDiarias", ignore = true)
     @Mapping(target = "mes", ignore = true)
     @Mapping(target = "anio", ignore = true)
-    void updateEntityFromRequest(AsistenciaMensualModificacionRequest request, @MappingTarget AsistenciaMensual asistenciaMensual);
+    void updateEntityFromRequest(
+            AsistenciaMensualModificacionRequest request,
+            @MappingTarget AsistenciaMensual asistenciaMensual
+    );
 
+    /**
+     * Mapea la entidad a la versión de listado, con campos básicos.
+     */
     @Mapping(target = "id", source = "id")
     @Mapping(target = "inscripcionId", source = "inscripcion.id")
     @Mapping(target = "disciplina", source = "inscripcion.disciplina.nombre")
@@ -52,17 +69,31 @@ public interface AsistenciaMensualMapper {
     @Mapping(target = "anio", source = "anio")
     AsistenciaMensualListadoResponse toListadoDTO(AsistenciaMensual asistenciaMensual);
 
+    /**
+     * Convierte una lista de inscripciones en respuestas de tipo AlumnoResumenResponse.
+     */
     @Named("mapAlumnosToResumen")
     default List<AlumnoResumenResponse> mapAlumnosToResumen(List<Inscripcion> inscripciones) {
         return inscripciones.stream()
-                .map(inscripcion -> new AlumnoResumenResponse(inscripcion.getAlumno().getId(), inscripcion.getAlumno().getNombre(), inscripcion.getAlumno().getApellido()))
+                .map(inscripcion -> new AlumnoResumenResponse(
+                        inscripcion.getAlumno().getId(),
+                        inscripcion.getAlumno().getNombre(),
+                        inscripcion.getAlumno().getApellido()
+                ))
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Convierte una lista de ObservacionMensual en respuestas de tipo ObservacionMensualResponse.
+     */
     @Named("mapObservacionesToDTO")
     default List<ObservacionMensualResponse> mapObservacionesToDTO(List<ObservacionMensual> observaciones) {
         return observaciones.stream()
-                .map(obs -> new ObservacionMensualResponse(obs.getId(), obs.getAlumno().getId(), obs.getObservacion()))
+                .map(obs -> new ObservacionMensualResponse(
+                        obs.getId(),
+                        obs.getAlumno().getId(),
+                        obs.getObservacion()
+                ))
                 .collect(Collectors.toList());
     }
 }

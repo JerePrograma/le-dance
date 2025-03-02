@@ -11,10 +11,10 @@ import org.mapstruct.Mapping;
 public interface SalonMapper {
 
     // Convierte de Request a Entidad
-    @Mapping(target = "id", ignore = true) // El ID se genera automáticamente
+    @Mapping(target = "id", ignore = true) // El ID se genera automaticamente
     Salon toEntity(SalonRegistroRequest request);
 
-    // Para modificación (puede compartir la misma lógica)
+    // Para modificacion (puede compartir la misma logica)
     @Mapping(target = "id", ignore = true)
     Salon toEntity(SalonModificacionRequest request);
 

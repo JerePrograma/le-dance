@@ -14,7 +14,6 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @Table(name = "asistencias_diarias")
 public class AsistenciaDiaria {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -34,6 +33,5 @@ public class AsistenciaDiaria {
     @JoinColumn(name = "asistencia_mensual_id", nullable = false)
     private AsistenciaMensual asistenciaMensual;
 
-    // ✅ Nuevo campo para observaciones
     private String observacion;
 }

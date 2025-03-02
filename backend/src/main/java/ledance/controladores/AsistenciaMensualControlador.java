@@ -4,6 +4,8 @@ import ledance.dto.asistencia.request.AsistenciaMensualRegistroRequest;
 import ledance.dto.asistencia.request.AsistenciaMensualModificacionRequest;
 import ledance.dto.asistencia.response.AsistenciaMensualDetalleResponse;
 import ledance.dto.asistencia.response.AsistenciaMensualListadoResponse;
+import ledance.dto.disciplina.request.DisciplinaMesAnioRequest;
+import ledance.entidades.AsistenciaMensual;
 import ledance.servicios.asistencia.AsistenciaMensualServicio;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +16,8 @@ import org.slf4j.LoggerFactory;
 import jakarta.validation.Valid;
 
 import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/asistencias-mensuales")
@@ -24,18 +28,6 @@ public class AsistenciaMensualControlador {
 
     public AsistenciaMensualControlador(AsistenciaMensualServicio asistenciaMensualServicio) {
         this.asistenciaMensualServicio = asistenciaMensualServicio;
-    }
-
-    @GetMapping("/{id}/detalle")
-    public ResponseEntity<AsistenciaMensualDetalleResponse> obtenerAsistenciaMensual(@PathVariable Long id) {
-        AsistenciaMensualDetalleResponse response = asistenciaMensualServicio.obtenerAsistenciaMensual(id);
-
-        if (response.disciplinaId() == null) {
-            log.error("⚠️ Error: La asistencia mensual no contiene un disciplinaId válido.");
-            throw new IllegalArgumentException("No se encontró la disciplina en la asistencia mensual.");
-        }
-
-        return ResponseEntity.ok(response);
     }
 
     @GetMapping
@@ -62,5 +54,31 @@ public class AsistenciaMensualControlador {
             @PathVariable Long id, @Valid @RequestBody AsistenciaMensualModificacionRequest request) {
         log.info("Actualizando asistencia mensual con id={}", id);
         return ResponseEntity.ok(asistenciaMensualServicio.actualizarAsistenciaMensual(id, request));
+    }
+
+    @GetMapping(value = "/por-disciplina/detalle", produces = "application/json")
+    public ResponseEntity<AsistenciaMensualDetalleResponse> obtenerAsistenciaMensualPorParametros(
+            @RequestParam Long disciplinaId,
+            @RequestParam int mes,
+            @RequestParam int anio) {
+        try {
+            AsistenciaMensualDetalleResponse response = asistenciaMensualServicio
+                    .obtenerAsistenciaMensualPorParametros(disciplinaId, mes, anio);
+            return ResponseEntity.ok(response);
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PostMapping("/por-disciplina/crear")
+    public ResponseEntity<AsistenciaMensualDetalleResponse> crearAsistenciaPorDisciplina(
+            @RequestBody DisciplinaMesAnioRequest request) {
+        try {
+            AsistenciaMensualDetalleResponse response = asistenciaMensualServicio.crearAsistenciaPorDisciplina(
+                    request.disciplinaId(), request.mes(), request.anio());
+            return new ResponseEntity<>(response, HttpStatus.CREATED);
+        } catch (IllegalStateException | IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(null);
+        }
     }
 }

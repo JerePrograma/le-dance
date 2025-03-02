@@ -1,16 +1,13 @@
 package ledance.dto.disciplina.response;
 
-import ledance.entidades.DiaSemana;
+import java.util.List;
 
-import java.time.LocalTime;
-import java.util.Set;
-
+/**
+ * Respuesta detallada de una disciplina.
+ */
 public record DisciplinaDetalleResponse(
         Long id,
         String nombre,
-        Set<DiaSemana> diasSemana,
-        LocalTime horarioInicio,
-        Double duracion,
         String salon,
         Long salonId,
         Double valorCuota,
@@ -21,6 +18,6 @@ public record DisciplinaDetalleResponse(
         Integer inscritos,
         Boolean activo,
         Double claseSuelta,
-        Double clasePrueba
-) {
-}
+        Double clasePrueba,
+        List<DisciplinaHorarioResponse> horarios // ✅ Lista de horarios independientes
+) {}

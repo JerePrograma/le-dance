@@ -54,6 +54,13 @@ public class AsistenciaDiariaControlador {
         return ResponseEntity.ok(asistenciaDiariaServicio.obtenerAsistenciasPorAsistenciaMensual(asistenciaMensualId));
     }
 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> eliminarAsistencia(@PathVariable Long id) {
+        log.warn("Eliminando asistencia con id={}", id);
+        asistenciaDiariaServicio.eliminarAsistencia(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/por-disciplina-y-fecha")
     public ResponseEntity<Page<AsistenciaDiariaResponse>> obtenerAsistenciasPorDisciplinaYFecha(
             @RequestParam Long disciplinaId, @RequestParam String fecha, Pageable pageable) {
@@ -62,10 +69,4 @@ public class AsistenciaDiariaControlador {
         return ResponseEntity.ok(asistenciaDiariaServicio.obtenerAsistenciasPorDisciplinaYFecha(disciplinaId, fechaParsed, pageable));
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminarAsistencia(@PathVariable Long id) {
-        log.warn("Eliminando asistencia con id={}", id);
-        asistenciaDiariaServicio.eliminarAsistencia(id);
-        return ResponseEntity.noContent().build();
-    }
 }

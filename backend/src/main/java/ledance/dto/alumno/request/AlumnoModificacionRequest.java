@@ -9,7 +9,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 /**
- * Petición para modificar los datos de un alumno.
+ * Peticion para modificar los datos de un alumno.
  * - "activo" se permite modificar para habilitar/deshabilitar el alumno.
  */
 public record AlumnoModificacionRequest(
@@ -26,6 +26,6 @@ public record AlumnoModificacionRequest(
         Boolean autorizadoParaSalirSolo,
         String otrasNotas,
         Double cuotaTotal,
-        Boolean activo, // ✅ Ahora sí se puede modificar
-        List<InscripcionDisciplinaRequest> disciplinas // ✅ Puede modificarse la inscripción
+        Boolean activo, // ✅ Ahora si se puede modificar
+        List<InscripcionDisciplinaRequest> disciplinas // ✅ Puede modificarse la inscripcion
 ) {}

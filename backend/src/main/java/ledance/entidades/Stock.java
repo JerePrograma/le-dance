@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import java.time.LocalDate;
 
 @Entity
 @Data
@@ -37,8 +38,9 @@ public class Stock {
     @Column(nullable = false)
     private Boolean activo = true;
 
-    //Agregar ingreso y egreso(se vende o se devuelve) con rango de fecha
+    // Fecha en la que se ingresa el stock
+    private LocalDate fechaIngreso;
 
-    //Agregar fecha ingreso
-    //Agregar fecha egreso
+    // Fecha en la que se egresa (sale) el stock
+    private LocalDate fechaEgreso;
 }

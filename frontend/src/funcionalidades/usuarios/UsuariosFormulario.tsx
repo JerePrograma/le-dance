@@ -23,7 +23,7 @@ const UsuariosFormulario: React.FC = () => {
   useEffect(() => {
     const fetchRoles = async () => {
       try {
-        const response = await api.get<Rol[]>("/api/roles");
+        const response = await api.get<Rol[]>("/roles");
         setRoles(response.data);
       } catch (err) {
         toast.error("Error al cargar los roles.");
@@ -35,7 +35,7 @@ const UsuariosFormulario: React.FC = () => {
   const handleRegistro = async (values: typeof initialUserValues) => {
     console.log("handleRegistro llamado con:", values);
     try {
-      const response = await api.post("/api/usuarios/registro", values);
+      const response = await api.post("/usuarios/registro", values);
       console.log("Respuesta del backend:", response);
       toast.success("Usuario registrado correctamente.");
       window.location.href = "/login";

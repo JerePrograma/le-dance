@@ -2,6 +2,8 @@ import { lazy, Suspense } from "react";
 import { Routes, Route } from "react-router-dom";
 import Encabezado from "../componentes/comunes/Encabezado";
 import ProtectedRoute from "./ProtectedRoute";
+import ErrorBoundary from "./ErrorBoundary";
+import Home from "../paginas/Home";
 
 // Páginas principales (públicas)
 const Login = lazy(() => import("../paginas/Login"));
@@ -22,6 +24,9 @@ const AsistenciasSeleccion = lazy(() =>
   import("../funcionalidades/asistencias/AsistenciasSeleccion")
 );
 
+const AsistenciaDiariaFormulario = lazy(() =>
+  import("../funcionalidades/asistencias-diarias/AsistenciaDiariaFormulario")
+);
 // Gestión de usuarios y roles
 const Usuarios = lazy(() => import("../funcionalidades/usuarios/UsuariosPagina"));
 const FormularioUsuarios = lazy(() =>
@@ -70,6 +75,7 @@ const FormularioInscripciones = lazy(() =>
 const Pagos = lazy(() => import("../funcionalidades/pagos/PagosPagina"));
 const FormularioPagos = lazy(() => import("../funcionalidades/pagos/PagosFormulario"));
 const Caja = lazy(() => import("../funcionalidades/caja/CajaPagina"));
+const CajaFormulario = lazy(() => import("../funcionalidades/caja/CajaFormulario")); // Nueva importación
 
 // NUEVAS PÁGINAS: STOCKS y TIPO-STOCKS
 const Stocks = lazy(() => import("../funcionalidades/stock/StocksPagina"));
@@ -99,12 +105,27 @@ const MetodosPagoFormulario = lazy(() =>
   import("../funcionalidades/metodos-pago/MetodosPagoFormulario")
 );
 
+const PlanillaCajaGeneral = lazy(() =>
+  import("../funcionalidades/caja/PlanillaCajaGeneral")
+);
+const ConsultaCajaDiaria = lazy(() =>
+  import("../funcionalidades/caja/ConsultaCajaDiaria")
+);
+
 const CobranzaPagina = lazy(() => import("../funcionalidades/pagos/CobranzaPagina"));
 
+// Importaciones de Recargos
+const Recargos = lazy(() => import("../funcionalidades/recargos/RecargosPagina"));
+const FormularioRecargos = lazy(() =>
+  import("../funcionalidades/recargos/RecargosFormulario")
+)
+
+const ReporteDetallePago = lazy(() =>
+  import("../funcionalidades/reportes/ReporteDetallePago")
+)
 const AppRouter = () => {
   return (
     <>
-      <Encabezado />
       <Suspense fallback={<div>Cargando...</div>}>
         <Routes>
           {/* Rutas públicas */}
@@ -143,14 +164,18 @@ const AppRouter = () => {
             {/* Gestión de asistencias */}
             <Route path="/asistencias" element={<AsistenciasSeleccion />} />
             <Route path="/asistencias-mensuales/formulario" element={<AsistenciasMensualesFormulario />} />
-            <Route path="/asistencias-mensuales" element={<AsistenciasMensualesListado />} />
-            <Route path="/asistencias-mensuales/:id" element={<AsistenciaMensualDetalle />} />
+            <Route path="/asistencias/alumnos" element={<AsistenciaDiariaFormulario />} />
+            <Route path="/asistencias-mensuales" element={<AsistenciaMensualDetalle />} />
             <Route path="/asistencias-diarias" element={<AsistenciasMensualesListado />} />
 
             {/* Gestión de pagos y caja */}
             <Route path="/pagos" element={<Pagos />} />
             <Route path="/pagos/formulario" element={<FormularioPagos />} />
             <Route path="/caja" element={<Caja />} />
+            <Route
+              path="/caja/formulario"
+              element={<CajaFormulario />}
+            />
 
             {/* NUEVAS RUTAS: STOCKS y TIPO-STOCKS */}
             <Route path="/stocks" element={<Stocks />} />
@@ -167,6 +192,18 @@ const AppRouter = () => {
             <Route path="/metodos-pago/formulario" element={<MetodosPagoFormulario />} />
 
             <Route path="/cobranza/:alumnoId" element={<CobranzaPagina />} />
+
+            {/* NUEVAS RUTAS: */}
+            <Route path="/caja/planilla" element={<PlanillaCajaGeneral />} />
+            <Route path="/caja/diaria" element={<ConsultaCajaDiaria />} />
+
+            {/* Gestión de Recargos */}
+            <Route path="/recargos" element={<Recargos />} />
+            <Route path="/recargos/formulario" element={<FormularioRecargos />} />
+
+
+            <Route path="/liquidacion" element={<ReporteDetallePago />} />
+            <Route path="/" element={<Inicio />} />
           </Route>
         </Routes>
       </Suspense>

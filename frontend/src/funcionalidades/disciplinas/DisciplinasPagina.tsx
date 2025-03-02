@@ -24,7 +24,7 @@ const Disciplinas = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await api.get<Disciplina[]>("/api/disciplinas");
+      const response = await api.get<Disciplina[]>("/disciplinas");
       setDisciplinas(response.data);
     } catch (error) {
       console.error("Error al cargar disciplinas:", error);

@@ -21,8 +21,8 @@ public class StockServicio {
     private final StockMapper stockMapper;
 
     public StockServicio(StockRepositorio stockRepositorio,
-                            TipoStockRepositorio tipoStockRepositorio,
-                            StockMapper stockMapper) {
+                         TipoStockRepositorio tipoStockRepositorio,
+                         StockMapper stockMapper) {
         this.stockRepositorio = stockRepositorio;
         this.tipoStockRepositorio = tipoStockRepositorio;
         this.stockMapper = stockMapper;
@@ -30,11 +30,13 @@ public class StockServicio {
 
     @Transactional
     public StockResponse crearStock(StockRegistroRequest request) {
-        // Convertir el request a entidad
         Stock stock = stockMapper.toEntity(request);
-        // Asignar el TipoStock usando el id del request
-        stock.setTipo(tipoStockRepositorio.findById(request.tipoStockId())
-                .orElseThrow(() -> new IllegalArgumentException("TipoStock no encontrado con id: " + request.tipoStockId())));
+        stock.setTipo(
+                tipoStockRepositorio.findById(request.tipoStockId())
+                        .orElseThrow(() -> new IllegalArgumentException("TipoStock no encontrado con id: " + request.tipoStockId()))
+        );
+        stock.setFechaIngreso(request.fechaIngreso());
+        stock.setFechaEgreso(request.fechaEgreso());
         Stock saved = stockRepositorio.save(stock);
         return stockMapper.toDTO(saved);
     }
@@ -64,11 +66,15 @@ public class StockServicio {
     public StockResponse actualizarStock(Long id, StockModificacionRequest request) {
         Stock stock = stockRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Stock no encontrado con id: " + id));
-        // Actualizar usando el mapper
+        // Actualiza la entidad usando el mapper, que convierte el tipoEgreso y mapea el id del tipo
         stockMapper.updateEntityFromRequest(request, stock);
-        // Asignar el TipoStock desde el request
-        stock.setTipo(tipoStockRepositorio.findById(request.tipoId())
-                .orElseThrow(() -> new IllegalArgumentException("TipoStock no encontrado con id: " + request.tipoId())));
+        // Asigna el TipoStock a partir del id (ahora mapeado como tipoId en el request)
+        stock.setTipo(
+                tipoStockRepositorio.findById(request.tipoId())
+                        .orElseThrow(() -> new IllegalArgumentException("TipoStock no encontrado con id: " + request.tipoId()))
+        );
+        stock.setFechaIngreso(request.fechaIngreso());
+        stock.setFechaEgreso(request.fechaEgreso());
         Stock updated = stockRepositorio.save(stock);
         return stockMapper.toDTO(updated);
     }
@@ -77,17 +83,15 @@ public class StockServicio {
     public void eliminarStock(Long id) {
         Stock stock = stockRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Stock no encontrado con id: " + id));
-        // Baja lógica: marcar como inactivo
+        // Baja logica: marcar como inactivo
         stock.setActivo(false);
         stockRepositorio.save(stock);
     }
 
     @Transactional(readOnly = true)
     public List<StockResponse> listarStocksConceptos() {
-        return stockRepositorio.findByTipoDescripcion("Concepto")
-                .stream()
+        return stockRepositorio.findByTipoDescripcion("Concepto").stream()
                 .map(stockMapper::toDTO)
                 .collect(Collectors.toList());
     }
-
 }

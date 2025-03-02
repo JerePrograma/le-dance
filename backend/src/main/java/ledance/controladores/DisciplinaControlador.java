@@ -6,8 +6,8 @@ import ledance.dto.alumno.response.AlumnoListadoResponse;
 import ledance.dto.disciplina.response.DisciplinaDetalleResponse;
 import ledance.dto.disciplina.response.DisciplinaListadoResponse;
 import ledance.dto.profesor.response.ProfesorListadoResponse;
-import ledance.servicios.disciplina.DisciplinaServicio;
 import jakarta.validation.Valid;
+import ledance.servicios.disciplina.DisciplinaServicio;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -69,7 +69,7 @@ public class DisciplinaControlador {
     }
 
     /**
-     * ✅ Dar de baja (baja lógica) a una disciplina.
+     * ✅ Dar de baja (baja logica) a una disciplina.
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> darBajaDisciplina(@PathVariable Long id) {
@@ -88,7 +88,7 @@ public class DisciplinaControlador {
     }
 
     /**
-     * ✅ Obtener disciplinas activas según una fecha específica.
+     * ✅ Obtener disciplinas activas segun una fecha especifica.
      */
     @GetMapping("/por-fecha")
     public ResponseEntity<List<DisciplinaListadoResponse>> obtenerDisciplinasPorFecha(@RequestParam String fecha) {
@@ -97,7 +97,7 @@ public class DisciplinaControlador {
     }
 
     /**
-     * ✅ Obtener alumnos de una disciplina específica.
+     * ✅ Obtener alumnos de una disciplina especifica.
      */
     @GetMapping("/{disciplinaId}/alumnos")
     public ResponseEntity<List<AlumnoListadoResponse>> obtenerAlumnosDeDisciplina(@PathVariable Long disciplinaId) {
@@ -106,7 +106,7 @@ public class DisciplinaControlador {
     }
 
     /**
-     * ✅ Obtener el profesor de una disciplina específica.
+     * ✅ Obtener el profesor de una disciplina especifica.
      */
     @GetMapping("/{disciplinaId}/profesor")
     public ResponseEntity<ProfesorListadoResponse> obtenerProfesorDeDisciplina(@PathVariable Long disciplinaId) {

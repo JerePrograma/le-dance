@@ -1,5 +1,6 @@
 package ledance.repositorios;
 
+import ledance.entidades.Alumno;
 import ledance.entidades.Disciplina;
 import ledance.entidades.Profesor;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -21,18 +22,14 @@ public interface ProfesorRepositorio extends JpaRepository<Profesor, Long> {
      */
     Optional<Profesor> findByUsuarioId(Long usuarioId);
 
-    /**
-     * Busca profesores por una parte de su nombre o apellido.
-     *
-     * @param nombre Fragmento del nombre o apellido.
-     * @return Una lista de profesores cuyo nombre o apellido contiene el fragmento especificado.
-     */
-    List<Profesor> findByNombreContainingOrApellidoContaining(String nombre, String apellido);
-
     boolean existsByNombreAndApellido(String nombre, String apellido);
 
     List<Profesor> findByActivoTrue();
 
     @Query("SELECT d FROM Disciplina d WHERE d.profesor.id = :profesorId")
     List<Disciplina> findDisciplinasPorProfesor(@Param("profesorId") Long profesorId);
+
+    @Query("SELECT p FROM Profesor p WHERE LOWER(CONCAT(p.nombre, ' ', p.apellido)) LIKE LOWER(CONCAT('%', :nombre, '%'))")
+    List<Profesor> buscarPorNombreCompleto(@Param("nombre") String nombre);
+
 }

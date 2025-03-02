@@ -26,7 +26,7 @@ public class BonificacionControlador {
 
     @PostMapping
     public ResponseEntity<BonificacionResponse> crearBonificacion(@RequestBody @Validated BonificacionRegistroRequest requestDTO) {
-        log.info("Creando bonificación: {}", requestDTO.descripcion());
+        log.info("Creando bonificacion: {}", requestDTO.descripcion());
         return ResponseEntity.ok(bonificacionService.crearBonificacion(requestDTO));
     }
 

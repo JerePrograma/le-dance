@@ -1,10 +1,10 @@
 package ledance.entidades;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
-
 import java.time.LocalDate;
 import java.util.List;
 
@@ -30,20 +30,25 @@ public class Pago {
     @Min(value = 0, message = "El monto debe ser mayor o igual a 0")
     private Double monto;
 
-    @NotNull
     @ManyToOne
-    @JoinColumn(name = "inscripcion_id", nullable = false)
+    @JoinColumn(name = "alumno_id", nullable = false)
+    private Alumno alumno;
+
+    @ManyToOne
+    @JoinColumn(name = "inscripcion_id", nullable = true)
     private Inscripcion inscripcion;
 
     @ManyToOne
     @JoinColumn(name = "metodo_pago_id")
     private MetodoPago metodoPago;
 
+    // Flag que indica si se aplico el recargo
     @Column(nullable = false)
     private Boolean recargoAplicado = false;
 
+    // Flag que indica si se aplico la bonificacion global
     @Column(nullable = false)
-    private Double bonificacionAplicada = 0.0;
+    private Boolean bonificacionAplicada = false;
 
     @NotNull
     private Double saldoRestante;
@@ -59,9 +64,11 @@ public class Pago {
     private String observaciones;
 
     @OneToMany(mappedBy = "pago", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
     private List<DetallePago> detallePagos;
 
     @OneToMany(mappedBy = "pago", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
     private List<PagoMedio> pagoMedios;
 
     @PrePersist
@@ -74,25 +81,24 @@ public class Pago {
         }
     }
 
+    /**
+     * Recalcula el saldo restante basandose en la suma de los abonos ingresados en los detalles.
+     * Se asume que cada detalle ya tiene calculado su importe y el abono (ingresado por el usuario).
+     */
+    public void recalcularSaldoRestante() {
+        double totalAbonosDetalles = 0.0;
+        if (detallePagos != null) {
+            // Aseguramos que cada detalle tenga sus importes actualizados
+            detallePagos.forEach(DetallePago::calcularImporte);
+            totalAbonosDetalles = detallePagos.stream()
+                    .mapToDouble(detalle -> detalle.getAbono() != null ? detalle.getAbono() : 0.0)
+                    .sum();
+        }
+        double nuevoSaldo = this.monto - totalAbonosDetalles;
+        this.saldoRestante = nuevoSaldo < 0 ? 0 : nuevoSaldo;
+    }
+
     public String getEstado() {
         return (activo != null && activo) ? "ACTIVO" : "ANULADO";
     }
 }
-
-//AGREGAR CORRECION DE COMPROBANTE. (MODIFICAR O ELIMINAR UN COMPROBANTE)
-    //A LA HORA DE LISTARLO (RENDICIÓN) MOSTRARLO COMO ANULADO
-    //BUSCAR TODOS LOS RECIBOS DEL ALUMNO
-    //BOTÓN GENERAR CUOTAS A TODOS ALUMNOS ACTIVOS
-
-    // Descontar de la matrícula cuando la persona se inscribe (UNA ESPECIE DE SALDO A FAVOR)
-
-    // Que sea visible la Deuda para el cliente, (quiza donde está a favor)
-    // Cuando paga un concepto en su totalidad que diga "SALDA ''El CONCEPTO''"
-    // Cuando paga parcialmente un concepto que diga "A CUENTA ''EL CONCEPTO''"
-    // Que cada vez que se acceda a una boleta
-    // Quitar el "a favor" de totales y pago
-    // Buscar todas las facturas con una lupita relacionadas a ese alumno. "Ver todas las facturas"
-    // SI EL MÉTODO DE PAGO ES DEBITO, SE LE SUMA 5000
-    // Cargar todas los items pendientes de la cobranza en una misma cobranza cuando se enlista el formulario de cobranza
-    // Quitar recargo manualmente (Botón)
-

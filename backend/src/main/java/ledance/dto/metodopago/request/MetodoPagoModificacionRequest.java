@@ -5,8 +5,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 public record MetodoPagoModificacionRequest(
-        @NotBlank(message = "La descripción es obligatoria")
+        @NotBlank(message = "La descripcion es obligatoria")
         String descripcion,
         @NotNull(message = "El estado activo es obligatorio")
-        Boolean activo
+        Boolean activo,
+        Double recargo
 ) { }

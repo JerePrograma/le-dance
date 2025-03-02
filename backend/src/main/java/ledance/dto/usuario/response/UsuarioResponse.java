@@ -1,7 +1,7 @@
 package ledance.dto.usuario.response;
 
 /**
- * DTO para responder con la información de un usuario.
+ * DTO para responder con la informacion de un usuario.
  */
 public record UsuarioResponse(
         Long id,

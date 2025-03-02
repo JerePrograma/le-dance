@@ -9,22 +9,22 @@ import org.mapstruct.*;
 @Mapper(componentModel = "spring")
 public interface AsistenciaDiariaMapper {
 
-    @Mapping(target = "id", source = "id") // ✅ Ahora se asegura que el ID esté siempre presente
+    @Mapping(target = "id", source = "id")
     @Mapping(target = "estado", source = "estado")
     @Mapping(target = "alumnoId", source = "alumno.id")
     @Mapping(target = "alumnoNombre", source = "alumno.nombre")
     @Mapping(target = "alumnoApellido", source = "alumno.apellido")
-    @Mapping(target = "asistenciaMensualId", source = "asistenciaMensual.id")
-    @Mapping(target = "disciplinaId", source = "asistenciaMensual.inscripcion.disciplina.id") // ✅ Agregado
+    @Mapping(target = "disciplinaHorarioId", source = "disciplinaHorario.id") // ✅ Nueva relación
+    @Mapping(target = "horarioInicio", source = "disciplinaHorario.horarioInicio") // ✅ Se añade hora de inicio
     AsistenciaDiariaResponse toDTO(AsistenciaDiaria asistenciaDiaria);
 
-    @Mapping(target = "id", ignore = false) // ✅ Permite actualizar asistencias existentes
+    @Mapping(target = "id", ignore = false)
     @Mapping(target = "alumno", ignore = true)
-    @Mapping(target = "asistenciaMensual", ignore = true)
+    @Mapping(target = "disciplinaHorario", ignore = true) // ✅ Se ignora para asignarse en el servicio
     AsistenciaDiaria toEntity(AsistenciaDiariaRegistroRequest request);
 
-    @Mapping(target = "id", source = "id") // ✅ Se asegura que el ID sea mapeado correctamente
+    @Mapping(target = "id", source = "id")
     @Mapping(target = "alumno", ignore = true)
-    @Mapping(target = "asistenciaMensual", ignore = true)
+    @Mapping(target = "disciplinaHorario", ignore = true) // ✅ Se ignora para evitar sobrescribir la relación
     void updateEntityFromRequest(AsistenciaDiariaModificacionRequest request, @MappingTarget AsistenciaDiaria asistenciaDiaria);
 }

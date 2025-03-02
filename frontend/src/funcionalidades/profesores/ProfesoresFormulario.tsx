@@ -176,8 +176,8 @@ const ProfesoresFormulario: React.FC = () => {
             {mensaje && (
               <p
                 className={`form-mensaje ${mensaje.includes("Error") || mensaje.includes("no encontrado")
-                    ? "form-mensaje-error"
-                    : "form-mensaje-success"
+                  ? "form-mensaje-error"
+                  : "form-mensaje-success"
                   }`}
               >
                 {mensaje}

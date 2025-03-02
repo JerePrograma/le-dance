@@ -8,7 +8,7 @@ const obtenerSubConceptoPorDescripcion = async (
     // Se asume que existe un endpoint para obtener subconcepto por descripción
     // Puedes ajustar la URL y la lógica según tu backend.
     const { data } = await api.get<SubConceptoResponse[]>(
-      `/api/sub-conceptos?descripcion=${encodeURIComponent(descripcion)}`
+      `/sub-conceptos?descripcion=${encodeURIComponent(descripcion)}`
     );
     // Suponemos que se devuelve un array y tomamos el primero (si existe)
     return data.length > 0 ? data[0] : null;
@@ -21,8 +21,8 @@ const obtenerSubConceptoPorDescripcion = async (
 const registrarSubConcepto = async (
   descripcion: string
 ): Promise<SubConceptoResponse> => {
-  // Se asume que el endpoint para crear subconceptos es POST /api/sub-conceptos
-  const { data } = await api.post<SubConceptoResponse>("/api/sub-conceptos", {
+  // Se asume que el endpoint para crear subconceptos es POST /sub-conceptos
+  const { data } = await api.post<SubConceptoResponse>("/sub-conceptos", {
     descripcion,
   });
   return data;

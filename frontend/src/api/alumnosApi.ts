@@ -9,19 +9,19 @@ import type {
 
 const alumnosApi = {
   listar: async (): Promise<AlumnoListadoResponse[]> => {
-    const response = await api.get("/api/alumnos");
+    const response = await api.get("/alumnos");
     return response.data;
   },
 
   obtenerPorId: async (id: number): Promise<AlumnoDetalleResponse> => {
-    const response = await api.get(`/api/alumnos/${id}`);
+    const response = await api.get(`/alumnos/${id}`);
     return response.data;
   },
 
   registrar: async (
     alumno: AlumnoRegistroRequest
   ): Promise<AlumnoDetalleResponse> => {
-    const response = await api.post("/api/alumnos", alumno);
+    const response = await api.post("/alumnos", alumno);
     return response.data;
   },
 
@@ -29,22 +29,22 @@ const alumnosApi = {
     id: number,
     alumno: AlumnoModificacionRequest
   ): Promise<AlumnoDetalleResponse> => {
-    const response = await api.put(`/api/alumnos/${id}`, alumno);
+    const response = await api.put(`/alumnos/${id}`, alumno);
     return response.data;
   },
 
   darBaja: async (id: number): Promise<void> => {
-    await api.delete(`/api/alumnos/${id}`);
+    await api.delete(`/alumnos/${id}`);
   },
 
   obtenerListadoSimplificado: async (): Promise<AlumnoListadoResponse[]> => {
-    const response = await api.get("/api/alumnos/listado");
+    const response = await api.get("/alumnos/listado");
     return response.data;
   },
 
   buscarPorNombre: async (nombre: string): Promise<AlumnoListadoResponse[]> => {
     const response = await api.get(
-      `/api/alumnos/buscar?nombre=${encodeURIComponent(nombre)}`
+      `/alumnos/buscar?nombre=${encodeURIComponent(nombre)}`
     );
     return response.data;
   },
@@ -52,7 +52,7 @@ const alumnosApi = {
   obtenerDisciplinas: async (
     alumnoId: number
   ): Promise<DisciplinaListadoResponse[]> => {
-    const response = await api.get(`/api/alumnos/${alumnoId}/disciplinas`);
+    const response = await api.get(`/alumnos/${alumnoId}/disciplinas`);
     return response.data;
   },
 };

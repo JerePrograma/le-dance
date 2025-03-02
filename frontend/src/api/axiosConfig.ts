@@ -1,9 +1,10 @@
+// axiosConfig.ts
 import axios from "axios";
 
 const isDevelopment = process.env.NODE_ENV === "development";
 const baseURL = isDevelopment
-  ? "http://localhost:8080"
-  : "https://jereprograma.com";
+  ? "http://localhost:8080/api"
+  : "https://tuservidor.com/api";
 
 const api = axios.create({
   baseURL,
@@ -12,6 +13,7 @@ const api = axios.create({
   },
 });
 
+// Agregar interceptor para incluir el token de acceso
 api.interceptors.request.use((config) => {
   const accessToken = localStorage.getItem("accessToken");
   if (accessToken) {
@@ -20,37 +22,30 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// 🔹 Manejo de errores en respuestas
+// Interceptor para manejo de errores, por ejemplo, refrescar el token
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-
     if (error.response?.status === 403) {
-      console.warn("⚠️ No tienes permisos para acceder a este recurso.");
+      console.warn("Token inválido o expirado. Redirigiendo al login...");
+      localStorage.clear();
+      window.location.href = "/login";
       return Promise.reject(error);
     }
-
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       try {
         const refreshToken = localStorage.getItem("refreshToken");
         if (!refreshToken) throw new Error("No hay refreshToken almacenado.");
-
         const { data } = await axios.post(
-          `${baseURL}/api/login/refresh`,
+          `${baseURL}/login/refresh`,
           {},
-          {
-            headers: {
-              Authorization: `Bearer ${refreshToken}`,
-            },
-          }
+          { headers: { Authorization: `Bearer ${refreshToken}` } }
         );
-
         localStorage.setItem("accessToken", data.accessToken);
         localStorage.setItem("refreshToken", data.refreshToken);
         originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
-
         return api(originalRequest);
       } catch (refreshError) {
         console.error("Error al refrescar el token:", refreshError);
@@ -58,7 +53,6 @@ api.interceptors.response.use(
         window.location.href = "/login";
       }
     }
-
     return Promise.reject(error);
   }
 );

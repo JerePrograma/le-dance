@@ -1,4 +1,3 @@
-// src/funcionalidades/stocks/Stocks.tsx
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Tabla from "../../componentes/comunes/Tabla";
@@ -94,6 +93,9 @@ const Stocks = () => {
                         "Precio",
                         "Tipo",
                         "Stock",
+                        "Fecha Ingreso",
+                        "Fecha Egreso",
+                        "Tipo Egreso",
                         "Activo",
                         "Acciones",
                     ]}
@@ -124,6 +126,8 @@ const Stocks = () => {
                         fila.precio,
                         fila.tipo.descripcion,
                         fila.stock,
+                        fila.fechaIngreso,
+                        fila.fechaEgreso || "-",
                         fila.activo ? "Sí" : "No",
                     ]}
                 />

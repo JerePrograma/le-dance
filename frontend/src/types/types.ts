@@ -25,10 +25,11 @@ export enum EstadoAsistencia {
   AUSENTE = "AUSENTE",
 }
 
+// types.ts
 export interface Page<T> {
   content: T[];
-  totalPages: number;
   totalElements: number;
+  totalPages: number;
   size: number;
   number: number;
 }
@@ -381,56 +382,68 @@ export interface InscripcionResponse {
 // ==========================================
 export interface BonificacionRegistroRequest {
   descripcion: string;
-  porcentajeDescuento: number;
+  porcentajeDescuento?: number;
   observaciones?: string;
+  valorFijo?: number;
 }
 
 export interface BonificacionModificacionRequest {
   descripcion: string;
-  porcentajeDescuento: number;
+  porcentajeDescuento?: number;
   activo: boolean;
   observaciones?: string;
+  valorFijo?: number;
 }
 
 export interface BonificacionResponse {
   id: number;
   descripcion: string;
   porcentajeDescuento: number;
-  activo?: boolean;
+  activo: boolean;
   observaciones?: string;
+  valorFijo?: number;
 }
 
 // ==========================================
 // PAGO Y MÉTODOS DE PAGO
 // ==========================================
+// PETICIÓN DE MODIFICACIÓN DE PAGO (para actualizar en el backend)
 export interface PagoModificacionRequest {
-  fecha: LocalDate;
-  fechaVencimiento: LocalDate;
-  monto: number;
+  fecha: string;
+  fechaVencimiento: string;
   metodoPagoId?: number;
   recargoAplicado?: boolean;
   bonificacionAplicada?: boolean;
-  saldoRestante: number;
   activo: boolean;
+  detallePagos: {
+    codigoConcepto?: string;
+    concepto: string;
+    cuota?: string;
+    valorBase: number;
+    bonificacionId?: number;
+    recargoId?: number;
+    aFavor: number;
+    importe?: number;
+    aCobrar?: number;
+  }[];
+  pagoMedios: PagoMedioRegistroRequest[];
 }
 
-export interface MetodoPagoRegistroRequest {
-  descripcion: string;
-}
-
-export interface MetodoPagoModificacionRequest {
-  descripcion: string;
-  activo: boolean;
-}
-
+// RESPUESTA DE CADA DETALLE DEL PAGO
 export interface DetallePagoResponse {
+  abono: number;
   id: number;
   codigoConcepto?: string;
   concepto: string;
   cuota?: string;
   valorBase: number;
-  bonificacion: number;
-  recargo: number;
+  bonificacion?: {
+    id: number;
+    descripcion: string;
+    porcentajeDescuento: number;
+    valorFijo?: number;
+  };
+  recargo?: { id: number; descripcion: string };
   aFavor: number;
   importe: number;
   aCobrar: number;
@@ -444,66 +457,70 @@ export interface PagoMedioRegistroRequest {
 export interface PagoMedioResponse {
   id: number;
   monto: number;
-  metodo: MetodoPagoResponse;
+  metodo: MetodoPagoResponse; // o puedes usar metodoPagoId si es lo que prefieras
 }
 
-export interface MetodoPagoResponse {
-  id: number;
-  descripcion: string;
-  activo: boolean;
-}
-
+// RESPUESTA DEL PAGO (para recepción del backend)
 export interface PagoResponse {
   id: number;
   fecha: string;
   fechaVencimiento: string;
   monto: number;
-  metodosPago: PagoMedioResponse[]; // Soporta pagos parciales
+  // Se incluye la descripción del método de pago
+  metodoPago: string;
   recargoAplicado: boolean;
-  bonificacionAplicada: number; // Ahora es un monto
+  bonificacionAplicada: boolean;
   saldoRestante: number;
-  saldoAFavor: number; // Nuevo campo para "A Favor"
+  saldoAFavor: number;
   activo: boolean;
+  estadoPago: string;
   inscripcionId: number;
+  alumnoId: number;
+  observaciones: string;
   detallePagos: DetallePagoResponse[];
+  pagoMedios: PagoMedioResponse[];
 }
 
+// DETALLE DE PAGO (para el registro)
 export interface DetallePagoRegistroRequest {
   codigoConcepto?: string;
   concepto: string;
   cuota?: string;
   valorBase: number;
-  bonificacion: number;
-  recargo: number;
+  bonificacionId?: number;
+  recargoId?: number;
   aFavor: number;
   importe?: number;
   aCobrar?: number;
 }
 
+// PETICIÓN DE REGISTRO DE PAGO (para enviar al backend)
 export interface PagoRegistroRequest {
   fecha: string;
   fechaVencimiento: string;
-  monto: number;
+  monto: number; // Monto total a pagar (suma de importes + recargo si corresponde)
   inscripcionId: number;
   metodoPagoId?: number;
   recargoAplicado?: boolean;
-  bonificacionAplicada: number;
-  saldoRestante: number;
+  // Aquí se usa "bonificacionAplicada" como monto o flag, según tu lógica de negocio
+  bonificacionAplicada?: boolean;
+  saldoRestante: number; // Diferencia entre monto y totalCobrado
   saldoAFavor: number;
+  // Se usa la propiedad "detallePagos" para listar cada detalle de pago
   detallePagos: Array<{
     codigoConcepto?: string;
     concepto: string;
     cuota?: string;
     valorBase: number;
-    bonificacion: number;
-    recargo: number;
+    bonificacionId?: number;
+    recargoId?: number;
     aFavor: number;
     importe?: number;
     aCobrar?: number;
   }>;
-  pagoMedios?: any[];
-  // Agregamos la propiedad faltante:
+  pagoMedios?: PagoMedioRegistroRequest[];
   pagoMatricula: boolean;
+  activo: boolean;
 }
 
 // ==========================================
@@ -512,8 +529,8 @@ export interface PagoRegistroRequest {
 export interface CajaRegistroRequest {
   fecha: LocalDate;
   totalEfectivo: number;
-  totalTransferencia: number;
-  totalTarjeta: number;
+  totalDebito: number;
+
   rangoDesdeHasta?: string;
   observaciones?: string;
 }
@@ -521,8 +538,8 @@ export interface CajaRegistroRequest {
 export interface CajaModificacionRequest {
   fecha: LocalDate;
   totalEfectivo: number;
-  totalTransferencia: number;
-  totalTarjeta: number;
+  totalDebito: number;
+
   rangoDesdeHasta?: string;
   observaciones?: string;
   activo: boolean;
@@ -532,48 +549,36 @@ export interface CajaResponse {
   id: number;
   fecha: LocalDate;
   totalEfectivo: number;
-  totalTransferencia: number;
-  totalTarjeta: number;
+  totalDebito: number;
+
   rangoDesdeHasta: string;
   observaciones: string;
   activo: boolean;
 }
 
 // ==========================================
-// RECARGOS
+// RECARGOS - Tipos de datos
 // ==========================================
+
+/** Request para registrar un nuevo recargo */
 export interface RecargoRegistroRequest {
   descripcion: string;
-  detalles: RecargoDetalleRegistroRequest[];
-}
-
-export interface RecargoDetalleRegistroRequest {
-  diaDesde: number;
   porcentaje: number;
+  valorFijo?: number; // ✅ Opcional porque el backend lo permite
+  diaDelMesAplicacion: number; // ✅ Cambiado de fechaAplicacion a diaDelMesAplicacion
 }
 
-export interface RecargoDetalleModificacionRegistroRequest {
-  diaDesde: number;
-  porcentaje: number;
-}
+/** Request para actualizar un recargo */
+export interface RecargoModificacionRequest
+  extends Partial<RecargoRegistroRequest> { }
 
-// ==========================================
-// SALÓN
-// ==========================================
-export interface SalonRegistroRequest {
-  nombre: string;
-  descripcion?: string;
-}
-
-export interface SalonModificacionRequest {
-  nombre: string;
-  descripcion?: string;
-}
-
-export interface SalonResponse {
+/** Respuesta del backend al obtener un recargo */
+export interface RecargoResponse {
   id: number;
-  nombre: string;
-  descripcion: string | null;
+  descripcion: string;
+  porcentaje: number;
+  valorFijo?: number;
+  diaDelMesAplicacion: number; // ✅ Actualizado
 }
 
 // ==========================================
@@ -582,32 +587,42 @@ export interface SalonResponse {
 export interface StockRegistroRequest {
   nombre: string;
   precio: number;
-  tipoStockId?: number;
+  tipoStockId: number; // Cambiado de tipoId a tipoStockId
   stock: number;
   requiereControlDeStock: boolean;
   codigoBarras?: string;
+  // Nuevos atributos
+  fechaIngreso: LocalDate; // Obligatorio en el registro
+  fechaEgreso?: LocalDate; // Opcional
 }
 
 export interface StockModificacionRequest {
   nombre: string;
   precio: number;
-  tipoStockId?: number;
+  tipoStockId: number; // Se utiliza el ID del TipoStock
   stock: number;
   requiereControlDeStock: boolean;
   codigoBarras?: string;
   activo: boolean;
+  // Nuevos atributos
+  fechaIngreso: LocalDate;
+  fechaEgreso?: LocalDate;
 }
 
 export interface StockResponse {
   id: number;
   nombre: string;
   precio: number;
-  tipo: TipoStockResponse; // se espera un objeto
+  tipo: TipoStockResponse; // Se incluye el objeto de tipo TipoStockResponse
   stock: number;
   requiereControlDeStock: boolean;
   codigoBarras?: string;
   activo: boolean;
+  // Nuevos atributos en la respuesta:
+  fechaIngreso: string;
+  fechaEgreso?: string;
 }
+
 // ==========================================
 // TIPO STOCK
 // ==========================================
@@ -719,53 +734,61 @@ export interface MatriculaResponse {
 }
 
 // --- Métodos de Pago ---
+// Interfaces actualizadas
+
 export interface MetodoPagoRegistroRequest {
   descripcion: string;
+  recargo: number;
 }
 
 export interface MetodoPagoModificacionRequest {
   descripcion: string;
   activo: boolean;
+  recargo: number;
 }
 
 export interface MetodoPagoResponse {
   id: number;
   descripcion: string;
   activo: boolean;
+  recargo: number;
 }
 
 // --- Valores para el formulario de cobranza ---
+// FORMULARIO
 export interface CobranzasFormValues {
+  id: number;
   reciboNro: string;
-  alumno: string;
-  inscripcionId: string;
+  alumno: string; // ID del alumno
+  inscripcionId: string; // ID de la inscripción
   fecha: string;
-  detalles: Array<{
+  // Se renombra "detalles" a "detallePagos"
+  detallePagos: Array<{
     codigoConcepto?: string;
     concepto: string;
     cuota?: string;
     valorBase: number;
-    bonificacion: number;
-    recargo: number;
+    // Se usan strings para ID, para facilitar la conversión en el formulario
+    bonificacionId?: string;
+    recargoId?: string;
     aFavor: number;
     importe?: number;
     aCobrar?: number;
+    abono?: number;
   }>;
-  // Grupo para Disciplina y Tarifa
+  mensualidadId?: string;
   disciplina: string;
   tarifa: string;
   claseSuelta?: number;
   clasePrueba?: number;
-  // Grupo para Concepto y Stock
   conceptoSeleccionado: string;
   stockSeleccionado: string;
   cantidad: number;
-  aFavor: number;
-  totalCobrado: number;
-  // Nuevo: campo para seleccionar un único método de pago
+  totalCobrado: number; // Suma de lo ingresado en "aCobrar" de cada detalle
   metodoPagoId: string;
   observaciones: string;
   matriculaRemoved: boolean;
+  periodoMensual: LocalDate;
 }
 
 export interface DetalleCobranzaDTO {
@@ -778,4 +801,45 @@ export interface CobranzaDTO {
   alumnoNombre: string;
   totalPendiente: number;
   detalles: DetalleCobranzaDTO[];
+}
+
+// En algún archivo de types, por ejemplo, types.ts
+
+export interface MensualidadRegistroRequest {
+  fechaCuota: LocalDate;
+  valorBase: number;
+  recargo: number;
+  bonificacion: number;
+  inscripcionId: number;
+}
+
+export interface MensualidadModificacionRequest {
+  fechaCuota: LocalDate;
+  valorBase: number;
+  recargo: number;
+  bonificacion: number;
+  estado: string; // Ej.: "PENDIENTE", "PAGADO", "OMITIDO"
+}
+
+export interface MensualidadResponse {
+  id: number;
+  fechaCuota: LocalDate;
+  valorBase: number;
+  recargo: number;
+  bonificacion: number;
+  estado: string;
+  inscripcionId: number;
+}
+
+// DTO para reporte de mensualidades
+export interface ReporteMensualidadDTO {
+  mensualidadId: number;
+  alumnoNombre: string;
+  cuota: string;
+  importe: number;
+  bonificacion: number;
+  total: number;
+  recargo: number;
+  estado: string;
+  disciplina: string;
 }

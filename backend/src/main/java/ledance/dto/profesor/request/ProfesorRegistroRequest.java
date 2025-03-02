@@ -7,5 +7,5 @@ public record ProfesorRegistroRequest(
         @NotBlank String nombre,
         @NotBlank String apellido,
         LocalDate fechaNacimiento, // ✅ NUEVO: Fecha de nacimiento opcional
-        String telefono // ✅ NUEVO: Número de contacto opcional
+        String telefono // ✅ NUEVO: Numero de contacto opcional
 ) {}

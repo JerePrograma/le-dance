@@ -1,8 +1,12 @@
 import { useEffect, useState } from "react";
 import Tabla from "../componentes/comunes/Tabla";
 import Boton from "../componentes/comunes/Boton";
+import Pagination from "../componentes/comunes/Pagination"; // Componente de paginación personalizado
 import api from "../api/axiosConfig";
+import { saveAs } from "file-saver";
+import { Bar } from "react-chartjs-2";
 
+// Interfaces de datos
 interface ReporteData {
   id: number;
   nombre?: string;
@@ -23,6 +27,12 @@ interface Alumno {
   apellido: string;
 }
 
+interface PaginatedResponse<T> {
+  content: T[];
+  totalPages: number;
+  // otros campos como totalElements, etc., según el backend
+}
+
 const Reportes = () => {
   const [tipoReporte, setTipoReporte] = useState("");
   const [datos, setDatos] = useState<ReporteData[]>([]);
@@ -31,11 +41,16 @@ const Reportes = () => {
   const [filtroDisciplina, setFiltroDisciplina] = useState("");
   const [filtroAlumno, setFiltroAlumno] = useState("");
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [busqueda, setBusqueda] = useState("");
+  const [paginaActual, setPaginaActual] = useState(0);
+  const [totalPaginas, setTotalPaginas] = useState(0);
 
+  // Carga de disciplinas y alumnos al montar el componente
   useEffect(() => {
     const fetchDisciplinas = async () => {
       try {
-        const response = await api.get<Disciplina[]>("/api/disciplinas");
+        const response = await api.get<Disciplina[]>("/disciplinas");
         setDisciplinas(response.data);
       } catch (error) {
         console.error("Error al cargar disciplinas:", error);
@@ -44,7 +59,7 @@ const Reportes = () => {
 
     const fetchAlumnos = async () => {
       try {
-        const response = await api.get<Alumno[]>("/api/alumnos");
+        const response = await api.get<Alumno[]>("/alumnos");
         setAlumnos(response.data);
       } catch (error) {
         console.error("Error al cargar alumnos:", error);
@@ -55,54 +70,101 @@ const Reportes = () => {
     fetchAlumnos();
   }, []);
 
-  const obtenerDatosReporte = async () => {
+  // Función para obtener los datos del reporte (con paginación)
+  const obtenerDatosReporte = async (pagina = 0) => {
     if (!tipoReporte) return;
-
     setLoading(true);
+    setErrorMsg("");
     let endpoint = "";
-    let params: Record<string, string> = {};
+    let params: Record<string, any> = { page: pagina };
 
     switch (tipoReporte) {
       case "Recaudación por Disciplina":
-        endpoint = "/api/reportes/recaudacion-disciplina";
+        endpoint = "/reportes/recaudacion-disciplina";
+        if (filtroDisciplina) {
+          params.disciplinaId = filtroDisciplina;
+        }
         break;
       case "Asistencias por Alumno":
-        endpoint = "/api/reportes/asistencias-alumno";
-        params = { alumnoId: filtroAlumno };
+        endpoint = "/reportes/asistencias-alumno";
+        if (filtroAlumno) {
+          params.alumnoId = filtroAlumno;
+        }
         break;
       case "Asistencias por Disciplina":
-        endpoint = "/api/reportes/asistencias-disciplina";
-        params = { disciplinaId: filtroDisciplina };
+        endpoint = "/reportes/asistencias-disciplina";
+        if (filtroDisciplina) {
+          params.disciplinaId = filtroDisciplina;
+        }
         break;
       case "Asistencias por Disciplina y Alumno":
-        endpoint = "/api/reportes/asistencias-disciplina-alumno";
-        params = { disciplinaId: filtroDisciplina, alumnoId: filtroAlumno };
+        endpoint = "/reportes/asistencias-disciplina-alumno";
+        if (filtroDisciplina) {
+          params.disciplinaId = filtroDisciplina;
+        }
+        if (filtroAlumno) {
+          params.alumnoId = filtroAlumno;
+        }
         break;
       default:
         console.error("Tipo de reporte no válido");
+        setLoading(false);
         return;
     }
 
     try {
-      const response = await api.get(endpoint, { params });
-      setDatos(response.data);
+      const response = await api.get<PaginatedResponse<ReporteData>>(endpoint, { params });
+      setDatos(response.data.content);
+      setTotalPaginas(response.data.totalPages);
+      setPaginaActual(pagina);
     } catch (error) {
       console.error("Error al obtener el reporte:", error);
+      setErrorMsg("Ocurrió un error al obtener el reporte. Por favor, intenta de nuevo.");
     } finally {
       setLoading(false);
     }
   };
 
+  // Función para exportar a Excel
+  const exportarAExcel = async () => {
+    try {
+      const response = await api.get("/reportes/exportar/excel", {
+        responseType: "blob",
+      });
+      saveAs(response.data, "reportes.xlsx");
+    } catch (error) {
+      console.error("Error exportando a Excel:", error);
+    }
+  };
+
+  // Filtrado local de los datos mediante búsqueda
+  const datosFiltrados = datos.filter((dato) =>
+    Object.values(dato)
+      .join(" ")
+      .toLowerCase()
+      .includes(busqueda.toLowerCase())
+  );
+
+  // Datos para el gráfico (por ejemplo, monto total)
+  const chartData = {
+    labels: datos.map((d) => d.nombre || "Sin nombre"),
+    datasets: [
+      {
+        label: "Monto Total",
+        data: datos.map((d) => d.montoTotal || 0),
+        backgroundColor: "rgba(75, 192, 192, 0.6)",
+      },
+    ],
+  };
+
   return (
-    <div className="page-container @container">
+    <div className="page-container">
       <h1 className="page-title">Generación de Reportes</h1>
 
       <div className="space-y-4 mb-6">
+        {/* Selección del tipo de reporte */}
         <div>
-          <label
-            htmlFor="tipoReporte"
-            className="block text-sm font-medium text-foreground mb-1"
-          >
+          <label htmlFor="tipoReporte" className="block text-sm font-medium text-foreground mb-1">
             Selecciona el Tipo de Reporte:
           </label>
           <select
@@ -112,27 +174,17 @@ const Reportes = () => {
             className="form-input w-full"
           >
             <option value="">-- Seleccionar --</option>
-            <option value="Recaudación por Disciplina">
-              Recaudación por Disciplina
-            </option>
-            <option value="Asistencias por Alumno">
-              Asistencias por Alumno
-            </option>
-            <option value="Asistencias por Disciplina">
-              Asistencias por Disciplina
-            </option>
-            <option value="Asistencias por Disciplina y Alumno">
-              Asistencias por Disciplina y Alumno
-            </option>
+            <option value="Recaudación por Disciplina">Recaudación por Disciplina</option>
+            <option value="Asistencias por Alumno">Asistencias por Alumno</option>
+            <option value="Asistencias por Disciplina">Asistencias por Disciplina</option>
+            <option value="Asistencias por Disciplina y Alumno">Asistencias por Disciplina y Alumno</option>
           </select>
         </div>
 
-        {tipoReporte.includes("Disciplina") && (
+        {/* Filtros condicionales según el tipo de reporte */}
+        {(tipoReporte.includes("Disciplina") || tipoReporte === "Recaudación por Disciplina") && (
           <div>
-            <label
-              htmlFor="disciplina"
-              className="block text-sm font-medium text-foreground mb-1"
-            >
+            <label htmlFor="disciplina" className="block text-sm font-medium text-foreground mb-1">
               Selecciona la Disciplina:
             </label>
             <select
@@ -153,10 +205,7 @@ const Reportes = () => {
 
         {tipoReporte.includes("Alumno") && (
           <div>
-            <label
-              htmlFor="alumno"
-              className="block text-sm font-medium text-foreground mb-1"
-            >
+            <label htmlFor="alumno" className="block text-sm font-medium text-foreground mb-1">
               Selecciona el Alumno:
             </label>
             <select
@@ -175,35 +224,67 @@ const Reportes = () => {
           </div>
         )}
 
-        <Boton onClick={obtenerDatosReporte} disabled={loading}>
-          Generar Reporte
-        </Boton>
-      </div>
-
-      {loading && <p className="text-center py-4">Cargando...</p>}
-
-      {datos.length > 0 && (
-        <div className="page-table-container">
-          <Tabla
-            encabezados={[
-              "ID",
-              "Nombre",
-              "Disciplina",
-              "Cantidad",
-              "Monto Total",
-              "Fecha",
-            ]}
-            datos={datos}
-            extraRender={(fila) => [
-              fila.id,
-              fila.nombre || "-",
-              fila.disciplina || "-",
-              fila.cantidad || "-",
-              fila.montoTotal ? `$${fila.montoTotal}` : "-",
-              fila.fecha || "-",
-            ]}
+        {/* Campo de búsqueda para filtrar localmente */}
+        <div>
+          <label htmlFor="busqueda" className="block text-sm font-medium text-foreground mb-1">
+            Buscar en Reporte:
+          </label>
+          <input
+            id="busqueda"
+            type="text"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            className="form-input w-full"
+            placeholder="Buscar..."
           />
         </div>
+
+        {/* Botones de acción */}
+        <div className="flex space-x-4">
+          <Boton onClick={() => obtenerDatosReporte()} disabled={loading}>
+            Generar Reporte
+          </Boton>
+          <Boton onClick={() => exportarAExcel()} disabled={loading}>
+            Exportar a Excel
+          </Boton>
+          <Boton onClick={() => obtenerDatosReporte(paginaActual)} disabled={loading}>
+            Refrescar Reporte
+          </Boton>
+        </div>
+      </div>
+
+      {/* Mensaje de error y loading */}
+      {errorMsg && <p className="text-center text-red-600 py-4">{errorMsg}</p>}
+      {loading && <p className="text-center py-4">Cargando...</p>}
+
+      {/* Renderizado de resultados, paginación y gráfico */}
+      {datosFiltrados.length > 0 && (
+        <>
+          <div className="page-table-container">
+            <Tabla
+              encabezados={["ID", "Nombre", "Disciplina", "Cantidad", "Monto Total", "Fecha"]}
+              datos={datosFiltrados}
+              extraRender={(fila) => [
+                fila.id,
+                fila.nombre || "-",
+                fila.disciplina || "-",
+                fila.cantidad || "-",
+                fila.montoTotal ? `$${fila.montoTotal}` : "-",
+                fila.fecha || "-",
+              ]}
+            />
+          </div>
+          <div className="mt-4">
+            <Pagination
+              currentPage={paginaActual}
+              totalPages={totalPaginas}
+              onPageChange={(newPage) => obtenerDatosReporte(newPage)}
+            />
+          </div>
+          <div className="mt-6">
+            <Bar data={chartData} />
+          </div>
+        </>
       )}
     </div>
   );

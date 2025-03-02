@@ -173,11 +173,10 @@ const SalonesFormulario: React.FC = () => {
 
             {mensaje && (
               <p
-                className={`form-mensaje ${
-                  mensaje.includes("Error") || mensaje.includes("no encontrado")
-                    ? "form-mensaje-error"
-                    : "form-mensaje-success"
-                }`}
+                className={`form-mensaje ${mensaje.includes("Error") || mensaje.includes("no encontrado")
+                  ? "form-mensaje-error"
+                  : "form-mensaje-success"
+                  }`}
               >
                 {mensaje}
               </p>

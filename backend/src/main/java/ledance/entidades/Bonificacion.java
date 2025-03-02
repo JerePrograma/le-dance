@@ -23,6 +23,9 @@ public class Bonificacion {
     @NotNull
     private Integer porcentajeDescuento; // p.ej., 50%
 
+    // Nuevo atributo: valor fijo de descuento (opcional)
+    private Double valorFijo;
+
     @Column(nullable = false)
     private Boolean activo = true;
 

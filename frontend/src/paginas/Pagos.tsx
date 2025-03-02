@@ -1,6 +1,6 @@
 /*import { useEffect, useState } from "react";
 import Tabla from "../../componentes/comunes/Tabla";
-import api from "../api/axiosConfig";
+import api from "../axiosConfig";
 
 interface Pago {
   id: number;
@@ -17,7 +17,7 @@ const Pagos = () => {
   useEffect(() => {
     const fetchPagos = async () => {
       try {
-        const response = await api.get("/api/pagos"); // Endpoint para obtener pagos
+        const response = await api.get("/pagos"); // Endpoint para obtener pagos
         setPagos(response.data);
       } catch (error) {
         console.error("Error al cargar los pagos:", error);

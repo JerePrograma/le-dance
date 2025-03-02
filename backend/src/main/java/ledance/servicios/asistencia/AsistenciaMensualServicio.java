@@ -41,7 +41,7 @@ public class AsistenciaMensualServicio {
     @Transactional
     public AsistenciaMensualDetalleResponse registrarAsistenciaMensual(AsistenciaMensualRegistroRequest request) {
         Inscripcion inscripcion = inscripcionRepositorio.findById(request.inscripcionId())
-                .orElseThrow(() -> new IllegalArgumentException("No se encontró la inscripción con ID: " + request.inscripcionId()));
+                .orElseThrow(() -> new IllegalArgumentException("No se encontró la inscripción"));
 
         AsistenciaMensual asistenciaMensual = new AsistenciaMensual();
         asistenciaMensual.setMes(request.mes());
@@ -54,10 +54,10 @@ public class AsistenciaMensualServicio {
         return asistenciaMensualMapper.toDetalleDTO(asistenciaMensual);
     }
 
-    // ✅ Método para generar asistencias diarias para un alumno
+    // ✅ Metodo para generar asistencias diarias para un alumno
     private List<AsistenciaDiaria> generarAsistenciasParaAlumno(Inscripcion inscripcion, List<LocalDate> fechasClase) {
         return fechasClase.stream()
-                .filter(fecha -> !fecha.isBefore(inscripcion.getFechaInscripcion())) // Respetar fecha de inscripción
+                .filter(fecha -> !fecha.isBefore(inscripcion.getFechaInscripcion())) // Respetar fecha de inscripcion
                 .map(fecha -> new AsistenciaDiaria(null, fecha, EstadoAsistencia.AUSENTE, inscripcion.getAlumno(), null, null))
                 .collect(Collectors.toList());
     }
@@ -90,62 +90,11 @@ public class AsistenciaMensualServicio {
     }
 
     @Transactional(readOnly = true)
-    public AsistenciaMensualDetalleResponse obtenerAsistenciaMensual(Long id) {
-        AsistenciaMensual asistenciaMensual = asistenciaMensualRepositorio.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("No existe AsistenciaMensual con ID: " + id));
-        return asistenciaMensualMapper.toDetalleDTO(asistenciaMensual);
-    }
-
-    @Transactional(readOnly = true)
     public List<AsistenciaMensualListadoResponse> listarAsistenciasMensuales(Long profesorId, Long disciplinaId, Integer mes, Integer anio) {
         List<AsistenciaMensual> asistencias = asistenciaMensualRepositorio.buscarAsistencias(profesorId, disciplinaId, mes, anio);
         return asistencias.stream()
                 .map(asistenciaMensualMapper::toListadoDTO)
                 .toList();
-    }
-
-
-    public AsistenciaMensualDetalleResponse obtenerOCrearAsistenciaPorDisciplina(
-            Long disciplinaId,
-            Integer mes,
-            Integer anio
-    ) {
-        // Buscar una asistencia mensual existente para esta disciplina y período
-        Optional<AsistenciaMensual> asistenciaExistente = asistenciaMensualRepositorio
-                .findByInscripcion_Disciplina_IdAndMesAndAnio(disciplinaId, mes, anio)
-                .stream()
-                .findFirst();
-
-        if (asistenciaExistente.isPresent()) {
-            return asistenciaMensualMapper.toDetalleDTO(asistenciaExistente.get());
-        }
-
-        // Si no existe, crear una nueva asistencia mensual
-        AsistenciaMensual nuevaAsistencia = new AsistenciaMensual();
-        nuevaAsistencia.setMes(mes);
-        nuevaAsistencia.setAnio(anio);
-
-        // Obtener todas las inscripciones activas para esta disciplina
-        List<Inscripcion> inscripcionesActivas = inscripcionRepositorio.findAllByDisciplinaIdAndEstado(disciplinaId, EstadoInscripcion.ACTIVA);
-
-        if (inscripcionesActivas.isEmpty()) {
-            throw new IllegalArgumentException("No existen inscripciones activas para la disciplina");
-        }
-
-        // Crear una asistencia mensual para cada inscripción activa
-        List<AsistenciaMensual> asistencias = inscripcionesActivas.stream()
-                .map(inscripcion -> {
-                    AsistenciaMensual asistencia = new AsistenciaMensual();
-                    asistencia.setMes(mes);
-                    asistencia.setAnio(anio);
-                    asistencia.setInscripcion(inscripcion);
-                    asistencia.setObservaciones(new ArrayList<>());
-                    return asistenciaMensualRepositorio.save(asistencia);
-                })
-                .toList();
-
-        // Retornar el detalle de la primera asistencia creada
-        return asistenciaMensualMapper.toDetalleDTO(asistencias.get(0));
     }
 
     @Transactional
@@ -169,5 +118,49 @@ public class AsistenciaMensualServicio {
                 }
             }
         }
+    }
+
+    @Transactional(readOnly = true)
+    public AsistenciaMensualDetalleResponse obtenerAsistenciaMensualPorParametros(Long disciplinaId, int mes, int anio) {
+        Optional<AsistenciaMensual> asistenciaExistente = asistenciaMensualRepositorio
+                .findByInscripcion_Disciplina_IdAndMesAndAnio(disciplinaId, mes, anio)
+                .stream()
+                .findFirst();
+
+        if (asistenciaExistente.isPresent()) {
+            return asistenciaMensualMapper.toDetalleDTO(asistenciaExistente.get());
+        } else {
+            throw new NoSuchElementException("No se encontró asistencia mensual para los parámetros especificados.");
+        }
+    }
+
+    @Transactional
+    public AsistenciaMensualDetalleResponse crearAsistenciaPorDisciplina(Long disciplinaId, int mes, int anio) {
+        Optional<AsistenciaMensual> asistenciaExistente = asistenciaMensualRepositorio
+                .findByInscripcion_Disciplina_IdAndMesAndAnio(disciplinaId, mes, anio)
+                .stream()
+                .findFirst();
+
+        if (asistenciaExistente.isPresent()) {
+            throw new IllegalStateException("Ya existe una asistencia mensual para los parámetros especificados.");
+        }
+
+        // Obtener inscripciones activas para esta disciplina
+        List<Inscripcion> inscripcionesActivas = inscripcionRepositorio.findAllByDisciplinaIdAndEstado(disciplinaId, EstadoInscripcion.ACTIVA);
+        if (inscripcionesActivas.isEmpty()) {
+            throw new IllegalArgumentException("No existen inscripciones activas para la disciplina");
+        }
+
+        // Por simplicidad, creamos la asistencia para la primera inscripción activa
+        AsistenciaMensual nuevaAsistencia = new AsistenciaMensual();
+        nuevaAsistencia.setMes(mes);
+        nuevaAsistencia.setAnio(anio);
+        nuevaAsistencia.setInscripcion(inscripcionesActivas.get(0));
+        nuevaAsistencia = asistenciaMensualRepositorio.save(nuevaAsistencia);
+
+        // Crear las asistencias diarias correspondientes para la inscripción
+        asistenciaDiariaServicio.registrarAsistenciasParaNuevoAlumno(inscripcionesActivas.get(0).getId());
+
+        return asistenciaMensualMapper.toDetalleDTO(nuevaAsistencia);
     }
 }

@@ -32,20 +32,20 @@ public class TratadorDeErrores {
                 .body(new DatosErrorGeneral("404_NOT_FOUND", "Recurso no encontrado", e.getMessage(), LocalDateTime.now()));
     }
 
-    // ✅ 400: Validación de datos de entrada
+    // ✅ 400: Validacion de datos de entrada
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<List<DatosErrorValidacion>> tratarError400(MethodArgumentNotValidException e) {
-        log.warn("Error 400 - Validación de datos fallida");
+        log.warn("Error 400 - Validacion de datos fallida");
         var errores = e.getFieldErrors().stream().map(DatosErrorValidacion::new).toList();
         return ResponseEntity.badRequest().body(errores);
     }
 
-    // ✅ 400: Parámetro faltante en la solicitud
+    // ✅ 400: Parametro faltante en la solicitud
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<DatosErrorGeneral> manejarParametroFaltante(MissingServletRequestParameterException e) {
-        log.warn("Error 400 - Falta un parámetro requerido: {}", e.getParameterName());
+        log.warn("Error 400 - Falta un parametro requerido: {}", e.getParameterName());
         return ResponseEntity.badRequest()
-                .body(new DatosErrorGeneral("400_BAD_REQUEST", "Falta un parámetro requerido", e.getParameterName(), LocalDateTime.now()));
+                .body(new DatosErrorGeneral("400_BAD_REQUEST", "Falta un parametro requerido", e.getParameterName(), LocalDateTime.now()));
     }
 
     // ✅ 403: Acceso denegado
@@ -56,36 +56,36 @@ public class TratadorDeErrores {
                 .body(new DatosErrorGeneral("403_FORBIDDEN", "Acceso denegado", e.getMessage(), LocalDateTime.now()));
     }
 
-    // ✅ 401: Error de autenticación (caso especial)
+    // ✅ 401: Error de autenticacion (caso especial)
     @ExceptionHandler(ErrorDeAutenticacionException.class)
     public ResponseEntity<DatosErrorGeneral> manejarErrorDeAutenticacion(ErrorDeAutenticacionException e) {
-        log.warn("Error 401 - Autenticación fallida: {}", e.getMessage());
+        log.warn("Error 401 - Autenticacion fallida: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(new DatosErrorGeneral("401_UNAUTHORIZED", "Autenticación fallida", e.getMessage(), LocalDateTime.now()));
+                .body(new DatosErrorGeneral("401_UNAUTHORIZED", "Autenticacion fallida", e.getMessage(), LocalDateTime.now()));
     }
 
-    // ✅ 405: Método HTTP no permitido
+    // ✅ 405: Metodo HTTP no permitido
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<DatosErrorGeneral> manejarMetodoNoPermitido(HttpRequestMethodNotSupportedException e) {
-        log.warn("Error 405 - Método HTTP no permitido: {}", e.getMethod());
+        log.warn("Error 405 - Metodo HTTP no permitido: {}", e.getMethod());
         return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
-                .body(new DatosErrorGeneral("405_METHOD_NOT_ALLOWED", "Método no permitido", e.getMessage(), LocalDateTime.now()));
+                .body(new DatosErrorGeneral("405_METHOD_NOT_ALLOWED", "Metodo no permitido", e.getMessage(), LocalDateTime.now()));
     }
 
-    // ✅ 409: Error de negocio o lógica de la aplicación
+    // ✅ 409: Error de negocio o logica de la aplicacion
     @ExceptionHandler(OperacionNoPermitidaException.class)
     public ResponseEntity<DatosErrorGeneral> manejarOperacionNoPermitida(OperacionNoPermitidaException e) {
-        log.warn("Error 409 - Operación no permitida: {}", e.getMessage());
+        log.warn("Error 409 - Operacion no permitida: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(new DatosErrorGeneral("409_CONFLICT", "Operación no permitida", e.getMessage(), LocalDateTime.now()));
+                .body(new DatosErrorGeneral("409_CONFLICT", "Operacion no permitida", e.getMessage(), LocalDateTime.now()));
     }
 
-    // ✅ 400: Argumento inválido en la solicitud
+    // ✅ 400: Argumento invalido en la solicitud
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<DatosErrorGeneral> manejarErrorDeArgumentoInvalido(IllegalArgumentException e) {
-        log.warn("Error 400 - Argumento inválido: {}", e.getMessage());
+        log.warn("Error 400 - Argumento invalido: {}", e.getMessage());
         return ResponseEntity.badRequest()
-                .body(new DatosErrorGeneral("400_BAD_REQUEST", "Argumento inválido", e.getMessage(), LocalDateTime.now()));
+                .body(new DatosErrorGeneral("400_BAD_REQUEST", "Argumento invalido", e.getMessage(), LocalDateTime.now()));
     }
 
     // ✅ 500: Error interno del servidor
@@ -96,10 +96,10 @@ public class TratadorDeErrores {
                 .body(new DatosErrorGeneral("500_INTERNAL_SERVER_ERROR", "Error interno del servidor", e.getMessage(), LocalDateTime.now()));
     }
 
-    // ✅ 500: Error en la comunicación con otro servidor (APIs externas)
+    // ✅ 500: Error en la comunicacion con otro servidor (APIs externas)
     @ExceptionHandler({HttpClientErrorException.class, HttpServerErrorException.class})
     public ResponseEntity<DatosErrorGeneral> manejarErrorDeCliente(HttpClientErrorException e) {
-        log.error("Error 500 - Fallo en comunicación con API externa: {}", e.getMessage());
+        log.error("Error 500 - Fallo en comunicacion con API externa: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
                 .body(new DatosErrorGeneral("502_BAD_GATEWAY", "Error en API externa", e.getMessage(), LocalDateTime.now()));
     }
@@ -114,7 +114,7 @@ public class TratadorDeErrores {
 
     // 🔹 **📌 Clases para respuestas de error** 🔹
 
-    // ✅ Estructura para errores de validación
+    // ✅ Estructura para errores de validacion
     private record DatosErrorValidacion(String codigo, String campo, String mensaje) {
         public DatosErrorValidacion(FieldError error) {
             this("400_VALIDATION_ERROR", error.getField(), error.getDefaultMessage());
