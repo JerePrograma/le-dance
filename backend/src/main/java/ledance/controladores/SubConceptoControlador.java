@@ -55,4 +55,11 @@ public class SubConceptoControlador {
         subConceptoServicio.eliminarSubConcepto(id);
         return ResponseEntity.noContent().build();
     }
+
+    // Endpoint para búsqueda de subconceptos por nombre (para sugerencias)
+    @GetMapping("/buscar")
+    public ResponseEntity<List<SubConceptoResponse>> buscarPorNombre(@RequestParam String nombre) {
+        List<SubConceptoResponse> resultado = subConceptoServicio.buscarPorNombre(nombre);
+        return ResponseEntity.ok(resultado);
+    }
 }

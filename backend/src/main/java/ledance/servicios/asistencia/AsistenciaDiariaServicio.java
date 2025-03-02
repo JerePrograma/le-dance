@@ -8,6 +8,10 @@ import ledance.entidades.*;
 import ledance.repositorios.AsistenciaDiariaRepositorio;
 import ledance.repositorios.AsistenciaMensualRepositorio;
 import ledance.repositorios.InscripcionRepositorio;
+import ledance.servicios.disciplina.DisciplinaHorarioServicio;
+import ledance.servicios.disciplina.DisciplinaServicio;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -21,20 +25,24 @@ import java.util.stream.Collectors;
 @Transactional
 public class AsistenciaDiariaServicio {
 
+    private static final Logger log = LoggerFactory.getLogger(DisciplinaHorarioServicio.class);
+
     private final AsistenciaDiariaRepositorio asistenciaDiariaRepositorio;
     private final AsistenciaDiariaMapper asistenciaDiariaMapper;
     private final InscripcionRepositorio inscripcionRepositorio;
     private final AsistenciaMensualRepositorio asistenciaMensualRepositorio;
+    private final DisciplinaServicio disciplinaServicio;
 
     public AsistenciaDiariaServicio(
             AsistenciaDiariaRepositorio asistenciaDiariaRepositorio,
             AsistenciaDiariaMapper asistenciaDiariaMapper,
             InscripcionRepositorio inscripcionRepositorio,
-            AsistenciaMensualRepositorio asistenciaMensualRepositorio) {
+            AsistenciaMensualRepositorio asistenciaMensualRepositorio, DisciplinaServicio disciplinaServicio) {
         this.asistenciaDiariaRepositorio = asistenciaDiariaRepositorio;
         this.asistenciaDiariaMapper = asistenciaDiariaMapper;
         this.inscripcionRepositorio = inscripcionRepositorio;
         this.asistenciaMensualRepositorio = asistenciaMensualRepositorio;
+        this.disciplinaServicio = disciplinaServicio;
     }
 
     /**
@@ -105,19 +113,35 @@ public class AsistenciaDiariaServicio {
      * Aquí se debe generar las asistencias en los días de clase según la configuración de la disciplina.
      * Este método es un ejemplo y en producción probablemente deberás calcular las fechas de clase.
      */
+    /**
+     * Registra las asistencias diarias para un nuevo alumno, utilizando los días de clase
+     * calculados a partir de los DisciplinaHorario de la disciplina.
+     */
     @Transactional
     public void registrarAsistenciasParaNuevoAlumno(Long inscripcionId) {
         Inscripcion inscripcion = inscripcionRepositorio.findById(inscripcionId)
                 .orElseThrow(() -> new IllegalArgumentException("Inscripción no encontrada"));
 
+        // Recuperamos la asistencia mensual (usando mes y año actual)
         AsistenciaMensual asistenciaMensual = asistenciaMensualRepositorio.findByInscripcionAndMesAndAnio(
                 inscripcion, LocalDate.now().getMonthValue(), LocalDate.now().getYear()
         ).orElseThrow(() -> new IllegalArgumentException("No se encontró asistencia mensual para este alumno"));
 
-        // Ejemplo: se registran asistencias para el día actual.
-        List<LocalDate> fechasClase = List.of(LocalDate.now());
+        // Si ya existen asistencias para esta asistencia mensual, no se vuelven a crear
+        if (!asistenciaMensual.getAsistenciasDiarias().isEmpty()) {
+            log.info("Ya existen asistencias diarias para la asistencia mensual id: {}", asistenciaMensual.getId());
+            return;
+        }
+
+        // Calcula las fechas de clase para el mes
+        List<LocalDate> fechasClase = disciplinaServicio.obtenerDiasClase(
+                inscripcion.getDisciplina().getId(),
+                asistenciaMensual.getMes(),
+                asistenciaMensual.getAnio()
+        );
+
+        // Crea las asistencias para cada fecha
         List<AsistenciaDiaria> nuevasAsistencias = fechasClase.stream()
-                .filter(fecha -> !fecha.isBefore(inscripcion.getFechaInscripcion()))
                 .map(fecha -> new AsistenciaDiaria(null, fecha, EstadoAsistencia.AUSENTE, inscripcion.getAlumno(), asistenciaMensual, null))
                 .collect(Collectors.toList());
 

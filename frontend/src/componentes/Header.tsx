@@ -2,7 +2,7 @@
 
 import { useTheme } from "next-themes"
 import { useSidebar } from "../hooks/context/SideBarContext"
-import { Search, Bell, User, Menu, Moon, Sun } from "lucide-react"
+import { Search, Bell, Menu, Moon, Sun } from "lucide-react"
 
 export default function Header() {
     const { toggleSidebar, isExpanded } = useSidebar()
@@ -43,12 +43,6 @@ export default function Header() {
                     <button className="p-2 rounded-full hover:bg-muted relative">
                         <Bell className="w-5 h-5" />
                         <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full"></span>
-                    </button>
-
-                    <button className="flex items-center gap-2 p-2 rounded-md hover:bg-muted">
-                        <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
-                            <User className="w-5 h-5" />
-                        </div>
                     </button>
                 </div>
             </div>

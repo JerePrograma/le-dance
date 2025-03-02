@@ -1,9 +1,7 @@
 import { lazy, Suspense } from "react";
 import { Routes, Route } from "react-router-dom";
-import Encabezado from "../componentes/comunes/Encabezado";
 import ProtectedRoute from "./ProtectedRoute";
 import ErrorBoundary from "./ErrorBoundary";
-import Home from "../paginas/Home";
 
 // Páginas principales (públicas)
 const Login = lazy(() => import("../paginas/Login"));
@@ -123,89 +121,105 @@ const FormularioRecargos = lazy(() =>
 const ReporteDetallePago = lazy(() =>
   import("../funcionalidades/reportes/ReporteDetallePago")
 )
+
+const SubConceptosPagina = lazy(() =>
+  import("../funcionalidades/subconceptos/SubConceptosPagina")
+);
+const SubConceptosFormulario = lazy(() =>
+  import("../funcionalidades/subconceptos/SubConceptosFormulario")
+);
+
+
 const AppRouter = () => {
   return (
     <>
       <Suspense fallback={<div>Cargando...</div>}>
-        <Routes>
-          {/* Rutas públicas */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/registro" element={<FormularioUsuarios />} />
+        <ErrorBoundary>
+          <Routes>
+            {/* Rutas públicas */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/registro" element={<FormularioUsuarios />} />
 
-          {/* Rutas protegidas */}
-          <Route element={<ProtectedRoute />}>
-            <Route path="/" element={<Inicio />} />
-            <Route path="/reportes" element={<Reportes />} />
+            {/* Rutas protegidas */}
+            <Route element={<ProtectedRoute />}>
+              <Route path="/" element={<Inicio />} />
+              <Route path="/reportes" element={<Reportes />} />
 
-            {/* Gestión de usuarios y roles */}
-            <Route path="/usuarios" element={<Usuarios />} />
-            <Route path="/usuarios/formulario" element={<FormularioUsuarios />} />
-            <Route path="/roles" element={<Roles />} />
-            <Route path="/roles/formulario" element={<FormularioRoles />} />
+              {/* Gestión de usuarios y roles */}
+              <Route path="/usuarios" element={<Usuarios />} />
+              <Route path="/usuarios/formulario" element={<FormularioUsuarios />} />
+              <Route path="/roles" element={<Roles />} />
+              <Route path="/roles/formulario" element={<FormularioRoles />} />
 
-            {/* Gestión de profesores y disciplinas */}
-            <Route path="/profesores" element={<Profesores />} />
-            <Route path="/profesores/formulario" element={<FormularioProfesores />} />
-            <Route path="/disciplinas" element={<Disciplinas />} />
-            <Route path="/disciplinas/formulario" element={<FormularioDisciplinas />} />
+              {/* Gestión de profesores y disciplinas */}
+              <Route path="/profesores" element={<Profesores />} />
+              <Route path="/profesores/formulario" element={<FormularioProfesores />} />
+              <Route path="/disciplinas" element={<Disciplinas />} />
+              <Route path="/disciplinas/formulario" element={<FormularioDisciplinas />} />
 
-            {/* Gestión de alumnos y salones */}
-            <Route path="/alumnos" element={<Alumnos />} />
-            <Route path="/alumnos/formulario" element={<FormularioAlumnos />} />
-            <Route path="/salones" element={<Salones />} />
-            <Route path="/salones/formulario" element={<FormularioSalones />} />
+              {/* Gestión de alumnos y salones */}
+              <Route path="/alumnos" element={<Alumnos />} />
+              <Route path="/alumnos/formulario" element={<FormularioAlumnos />} />
+              <Route path="/salones" element={<Salones />} />
+              <Route path="/salones/formulario" element={<FormularioSalones />} />
 
-            {/* Gestión de bonificaciones e inscripciones */}
-            <Route path="/bonificaciones" element={<Bonificaciones />} />
-            <Route path="/bonificaciones/formulario" element={<FormularioBonificaciones />} />
-            <Route path="/inscripciones" element={<Inscripciones />} />
-            <Route path="/inscripciones/formulario" element={<FormularioInscripciones />} />
+              {/* Gestión de bonificaciones e inscripciones */}
+              <Route path="/bonificaciones" element={<Bonificaciones />} />
+              <Route path="/bonificaciones/formulario" element={<FormularioBonificaciones />} />
+              <Route path="/inscripciones" element={<Inscripciones />} />
+              <Route path="/inscripciones/formulario" element={<FormularioInscripciones />} />
 
-            {/* Gestión de asistencias */}
-            <Route path="/asistencias" element={<AsistenciasSeleccion />} />
-            <Route path="/asistencias-mensuales/formulario" element={<AsistenciasMensualesFormulario />} />
-            <Route path="/asistencias/alumnos" element={<AsistenciaDiariaFormulario />} />
-            <Route path="/asistencias-mensuales" element={<AsistenciaMensualDetalle />} />
-            <Route path="/asistencias-diarias" element={<AsistenciasMensualesListado />} />
+              {/* Gestión de asistencias */}
+              <Route path="/asistencias" element={<AsistenciasSeleccion />} />
+              <Route path="/asistencias-mensuales/formulario" element={<AsistenciasMensualesFormulario />} />
+              <Route path="/asistencias/alumnos" element={<AsistenciaDiariaFormulario />} />
+              <Route path="/asistencias-mensuales" element={<AsistenciaMensualDetalle />} />
+              <Route path="/asistencias-diarias" element={<AsistenciasMensualesListado />} />
 
-            {/* Gestión de pagos y caja */}
-            <Route path="/pagos" element={<Pagos />} />
-            <Route path="/pagos/formulario" element={<FormularioPagos />} />
-            <Route path="/caja" element={<Caja />} />
-            <Route
-              path="/caja/formulario"
-              element={<CajaFormulario />}
-            />
+              {/* Gestión de pagos y caja */}
+              <Route path="/pagos" element={<Pagos />} />
+              <Route path="/pagos/formulario" element={<FormularioPagos />} />
+              <Route path="/caja" element={<Caja />} />
+              <Route
+                path="/caja/formulario"
+                element={<CajaFormulario />}
+              />
 
-            {/* NUEVAS RUTAS: STOCKS y TIPO-STOCKS */}
-            <Route path="/stocks" element={<Stocks />} />
-            <Route path="/stocks/formulario" element={<FormularioStocks />} />
-            <Route path="/tipo-stocks" element={<TipoStocks />} />
-            <Route path="/tipo-stocks/formulario" element={<FormularioTipoStocks />} />
+              {/* NUEVAS RUTAS: STOCKS y TIPO-STOCKS */}
+              <Route path="/stocks" element={<Stocks />} />
+              <Route path="/stocks/formulario" element={<FormularioStocks />} />
+              <Route path="/tipo-stocks" element={<TipoStocks />} />
+              <Route path="/tipo-stocks/formulario" element={<FormularioTipoStocks />} />
 
-            {/* Nuevas rutas para Conceptos */}
-            <Route path="/conceptos" element={<ConceptosPagina />} />
-            <Route path="/conceptos/formulario-concepto" element={<ConceptosFormulario />} />
+              {/* Nuevas rutas para Conceptos */}
+              <Route path="/conceptos" element={<ConceptosPagina />} />
+              <Route path="/conceptos/formulario-concepto" element={<ConceptosFormulario />} />
 
-            {/* NUEVAS RUTAS: Métodos de Pago */}
-            <Route path="/metodos-pago" element={<MetodosPagoPagina />} />
-            <Route path="/metodos-pago/formulario" element={<MetodosPagoFormulario />} />
+              {/* NUEVAS RUTAS: Métodos de Pago */}
+              <Route path="/metodos-pago" element={<MetodosPagoPagina />} />
+              <Route path="/metodos-pago/formulario" element={<MetodosPagoFormulario />} />
 
-            <Route path="/cobranza/:alumnoId" element={<CobranzaPagina />} />
+              <Route path="/cobranza/:alumnoId" element={<CobranzaPagina />} />
 
-            {/* NUEVAS RUTAS: */}
-            <Route path="/caja/planilla" element={<PlanillaCajaGeneral />} />
-            <Route path="/caja/diaria" element={<ConsultaCajaDiaria />} />
+              {/* NUEVAS RUTAS: */}
+              <Route path="/caja/planilla" element={<PlanillaCajaGeneral />} />
+              <Route path="/caja/diaria" element={<ConsultaCajaDiaria />} />
 
-            {/* Gestión de Recargos */}
-            <Route path="/recargos" element={<Recargos />} />
-            <Route path="/recargos/formulario" element={<FormularioRecargos />} />
+              {/* Gestión de Recargos */}
+              <Route path="/recargos" element={<Recargos />} />
+              <Route path="/recargos/formulario" element={<FormularioRecargos />} />
 
 
-            <Route path="/liquidacion" element={<ReporteDetallePago />} />
-            <Route path="/" element={<Inicio />} />
-          </Route>
-        </Routes>
+              <Route path="/liquidacion" element={<ReporteDetallePago />} />
+              <Route path="/" element={<Inicio />} />
+
+              {/* Rutas para SubConceptos */}
+              <Route path="/subconceptos" element={<SubConceptosPagina />} />
+              <Route path="/subconceptos/formulario" element={<SubConceptosFormulario />} />
+
+            </Route>
+          </Routes>
+        </ErrorBoundary>
       </Suspense>
     </>
   );

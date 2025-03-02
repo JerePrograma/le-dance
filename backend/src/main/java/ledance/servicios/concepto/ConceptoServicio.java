@@ -34,7 +34,7 @@ public class ConceptoServicio {
         Concepto concepto = conceptoMapper.toEntity(request);
         SubConcepto subConcepto = subConceptoRepositorio.findById(request.subConceptoId())
                 .orElseThrow(() -> new IllegalArgumentException("SubConcepto no encontrado con id: " + request.subConceptoId()));
-        // Forzamos la descripcion a mayusculas
+        // Forzamos la descripción a mayúsculas manualmente
         subConcepto.setDescripcion(subConcepto.getDescripcion().toUpperCase());
         concepto.setSubConcepto(subConcepto);
         Concepto saved = conceptoRepositorio.save(concepto);

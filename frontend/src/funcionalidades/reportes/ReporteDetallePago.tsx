@@ -5,8 +5,9 @@ import * as Yup from "yup";
 import useDebounce from "../../hooks/useDebounce";
 import disciplinasApi from "../../api/disciplinasApi";
 import profesoresApi from "../../api/profesoresApi";
-import type { ReporteMensualidadDTO, Page } from "../../types/types";
+import type { ReporteMensualidadDTO } from "../../types/types";
 import reporteMensualidadApi from "../../api/reporteMensualidadApi";
+import Tabla from "../../componentes/comunes/Tabla";
 
 interface FiltrosBusqueda {
     // Usaremos inputs tipo "month" que devuelven "YYYY-MM"
@@ -233,44 +234,31 @@ const ReporteDetallePago: React.FC = () => {
             </form>
             {error && <div className="text-red-500 mb-4">{error}</div>}
             <div className="overflow-x-auto">
-                <table className="min-w-full border">
-                    <thead>
-                        <tr className="bg-gray-200">
-                            <th className="border p-2">Código Mensualidad</th>
-                            <th className="border p-2">Alumno</th>
-                            <th className="border p-2">Cuota</th>
-                            <th className="border p-2">Importe</th>
-                            <th className="border p-2">Bonificación</th>
-                            <th className="border p-2">Total</th>
-                            <th className="border p-2">Recargo</th>
-                            <th className="border p-2">Estado</th>
-                            <th className="border p-2">Disciplina</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {resultados.length > 0 ? (
-                            resultados.map((item) => (
-                                <tr key={item.mensualidadId}>
-                                    <td className="border p-2">{item.mensualidadId}</td>
-                                    <td className="border p-2">{item.alumnoNombre}</td>
-                                    <td className="border p-2">{item.cuota}</td>
-                                    <td className="border p-2">{item.importe}</td>
-                                    <td className="border p-2">{item.bonificacion}</td>
-                                    <td className="border p-2">{item.total}</td>
-                                    <td className="border p-2">{item.recargo}</td>
-                                    <td className="border p-2">{item.estado}</td>
-                                    <td className="border p-2">{item.disciplina}</td>
-                                </tr>
-                            ))
-                        ) : (
-                            <tr>
-                                <td colSpan={9} className="text-center p-2">
-                                    No se encontraron resultados.
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
+                <Tabla
+                    encabezados={[
+                        "Código Mensualidad",
+                        "Alumno",
+                        "Cuota",
+                        "Importe",
+                        "Bonificación",
+                        "Total",
+                        "Recargo",
+                        "Estado",
+                        "Disciplina"
+                    ]}
+                    datos={resultados}
+                    extraRender={(item) => [
+                        item.mensualidadId,
+                        item.alumnoNombre,
+                        item.cuota,
+                        item.importe,
+                        item.bonificacion,
+                        item.total,
+                        item.recargo,
+                        item.estado,
+                        item.disciplina
+                    ]}
+                />
             </div>
         </div>
     );

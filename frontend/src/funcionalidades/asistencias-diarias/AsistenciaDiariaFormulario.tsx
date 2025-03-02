@@ -1,4 +1,3 @@
-// src/funcionalidades/asistencias-diarias/AsistenciaDiariaForm.tsx
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -16,28 +15,23 @@ import api from "../../api/axiosConfig";
 interface Disciplina {
     id: number;
     nombre: string;
-    diasSemana: string[]; // Ahora son cadenas, e.g., ["JUEVES", "VIERNES"]
+    diasSemana: string[];
 }
 
 const AsistenciaDiariaForm: React.FC = () => {
     const navigate = useNavigate();
 
-    // Estado para la lista de disciplinas y disciplina seleccionada
+    // Estados para filtros y datos
     const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
     const [selectedDisciplineId, setSelectedDisciplineId] = useState<number | null>(null);
-
-    // Estado para la fecha seleccionada (por defecto, el día actual)
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-    // Estado para almacenar el listado de asistencias del día (una por alumno)
     const [asistencias, setAsistencias] = useState<AsistenciaDiariaResponse[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
-    // Estado para las observaciones, mapeadas por alumnoId
+    const [, setErrorMessage] = useState<string | null>(null); // Estado para mensaje de error visual
     const [observaciones, setObservaciones] = useState<Record<number, string>>({});
-    // Días de clase de la disciplina seleccionada
     const [diasClase, setDiasClase] = useState<string[]>([]);
 
-    // Función debounce (sin librerías adicionales)
     const debounce = (func: (...args: any[]) => void, delay: number) => {
         let timer: NodeJS.Timeout;
         return (...args: any[]) => {
@@ -46,11 +40,15 @@ const AsistenciaDiariaForm: React.FC = () => {
         };
     };
 
-    // Cargar la lista de disciplinas usando asistenciasApi
     const fetchDisciplinas = useCallback(async () => {
         try {
             const data = await asistenciasApi.listarDisciplinasSimplificadas();
-            setDisciplinas(data);
+            // Mapea cada elemento agregando diasSemana (por defecto, vacío o con otro valor que necesites)
+            const disciplinasConDias = data.map((d: any) => ({
+                ...d,
+                diasSemana: [], // o un array con valores por defecto si aplica
+            }));
+            setDisciplinas(disciplinasConDias);
             if (data.length > 0 && !selectedDisciplineId) {
                 setSelectedDisciplineId(data[0].id);
             }
@@ -64,14 +62,12 @@ const AsistenciaDiariaForm: React.FC = () => {
         fetchDisciplinas();
     }, [fetchDisciplinas]);
 
-    // Cargar días de clase de la disciplina seleccionada
     const fetchDiasClase = useCallback(async () => {
         if (!selectedDisciplineId) return;
         try {
             const response = await api.get(`/disciplinas/${selectedDisciplineId}`);
             console.log("Detalle de disciplina:", response.data);
-            // Ajustá el nombre de la propiedad según la respuesta:
-            setDiasClase(response.data?.diasSemana || []); // o response.data?.diasClase si corresponde
+            setDiasClase(response.data?.diasSemana || []);
         } catch (error) {
             console.error("Error al cargar días de clase:", error);
             toast.error("Error al cargar la información de la disciplina.");
@@ -82,14 +78,12 @@ const AsistenciaDiariaForm: React.FC = () => {
         fetchDiasClase();
     }, [fetchDiasClase]);
 
-    // Cargar la asistencia diaria para la disciplina y fecha seleccionadas
     const cargarAsistencias = useCallback(async (fecha: Date) => {
         if (!selectedDisciplineId) return;
         setLoading(true);
         setError(null);
         try {
             const isoDate = fecha.toISOString().split("T")[0];
-            // Se usa el endpoint por query parameters definido en asistenciasApi
             const pageResponse = await asistenciasApi.obtenerAsistenciasPorDisciplinaYFecha(
                 selectedDisciplineId,
                 isoDate,
@@ -97,12 +91,17 @@ const AsistenciaDiariaForm: React.FC = () => {
                 100
             );
             setAsistencias(pageResponse.content);
-            // Inicializar observaciones a partir de cada registro (si tiene observación)
             const obs: Record<number, string> = {};
             pageResponse.content.forEach((record: AsistenciaDiariaResponse) => {
                 obs[record.alumnoId] = record.observacion || "";
             });
             setObservaciones(obs);
+            // Si no hay registros y se espera clase, establecemos el mensaje de error
+            if (pageResponse.content.length === 0) {
+                setErrorMessage("No hay clases este día");
+            } else {
+                setErrorMessage(null);
+            }
         } catch (err) {
             console.error("Error al cargar asistencias", err);
             setError("Error al cargar la asistencia del día.");
@@ -112,13 +111,18 @@ const AsistenciaDiariaForm: React.FC = () => {
         }
     }, [selectedDisciplineId]);
 
-    // Validar si la fecha seleccionada es un día de clase
+    // Función para parsear la fecha en zona local
+    const parseLocalDate = (dateStr: string): Date => {
+        const [year, month, day] = dateStr.split("-").map(Number);
+        return new Date(year, month - 1, day);
+    };
+
     const isValidClassDay = useMemo(() => {
         if (!selectedDate) return false;
         if (diasClase.length === 0) return false;
-        // Array de días con el mismo formato que el backend
+        const localDate = parseLocalDate(selectedDate.toISOString().split("T")[0]);
         const dias = ["DOMINGO", "LUNES", "MARTES", "MIERCOLES", "JUEVES", "VIERNES", "SABADO"];
-        const dayStr = dias[selectedDate.getDay()];
+        const dayStr = dias[localDate.getDay()];
         return diasClase.includes(dayStr);
     }, [selectedDate, diasClase]);
 
@@ -127,6 +131,7 @@ const AsistenciaDiariaForm: React.FC = () => {
     }, [selectedDate]);
 
     useEffect(() => {
+        console.log("useEffect: selectedDate cambió a:", selectedDate);
         if (selectedDate && isValidClassDay) {
             cargarAsistencias(selectedDate);
         } else {
@@ -134,7 +139,6 @@ const AsistenciaDiariaForm: React.FC = () => {
         }
     }, [selectedDate, isValidClassDay, cargarAsistencias]);
 
-    // Manejar cambio en la selección de disciplina
     const handleDisciplinaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const id = parseInt(e.target.value, 10);
         setSelectedDisciplineId(id);
@@ -143,10 +147,8 @@ const AsistenciaDiariaForm: React.FC = () => {
         }
     };
 
-    // Alternar el estado de asistencia para un alumno (usando asistenciasApi)
     const toggleAsistencia = async (alumnoId: number) => {
         if (!selectedDate) return;
-        // Buscar el registro correspondiente
         const registro = asistencias.find(a => a.alumnoId === alumnoId);
         if (!registro) {
             toast.error("No se encontró registro de asistencia para este alumno.");
@@ -154,9 +156,7 @@ const AsistenciaDiariaForm: React.FC = () => {
         }
         try {
             const nuevoEstado =
-                registro.estado === EstadoAsistencia.PRESENTE
-                    ? EstadoAsistencia.AUSENTE
-                    : EstadoAsistencia.PRESENTE;
+                registro.estado === EstadoAsistencia.PRESENTE ? EstadoAsistencia.AUSENTE : EstadoAsistencia.PRESENTE;
             const request: AsistenciaDiariaRegistroRequest = {
                 id: registro.id,
                 alumnoId: registro.alumnoId,
@@ -165,10 +165,7 @@ const AsistenciaDiariaForm: React.FC = () => {
                 asistenciaMensualId: 0
             };
             const updated = await asistenciasApi.registrarAsistenciaDiaria(request);
-            // Actualizar el registro en el estado local
-            setAsistencias(prev =>
-                prev.map(a => (a.id === updated.id ? updated : a))
-            );
+            setAsistencias(prev => prev.map(a => (a.id === updated.id ? updated : a)));
             toast.success("Asistencia actualizada");
         } catch (err) {
             console.error("Error al actualizar asistencia", err);
@@ -176,13 +173,11 @@ const AsistenciaDiariaForm: React.FC = () => {
         }
     };
 
-    // Actualizar observación con debounce
     const debouncedActualizarObservacion = useCallback(
         debounce(async (alumnoId: number, obs: string) => {
             if (!selectedDate) return;
             try {
-                // Se asume que existe un endpoint en asistenciasApi para actualizar observaciones
-                await asistenciasApi.actualizarObservacion(0, {
+                await asistenciasApi.actualizarObservacion({
                     observaciones: [{ alumnoId, observacion: obs }],
                 });
                 toast.success("Observación actualizada");
@@ -208,10 +203,7 @@ const AsistenciaDiariaForm: React.FC = () => {
                 <CardContent>
                     {/* Selector de disciplina */}
                     <div className="mb-4">
-                        <label
-                            htmlFor="disciplinaSelect"
-                            className="block text-sm font-medium text-gray-700"
-                        >
+                        <label htmlFor="disciplinaSelect" className="block text-sm font-medium text-gray-700">
                             Selecciona la disciplina:
                         </label>
                         <select
@@ -230,33 +222,43 @@ const AsistenciaDiariaForm: React.FC = () => {
 
                     {/* DatePicker para la fecha */}
                     <div className="mb-4">
-                        <label
-                            htmlFor="datePicker"
-                            className="block text-sm font-medium text-gray-700"
-                        >
+                        <label htmlFor="datePicker" className="block text-sm font-medium text-gray-700">
                             Selecciona la fecha:
                         </label>
                         <DatePicker
                             id="datePicker"
                             selected={selectedDate}
-                            onChange={(date: Date | null) => date && setSelectedDate(date)}
+                            onChange={(date: Date | null) => date && setSelectedDate(new Date(date))}
                             dateFormat="dd/MM/yyyy"
                             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
                         />
                     </div>
 
-                    {/* Mensaje si la fecha no es un día de clase */}
-                    {!isValidClassDay && selectedDate && (
-                        <div className="text-center text-red-500 mb-4">
-                            No hay clases este día
-                        </div>
+                    {/* Botón para buscar asistencia */}
+                    <div className="mb-4">
+                        <Button
+                            onClick={() => {
+                                if (!selectedDate || !selectedDisciplineId) {
+                                    toast.warn("Complete los filtros");
+                                    return;
+                                }
+                                cargarAsistencias(selectedDate);
+                            }}
+                        >
+                            Buscar asistencia
+                        </Button>
+                    </div>
+
+                    {/* Mostrar mensaje de error si no hay clases */}
+                    {!loading && selectedDate && asistencias.length === 0 && (
+                        <div className="text-center text-red-500 mb-4">No hay clases este día</div>
                     )}
 
                     {loading && <div className="text-center py-4">Cargando asistencia...</div>}
                     {error && <div className="text-center py-4 text-red-500">{error}</div>}
 
                     {asistencias.length > 0 && (
-                        <Table>
+                        <Table key={selectedDate.toISOString()}>
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Alumno</TableHead>
@@ -271,11 +273,7 @@ const AsistenciaDiariaForm: React.FC = () => {
                                         <TableCell className="text-center">
                                             <Button
                                                 size="sm"
-                                                variant={
-                                                    record.estado === EstadoAsistencia.PRESENTE
-                                                        ? "default"
-                                                        : "outline"
-                                                }
+                                                variant={record.estado === EstadoAsistencia.PRESENTE ? "default" : "outline"}
                                                 onClick={() => toggleAsistencia(record.alumnoId)}
                                             >
                                                 {record.estado === EstadoAsistencia.PRESENTE ? (
@@ -289,9 +287,7 @@ const AsistenciaDiariaForm: React.FC = () => {
                                             <Input
                                                 placeholder="Observaciones..."
                                                 value={observaciones[record.alumnoId] || ""}
-                                                onChange={(e) =>
-                                                    handleObservacionChange(record.alumnoId, e.target.value)
-                                                }
+                                                onChange={(e) => handleObservacionChange(record.alumnoId, e.target.value)}
                                             />
                                         </TableCell>
                                     </TableRow>

@@ -1,59 +1,54 @@
+import type { ReactNode } from "react"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table"
+
 interface TablaProps<T extends Record<string, any>> {
-  encabezados: string[];
-  datos: T[];
-  acciones?: (fila: T) => JSX.Element;
-  extraRender?: (fila: T) => (string | number | JSX.Element)[];
+  encabezados: string[]
+  datos: T[]
+  acciones?: (fila: T) => ReactNode
+  extraRender?: (fila: T) => (string | number | ReactNode)[]
 }
 
-const Tabla = <T extends Record<string, any>>({
-  encabezados,
-  datos,
-  acciones,
-  extraRender,
-}: TablaProps<T>) => {
+const Tabla = <T extends Record<string, any>>({ encabezados, datos, acciones, extraRender }: TablaProps<T>) => {
   return (
-    <div className="overflow-x-auto w-full">
-      <table className="table" role="table">
-        <thead role="rowgroup">
-          <tr>
+    <div className="rounded-md border">
+      <Table>
+        <TableHeader>
+          <TableRow>
             {encabezados.map((encabezado, idx) => (
-              <th key={idx}>{encabezado}</th>
+              <TableHead key={idx}>{encabezado}</TableHead>
             ))}
-            {acciones && <th>Acciones</th>}
-          </tr>
-        </thead>
-        <tbody role="rowgroup">
+            {acciones && <TableHead>Acciones</TableHead>}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {datos.length > 0 ? (
             datos.map((fila, index) => (
-              <tr key={index}>
+              <TableRow key={index}>
                 {extraRender
-                  ? extraRender(fila).map((valor, idx) => (
-                      <td key={idx}>{valor}</td>
-                    ))
-                  : Object.values(fila).map((valor, idx) => (
-                      <td key={idx}>{valor}</td>
-                    ))}
+                  ? extraRender(fila).map((valor, idx) => <TableCell key={idx}>{valor}</TableCell>)
+                  : Object.values(fila).map((valor, idx) => <TableCell key={idx}>{valor}</TableCell>)}
                 {acciones && (
-                  <td>
-                    <div className="flex gap-2">{acciones(fila)}</div>
-                  </td>
+                  <TableCell>
+                    <div className="flex items-center gap-2">{acciones(fila)}</div>
+                  </TableCell>
                 )}
-              </tr>
+              </TableRow>
             ))
           ) : (
-            <tr>
-              <td
+            <TableRow>
+              <TableCell
                 colSpan={encabezados.length + (acciones ? 1 : 0)}
-                className="text-center text-[color:var(--foreground)]/60 dark:text-text-dark/60"
+                className="h-24 text-center text-muted-foreground"
               >
                 No hay datos disponibles.
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           )}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
-  );
-};
+  )
+}
 
-export default Tabla;
+export default Tabla
+

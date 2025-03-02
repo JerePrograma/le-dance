@@ -4,115 +4,308 @@
 
 @layer base {
   :root {
+    /* Colores del sistema - Modo Claro */
+    --background: 20 50% 97%;
+    --foreground: 20 10% 20%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 20 10% 20%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 20 10% 20%;
+
+    --primary: 152 33% 55%; /* Verde Sage */
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 32 95% 75%; /* Melocotón */
+    --secondary-foreground: 20 10% 20%;
+
+    --muted: 20 10% 96%;
+    --muted-foreground: 20 10% 60%;
+
+    --accent: 20 50% 90%;
+    --accent-foreground: 20 10% 20%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 20 10% 90%;
+    --input: 20 10% 90%;
+    --ring: 152 33% 55%;
+
+    /* Radios y espaciado */
+    --radius: 0.75rem;
     --sidebar-width: 250px;
     --header-height: 60px;
 
-    --color-background: #f8f9fa;
-    --color-background-alt: #e9ecef;
-    --color-background-card: #ffffff;
-    --color-border: #dee2e6;
-    --color-text: #212529;
-    --color-text-secondary: #6c757d;
-    --color-primary: #8b5cf6;
-    --color-primary-light: #a78bfa;
-    --color-accent: #ef4444;
+    /* ... otras variables ... */
 
-    --radius-sm: 0.125rem;
-    --radius-md: 0.375rem;
-    --radius-lg: 0.5rem;
-    --radius-xl: 0.75rem;
-    --radius-full: 9999px;
+    /* Breakpoints como variables CSS */
+    --screen-sm: 640px;
+    --screen-md: 768px;
+    --screen-lg: 1024px;
+    --screen-xl: 1280px;
+    --screen-2xl: 1536px;
 
-    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
-      0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
-      0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
-      0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    /* Ajustes responsive */
+    --sidebar-width: 250px;
+    --sidebar-width-collapsed: 4.5rem;
+    --header-height: 60px;
+    --content-max-width: 1400px;
+    --container-padding: 1rem;
 
-    --transition-all: all 0.2s ease-in-out;
-    --transition-colors: color 0.2s ease-in-out,
-      background-color 0.2s ease-in-out;
-    --transition-transform: transform 0.2s ease-in-out;
+    @media (min-width: 640px) {
+      --container-padding: 1.5rem;
+    }
 
-    --z-10: 10;
-    --z-20: 20;
-    --z-30: 30;
-    --z-40: 40;
-    --z-50: 50;
+    @media (min-width: 1024px) {
+      --container-padding: 2rem;
+    }
+
+    /* Espaciado personalizado */
+    --spacing-1: 0.25rem;
+    --spacing-2: 0.5rem;
+    --spacing-3: 0.75rem;
+    --spacing-4: 1rem;
+    --spacing-6: 1.5rem;
+    --spacing-8: 2rem;
+    --spacing-10: 2.5rem;
   }
 
   .dark {
-    --color-background: #1a1a1a;
-    --color-background-alt: #2a2a2a;
-    --color-background-card: #2a2a2a;
-    --color-border: #3a3a3a;
-    --color-text: #f8f9fa;
-    --color-text-secondary: #adb5bd;
+    /* Colores del sistema - Modo Oscuro */
+    --background: 240 10% 10%; /* Negro profundo */
+    --foreground: 0 0% 98%;
+
+    --card: 240 10% 13%; /* Negro más claro para cards */
+    --card-foreground: 0 0% 98%;
+
+    --popover: 240 10% 13%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 267 100% 65%; /* Púrpura brillante */
+    --primary-foreground: 0 0% 98%;
+
+    --secondary: 240 10% 16%; /* Gris oscuro */
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 240 10% 15%;
+    --muted-foreground: 240 5% 65%;
+
+    --accent: 267 100% 65%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 240 10% 16%;
+    --input: 240 10% 16%;
+    --ring: 267 100% 65%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
   }
 }
 
 @layer components {
-  /* Estilos base para cards */
+  /* Gradientes */
+  .bg-primary-gradient {
+    @apply bg-gradient-to-r from-primary to-purple-400 dark:from-purple-600 dark:to-purple-400;
+  }
+
+  /* Cards */
   .card {
-    position: relative;
-    background: var(--color-background-card);
-    border-radius: var(--radius-xl);
-    border: 1px solid var(--color-border);
-    overflow: hidden;
-    transition: var(--transition-all);
+    @apply relative bg-card rounded-xl border border-border shadow-sm transition-all duration-200;
   }
 
-  /* Variantes de cards */
-  .card-hover:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-xl);
-    border-color: var(--color-primary-light);
+  .card-hover {
+    @apply hover:-translate-y-1 hover:shadow-lg hover:border-primary/50;
   }
 
-  .card-hover::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(
-      to right,
-      var(--color-primary),
-      var(--color-primary-light)
-    );
-    opacity: 0;
-    transition: opacity 0.3s ease;
-  }
-
-  .card-hover:hover::before {
-    opacity: 1;
-  }
-
-  /* Estructura de la card */
   .card-header {
-    padding: 1.5rem;
-    border-bottom: 1px solid var(--color-border);
+    @apply p-6 border-b border-border;
   }
 
   .card-content {
-    padding: 1.5rem;
+    @apply p-6;
   }
 
   .card-footer {
-    padding: 1rem 1.5rem;
-    border-top: 1px solid var(--color-border);
-    background: var(--color-background-alt);
+    @apply p-4 px-6 border-t border-border bg-muted;
   }
 
-  /* Gradientes */
-  .bg-primary-gradient {
-    background: linear-gradient(
-      to right,
-      var(--color-primary),
-      var(--color-primary-light)
-    );
+  /* Efectos de hover */
+  .hover-effect {
+    @apply transition-all duration-200 hover:scale-105;
+  }
+
+  /* Animaciones */
+  .fade-in {
+    @apply animate-in fade-in duration-300;
+  }
+
+  .slide-in {
+    @apply animate-in slide-in-from-bottom duration-300;
+  }
+
+  /* Componentes de Form */
+  .form {
+    @apply flex flex-col gap-4 w-full max-w-[600px] mx-auto;
+  }
+
+  .form-group {
+    @apply flex flex-col gap-2;
+  }
+
+  .form-row {
+    @apply flex gap-4 flex-wrap;
+  }
+
+  .form-row > * {
+    @apply flex-1 min-w-[250px];
+  }
+
+  .form-label {
+    @apply block text-sm font-medium text-foreground mb-1;
+  }
+
+  .form-input,
+  .form-select,
+  .form-textarea {
+    @apply w-full px-4 py-3 text-base leading-relaxed text-foreground bg-background border-2 border-border rounded-md transition-all
+    focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10
+    disabled:bg-muted disabled:cursor-not-allowed disabled:opacity-70;
+  }
+
+  .form-error {
+    @apply text-sm text-destructive mt-1;
+  }
+
+  .form-help {
+    @apply text-sm text-muted-foreground mt-1;
+  }
+
+  .form-actions {
+    @apply flex justify-end gap-4 mt-6;
+  }
+
+  /* Componentes de Layout */
+  .layout {
+    @apply flex min-h-screen bg-background;
+  }
+
+  /* Componentes de Dashboard */
+  .dashboard {
+    @apply min-h-screen p-4 bg-background sm:p-8;
+  }
+
+  .dashboard-header {
+    @apply flex justify-between items-center mb-8;
+  }
+
+  .dashboard-title {
+    @apply text-2xl font-bold text-foreground sm:text-3xl;
+  }
+
+  .dashboard-grid {
+    @apply grid gap-4 grid-cols-1 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3;
+  }
+
+  /* Componentes de Header */
+  .header {
+    @apply fixed top-0 left-0 right-0 h-[var(--header-height)] bg-background/80 backdrop-blur-md border-b border-border z-30 transition-all;
+  }
+
+  .header-content {
+    @apply flex items-center justify-between h-full px-4 max-w-[var(--container-max-width)] mx-auto;
+  }
+
+  .header-brand {
+    @apply flex items-center gap-3 text-xl font-bold text-primary no-underline;
+  }
+
+  .header-nav {
+    @apply flex items-center gap-6;
+  }
+
+  .header-nav-item {
+    @apply text-foreground no-underline font-medium transition-colors hover:text-primary;
+  }
+
+  .header-actions {
+    @apply flex items-center gap-4;
+  }
+
+  /* Componentes de Sidebar */
+  .sidebar {
+    @apply fixed top-0 left-0 w-[var(--sidebar-width)] h-screen bg-background border-r border-border z-40 transition-transform flex flex-col;
+  }
+
+  .sidebar-header {
+    @apply h-[var(--header-height)] px-4 border-b border-border flex items-center justify-between;
+  }
+
+  .sidebar-content {
+    @apply flex-1 overflow-y-auto p-4;
+  }
+
+  .sidebar-nav {
+    @apply flex flex-col gap-2;
+  }
+
+  .sidebar-group {
+    @apply mb-6;
+  }
+
+  .sidebar-group-title {
+    @apply text-xs font-semibold uppercase text-muted-foreground px-4 py-2;
+  }
+
+  .sidebar-item {
+    @apply flex items-center gap-3 px-4 py-2 text-foreground no-underline rounded-md transition-all hover:bg-muted hover:text-primary;
+  }
+
+  .sidebar-item.active {
+    @apply bg-primary text-primary-foreground;
+  }
+
+  /* Utilidades responsive */
+  .responsive-grid {
+    @apply grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
+  }
+
+  .responsive-container {
+    @apply px-4 sm:px-6 lg:px-8 mx-auto max-w-[var(--content-max-width)];
+  }
+
+  /* Ajustes para cards */
+  .card {
+    @apply p-4 sm:p-6;
+  }
+
+  /* Ajustes para tablas */
+  .table-container {
+    @apply overflow-x-auto -mx-4 sm:-mx-6 lg:-mx-8;
+  }
+
+  .table-content {
+    @apply min-w-full divide-y divide-border;
+  }
+
+  /* Ajustes para formularios */
+  .form-grid {
+    @apply grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2;
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-400 dark:from-purple-600 dark:to-purple-400;
   }
 }

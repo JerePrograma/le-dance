@@ -11,7 +11,6 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring", uses = {DisciplinaHorarioMapper.class})
 public interface DisciplinaMapper {
 
-    // Para el listado, usamos el primer horario (si existe) para extraer el horarioInicio
     @Mapping(target = "id", source = "id")
     @Mapping(target = "nombre", source = "nombre")
     @Mapping(target = "activo", source = "activo")
@@ -40,5 +39,6 @@ public interface DisciplinaMapper {
     Disciplina toEntity(DisciplinaRegistroRequest request);
 
     @Mapping(target = "salon.id", source = "salonId")
+    @Mapping(target = "horarios", ignore = true)  // <-- Ignoramos el mapeo de horarios en la actualización
     void updateEntityFromRequest(DisciplinaModificacionRequest request, @org.mapstruct.MappingTarget Disciplina disciplina);
 }

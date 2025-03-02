@@ -1,3 +1,4 @@
+// DisciplinaModificacionRequest.java
 package ledance.dto.disciplina.request;
 
 import jakarta.validation.constraints.NotNull;
@@ -13,5 +14,5 @@ public record DisciplinaModificacionRequest(
         Double claseSuelta,
         Double clasePrueba,
         Boolean activo,
-        List<DisciplinaHorarioRequest> horarios
-) {}
+        List<DisciplinaHorarioModificacionRequest> horarios  // Cambiado para incluir ID en cada horario
+) { }

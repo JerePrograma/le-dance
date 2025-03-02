@@ -20,6 +20,7 @@ import {
   convertToAlumnoRegistroRequest,
   convertToAlumnoModificacionRequest,
 } from "../../utilidades/alumnoUtils";
+import { Button } from "../../componentes/ui/button";
 
 const initialAlumnoValues: AlumnoRegistroRequest &
   Partial<AlumnoModificacionRequest> = {
@@ -230,13 +231,13 @@ const AlumnosFormulario: React.FC = () => {
                     className="form-input w-full"
                   />
                   {nombreBusqueda && (
-                    <button
+                    <Button
                       type="button"
                       onClick={() => setNombreBusqueda("")}
                       className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
                     >
                       <X className="w-5 h-5" />
-                    </button>
+                    </Button>
                   )}
                   {sugerenciasAlumnos.length > 0 && (
                     <ul className="sugerencias-lista">
@@ -337,16 +338,16 @@ const AlumnosFormulario: React.FC = () => {
             </div>
 
             <div className="form-acciones">
-              <button
+              <Button
                 type="submit"
                 disabled={isSubmitting}
                 className="page-button"
               >
                 Guardar Alumno
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
-                className="page-button-secondary"
+                className="page-button-group flex justify-end mb-4"
                 onClick={() => {
                   resetearFormulario();
                   Object.keys(initialAlumnoValues).forEach((key) => {
@@ -361,14 +362,14 @@ const AlumnosFormulario: React.FC = () => {
                 }}
               >
                 Limpiar
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
-                className="page-button-secondary"
+                className="page-button-group flex justify-end mb-4"
                 onClick={() => navigate("/alumnos")}
               >
                 Volver al Listado
-              </button>
+              </Button>
             </div>
 
             {mensaje && (
@@ -426,7 +427,7 @@ const AlumnosFormulario: React.FC = () => {
                                 `/inscripciones/formulario?id=${fila.id}`
                               )
                             }
-                            className="page-button-secondary"
+                            className="page-button-group flex justify-end mb-4"
                           >
                             Editar
                           </Boton>

@@ -236,6 +236,7 @@ const asistenciasApi = {
       throw error;
     }
   },
+
   registrarAsistenciaMensual: async (
     request: AsistenciaMensualRegistroRequest
   ): Promise<AsistenciaMensualDetalleResponse> => {
@@ -258,6 +259,19 @@ const asistenciasApi = {
       throw error;
     }
   },
+
+  // En tu archivo de API (por ejemplo, asistenciasApi.ts o similar)
+  actualizarObservacion: async (payload: { observaciones: { alumnoId: number; observacion: string }[] }) => {
+    try {
+      const response = await api.post("/asistencias-diarias/observaciones", payload);
+      return response.data;
+    } catch (error: any) {
+      console.error("Error al actualizar observación:", error);
+      toast.error("Error al actualizar la observación. Intente nuevamente.");
+      throw error;
+    }
+  },
+
 };
 
 export default asistenciasApi;

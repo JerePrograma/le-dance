@@ -9,6 +9,7 @@ import ledance.entidades.*;
 import ledance.infra.errores.TratadorDeErrores;
 import ledance.repositorios.*;
 import jakarta.transaction.Transactional;
+import ledance.servicios.asistencia.AsistenciaMensualServicio;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -29,18 +30,20 @@ public class InscripcionServicio implements IInscripcionServicio {
     private final BonificacionRepositorio bonificacionRepositorio;
     private final InscripcionMapper inscripcionMapper;
     private final AsistenciaMensualRepositorio asistenciaMensualRepositorio;
+    private final AsistenciaMensualServicio asistenciaMensualServicio;
 
     public InscripcionServicio(InscripcionRepositorio inscripcionRepositorio,
                                AlumnoRepositorio alumnoRepositorio,
                                DisciplinaRepositorio disciplinaRepositorio,
                                BonificacionRepositorio bonificacionRepositorio,
-                               InscripcionMapper inscripcionMapper, AsistenciaMensualRepositorio asistenciaMensualRepositorio) {
+                               InscripcionMapper inscripcionMapper, AsistenciaMensualRepositorio asistenciaMensualRepositorio, AsistenciaMensualServicio asistenciaMensualServicio) {
         this.inscripcionRepositorio = inscripcionRepositorio;
         this.alumnoRepositorio = alumnoRepositorio;
         this.disciplinaRepositorio = disciplinaRepositorio;
         this.bonificacionRepositorio = bonificacionRepositorio;
         this.inscripcionMapper = inscripcionMapper;
         this.asistenciaMensualRepositorio = asistenciaMensualRepositorio;
+        this.asistenciaMensualServicio = asistenciaMensualServicio;
     }
 
     /**
@@ -48,7 +51,7 @@ public class InscripcionServicio implements IInscripcionServicio {
      */
     @Transactional
     public InscripcionResponse crearInscripcion(InscripcionRegistroRequest request) {
-        log.info("Registrando inscripcion para alumnoId: {} en disciplinaId: {}",
+        log.info("Registrando inscripción para alumnoId: {} en disciplinaId: {}",
                 request.alumnoId(), request.inscripcion().disciplinaId());
 
         Alumno alumno = alumnoRepositorio.findById(request.alumnoId())
@@ -67,7 +70,7 @@ public class InscripcionServicio implements IInscripcionServicio {
                     .orElse(null);
         }
 
-        // Convertir request -> entidad base (sin asignar fecha todavia)
+        // Convertir request -> entidad (sin asignar fecha aún)
         Inscripcion inscripcion = inscripcionMapper.toEntity(request);
         inscripcion.setAlumno(alumno);
         inscripcion.setDisciplina(disciplina);
@@ -80,12 +83,22 @@ public class InscripcionServicio implements IInscripcionServicio {
             inscripcion.setFechaInscripcion(request.fechaInscripcion());
         }
 
-        // Guardar
+        // Guardar inscripción
         Inscripcion guardada = inscripcionRepositorio.save(inscripcion);
+        log.info("Inscripción guardada con ID: {}", guardada.getId());
+
+        // NUEVA LÓGICA: Verificar si es la primera inscripción activa para la disciplina.
+        List<Inscripcion> inscripcionesActivas = inscripcionRepositorio
+                .findAllByDisciplina_IdAndEstado(disciplina.getId(), EstadoInscripcion.ACTIVA);
+        if (inscripcionesActivas.size() == 1) { // Es la primera inscripción activa
+            int mes = LocalDate.now().getMonthValue();
+            int anio = LocalDate.now().getYear();
+            log.info("Primera inscripción activa en la disciplina. Creando asistencia mensual para {}/{}.", mes, anio);
+            asistenciaMensualServicio.crearAsistenciaPorDisciplina(disciplina.getId(), mes, anio);
+        }
 
         return inscripcionMapper.toDTO(guardada);
     }
-
 
     /**
      * ✅ Obtener una inscripcion por ID.

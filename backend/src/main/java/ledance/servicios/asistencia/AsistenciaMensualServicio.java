@@ -5,16 +5,10 @@ import ledance.dto.asistencia.request.AsistenciaMensualRegistroRequest;
 import ledance.dto.asistencia.response.AsistenciaMensualDetalleResponse;
 import ledance.dto.asistencia.response.AsistenciaMensualListadoResponse;
 import ledance.dto.asistencia.AsistenciaMensualMapper;
-import ledance.entidades.AsistenciaMensual;
-import ledance.entidades.Alumno;
-import ledance.entidades.Disciplina;
-import ledance.entidades.Inscripcion;
-import ledance.entidades.ObservacionMensual;
-import ledance.entidades.EstadoInscripcion;
-import ledance.repositorios.AsistenciaMensualRepositorio;
-import ledance.repositorios.DisciplinaRepositorio;
-import ledance.repositorios.InscripcionRepositorio;
-import ledance.repositorios.AlumnoRepositorio;
+import ledance.entidades.*;
+import ledance.repositorios.*;
+import ledance.servicios.disciplina.DisciplinaServicio;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +26,8 @@ public class AsistenciaMensualServicio {
     private final AsistenciaMensualMapper asistenciaMensualMapper;
     private final AlumnoRepositorio alumnoRepositorio;
     private final AsistenciaDiariaServicio asistenciaDiariaServicio;
+    private final AsistenciaDiariaRepositorio asistenciaDiariaRepositorio;
+    private final DisciplinaServicio disciplinaServicio;
 
     public AsistenciaMensualServicio(
             AsistenciaMensualRepositorio asistenciaMensualRepositorio,
@@ -39,24 +35,23 @@ public class AsistenciaMensualServicio {
             DisciplinaRepositorio disciplinaRepositorio,
             AsistenciaMensualMapper asistenciaMensualMapper,
             AlumnoRepositorio alumnoRepositorio,
-            AsistenciaDiariaServicio asistenciaDiariaServicio) {
+            @Lazy AsistenciaDiariaServicio asistenciaDiariaServicio,
+            AsistenciaDiariaRepositorio asistenciaDiariaRepositorio,
+            @Lazy DisciplinaServicio disciplinaServicio) {  // <-- Marcar esta dependencia como @Lazy
         this.asistenciaMensualRepositorio = asistenciaMensualRepositorio;
         this.inscripcionRepositorio = inscripcionRepositorio;
         this.disciplinaRepositorio = disciplinaRepositorio;
         this.asistenciaMensualMapper = asistenciaMensualMapper;
         this.alumnoRepositorio = alumnoRepositorio;
         this.asistenciaDiariaServicio = asistenciaDiariaServicio;
+        this.asistenciaDiariaRepositorio = asistenciaDiariaRepositorio;
+        this.disciplinaServicio = disciplinaServicio;
     }
 
-    /**
-     * Registra una nueva asistencia mensual para una inscripción y genera las asistencias diarias correspondientes.
-     */
     @Transactional
     public AsistenciaMensualDetalleResponse registrarAsistenciaMensual(AsistenciaMensualRegistroRequest request) {
         Inscripcion inscripcion = inscripcionRepositorio.findById(request.inscripcionId())
                 .orElseThrow(() -> new IllegalArgumentException("No se encontró la inscripción con ID: " + request.inscripcionId()));
-
-        // Aquí se puede validar que el mes tenga clases, usando la configuración de la disciplina.
 
         AsistenciaMensual asistenciaMensual = new AsistenciaMensual();
         asistenciaMensual.setMes(request.mes());
@@ -64,32 +59,22 @@ public class AsistenciaMensualServicio {
         asistenciaMensual.setInscripcion(inscripcion);
         asistenciaMensual = asistenciaMensualRepositorio.save(asistenciaMensual);
 
-        // Se generan las asistencias diarias para la inscripción (la lógica real puede calcular los días de clase)
         asistenciaDiariaServicio.registrarAsistenciasParaNuevoAlumno(inscripcion.getId());
 
         return asistenciaMensualMapper.toDetalleDTO(asistenciaMensual);
     }
 
-    /**
-     * Actualiza una asistencia mensual, incluyendo la actualización de observaciones.
-     */
     @Transactional
     public AsistenciaMensualDetalleResponse actualizarAsistenciaMensual(Long id, AsistenciaMensualModificacionRequest request) {
         AsistenciaMensual existente = asistenciaMensualRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("No existe AsistenciaMensual con ID: " + id));
 
-        // Actualización centralizada de observaciones
         actualizarObservaciones(existente, request.observacionesAlumnos());
-
-        // Actualiza los campos modificables mediante el mapper (los campos críticos se ignoran)
         asistenciaMensualMapper.updateEntityFromRequest(request, existente);
         AsistenciaMensual actualizada = asistenciaMensualRepositorio.save(existente);
         return asistenciaMensualMapper.toDetalleDTO(actualizada);
     }
 
-    /**
-     * Método auxiliar para actualizar las observaciones.
-     */
     private void actualizarObservaciones(AsistenciaMensual asistenciaMensual, Map<Long, String> observacionesMap) {
         if (observacionesMap == null) return;
         for (Map.Entry<Long, String> entry : observacionesMap.entrySet()) {
@@ -113,9 +98,6 @@ public class AsistenciaMensualServicio {
         }
     }
 
-    /**
-     * Recupera las asistencias mensuales filtradas por profesor, disciplina, mes y año.
-     */
     @Transactional(readOnly = true)
     public List<AsistenciaMensualListadoResponse> listarAsistenciasMensuales(Long profesorId, Long disciplinaId, Integer mes, Integer anio) {
         List<AsistenciaMensual> asistencias = asistenciaMensualRepositorio.buscarAsistencias(profesorId, disciplinaId, mes, anio);
@@ -125,8 +107,32 @@ public class AsistenciaMensualServicio {
     }
 
     /**
-     * Crea asistencias mensuales automáticamente para todas las inscripciones activas de cada disciplina.
+     * Método para generar asistencias mensuales bajo demanda.
+     * Se utiliza, por ejemplo, cuando se inscribe el primer alumno en la disciplina.
      */
+    @Transactional
+    public AsistenciaMensualDetalleResponse crearAsistenciaPorDisciplina(Long disciplinaId, int mes, int anio) {
+        Optional<AsistenciaMensual> asistenciaExistente = asistenciaMensualRepositorio
+                .findByInscripcion_Disciplina_IdAndMesAndAnio(disciplinaId, mes, anio)
+                .stream()
+                .findFirst();
+        if (asistenciaExistente.isPresent()) {
+            throw new IllegalStateException("Ya existe una asistencia mensual para los parámetros especificados.");
+        }
+        List<Inscripcion> inscripcionesActivas = inscripcionRepositorio.findAllByDisciplinaIdAndEstado(disciplinaId, EstadoInscripcion.ACTIVA);
+        if (inscripcionesActivas.isEmpty()) {
+            throw new IllegalArgumentException("No existen inscripciones activas para la disciplina con ID: " + disciplinaId);
+        }
+        // Se crea la asistencia para la primera inscripción activa
+        AsistenciaMensual nuevaAsistencia = new AsistenciaMensual();
+        nuevaAsistencia.setMes(mes);
+        nuevaAsistencia.setAnio(anio);
+        nuevaAsistencia.setInscripcion(inscripcionesActivas.get(0));
+        nuevaAsistencia = asistenciaMensualRepositorio.save(nuevaAsistencia);
+        asistenciaDiariaServicio.registrarAsistenciasParaNuevoAlumno(inscripcionesActivas.get(0).getId());
+        return asistenciaMensualMapper.toDetalleDTO(nuevaAsistencia);
+    }
+
     @Transactional
     public void crearAsistenciasMensualesAutomaticamente() {
         LocalDate now = LocalDate.now();
@@ -148,9 +154,6 @@ public class AsistenciaMensualServicio {
         }
     }
 
-    /**
-     * Recupera la asistencia mensual para una disciplina (a través de la inscripción) para un mes y año determinados.
-     */
     @Transactional(readOnly = true)
     public AsistenciaMensualDetalleResponse obtenerAsistenciaMensualPorParametros(Long disciplinaId, int mes, int anio) {
         Optional<AsistenciaMensual> asistenciaExistente = asistenciaMensualRepositorio
@@ -162,30 +165,35 @@ public class AsistenciaMensualServicio {
                 .orElseThrow(() -> new NoSuchElementException("No se encontró asistencia mensual para los parámetros especificados (Disciplina ID: " + disciplinaId + ", mes: " + mes + ", anio: " + anio + ")"));
     }
 
-    /**
-     * Crea asistencia mensual para la primera inscripción activa de una disciplina dada.
-     */
     @Transactional
-    public AsistenciaMensualDetalleResponse crearAsistenciaPorDisciplina(Long disciplinaId, int mes, int anio) {
-        Optional<AsistenciaMensual> asistenciaExistente = asistenciaMensualRepositorio
-                .findByInscripcion_Disciplina_IdAndMesAndAnio(disciplinaId, mes, anio)
-                .stream()
-                .findFirst();
-        if (asistenciaExistente.isPresent()) {
-            throw new IllegalStateException("Ya existe una asistencia mensual para los parámetros especificados.");
-        }
+    public void actualizarAsistenciasPorCambioHorario(Long disciplinaId, LocalDate fechaCambio) {
+        int mes = fechaCambio.getMonthValue();
+        int anio = fechaCambio.getYear();
+
+        // Obtenemos todas las inscripciones activas de la disciplina
         List<Inscripcion> inscripcionesActivas = inscripcionRepositorio.findAllByDisciplinaIdAndEstado(disciplinaId, EstadoInscripcion.ACTIVA);
-        if (inscripcionesActivas.isEmpty()) {
-            throw new IllegalArgumentException("No existen inscripciones activas para la disciplina con ID: " + disciplinaId);
+
+        for (Inscripcion inscripcion : inscripcionesActivas) {
+            Optional<AsistenciaMensual> optionalAsistencia = asistenciaMensualRepositorio
+                    .findByInscripcionAndMesAndAnio(inscripcion, mes, anio);
+            if (optionalAsistencia.isPresent()) {
+                AsistenciaMensual am = optionalAsistencia.get();
+
+                // BORRAR de forma directa todas las asistencias diarias para este registro
+                // cuya fecha sea mayor o igual a fechaCambio.
+                asistenciaDiariaRepositorio.deleteByAsistenciaMensualIdAndFechaGreaterThanEqual(am.getId(), fechaCambio);
+
+                // Recalcular las nuevas fechas de clase para el mes (filtrando desde fechaCambio)
+                List<LocalDate> nuevasFechas = disciplinaServicio.obtenerDiasClase(disciplinaId, mes, anio).stream()
+                        .filter(f -> !f.isBefore(fechaCambio))
+                        .collect(Collectors.toList());
+
+                // Crear las nuevas asistencias diarias
+                List<AsistenciaDiaria> nuevasAsistencias = nuevasFechas.stream()
+                        .map(f -> new AsistenciaDiaria(null, f, EstadoAsistencia.AUSENTE, inscripcion.getAlumno(), am, null))
+                        .collect(Collectors.toList());
+                asistenciaDiariaRepositorio.saveAll(nuevasAsistencias);
+            }
         }
-        // Para este ejemplo, se crea la asistencia para la primera inscripción activa
-        AsistenciaMensual nuevaAsistencia = new AsistenciaMensual();
-        nuevaAsistencia.setMes(mes);
-        nuevaAsistencia.setAnio(anio);
-        nuevaAsistencia.setInscripcion(inscripcionesActivas.get(0));
-        nuevaAsistencia = asistenciaMensualRepositorio.save(nuevaAsistencia);
-        // Se generan las asistencias diarias correspondientes para esa inscripción
-        asistenciaDiariaServicio.registrarAsistenciasParaNuevoAlumno(inscripcionesActivas.get(0).getId());
-        return asistenciaMensualMapper.toDetalleDTO(nuevaAsistencia);
     }
 }

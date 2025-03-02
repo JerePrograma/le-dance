@@ -77,16 +77,6 @@ public interface IDisciplinaServicio {
     List<LocalDate> obtenerDiasClase(Long disciplinaId, Integer mes, Integer anio);
 
     /**
-     * ✅ Crear horarios individuales para una disciplina.
-     */
-    void crearHorarios(Long disciplinaId, List<DisciplinaHorarioRequest> horarios);
-
-    /**
-     * ✅ Actualizar horarios individuales de una disciplina.
-     */
-    void actualizarHorarios(Long disciplinaId, List<DisciplinaHorarioRequest> horarios);
-
-    /**
      * ✅ Obtener los horarios de una disciplina específica.
      */
     List<DisciplinaHorarioResponse> obtenerHorarios(Long disciplinaId);

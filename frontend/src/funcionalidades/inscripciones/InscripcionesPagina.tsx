@@ -99,19 +99,20 @@ const InscripcionesPagina = () => {
             "Acciones",
           ]}
           datos={currentItems}
-          extraRender={(fila) => [
-            fila.id,
-            fila.alumno.id,
-            fila.disciplina.id,
-            fila.bonificacion ? fila.bonificacion.descripcion : "N/A",
-            fila.notas || "-",
-          ]}
+          extraRender={(fila) => {
+            if (!fila) return [];
+            return [
+              fila.id ?? "",
+              fila.alumno?.id ?? "Sin alumno",
+              fila.disciplina?.id ?? "Sin disciplina",
+              fila.bonificacion ? fila.bonificacion.descripcion : "N/A",
+              fila.notas || "-",
+            ];
+          }}
           acciones={(fila) => (
             <div className="flex gap-2">
               <Boton
-                onClick={() =>
-                  navigate(`/inscripciones/formulario?id=${fila.id}`)
-                }
+                onClick={() => navigate(`/inscripciones/formulario?id=${fila.id}`)}
                 className="page-button-secondary"
               >
                 <Pencil className="w-4 h-4 mr-2" />

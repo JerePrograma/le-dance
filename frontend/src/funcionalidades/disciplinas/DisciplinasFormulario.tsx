@@ -13,42 +13,29 @@ import salonesApi from "../../api/salonesApi";
 import profesoresApi from "../../api/profesoresApi";
 import conceptosApi from "../../api/conceptosApi";
 
-// Tipos (ajusta según tu proyecto)
+// Tipos
 import type {
   DisciplinaRegistroRequest,
   DisciplinaModificacionRequest,
   SalonResponse,
   ProfesorListadoResponse,
-  DiaSemana,
-  DisciplinaResponse,
-  DisciplinaHorarioRequest
+  DisciplinaHorarioRequest,
+  DisciplinaDetalleResponse
 } from "../../types/types";
 
-// Lista de días (puedes ajustar según tus necesidades)
-const diasSemana: DiaSemana[] = [
-  "LUNES",
-  "MARTES",
-  "MIERCOLES",
-  "JUEVES",
-  "VIERNES",
-  "SABADO",
-  "DOMINGO",
-];
+const diasSemana: string[] = ["LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO", "DOMINGO"];
 
-// Valores iniciales para el formulario de disciplina.
-// Se han eliminado los campos individuales para horarios y se agrega "horarios" como arreglo.
 const initialDisciplinaValues: DisciplinaRegistroRequest & Partial<DisciplinaModificacionRequest> = {
   nombre: "",
   salonId: 0,
   profesorId: 0,
   recargoId: undefined,
   valorCuota: 0,
-  matricula: 0, // Se fijará automáticamente con el valor del concepto "MATRICULA"
+  matricula: 0,
   claseSuelta: undefined,
   clasePrueba: undefined,
   activo: true,
-  // Nuevo campo: lista de horarios (vacío por defecto)
-  horarios: [],
+  horarios: [] as DisciplinaHorarioRequest[],
 };
 
 const disciplinaSchema = Yup.object().shape({
@@ -58,10 +45,11 @@ const disciplinaSchema = Yup.object().shape({
   valorCuota: Yup.number().positive().required("El valor de la cuota es obligatorio"),
   matricula: Yup.number().min(0).required("El valor de la matrícula es obligatorio"),
   activo: Yup.boolean().required("El estado activo es obligatorio"),
-  // Validación para el arreglo de horarios: al menos uno debe existir y cada uno debe tener sus campos
   horarios: Yup.array()
     .of(
       Yup.object().shape({
+        // El campo "id" es opcional para identificar elementos existentes
+        id: Yup.number().optional(),
         diaSemana: Yup.string().required("El día es obligatorio"),
         horarioInicio: Yup.string().required("El horario de inicio es obligatorio"),
         duracion: Yup.number().positive().required("La duración es obligatoria"),
@@ -81,11 +69,8 @@ const DisciplinasFormulario: React.FC = () => {
 
   const [salones, setSalones] = useState<SalonResponse[]>([]);
   const [profesores, setProfesores] = useState<ProfesorListadoResponse[]>([]);
-
-  // Estado para el valor de matrícula obtenido desde el Concepto "MATRICULA"
   const [matricula, setMatricula] = useState<number>(0);
 
-  // Cargar salones y profesores
   const fetchSalones = useCallback(async () => {
     try {
       const response = await salonesApi.listarSalones();
@@ -111,7 +96,6 @@ const DisciplinasFormulario: React.FC = () => {
     fetchProfesores();
   }, [fetchSalones, fetchProfesores]);
 
-  // Función para obtener la matrícula (valor del Concepto con descripción "MATRICULA")
   const fetchMatricula = useCallback(async () => {
     try {
       const conceptos = await conceptosApi.listarConceptos();
@@ -119,10 +103,8 @@ const DisciplinasFormulario: React.FC = () => {
         (concepto) => concepto.descripcion.toUpperCase() === "MATRICULA"
       );
       if (matriculaConcepto) {
-        console.log("Concepto 'MATRICULA' encontrado:", matriculaConcepto);
         setMatricula(matriculaConcepto.precio);
       } else {
-        console.warn("No se encontró el concepto 'MATRICULA'.");
         setMatricula(0);
       }
     } catch (error) {
@@ -130,28 +112,29 @@ const DisciplinasFormulario: React.FC = () => {
     }
   }, []);
 
-  // Cargar la matrícula y, si hay id de disciplina en la URL, cargar la disciplina para edición
+  const mapDetalleToFormValues = (detalle: any) => ({
+    nombre: detalle.nombre,
+    salonId: detalle.salonId, // Asegúrate de que este campo existe en la respuesta real
+    profesorId: detalle.profesorId ?? 0,
+    recargoId: detalle.recargoId,
+    valorCuota: detalle.valorCuota,
+    matricula: detalle.matricula,
+    claseSuelta: detalle.claseSuelta,
+    clasePrueba: detalle.clasePrueba,
+    activo: detalle.activo,
+    horarios: detalle.horarios, // Se espera que la API envíe este arreglo
+  }); 1
+
   useEffect(() => {
     fetchMatricula();
     const idParam = searchParams.get("id");
     if (idParam) {
       const fetchDisciplina = async () => {
         try {
-          const disciplina: DisciplinaResponse = await disciplinasApi.obtenerDisciplinaPorId(Number(idParam));
-          // Asumimos que el backend ahora retorna "horarios" como arreglo de objetos
-          setFormValues({
-            nombre: disciplina.nombre,
-            salonId: disciplina.salonId,
-            profesorId: disciplina.profesorId,
-            recargoId: disciplina.recargoId,
-            valorCuota: disciplina.valorCuota,
-            matricula: disciplina.matricula,
-            claseSuelta: disciplina.claseSuelta,
-            clasePrueba: disciplina.clasePrueba,
-            activo: disciplina.activo,
-            horarios: disciplina.horarios, // Se espera un arreglo de horarios
-          });
-          setDisciplinaId(disciplina.id);
+          const detalle: DisciplinaDetalleResponse = await disciplinasApi.obtenerDisciplinaPorId(Number(idParam));
+          const disciplinaForm = mapDetalleToFormValues(detalle);
+          setFormValues(disciplinaForm);
+          setDisciplinaId(detalle.id);
           setMensaje("Disciplina encontrada.");
         } catch (error) {
           console.error("Error al buscar la disciplina:", error);
@@ -164,19 +147,18 @@ const DisciplinasFormulario: React.FC = () => {
     }
   }, [searchParams, fetchMatricula]);
 
-  // Al enviar, forzamos que el valor de matrícula sea el obtenido desde el concepto "MATRICULA"
   const handleSubmit = useCallback(
     async (values: DisciplinaRegistroRequest) => {
       try {
         const payload: DisciplinaRegistroRequest & Partial<DisciplinaModificacionRequest> = {
           ...values,
-          matricula, // Forzamos el valor de matrícula obtenido del concepto
+          matricula,
         };
         if (disciplinaId) {
-          await disciplinasApi.actualizarDisciplina(disciplinaId, {
-            ...payload,
-            activo: true,
-          } as DisciplinaModificacionRequest);
+          await disciplinasApi.actualizarDisciplina(
+            disciplinaId,
+            { ...payload, activo: true } as DisciplinaModificacionRequest
+          );
           toast.success("Disciplina actualizada correctamente.");
         } else {
           const nuevo = await disciplinasApi.registrarDisciplina(payload);
@@ -197,9 +179,7 @@ const DisciplinasFormulario: React.FC = () => {
     <div className="page-container">
       <h1 className="page-title">Formulario de Disciplina</h1>
       <div className="mb-4">
-        <label htmlFor="idBusqueda" className="auth-label">
-          ID de Disciplina:
-        </label>
+        <label htmlFor="idBusqueda" className="auth-label">ID de Disciplina:</label>
         <div className="flex gap-2">
           <input
             type="number"
@@ -209,41 +189,32 @@ const DisciplinasFormulario: React.FC = () => {
             className="form-input flex-grow"
           />
           <Boton onClick={() => { /* Lógica de búsqueda manual si se requiere */ }} className="page-button">
-            <Search className="w-5 h-5 mr-2" />
-            Buscar
+            <Search className="w-5 h-5 mr-2" /> Buscar
           </Boton>
         </div>
       </div>
-
       {mensaje && (
         <p className={`form-mensaje ${mensaje.includes("Error") ? "form-mensaje-error" : "form-mensaje-success"}`}>
           {mensaje}
         </p>
       )}
-
       <Formik
         initialValues={{ ...formValues, matricula }}
         validationSchema={disciplinaSchema}
         onSubmit={handleSubmit}
         enableReinitialize
       >
-        {({ values, isSubmitting }) => (
+        {({ isSubmitting, values }) => (
           <Form className="formulario max-w-4xl mx-auto">
             <div className="form-grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Campo para el nombre */}
+              {/* Campos básicos */}
               <div className="mb-4">
-                <label htmlFor="nombre" className="auth-label">
-                  Nombre:
-                </label>
+                <label htmlFor="nombre" className="auth-label">Nombre:</label>
                 <Field name="nombre" type="text" className="form-input" />
                 <ErrorMessage name="nombre" component="div" className="auth-error" />
               </div>
-
-              {/* Campo para seleccionar Salón */}
               <div className="mb-4">
-                <label htmlFor="salonId" className="auth-label">
-                  Salón:
-                </label>
+                <label htmlFor="salonId" className="auth-label">Salón:</label>
                 <Field as="select" name="salonId" className="form-input">
                   <option value="">Seleccione un salón</option>
                   {salones.map((salon) => (
@@ -254,12 +225,8 @@ const DisciplinasFormulario: React.FC = () => {
                 </Field>
                 <ErrorMessage name="salonId" component="div" className="auth-error" />
               </div>
-
-              {/* Campo para seleccionar Profesor */}
               <div className="mb-4">
-                <label htmlFor="profesorId" className="auth-label">
-                  Profesor:
-                </label>
+                <label htmlFor="profesorId" className="auth-label">Profesor:</label>
                 <Field as="select" name="profesorId" className="form-input">
                   <option value="">Seleccione un profesor</option>
                   {profesores.map((profesor) => (
@@ -270,35 +237,21 @@ const DisciplinasFormulario: React.FC = () => {
                 </Field>
                 <ErrorMessage name="profesorId" component="div" className="auth-error" />
               </div>
-
-              {/* Campo para Valor de Cuota */}
               <div className="mb-4">
-                <label htmlFor="valorCuota" className="auth-label">
-                  Valor de Cuota:
-                </label>
+                <label htmlFor="valorCuota" className="auth-label">Valor de Cuota:</label>
                 <Field name="valorCuota" type="number" step="0.01" className="form-input" />
                 <ErrorMessage name="valorCuota" component="div" className="auth-error" />
               </div>
-
-              {/* Campo para Clase Suelta */}
               <div className="mb-4">
-                <label htmlFor="claseSuelta" className="auth-label">
-                  Clase Suelta:
-                </label>
+                <label htmlFor="claseSuelta" className="auth-label">Clase Suelta:</label>
                 <Field name="claseSuelta" type="number" step="0.01" className="form-input" />
                 <ErrorMessage name="claseSuelta" component="div" className="auth-error" />
               </div>
-
-              {/* Campo para Clase de Prueba */}
               <div className="mb-4">
-                <label htmlFor="clasePrueba" className="auth-label">
-                  Clase de Prueba:
-                </label>
+                <label htmlFor="clasePrueba" className="auth-label">Clase de Prueba:</label>
                 <Field name="clasePrueba" type="number" step="0.01" className="form-input" />
                 <ErrorMessage name="clasePrueba" component="div" className="auth-error" />
               </div>
-
-              {/* Checkbox para activo (solo en edición) */}
               {disciplinaId !== null && (
                 <div className="mb-4">
                   <label className="flex items-center">
@@ -308,49 +261,61 @@ const DisciplinasFormulario: React.FC = () => {
                   <ErrorMessage name="activo" component="div" className="auth-error" />
                 </div>
               )}
-
-              {/* Campo para Horarios: usando FieldArray */}
+              {/* FieldArray para Horarios */}
               <div className="mb-4 col-span-1 sm:col-span-2">
                 <label className="auth-label">Horarios de Clase:</label>
                 <FieldArray name="horarios">
-                  {({ push, remove, form }) => (
+                  {({ push, remove }) => (
                     <div>
-                      {form.values.horarios && form.values.horarios.length > 0 ? (
-                        form.values.horarios.map((horario: any, index: number) => (
-                          <div key={index} className="flex flex-col sm:flex-row gap-2 items-end mb-2 border p-2 rounded">
-                            <div className="flex-1">
-                              <label className="block text-sm font-medium">Día</label>
+                      {values.horarios && values.horarios.length > 0 ? (
+                        values.horarios.map((horario: DisciplinaHorarioRequest, index: number) => (
+                          <div key={index} className="horario-item border p-2 mb-2">
+                            {horario.id !== undefined && (
+                              <Field name={`horarios.${index}.id`} type="hidden" />
+                            )}
+                            <div className="mb-2">
+                              <label>Dia:</label>
                               <Field as="select" name={`horarios.${index}.diaSemana`} className="form-input">
-                                <option value="">Seleccione un día</option>
+                                <option value="">Seleccione</option>
                                 {diasSemana.map((dia) => (
                                   <option key={dia} value={dia}>
                                     {dia}
                                   </option>
                                 ))}
                               </Field>
-                              <ErrorMessage name={`horarios.${index}.diaSemana`} component="div" className="text-red-500 text-xs" />
+                              <ErrorMessage name={`horarios.${index}.diaSemana`} component="div" className="auth-error" />
                             </div>
-                            <div className="flex-1">
-                              <label className="block text-sm font-medium">Horario de Inicio</label>
+                            <div className="mb-2">
+                              <label>Horario Inicio:</label>
                               <Field name={`horarios.${index}.horarioInicio`} type="time" className="form-input" />
-                              <ErrorMessage name={`horarios.${index}.horarioInicio`} component="div" className="text-red-500 text-xs" />
+                              <ErrorMessage name={`horarios.${index}.horarioInicio`} component="div" className="auth-error" />
                             </div>
-                            <div className="flex-1">
-                              <label className="block text-sm font-medium">Duración (horas)</label>
-                              <Field name={`horarios.${index}.duracion`} type="number" step="0.5" className="form-input" />
-                              <ErrorMessage name={`horarios.${index}.duracion`} component="div" className="text-red-500 text-xs" />
+                            <div className="mb-2">
+                              <label>Duración (horas):</label>
+                              <Field name={`horarios.${index}.duracion`} type="number" step="0.1" className="form-input" />
+                              <ErrorMessage name={`horarios.${index}.duracion`} component="div" className="auth-error" />
                             </div>
-                            <div>
-                              <Boton type="button" onClick={() => remove(index)} className="bg-red-500 text-white px-2 py-1 rounded">
-                                Eliminar
+                            <div className="flex justify-end">
+                              <Boton type="button" onClick={() => remove(index)} className="page-button-secondary">
+                                Eliminar Horario
                               </Boton>
                             </div>
                           </div>
                         ))
                       ) : (
-                        <p className="text-sm text-gray-500">No se han agregado horarios.</p>
+                        <div>No hay horarios agregados.</div>
                       )}
-                      <Boton type="button" onClick={() => push({ diaSemana: "", horarioInicio: "", duracion: 1 })} className="bg-blue-500 text-white px-2 py-1 rounded mt-2">
+                      <Boton
+                        type="button"
+                        onClick={() =>
+                          push({
+                            diaSemana: "",
+                            horarioInicio: "",
+                            duracion: 0,
+                          })
+                        }
+                        className="page-button"
+                      >
                         Agregar Horario
                       </Boton>
                     </div>
@@ -358,7 +323,6 @@ const DisciplinasFormulario: React.FC = () => {
                 </FieldArray>
               </div>
             </div>
-
             <div className="form-acciones">
               <Boton type="submit" className="page-button" disabled={isSubmitting}>
                 {disciplinaId ? "Actualizar" : "Crear"} Disciplina

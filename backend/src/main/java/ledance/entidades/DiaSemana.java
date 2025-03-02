@@ -1,17 +1,20 @@
 package ledance.entidades;
 
+import java.time.DayOfWeek;
+
 public enum DiaSemana {
     LUNES, MARTES, MIERCOLES, JUEVES, VIERNES, SABADO, DOMINGO;
 
-    public java.time.DayOfWeek toDayOfWeek() {
-        return switch (this) {
-            case LUNES -> java.time.DayOfWeek.MONDAY;
-            case MARTES -> java.time.DayOfWeek.TUESDAY;
-            case MIERCOLES -> java.time.DayOfWeek.WEDNESDAY;
-            case JUEVES -> java.time.DayOfWeek.THURSDAY;
-            case VIERNES -> java.time.DayOfWeek.FRIDAY;
-            case SABADO -> java.time.DayOfWeek.SATURDAY;
-            case DOMINGO -> java.time.DayOfWeek.SUNDAY;
-        };
+    public DayOfWeek toDayOfWeek() {
+        switch (this) {
+            case LUNES: return DayOfWeek.MONDAY;
+            case MARTES: return DayOfWeek.TUESDAY;
+            case MIERCOLES: return DayOfWeek.WEDNESDAY;
+            case JUEVES: return DayOfWeek.THURSDAY;
+            case VIERNES: return DayOfWeek.FRIDAY;
+            case SABADO: return DayOfWeek.SATURDAY;
+            case DOMINGO: return DayOfWeek.SUNDAY;
+            default: throw new IllegalArgumentException("Día inválido");
+        }
     }
 }

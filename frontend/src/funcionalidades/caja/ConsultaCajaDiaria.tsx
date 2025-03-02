@@ -11,7 +11,7 @@ interface MetodoPago {
 }
 
 interface PagoDelDia {
-    id: number; // Recibo
+    id: number;
     alumno: {
         id: number;
         nombre: string;
@@ -19,14 +19,14 @@ interface PagoDelDia {
     };
     observaciones: string;
     monto: number;
-    metodoPago: MetodoPago | null;
+    metodoPago?: MetodoPago | null; // ahora es opcional
 }
 
 interface EgresoDelDia {
     id: number;
     fecha: string;
     monto: number;
-    observaciones: string;
+    observaciones?: string; // Ahora es opcional
 }
 
 interface CajaDetalleDTO {
@@ -53,7 +53,21 @@ const ConsultaCajaDiaria: React.FC = () => {
         try {
             setLoading(true);
             const detalle = await cajaApi.obtenerCajaDiaria(fecha);
-            setData(detalle);
+
+            // Mapear pagosDelDia para asegurarse que cada objeto tenga la estructura esperada
+            const mappedDetalle: CajaDetalleDTO = {
+                ...detalle,
+                pagosDelDia: detalle.pagosDelDia.map((p: any) => ({
+                    ...p,
+                    alumno: p.alumno ?? { id: 0, nombre: "", apellido: "" },
+                })),
+                egresosDelDia: detalle.egresosDelDia.map((egreso: any) => ({
+                    ...egreso,
+                    observaciones: egreso.observaciones ?? "",
+                })),
+            };
+
+            setData(mappedDetalle);
         } catch (err) {
             toast.error("Error al consultar la caja diaria.");
             console.error(err);

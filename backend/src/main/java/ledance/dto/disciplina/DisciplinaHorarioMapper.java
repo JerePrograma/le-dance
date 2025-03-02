@@ -24,6 +24,13 @@ public interface DisciplinaHorarioMapper {
         return horarios.stream().map(this::toResponse).collect(Collectors.toList());
     }
 
-    @Mapping(target = "id", ignore = true)
-    DisciplinaHorario toEntity(DisciplinaHorarioRequest request);
+    default DisciplinaHorario toEntity(DisciplinaHorarioRequest request) {
+        DisciplinaHorario horario = new DisciplinaHorario();
+        horario.setDiaSemana(request.diaSemana());
+        horario.setHorarioInicio(request.horarioInicio());
+        horario.setDuracion(request.duracion());
+        // No asignamos disciplina aquí, se hará en el servicio.
+        return horario;
+    }
+
 }

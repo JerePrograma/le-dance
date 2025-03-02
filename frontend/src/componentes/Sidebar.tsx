@@ -7,13 +7,14 @@ import { cn } from "./lib/utils"
 import { navigationItems } from "../config/navigation"
 
 interface NavItemProps {
-    icon?: React.ElementType
-    label: string
-    href?: string
-    isActive?: boolean
-    isExpanded: boolean
-    onClick?: () => void
-    className?: string
+    icon?: React.ElementType;
+    label: string;
+    href?: string;
+    isActive?: boolean;
+    isExpanded: boolean;
+    onClick?: () => void;
+    className?: string;
+    children?: React.ReactNode; // Agregado
 }
 
 const NavItem = ({ icon: Icon, label, href, isActive = false, isExpanded, onClick, className }: NavItemProps) => {
@@ -58,7 +59,7 @@ interface NavGroupProps {
     level?: number
 }
 
-const NavGroup = ({ item, isExpanded, level = 0 }: NavGroupProps) => {
+const NavGroup = ({ item, isExpanded }: NavGroupProps) => {
     const location = useLocation()
     const isActive = item.href ? location.pathname.startsWith(item.href) : false
 
@@ -93,7 +94,6 @@ const NavGroup = ({ item, isExpanded, level = 0 }: NavGroupProps) => {
 
 export default function Sidebar() {
     const { isExpanded, toggleSidebar } = useSidebar()
-    const location = useLocation()
 
     return (
         <aside

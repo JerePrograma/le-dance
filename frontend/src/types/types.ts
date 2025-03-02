@@ -179,9 +179,10 @@ export interface ProfesorListadoResponse {
 // DISCIPLINA
 // ==========================================
 export interface DisciplinaHorarioRequest {
-  diaSemana: DiaSemana;      // Por ejemplo, "LUNES", "MARTES", etc.
-  horarioInicio: LocalTime;  // En formato "HH:mm"
-  duracion: number;          // En horas (o minutos, según lo que decidas)
+  id?: number;
+  diaSemana: DiaSemana;
+  horarioInicio: LocalTime;
+  duracion: number;
 }
 
 export interface DisciplinaRegistroRequest {
@@ -216,6 +217,10 @@ export interface DisciplinaModificacionRequest {
 }
 
 export interface DisciplinaResponse {
+  salonId: number;
+  recargoId: number | undefined;
+  claseSuelta: number | undefined;
+  clasePrueba: number | undefined;
   id: number;
   nombre: string;
   // Si se devuelve la lista de horarios, por ejemplo:
@@ -230,9 +235,10 @@ export interface DisciplinaResponse {
 }
 
 export interface DisciplinaHorarioResponse {
-  id: number;
-  diaSemana: DiaSemana;
-  horarioInicio: LocalTime; // En formato "HH:mm" (o el que manejes)
+  // Define aquí las propiedades que tenga un horario, por ejemplo:
+  id?: number;
+  diaSemana: string;
+  horarioInicio: string;
   duracion: number;
 }
 
@@ -250,18 +256,19 @@ export interface DisciplinaListadoResponse {
 export interface DisciplinaDetalleResponse {
   id: number;
   nombre: string;
-  diasSemana: string[];
-  horarioInicio: string;
-  duracion: number;
   salon: string;
-  profesorNombre: string;
-  profesorApellido: string;
+  salonId: number; // Agregado
   valorCuota: number;
   matricula: number;
+  profesorNombre: string;
+  profesorApellido: string;
+  profesorId: number;
+  inscritos: number;
+  activo: boolean;
   claseSuelta?: number;
   clasePrueba?: number;
-  activo: boolean;
-  inscritos: number;
+  recargoId?: number; // Puedes marcarlo como opcional si puede ser undefined
+  horarios: DisciplinaHorarioResponse[]; // Agregado
 }
 
 // ==========================================
@@ -292,6 +299,8 @@ export interface AsistenciaDiariaResponse {
   alumnoId: number;
   asistenciaMensualId: number;
   observacion?: string;
+  alumnoNombre: string;   // <-- Agregado
+  alumnoApellido: string; // <-- Agregado
 }
 
 export interface AsistenciaMensualDetalleRequest {
@@ -721,6 +730,14 @@ export interface ConceptoResponse {
   subConcepto: SubConceptoResponse;
 }
 
+export interface SubConceptoRegistroRequest {
+  descripcion: string;
+}
+
+export interface SubConceptoModificacionRequest {
+  descripcion: string;
+}
+
 export interface SubConceptoResponse {
   id: number;
   descripcion: string;
@@ -772,16 +789,15 @@ export interface MetodoPagoResponse {
 export interface CobranzasFormValues {
   id: number;
   reciboNro: string;
-  alumno: string; // ID del alumno
-  inscripcionId: string; // ID de la inscripción
+  alumno: string;
+  inscripcionId: string;
   fecha: string;
-  // Se renombra "detalles" a "detallePagos"
   detallePagos: Array<{
-    codigoConcepto?: string;
+    id?: number | null; // <-- Permite null
+    codigoConcepto?: number;
     concepto: string;
     cuota?: string;
     valorBase: number;
-    // Se usan strings para ID, para facilitar la conversión en el formulario
     bonificacionId?: string;
     recargoId?: string;
     aFavor: number;
@@ -797,7 +813,7 @@ export interface CobranzasFormValues {
   conceptoSeleccionado: string;
   stockSeleccionado: string;
   cantidad: number;
-  totalCobrado: number; // Suma de lo ingresado en "aCobrar" de cada detalle
+  totalCobrado: number;
   metodoPagoId: string;
   observaciones: string;
   matriculaRemoved: boolean;
@@ -855,4 +871,21 @@ export interface ReporteMensualidadDTO {
   recargo: number;
   estado: string;
   disciplina: string;
+}
+
+
+export interface SalonRegistroRequest {
+  nombre: string;
+  descripcion: string;
+}
+
+export interface SalonModificacionRequest {
+  nombre: string;
+  descripcion: string;
+}
+
+export interface SalonResponse {
+  id: number;
+  nombre: string;
+  descripcion: string;
 }

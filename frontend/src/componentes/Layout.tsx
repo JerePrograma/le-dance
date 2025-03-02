@@ -1,6 +1,6 @@
 import type React from "react"
 import { ThemeProvider } from "./theme-provider"
-import Encabezado from "./comunes/Encabezado"
+import Encabezado from "./Header"
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (

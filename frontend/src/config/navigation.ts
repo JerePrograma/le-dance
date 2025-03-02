@@ -1,39 +1,22 @@
-// src/config/navigation.ts
-import {
-  Users,
-  Music,
-  GraduationCap,
-  ClipboardCheck,
-  Gift,
-  CreditCard,
-  BarChart3,
-  UserCog,
-  Shield,
-  ShoppingCart,
-  Tag,
-} from "lucide-react";
-import type React from "react";
+import { Users, Music, GraduationCap, ClipboardCheck, CreditCard, BarChart3, UserCog, Shield } from "lucide-react"
+import type { LucideIcon } from "lucide-react"
 
 export interface NavigationItem {
-  id: string;
-  icon?: React.ComponentType<React.SVGProps<SVGSVGElement>>;
-  label: string;
-  href?: string;
-  /** Subitems */
-  items?: NavigationItem[];
+  id: string
+  icon?: LucideIcon
+  label: string
+  href?: string
+  description?: string
+  items?: NavigationItem[]
 }
 
-/**
- * Ejemplo: "Administración" y "Caja" son
- * categorías con subitems. Profesores, Disciplinas, etc.
- * se dejan sueltos. Ajusta a tus rutas reales.
- */
 export const navigationItems: NavigationItem[] = [
   // CATEGORÍA "Administración"
   {
     id: "administracion",
     label: "Administración",
     icon: CreditCard,
+    description: "Gestión de pagos, stocks y configuraciones generales",
     items: [
       {
         id: "rendicion-general",
@@ -51,6 +34,12 @@ export const navigationItems: NavigationItem[] = [
         href: "/conceptos",
       },
       {
+        id: "subconceptos",
+        label: "Subconceptos",
+        href: "/subconceptos",
+        description: "Gestión de subconceptos para conceptos",
+      },
+      {
         id: "stock",
         label: "Stock",
         href: "/stocks",
@@ -63,7 +52,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: "generacion-cuotas",
         label: "Generación de Cuotas",
-        href: "/mensualidades", // ajusta si es tu ruta
+        href: "/mensualidades",
       },
     ],
   },
@@ -73,16 +62,17 @@ export const navigationItems: NavigationItem[] = [
     id: "caja",
     label: "Caja",
     icon: CreditCard,
+    description: "Control de ingresos y movimientos diarios",
     items: [
       {
         id: "cobranza",
         label: "Cobranza",
-        href: "/pagos/formulario", // tu ruta real
+        href: "/pagos/formulario",
       },
       {
         id: "liquidacion",
         label: "Liquidacion",
-        href: "/liquidacion", // tu ruta real
+        href: "/liquidacion",
       },
       {
         id: "caja-del-dia",
@@ -92,7 +82,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: "rendicion-mensual",
         label: "Rendición Mensual",
-        href: "/caja/rendicion-mensual", // crea esa ruta si la tienes
+        href: "/caja/rendicion-mensual",
       },
     ],
   },
@@ -102,6 +92,7 @@ export const navigationItems: NavigationItem[] = [
     id: "manejo-general",
     label: "Manejo General",
     icon: ClipboardCheck,
+    description: "Gestión de alumnos, profesores y disciplinas",
     items: [
       {
         id: "bonificaciones",
@@ -111,7 +102,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: "recargos",
         label: "Recargos",
-        href: "/recargos", // crea la ruta si la tienes
+        href: "/recargos",
       },
       {
         id: "salones",
@@ -144,6 +135,7 @@ export const navigationItems: NavigationItem[] = [
     id: "asistencias",
     label: "Asistencias",
     icon: ClipboardCheck,
+    description: "Control y seguimiento de asistencias",
     items: [
       {
         id: "asistencia-mensual",
@@ -158,31 +150,34 @@ export const navigationItems: NavigationItem[] = [
     ],
   },
 
-  // ============================================
   // Items sueltos
-  // ============================================
   {
     id: "inscripciones",
     icon: ClipboardCheck,
     label: "Inscripciones",
     href: "/inscripciones",
+    description: "Gestión de nuevas inscripciones",
   },
   {
     id: "reportes",
     icon: BarChart3,
     label: "Reportes",
     href: "/reportes",
+    description: "Informes y estadísticas",
   },
   {
     id: "usuarios",
     icon: UserCog,
     label: "Usuarios",
     href: "/usuarios",
+    description: "Administración de usuarios",
   },
   {
     id: "roles",
     icon: Shield,
     label: "Roles",
     href: "/roles",
+    description: "Gestión de permisos y roles",
   },
-];
+]
+

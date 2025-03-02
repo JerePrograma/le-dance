@@ -15,12 +15,6 @@ import {
 } from "../../types/types";
 import type { DisciplinaListadoResponse } from "../../types/types";
 
-interface DisciplinaMesAnioRequest {
-  disciplinaId: number;
-  mes: number;
-  anio: number;
-}
-
 const AsistenciaMensualDetalle: React.FC = () => {
   const navigate = useNavigate();
 
@@ -296,7 +290,7 @@ const AsistenciaMensualDetalle: React.FC = () => {
                   <TableHead>Alumno</TableHead>
                   {diasRegistrados.map(fecha => (
                     <TableHead key={fecha} className="text-center">
-                      {new Date(fecha).toLocaleDateString("es-ES", { day: "numeric", weekday: "short" })}
+                      {new Date(fecha + "T00:00:00").toLocaleDateString("es-ES", { day: "numeric", weekday: "short" })}
                     </TableHead>
                   ))}
                   <TableHead>Observaciones</TableHead>

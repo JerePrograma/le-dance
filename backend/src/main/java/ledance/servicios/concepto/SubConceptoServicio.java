@@ -8,7 +8,6 @@ import ledance.entidades.SubConcepto;
 import ledance.repositorios.SubConceptoRepositorio;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -24,26 +23,25 @@ public class SubConceptoServicio {
         this.subConceptoMapper = subConceptoMapper;
     }
 
+    // Crea un subconcepto nuevo. El mapper se encarga de transformar la descripción a mayúsculas.
     @Transactional
     public SubConceptoResponse crearSubConcepto(SubConceptoRegistroRequest request) {
-        // Forzamos la descripcion a mayusculas
-        SubConceptoRegistroRequest modRequest = new SubConceptoRegistroRequest(request.descripcion().toUpperCase());
-        SubConcepto subConcepto = subConceptoMapper.toEntity(modRequest);
+        SubConcepto subConcepto = subConceptoMapper.toEntity(request);
         SubConcepto saved = subConceptoRepositorio.save(subConcepto);
         return subConceptoMapper.toResponse(saved);
     }
 
+    // Actualiza un subconcepto existente.
     @Transactional
     public SubConceptoResponse actualizarSubConcepto(Long id, SubConceptoModificacionRequest request) {
         SubConcepto subConcepto = subConceptoRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("SubConcepto no encontrado con id: " + id));
-        // Actualiza manualmente el campo transformandolo a mayusculas
-        subConcepto.setDescripcion(request.descripcion().toUpperCase());
+        subConceptoMapper.updateEntityFromRequest(request, subConcepto);
         SubConcepto updated = subConceptoRepositorio.save(subConcepto);
         return subConceptoMapper.toResponse(updated);
     }
 
-
+    // Retorna la lista completa de subconceptos.
     @Transactional(readOnly = true)
     public List<SubConceptoResponse> listarSubConceptos() {
         return subConceptoRepositorio.findAll().stream()
@@ -51,6 +49,7 @@ public class SubConceptoServicio {
                 .collect(Collectors.toList());
     }
 
+    // Retorna un subconcepto por su ID.
     @Transactional(readOnly = true)
     public SubConceptoResponse obtenerSubConceptoPorId(Long id) {
         SubConcepto subConcepto = subConceptoRepositorio.findById(id)
@@ -58,11 +57,20 @@ public class SubConceptoServicio {
         return subConceptoMapper.toResponse(subConcepto);
     }
 
+    // Elimina (o da de baja) un subconcepto.
     @Transactional
     public void eliminarSubConcepto(Long id) {
         if (!subConceptoRepositorio.existsById(id)) {
             throw new IllegalArgumentException("SubConcepto no encontrado con id: " + id);
         }
         subConceptoRepositorio.deleteById(id);
+    }
+
+    // Busca subconceptos por nombre (o parte de él). Utiliza el método definido en el repositorio.
+    @Transactional(readOnly = true)
+    public List<SubConceptoResponse> buscarPorNombre(String nombre) {
+        return subConceptoRepositorio.buscarPorDescripcion(nombre).stream()
+                .map(subConceptoMapper::toResponse)
+                .collect(Collectors.toList());
     }
 }

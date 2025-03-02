@@ -487,7 +487,7 @@ const CobranzasForm: React.FC = () => {
                                                 const total = precio * cantidad;
                                                 newDetails.push({
                                                     id: null,
-                                                    codigoConcepto: selectedDisc.id.toString(),
+                                                    codigoConcepto: selectedDisc.id,
                                                     // Aquí se concatena el período mensual al concepto
                                                     concepto: `${selectedDisc.nombre.toUpperCase()} - ${tarifaLabel} - ${values.periodoMensual}`,
                                                     cuota: cantidad.toString(),
@@ -512,7 +512,7 @@ const CobranzasForm: React.FC = () => {
                                                 const total = selectedStock.precio * cantidad;
                                                 newDetails.push({
                                                     id: null,
-                                                    codigoConcepto: selectedStock.id.toString(),
+                                                    codigoConcepto: selectedStock.id,
                                                     concepto: selectedStock.nombre,
                                                     cuota: cantidad.toString(),
                                                     valorBase: total,
@@ -571,7 +571,7 @@ const CobranzasForm: React.FC = () => {
                                                 </thead>
                                                 <tbody>
                                                     {values.detallePagos && values.detallePagos.length > 0 ? (
-                                                        values.detallePagos.map((detalle, index) => (
+                                                        values.detallePagos.map((_detalle, index) => (
                                                             <tr key={index}>
                                                                 <td className="border p-2">
                                                                     <Field

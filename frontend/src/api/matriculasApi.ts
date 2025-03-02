@@ -1,6 +1,5 @@
 import api from "./axiosConfig";
 import type {
-  MatriculaRegistroRequest,
   MatriculaModificacionRequest,
   MatriculaResponse,
 } from "../types/types";

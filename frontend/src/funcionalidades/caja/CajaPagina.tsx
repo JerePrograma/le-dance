@@ -105,7 +105,6 @@ const CajaPagina: React.FC = () => {
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{fila.fecha}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{fila.totalEfectivo}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{fila.totalDebito}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{fila.totalTarjeta}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{fila.rangoDesdeHasta}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{fila.observaciones}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">

@@ -12,10 +12,12 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "disciplinas")
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Disciplina {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
     private Long id;
 
     @NotNull
@@ -41,9 +43,16 @@ public class Disciplina {
 
     @OneToMany(mappedBy = "disciplina", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
+    @EqualsAndHashCode.Exclude
     private List<Inscripcion> inscripciones;
 
     // Relación con los horarios específicos
     @OneToMany(mappedBy = "disciplina", cascade = CascadeType.ALL, orphanRemoval = true)
+    @EqualsAndHashCode.Exclude
     private List<DisciplinaHorario> horarios;
+
+    public void addHorario(DisciplinaHorario horario) {
+        horario.setDisciplina(this);
+        this.horarios.add(horario);
+    }
 }

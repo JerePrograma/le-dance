@@ -48,4 +48,7 @@ public interface AsistenciaDiariaRepositorio extends JpaRepository<AsistenciaDia
 
     // Recupera todas las asistencias asociadas a una asistencia mensual
     List<AsistenciaDiaria> findByAsistenciaMensualId(Long asistenciaMensualId);
+
+    void deleteByAsistenciaMensualIdAndFechaGreaterThanEqual(Long asistenciaMensualId, LocalDate fecha);
+
 }

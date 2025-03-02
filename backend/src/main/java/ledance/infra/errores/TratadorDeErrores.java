@@ -24,12 +24,20 @@ public class TratadorDeErrores {
 
     private static final Logger log = LoggerFactory.getLogger(TratadorDeErrores.class);
 
-    // ✅ 404: Recurso no encontrado
+    // ✅ 404: Recurso no encontrado (entidad de JPA)
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<DatosErrorGeneral> tratarError404(EntityNotFoundException e) {
         log.warn("Error 404 - Recurso no encontrado: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(new DatosErrorGeneral("404_NOT_FOUND", "Recurso no encontrado", e.getMessage(), LocalDateTime.now()));
+    }
+
+    // ✅ 404: Recurso no encontrado (cuando se lance una excepción personalizada)
+    @ExceptionHandler({DisciplinaNotFoundException.class, ProfesorNotFoundException.class, NoSuchElementException.class, ResourceNotFoundException.class})
+    public ResponseEntity<DatosErrorGeneral> manejarRecursoNoEncontrado(RuntimeException e) {
+        log.warn("Error 404 - Elemento no encontrado: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new DatosErrorGeneral("404_NOT_FOUND", "Elemento no encontrado", e.getMessage(), LocalDateTime.now()));
     }
 
     // ✅ 400: Validacion de datos de entrada
@@ -96,36 +104,29 @@ public class TratadorDeErrores {
                 .body(new DatosErrorGeneral("500_INTERNAL_SERVER_ERROR", "Error interno del servidor", e.getMessage(), LocalDateTime.now()));
     }
 
-    // ✅ 500: Error en la comunicacion con otro servidor (APIs externas)
+    // ✅ 502: Error en la comunicacion con otro servidor (APIs externas)
     @ExceptionHandler({HttpClientErrorException.class, HttpServerErrorException.class})
-    public ResponseEntity<DatosErrorGeneral> manejarErrorDeCliente(HttpClientErrorException e) {
-        log.error("Error 500 - Fallo en comunicacion con API externa: {}", e.getMessage());
+    public ResponseEntity<DatosErrorGeneral> manejarErrorDeCliente(Exception e) {
+        log.error("Error 502 - Fallo en comunicacion con API externa: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
                 .body(new DatosErrorGeneral("502_BAD_GATEWAY", "Error en API externa", e.getMessage(), LocalDateTime.now()));
     }
 
-    // ✅ 404: Recurso no encontrado en base de datos
-    @ExceptionHandler(NoSuchElementException.class)
-    public ResponseEntity<DatosErrorGeneral> manejarNoSuchElement(NoSuchElementException e) {
-        log.warn("Error 404 - Elemento no encontrado: {}", e.getMessage());
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new DatosErrorGeneral("404_NOT_FOUND", "Elemento no encontrado", e.getMessage(), LocalDateTime.now()));
-    }
-
     // 🔹 **📌 Clases para respuestas de error** 🔹
 
-    // ✅ Estructura para errores de validacion
+    // Estructura para errores de validacion
     private record DatosErrorValidacion(String codigo, String campo, String mensaje) {
         public DatosErrorValidacion(FieldError error) {
             this("400_VALIDATION_ERROR", error.getField(), error.getDefaultMessage());
         }
     }
 
-    // ✅ Estructura para errores generales
+    // Estructura para errores generales
     private record DatosErrorGeneral(String codigo, String tipo, String detalle, LocalDateTime timestamp) {
     }
 
-    // ✅ Excepciones personalizadas
+    // 🔹 **Excepciones Personalizadas** 🔹
+
     public static class RecursoNoEncontradoException extends RuntimeException {
         public RecursoNoEncontradoException(String mensaje) {
             super(mensaje);
@@ -144,15 +145,28 @@ public class TratadorDeErrores {
         }
     }
 
-    public class ResourceNotFoundException extends RuntimeException {
-        public ResourceNotFoundException(String message) {
-            super(message);
+    public static class ResourceNotFoundException extends RuntimeException {
+        public ResourceNotFoundException(String mensaje) {
+            super(mensaje);
         }
     }
 
-    public class InvalidInscripcionException extends RuntimeException {
-        public InvalidInscripcionException(String message) {
-            super(message);
+    public static class InvalidInscripcionException extends RuntimeException {
+        public InvalidInscripcionException(String mensaje) {
+            super(mensaje);
+        }
+    }
+
+    // Excepciones adicionales para la gestión de disciplinas y profesores
+    public static class DisciplinaNotFoundException extends RuntimeException {
+        public DisciplinaNotFoundException(Long id) {
+            super("No se encontró la disciplina con id=" + id);
+        }
+    }
+
+    public static class ProfesorNotFoundException extends RuntimeException {
+        public ProfesorNotFoundException(Long id) {
+            super("No se encontró el profesor con id=" + id);
         }
     }
 }
