@@ -4,10 +4,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Peticion para modificar una asistencia mensual.
- * - Solo permite cambiar observaciones de alumnos.
+ * Petición para modificar una asistencia mensual.
+ * Permite actualizar las observaciones de alumnos y modificar múltiples asistencias diarias.
  */
 public record AsistenciaMensualModificacionRequest(
-        List<AsistenciaDiariaModificacionRequest> asistenciasDiarias,// ✅ Se pueden modificar multiples asistencias a la vez
-        Map<Long, String> observacionesAlumnos // ✅ Se mantiene la estructura anterior
+        List<AsistenciaDiariaModificacionRequest> asistenciasDiarias,
+        Map<Long, String> observacionesAlumnos
 ) {}

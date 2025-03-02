@@ -29,14 +29,11 @@ public interface AsistenciaMensualMapper {
     @Mapping(target = "asistenciasDiarias", source = "asistenciasDiarias")
     @Mapping(target = "observaciones", source = "observaciones")
     @Mapping(target = "disciplinaId", source = "inscripcion.disciplina.id")
-    @Mapping(
-            target = "alumnos",
-            expression = "java(mapAlumnosToResumen(asistenciaMensual.getInscripcion().getDisciplina().getInscripciones()))"
-    )
+    @Mapping(target = "alumnos", expression = "java(mapAlumnosToResumen(asistenciaMensual.getInscripcion().getDisciplina().getInscripciones()))")
     AsistenciaMensualDetalleResponse toDetalleDTO(AsistenciaMensual asistenciaMensual);
 
     /**
-     * Convierte un request de registro a la entidad, ignorando datos que se setean luego.
+     * Convierte un request de registro a la entidad, ignorando las relaciones que se asignarán en el servicio.
      */
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "inscripcion", ignore = true)
@@ -45,18 +42,15 @@ public interface AsistenciaMensualMapper {
     AsistenciaMensual toEntity(AsistenciaMensualRegistroRequest request);
 
     /**
-     * Actualiza una AsistenciaMensual existente con datos del request de modificación.
-     * Se ignoran campos que no deben ser sobreescritos (por ejemplo: mes, año, etc.).
+     * Actualiza una entidad existente con datos del request de modificación.
+     * Se ignoran campos críticos como mes, anio e inscripcion.
      */
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "inscripcion", ignore = true)
     @Mapping(target = "asistenciasDiarias", ignore = true)
     @Mapping(target = "mes", ignore = true)
     @Mapping(target = "anio", ignore = true)
-    void updateEntityFromRequest(
-            AsistenciaMensualModificacionRequest request,
-            @MappingTarget AsistenciaMensual asistenciaMensual
-    );
+    void updateEntityFromRequest(AsistenciaMensualModificacionRequest request, @MappingTarget AsistenciaMensual asistenciaMensual);
 
     /**
      * Mapea la entidad a la versión de listado, con campos básicos.
@@ -69,11 +63,9 @@ public interface AsistenciaMensualMapper {
     @Mapping(target = "anio", source = "anio")
     AsistenciaMensualListadoResponse toListadoDTO(AsistenciaMensual asistenciaMensual);
 
-    /**
-     * Convierte una lista de inscripciones en respuestas de tipo AlumnoResumenResponse.
-     */
     @Named("mapAlumnosToResumen")
     default List<AlumnoResumenResponse> mapAlumnosToResumen(List<Inscripcion> inscripciones) {
+        if (inscripciones == null) return List.of();
         return inscripciones.stream()
                 .map(inscripcion -> new AlumnoResumenResponse(
                         inscripcion.getAlumno().getId(),
@@ -83,11 +75,9 @@ public interface AsistenciaMensualMapper {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Convierte una lista de ObservacionMensual en respuestas de tipo ObservacionMensualResponse.
-     */
     @Named("mapObservacionesToDTO")
     default List<ObservacionMensualResponse> mapObservacionesToDTO(List<ObservacionMensual> observaciones) {
+        if (observaciones == null) return List.of();
         return observaciones.stream()
                 .map(obs -> new ObservacionMensualResponse(
                         obs.getId(),

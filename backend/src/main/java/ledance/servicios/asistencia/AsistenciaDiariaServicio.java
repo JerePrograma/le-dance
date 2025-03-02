@@ -5,7 +5,9 @@ import ledance.dto.asistencia.request.AsistenciaDiariaModificacionRequest;
 import ledance.dto.asistencia.response.AsistenciaDiariaResponse;
 import ledance.dto.asistencia.AsistenciaDiariaMapper;
 import ledance.entidades.*;
-import ledance.repositorios.*;
+import ledance.repositorios.AsistenciaDiariaRepositorio;
+import ledance.repositorios.AsistenciaMensualRepositorio;
+import ledance.repositorios.InscripcionRepositorio;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -36,11 +38,13 @@ public class AsistenciaDiariaServicio {
     }
 
     /**
-     * ✅ Registrar asistencia diaria para un alumno.
+     * Registrar asistencia diaria para un alumno en un día específico.
+     * Se valida que la fecha no sea futura y, opcionalmente, que sea un día de clase (podrías agregar esa validación).
      */
     @Transactional
     public AsistenciaDiariaResponse registrarAsistencia(AsistenciaDiariaRegistroRequest request) {
         validarFecha(request.fecha());
+        // Aquí podrías validar si el día es un día de clase de la disciplina.
 
         AsistenciaMensual asistenciaMensual = asistenciaMensualRepositorio.findById(request.asistenciaMensualId())
                 .orElseThrow(() -> new IllegalArgumentException("No se encontró la asistencia mensual"));
@@ -64,7 +68,7 @@ public class AsistenciaDiariaServicio {
     }
 
     /**
-     * ✅ Actualizar asistencia diaria.
+     * Actualizar la asistencia diaria.
      */
     @Transactional
     public AsistenciaDiariaResponse actualizarAsistencia(Long id, AsistenciaDiariaModificacionRequest request) {
@@ -73,7 +77,6 @@ public class AsistenciaDiariaServicio {
 
         asistencia.setFecha(request.fecha());
         asistencia.setEstado(request.estado());
-
         if (request.observacion() != null) {
             asistencia.setObservacion(request.observacion());
         }
@@ -88,7 +91,7 @@ public class AsistenciaDiariaServicio {
     }
 
     /**
-     * ✅ Obtener asistencias diarias por disciplina y fecha.
+     * Obtener asistencias diarias filtradas por disciplina (a través de asistenciaMensual) y fecha.
      */
     @Transactional(readOnly = true)
     public Page<AsistenciaDiariaResponse> obtenerAsistenciasPorDisciplinaYFecha(Long disciplinaId, LocalDate fecha, Pageable pageable) {
@@ -98,7 +101,9 @@ public class AsistenciaDiariaServicio {
     }
 
     /**
-     * ✅ Registrar asistencias automáticas para un nuevo alumno.
+     * Registrar asistencias automáticas para un nuevo alumno.
+     * Aquí se debe generar las asistencias en los días de clase según la configuración de la disciplina.
+     * Este método es un ejemplo y en producción probablemente deberás calcular las fechas de clase.
      */
     @Transactional
     public void registrarAsistenciasParaNuevoAlumno(Long inscripcionId) {
@@ -109,9 +114,10 @@ public class AsistenciaDiariaServicio {
                 inscripcion, LocalDate.now().getMonthValue(), LocalDate.now().getYear()
         ).orElseThrow(() -> new IllegalArgumentException("No se encontró asistencia mensual para este alumno"));
 
-        List<LocalDate> fechasClase = List.of(LocalDate.now()); // TODO: Obtener fechas reales
-
+        // Ejemplo: se registran asistencias para el día actual.
+        List<LocalDate> fechasClase = List.of(LocalDate.now());
         List<AsistenciaDiaria> nuevasAsistencias = fechasClase.stream()
+                .filter(fecha -> !fecha.isBefore(inscripcion.getFechaInscripcion()))
                 .map(fecha -> new AsistenciaDiaria(null, fecha, EstadoAsistencia.AUSENTE, inscripcion.getAlumno(), asistenciaMensual, null))
                 .collect(Collectors.toList());
 
@@ -119,20 +125,23 @@ public class AsistenciaDiariaServicio {
     }
 
     /**
-     * ✅ Eliminar asistencia diaria.
+     * Eliminar asistencia diaria.
      */
     public void eliminarAsistencia(Long id) {
         asistenciaDiariaRepositorio.deleteById(id);
     }
 
     /**
-     * ✅ Obtener resumen de asistencias por alumno en un período.
+     * Obtener el resumen de asistencias por alumno en un período.
      */
     @Transactional(readOnly = true)
     public Map<Long, Integer> obtenerResumenAsistenciasPorAlumno(Long disciplinaId, LocalDate fechaInicio, LocalDate fechaFin) {
         return asistenciaDiariaRepositorio.contarAsistenciasPorAlumno(disciplinaId, fechaInicio, fechaFin);
     }
 
+    /**
+     * Registrar o actualizar asistencia: si ya existe para la fecha y alumno, se actualiza; si no, se crea.
+     */
     @Transactional
     public AsistenciaDiariaResponse registrarOActualizarAsistencia(AsistenciaDiariaRegistroRequest request) {
         Optional<AsistenciaDiaria> asistenciaExistente = asistenciaDiariaRepositorio
@@ -157,6 +166,9 @@ public class AsistenciaDiariaServicio {
         return asistenciaDiariaMapper.toDTO(asistencia);
     }
 
+    /**
+     * Obtener asistencias diarias asociadas a una asistencia mensual.
+     */
     @Transactional(readOnly = true)
     public List<AsistenciaDiariaResponse> obtenerAsistenciasPorAsistenciaMensual(Long asistenciaMensualId) {
         return asistenciaDiariaRepositorio.findByAsistenciaMensualId(asistenciaMensualId)
@@ -164,5 +176,4 @@ public class AsistenciaDiariaServicio {
                 .map(asistenciaDiariaMapper::toDTO)
                 .collect(Collectors.toList());
     }
-
 }

@@ -2,9 +2,6 @@ package ledance.dto.disciplina.response;
 
 import java.util.List;
 
-/**
- * Respuesta detallada de una disciplina.
- */
 public record DisciplinaDetalleResponse(
         Long id,
         String nombre,
@@ -19,5 +16,5 @@ public record DisciplinaDetalleResponse(
         Boolean activo,
         Double claseSuelta,
         Double clasePrueba,
-        List<DisciplinaHorarioResponse> horarios // ✅ Lista de horarios independientes
+        List<DisciplinaHorarioResponse> horarios
 ) {}

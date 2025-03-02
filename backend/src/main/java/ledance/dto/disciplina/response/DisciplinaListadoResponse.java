@@ -5,7 +5,7 @@ import java.time.LocalTime;
 public record DisciplinaListadoResponse(
         Long id,
         String nombre,
-        LocalTime horarioInicio, // ✅ Agregado
+        LocalTime horarioInicio,
         Boolean activo,
         Long profesorId,
         String profesorNombre,

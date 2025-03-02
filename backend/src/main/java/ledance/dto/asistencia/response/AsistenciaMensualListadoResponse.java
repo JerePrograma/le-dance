@@ -7,5 +7,4 @@ public record AsistenciaMensualListadoResponse(
         Long inscripcionId,
         String disciplina,
         String profesor
-) {
-}
+) {}

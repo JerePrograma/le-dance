@@ -178,12 +178,16 @@ export interface ProfesorListadoResponse {
 // ==========================================
 // DISCIPLINA
 // ==========================================
+export interface DisciplinaHorarioRequest {
+  diaSemana: DiaSemana;      // Por ejemplo, "LUNES", "MARTES", etc.
+  horarioInicio: LocalTime;  // En formato "HH:mm"
+  duracion: number;          // En horas (o minutos, según lo que decidas)
+}
+
 export interface DisciplinaRegistroRequest {
   nombre: string;
-  diasSemana: DiaSemana[];
+  // Se elimina: diasSemana, horarioInicio y duracion
   frecuenciaSemanal?: number;
-  horarioInicio: LocalTime;
-  duracion: number;
   salonId: number;
   profesorId: number;
   recargoId?: number;
@@ -191,14 +195,14 @@ export interface DisciplinaRegistroRequest {
   matricula: number;
   claseSuelta?: number;
   clasePrueba?: number;
+  // Nuevo campo: lista de horarios para cada día de clase
+  horarios: DisciplinaHorarioRequest[];
 }
 
 export interface DisciplinaModificacionRequest {
   nombre: string;
-  diasSemana: DiaSemana[];
+  // Se elimina: diasSemana, horarioInicio y duracion
   frecuenciaSemanal?: number;
-  horarioInicio: LocalTime;
-  duracion: number;
   salonId: number;
   profesorId: number;
   recargoId?: number;
@@ -207,20 +211,29 @@ export interface DisciplinaModificacionRequest {
   claseSuelta?: number;
   clasePrueba?: number;
   activo: boolean;
+  // Nuevo campo: lista de horarios actualizados
+  horarios: DisciplinaHorarioRequest[];
 }
 
 export interface DisciplinaResponse {
   id: number;
   nombre: string;
-  horario: string;
+  // Si se devuelve la lista de horarios, por ejemplo:
+  horarios: DisciplinaHorarioResponse[];
   frecuenciaSemanal: number;
-  duracion: string;
   salon: string;
   valorCuota: number;
   matricula: number;
   profesorId: number | null;
   inscritos: number;
   activo?: boolean;
+}
+
+export interface DisciplinaHorarioResponse {
+  id: number;
+  diaSemana: DiaSemana;
+  horarioInicio: LocalTime; // En formato "HH:mm" (o el que manejes)
+  duracion: number;
 }
 
 export interface DisciplinaListadoResponse {

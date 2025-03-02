@@ -10,7 +10,7 @@ public record AsistenciaDiariaResponse(
         Long alumnoId,
         String alumnoNombre,
         String alumnoApellido,
-        Long disciplinaHorarioId, // ✅ Ahora referencia al horario en lugar de AsistenciaMensual
-        String horarioInicio, // ✅ Se incluye la hora de inicio de la clase
+        Long asistenciaMensualId,
+        Long disciplinaId, // obtenido desde asistenciaMensual.inscripcion.disciplina.id
         String observacion
 ) {}

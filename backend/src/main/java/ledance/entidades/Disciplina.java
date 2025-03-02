@@ -43,7 +43,7 @@ public class Disciplina {
     @JsonIgnore
     private List<Inscripcion> inscripciones;
 
-    // Relación con horarios específicos
+    // Relación con los horarios específicos
     @OneToMany(mappedBy = "disciplina", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<DisciplinaHorario> horarios;
 }

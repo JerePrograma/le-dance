@@ -32,5 +32,5 @@ public class DisciplinaHorario {
 
     @NotNull
     @Column(name = "duracion")
-    private Double duracion;
+    private Double duracion; // Puedes definir si es en minutos o en horas
 }

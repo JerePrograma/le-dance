@@ -8,6 +8,7 @@ import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Mapper(componentModel = "spring")
 public interface DisciplinaHorarioMapper {
@@ -18,12 +19,11 @@ public interface DisciplinaHorarioMapper {
     @Mapping(target = "duracion", source = "duracion")
     DisciplinaHorarioResponse toResponse(DisciplinaHorario horario);
 
-    // ✅ Método para convertir una lista de horarios
     @Named("toResponseList")
     default List<DisciplinaHorarioResponse> toResponseList(List<DisciplinaHorario> horarios) {
-        return horarios.stream().map(this::toResponse).toList();
+        return horarios.stream().map(this::toResponse).collect(Collectors.toList());
     }
 
-    @Mapping(target = "id", ignore = true) // ID se genera automáticamente
+    @Mapping(target = "id", ignore = true)
     DisciplinaHorario toEntity(DisciplinaHorarioRequest request);
 }

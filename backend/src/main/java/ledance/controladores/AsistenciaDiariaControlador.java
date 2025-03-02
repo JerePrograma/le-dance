@@ -33,13 +33,6 @@ public class AsistenciaDiariaControlador {
         return ResponseEntity.ok(asistenciaDiariaServicio.registrarOActualizarAsistencia(request));
     }
 
-    @PostMapping("/lote")
-    public ResponseEntity<List<AsistenciaDiariaResponse>> registrarAsistenciasEnLote(
-            @Valid @RequestBody List<AsistenciaDiariaRegistroRequest> requests) {
-        log.info("Registrando {} asistencias en lote.", requests.size());
-        return ResponseEntity.ok(asistenciaDiariaServicio.registrarAsistenciasEnLote(requests));
-    }
-
     @PutMapping("/{id}")
     public ResponseEntity<AsistenciaDiariaResponse> modificarAsistencia(
             @PathVariable Long id, @Valid @RequestBody AsistenciaDiariaModificacionRequest request) {

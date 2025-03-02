@@ -4,7 +4,6 @@ import ledance.dto.asistencia.request.AsistenciaMensualRegistroRequest;
 import ledance.dto.asistencia.request.AsistenciaMensualModificacionRequest;
 import ledance.dto.asistencia.response.AsistenciaMensualDetalleResponse;
 import ledance.dto.asistencia.response.AsistenciaMensualListadoResponse;
-import ledance.dto.disciplina.request.DisciplinaMesAnioRequest;
 import ledance.entidades.AsistenciaMensual;
 import ledance.servicios.asistencia.AsistenciaMensualServicio;
 import org.springframework.http.HttpStatus;
@@ -69,16 +68,16 @@ public class AsistenciaMensualControlador {
             return ResponseEntity.notFound().build();
         }
     }
-
-    @PostMapping("/por-disciplina/crear")
-    public ResponseEntity<AsistenciaMensualDetalleResponse> crearAsistenciaPorDisciplina(
-            @RequestBody DisciplinaMesAnioRequest request) {
-        try {
-            AsistenciaMensualDetalleResponse response = asistenciaMensualServicio.crearAsistenciaPorDisciplina(
-                    request.disciplinaId(), request.mes(), request.anio());
-            return new ResponseEntity<>(response, HttpStatus.CREATED);
-        } catch (IllegalStateException | IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(null);
-        }
-    }
+//
+//    @PostMapping("/por-disciplina/crear")
+//    public ResponseEntity<AsistenciaMensualDetalleResponse> crearAsistenciaPorDisciplina(
+//            @RequestBody DisciplinaMesAnioRequest request) {
+//        try {
+//            AsistenciaMensualDetalleResponse response = asistenciaMensualServicio.crearAsistenciaPorDisciplina(
+//                    request.disciplinaId(), request.mes(), request.anio());
+//            return new ResponseEntity<>(response, HttpStatus.CREATED);
+//        } catch (IllegalStateException | IllegalArgumentException e) {
+//            return ResponseEntity.status(HttpStatus.CONFLICT).body(null);
+//        }
+//    }
 }

@@ -1,7 +1,7 @@
 // src/funcionalidades/disciplinas/DisciplinasFormulario.tsx
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Formik, Form, Field, ErrorMessage } from "formik";
+import { Formik, Form, Field, FieldArray, ErrorMessage } from "formik";
 import * as Yup from "yup";
 import { toast } from "react-toastify";
 import { Search } from "lucide-react";
@@ -21,6 +21,7 @@ import type {
   ProfesorListadoResponse,
   DiaSemana,
   DisciplinaResponse,
+  DisciplinaHorarioRequest
 } from "../../types/types";
 
 // Lista de días (puedes ajustar según tus necesidades)
@@ -31,16 +32,13 @@ const diasSemana: DiaSemana[] = [
   "JUEVES",
   "VIERNES",
   "SABADO",
+  "DOMINGO",
 ];
 
-// Valores iniciales para el formulario de disciplina.  
-// Se incluyen todos los campos obligatorios.
+// Valores iniciales para el formulario de disciplina.
+// Se han eliminado los campos individuales para horarios y se agrega "horarios" como arreglo.
 const initialDisciplinaValues: DisciplinaRegistroRequest & Partial<DisciplinaModificacionRequest> = {
   nombre: "",
-  diasSemana: [],
-  frecuenciaSemanal: 1,
-  horarioInicio: "",
-  duracion: 1,
   salonId: 0,
   profesorId: 0,
   recargoId: undefined,
@@ -48,21 +46,28 @@ const initialDisciplinaValues: DisciplinaRegistroRequest & Partial<DisciplinaMod
   matricula: 0, // Se fijará automáticamente con el valor del concepto "MATRICULA"
   claseSuelta: undefined,
   clasePrueba: undefined,
-  // Para modificación, se requiere 'activo'
   activo: true,
+  // Nuevo campo: lista de horarios (vacío por defecto)
+  horarios: [],
 };
 
 const disciplinaSchema = Yup.object().shape({
   nombre: Yup.string().required("El nombre es obligatorio"),
-  diasSemana: Yup.array().of(Yup.string()).min(1, "Seleccione al menos un día"),
-  frecuenciaSemanal: Yup.number().positive().integer().required("La frecuencia semanal es obligatoria"),
-  horarioInicio: Yup.string().required("El horario de inicio es obligatorio"),
-  duracion: Yup.number().positive().required("La duración es obligatoria"),
   salonId: Yup.number().positive().required("Debe seleccionar un salón"),
   profesorId: Yup.number().positive().required("Debe seleccionar un profesor"),
   valorCuota: Yup.number().positive().required("El valor de la cuota es obligatorio"),
   matricula: Yup.number().min(0).required("El valor de la matrícula es obligatorio"),
   activo: Yup.boolean().required("El estado activo es obligatorio"),
+  // Validación para el arreglo de horarios: al menos uno debe existir y cada uno debe tener sus campos
+  horarios: Yup.array()
+    .of(
+      Yup.object().shape({
+        diaSemana: Yup.string().required("El día es obligatorio"),
+        horarioInicio: Yup.string().required("El horario de inicio es obligatorio"),
+        duracion: Yup.number().positive().required("La duración es obligatoria"),
+      })
+    )
+    .min(1, "Debe ingresar al menos un horario"),
 });
 
 const DisciplinasFormulario: React.FC = () => {
@@ -133,25 +138,18 @@ const DisciplinasFormulario: React.FC = () => {
       const fetchDisciplina = async () => {
         try {
           const disciplina: DisciplinaResponse = await disciplinasApi.obtenerDisciplinaPorId(Number(idParam));
+          // Asumimos que el backend ahora retorna "horarios" como arreglo de objetos
           setFormValues({
             nombre: disciplina.nombre,
-            diasSemana: disciplina.diasSemana, // Suponemos que ya es un string[]
-            frecuenciaSemanal: disciplina.frecuenciaSemanal,
-            horarioInicio: disciplina.horarioInicio,
-            duracion: disciplina.duracion,
-            salonId: salones.find((s) => s.nombre === disciplina.salon)?.id || 0,
-            profesorId:
-              profesores.find(
-                (p) =>
-                  p.nombre === disciplina.profesorNombre &&
-                  p.apellido === disciplina.profesorApellido
-              )?.id || 0,
+            salonId: disciplina.salonId,
+            profesorId: disciplina.profesorId,
             recargoId: disciplina.recargoId,
             valorCuota: disciplina.valorCuota,
             matricula: disciplina.matricula,
             claseSuelta: disciplina.claseSuelta,
             clasePrueba: disciplina.clasePrueba,
             activo: disciplina.activo,
+            horarios: disciplina.horarios, // Se espera un arreglo de horarios
           });
           setDisciplinaId(disciplina.id);
           setMensaje("Disciplina encontrada.");
@@ -164,7 +162,7 @@ const DisciplinasFormulario: React.FC = () => {
       };
       fetchDisciplina();
     }
-  }, [searchParams, salones, profesores, fetchMatricula]);
+  }, [searchParams, fetchMatricula]);
 
   // Al enviar, forzamos que el valor de matrícula sea el obtenido desde el concepto "MATRICULA"
   const handleSubmit = useCallback(
@@ -224,14 +222,15 @@ const DisciplinasFormulario: React.FC = () => {
       )}
 
       <Formik
-        initialValues={{ ...formValues, matricula }} // Se actualiza matrícula desde el concepto "MATRICULA"
+        initialValues={{ ...formValues, matricula }}
         validationSchema={disciplinaSchema}
         onSubmit={handleSubmit}
         enableReinitialize
       >
-        {({ isSubmitting }) => (
+        {({ values, isSubmitting }) => (
           <Form className="formulario max-w-4xl mx-auto">
             <div className="form-grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Campo para el nombre */}
               <div className="mb-4">
                 <label htmlFor="nombre" className="auth-label">
                   Nombre:
@@ -239,44 +238,8 @@ const DisciplinasFormulario: React.FC = () => {
                 <Field name="nombre" type="text" className="form-input" />
                 <ErrorMessage name="nombre" component="div" className="auth-error" />
               </div>
-              <div className="mb-4">
-                <label className="auth-label">Días de la semana:</label>
-                <div className="flex flex-wrap gap-2">
-                  {diasSemana.map((dia) => (
-                    <label key={dia} className="flex items-center">
-                      <Field
-                        type="checkbox"
-                        name="diasSemana"
-                        value={dia}
-                        className="form-checkbox"
-                      />
-                      <span className="ml-2">{dia}</span>
-                    </label>
-                  ))}
-                </div>
-                <ErrorMessage name="diasSemana" component="div" className="auth-error" />
-              </div>
-              <div className="mb-4">
-                <label htmlFor="frecuenciaSemanal" className="auth-label">
-                  Frecuencia Semanal:
-                </label>
-                <Field name="frecuenciaSemanal" type="number" className="form-input" />
-                <ErrorMessage name="frecuenciaSemanal" component="div" className="auth-error" />
-              </div>
-              <div className="mb-4">
-                <label htmlFor="horarioInicio" className="auth-label">
-                  Horario de Inicio:
-                </label>
-                <Field name="horarioInicio" type="time" className="form-input" />
-                <ErrorMessage name="horarioInicio" component="div" className="auth-error" />
-              </div>
-              <div className="mb-4">
-                <label htmlFor="duracion" className="auth-label">
-                  Duración (horas):
-                </label>
-                <Field name="duracion" type="number" step="0.5" className="form-input" />
-                <ErrorMessage name="duracion" component="div" className="auth-error" />
-              </div>
+
+              {/* Campo para seleccionar Salón */}
               <div className="mb-4">
                 <label htmlFor="salonId" className="auth-label">
                   Salón:
@@ -291,6 +254,8 @@ const DisciplinasFormulario: React.FC = () => {
                 </Field>
                 <ErrorMessage name="salonId" component="div" className="auth-error" />
               </div>
+
+              {/* Campo para seleccionar Profesor */}
               <div className="mb-4">
                 <label htmlFor="profesorId" className="auth-label">
                   Profesor:
@@ -305,6 +270,8 @@ const DisciplinasFormulario: React.FC = () => {
                 </Field>
                 <ErrorMessage name="profesorId" component="div" className="auth-error" />
               </div>
+
+              {/* Campo para Valor de Cuota */}
               <div className="mb-4">
                 <label htmlFor="valorCuota" className="auth-label">
                   Valor de Cuota:
@@ -312,6 +279,8 @@ const DisciplinasFormulario: React.FC = () => {
                 <Field name="valorCuota" type="number" step="0.01" className="form-input" />
                 <ErrorMessage name="valorCuota" component="div" className="auth-error" />
               </div>
+
+              {/* Campo para Clase Suelta */}
               <div className="mb-4">
                 <label htmlFor="claseSuelta" className="auth-label">
                   Clase Suelta:
@@ -319,6 +288,8 @@ const DisciplinasFormulario: React.FC = () => {
                 <Field name="claseSuelta" type="number" step="0.01" className="form-input" />
                 <ErrorMessage name="claseSuelta" component="div" className="auth-error" />
               </div>
+
+              {/* Campo para Clase de Prueba */}
               <div className="mb-4">
                 <label htmlFor="clasePrueba" className="auth-label">
                   Clase de Prueba:
@@ -326,6 +297,8 @@ const DisciplinasFormulario: React.FC = () => {
                 <Field name="clasePrueba" type="number" step="0.01" className="form-input" />
                 <ErrorMessage name="clasePrueba" component="div" className="auth-error" />
               </div>
+
+              {/* Checkbox para activo (solo en edición) */}
               {disciplinaId !== null && (
                 <div className="mb-4">
                   <label className="flex items-center">
@@ -335,17 +308,62 @@ const DisciplinasFormulario: React.FC = () => {
                   <ErrorMessage name="activo" component="div" className="auth-error" />
                 </div>
               )}
+
+              {/* Campo para Horarios: usando FieldArray */}
+              <div className="mb-4 col-span-1 sm:col-span-2">
+                <label className="auth-label">Horarios de Clase:</label>
+                <FieldArray name="horarios">
+                  {({ push, remove, form }) => (
+                    <div>
+                      {form.values.horarios && form.values.horarios.length > 0 ? (
+                        form.values.horarios.map((horario: any, index: number) => (
+                          <div key={index} className="flex flex-col sm:flex-row gap-2 items-end mb-2 border p-2 rounded">
+                            <div className="flex-1">
+                              <label className="block text-sm font-medium">Día</label>
+                              <Field as="select" name={`horarios.${index}.diaSemana`} className="form-input">
+                                <option value="">Seleccione un día</option>
+                                {diasSemana.map((dia) => (
+                                  <option key={dia} value={dia}>
+                                    {dia}
+                                  </option>
+                                ))}
+                              </Field>
+                              <ErrorMessage name={`horarios.${index}.diaSemana`} component="div" className="text-red-500 text-xs" />
+                            </div>
+                            <div className="flex-1">
+                              <label className="block text-sm font-medium">Horario de Inicio</label>
+                              <Field name={`horarios.${index}.horarioInicio`} type="time" className="form-input" />
+                              <ErrorMessage name={`horarios.${index}.horarioInicio`} component="div" className="text-red-500 text-xs" />
+                            </div>
+                            <div className="flex-1">
+                              <label className="block text-sm font-medium">Duración (horas)</label>
+                              <Field name={`horarios.${index}.duracion`} type="number" step="0.5" className="form-input" />
+                              <ErrorMessage name={`horarios.${index}.duracion`} component="div" className="text-red-500 text-xs" />
+                            </div>
+                            <div>
+                              <Boton type="button" onClick={() => remove(index)} className="bg-red-500 text-white px-2 py-1 rounded">
+                                Eliminar
+                              </Boton>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-gray-500">No se han agregado horarios.</p>
+                      )}
+                      <Boton type="button" onClick={() => push({ diaSemana: "", horarioInicio: "", duracion: 1 })} className="bg-blue-500 text-white px-2 py-1 rounded mt-2">
+                        Agregar Horario
+                      </Boton>
+                    </div>
+                  )}
+                </FieldArray>
+              </div>
             </div>
 
             <div className="form-acciones">
-              <Boton type="submit" className="page-button">
+              <Boton type="submit" className="page-button" disabled={isSubmitting}>
                 {disciplinaId ? "Actualizar" : "Crear"} Disciplina
               </Boton>
-              <Boton
-                type="button"
-                onClick={() => navigate("/disciplinas")}
-                className="page-button-secondary"
-              >
+              <Boton type="button" onClick={() => navigate("/disciplinas")} className="page-button-secondary">
                 Cancelar
               </Boton>
             </div>

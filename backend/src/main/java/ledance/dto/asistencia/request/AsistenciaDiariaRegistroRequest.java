@@ -5,10 +5,10 @@ import java.time.LocalDate;
 import ledance.entidades.EstadoAsistencia;
 
 public record AsistenciaDiariaRegistroRequest(
-        Long id, // ✅ Se puede usar para creación o actualización
+        Long id, // Para creación o actualización
         @NotNull LocalDate fecha,
         @NotNull EstadoAsistencia estado,
         @NotNull Long alumnoId,
-        @NotNull Long disciplinaHorarioId, // ✅ Se reemplaza asistenciaMensualId
+        @NotNull Long asistenciaMensualId,
         String observacion
 ) {}
