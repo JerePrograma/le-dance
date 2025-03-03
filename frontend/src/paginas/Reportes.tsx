@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import Tabla from "../componentes/comunes/Tabla";
 import Boton from "../componentes/comunes/Boton";
-import Pagination from "../componentes/comunes/Pagination"; // Componente de paginacion personalizado
 import api from "../api/axiosConfig";
 import { saveAs } from "file-saver";
 import { Bar } from "react-chartjs-2";
+import Pagination from "../componentes/ui/Pagination";
 
 // Interfaces de datos
 interface ReporteData {

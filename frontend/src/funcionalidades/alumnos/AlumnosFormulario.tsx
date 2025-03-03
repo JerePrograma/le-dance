@@ -16,11 +16,11 @@ import useDebounce from "../../hooks/useDebounce";
 import Boton from "../../componentes/comunes/Boton";
 import Tabla from "../../componentes/comunes/Tabla";
 import { Search, X } from "lucide-react";
+import { Button } from "../../componentes/ui/button";
 import {
   convertToAlumnoRegistroRequest,
   convertToAlumnoModificacionRequest,
 } from "../../utilidades/alumnoUtils";
-import { Button } from "../../componentes/ui/button";
 
 // Pre-cargamos la fecha de incorporación con la fecha actual (formato "yyyy-MM-dd")
 const today = new Date().toISOString().split("T")[0];
@@ -58,6 +58,60 @@ const AlumnosFormulario: React.FC = () => {
 
   const debouncedNombreBusqueda = useDebounce(nombreBusqueda, 300);
 
+  // Primero se declara resetearFormulario para poder usarla posteriormente
+  const resetearFormulario = () => {
+    setFormValues(initialAlumnoValues);
+    setAlumnoId(null);
+    setInscripciones([]);
+  };
+
+  // Se declara cargarInscripciones antes de usarla en otros callbacks
+  const cargarInscripciones = useCallback(async (alumnoId: number | null) => {
+    if (alumnoId) {
+      const inscripcionesDelAlumno = await inscripcionesApi.listar(alumnoId);
+      setInscripciones(inscripcionesDelAlumno);
+    } else {
+      setInscripciones([]);
+    }
+  }, []);
+
+  const handleBuscar = useCallback(async (id: string) => {
+    try {
+      if (id) {
+        const alumno = await alumnosApi.obtenerPorId(Number(id));
+        console.log("Alumno data received:", alumno);
+        // Se utiliza la función de conversión e incorpora el valor de "activo"
+        const convertedAlumno = { ...convertToAlumnoRegistroRequest(alumno), activo: alumno.activo ?? true };
+        console.log("Converted alumno data:", convertedAlumno);
+        setFormValues(convertedAlumno);
+        setAlumnoId(alumno.id);
+        cargarInscripciones(alumno.id);
+        setMensaje("");
+      } else {
+        setMensaje("Por favor, ingrese un ID de alumno.");
+        resetearFormulario();
+      }
+    } catch (error) {
+      setMensaje("Alumno no encontrado.");
+      resetearFormulario();
+    }
+  }, [cargarInscripciones]);
+
+  const handleSeleccionarAlumno = async (id: number, nombreCompleto: string) => {
+    try {
+      const alumno = await alumnosApi.obtenerPorId(id);
+      const convertedAlumno = { ...convertToAlumnoRegistroRequest(alumno), activo: alumno.activo ?? true };
+      setFormValues(convertedAlumno);
+      setAlumnoId(alumno.id);
+      setNombreBusqueda(nombreCompleto);
+      cargarInscripciones(alumno.id);
+      setMensaje("");
+    } catch (error) {
+      setMensaje("Alumno no encontrado.");
+      resetearFormulario();
+    }
+  };
+
   const handleGuardarAlumno = async (
     values: AlumnoRegistroRequest & Partial<AlumnoModificacionRequest>,
     { setSubmitting }: FormikHelpers<AlumnoRegistroRequest & Partial<AlumnoModificacionRequest>>
@@ -87,56 +141,6 @@ const AlumnosFormulario: React.FC = () => {
       setSubmitting(false);
     }
   };
-
-  const handleBuscar = useCallback(async (id: string) => {
-    try {
-      if (id) {
-        const alumno = await alumnosApi.obtenerPorId(Number(id));
-        console.log("Alumno data received:", alumno);
-        const convertedAlumno = convertToAlumnoRegistroRequest(alumno);
-        console.log("Converted alumno data:", convertedAlumno);
-        setFormValues(convertedAlumno);
-        setAlumnoId(alumno.id);
-        cargarInscripciones(alumno.id);
-        setMensaje("");
-      } else {
-        setMensaje("Por favor, ingrese un ID de alumno.");
-        resetearFormulario();
-      }
-    } catch (error) {
-      setMensaje("Alumno no encontrado.");
-      resetearFormulario();
-    }
-  }, []);
-
-  const resetearFormulario = () => {
-    setFormValues(initialAlumnoValues);
-    setAlumnoId(null);
-    setInscripciones([]);
-  };
-
-  const handleSeleccionarAlumno = async (id: number, nombreCompleto: string) => {
-    try {
-      const alumno = await alumnosApi.obtenerPorId(id);
-      setFormValues(convertToAlumnoRegistroRequest(alumno));
-      setAlumnoId(alumno.id);
-      setNombreBusqueda(nombreCompleto);
-      cargarInscripciones(alumno.id);
-      setMensaje("");
-    } catch (error) {
-      setMensaje("Alumno no encontrado.");
-      resetearFormulario();
-    }
-  };
-
-  const cargarInscripciones = useCallback(async (alumnoId: number | null) => {
-    if (alumnoId) {
-      const inscripcionesDelAlumno = await inscripcionesApi.listar(alumnoId);
-      setInscripciones(inscripcionesDelAlumno);
-    } else {
-      setInscripciones([]);
-    }
-  }, []);
 
   useEffect(() => {
     const alumnoIdParam = searchParams.get("alumnoId");
@@ -274,7 +278,14 @@ const AlumnosFormulario: React.FC = () => {
                   <label className="flex items-center space-x-2">
                     <Field name="activo">
                       {({ field }: any) => (
-                        <input type="checkbox" {...field} checked={field.value === true} />
+                        <input
+                          type="checkbox"
+                          {...field}
+                          checked={field.value === true}
+                          onChange={(e) =>
+                            setFieldValue(field.name, e.target.checked)
+                          }
+                        />
                       )}
                     </Field>
                     <span>Activo</span>
@@ -375,8 +386,7 @@ const AlumnosFormulario: React.FC = () => {
                 </>
               ) : (
                 <p className="text-gray-500 text-sm mt-4">
-                  No se pueden gestionar inscripciones hasta que{" "}
-                  <strong>se guarde</strong> un alumno.
+                  No se pueden gestionar inscripciones hasta que <strong>se guarde</strong> un alumno.
                 </p>
               )}
             </fieldset>

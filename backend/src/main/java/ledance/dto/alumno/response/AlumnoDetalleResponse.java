@@ -1,7 +1,6 @@
 package ledance.dto.alumno.response;
 
 import ledance.dto.inscripcion.response.InscripcionResponse;
-
 import java.time.LocalDate;
 import java.util.List;
 
@@ -18,11 +17,12 @@ public record AlumnoDetalleResponse(
         String documento,
         String cuit,
         LocalDate fechaIncorporacion,
-        LocalDate fechaDeBaja, // ✅ Nuevo campo
-        Boolean deudaPendiente, // ✅ Nuevo campo
+        LocalDate fechaDeBaja,
+        Boolean deudaPendiente,
         String nombrePadres,
         Boolean autorizadoParaSalirSolo,
+        Boolean activo,  // <-- Agregado aquí
         String otrasNotas,
         Double cuotaTotal,
-        List<InscripcionResponse> inscripciones // ✅ Listado de inscripciones
+        List<InscripcionResponse> inscripciones
 ) {}

@@ -1,5 +1,33 @@
-import { Users, Music, GraduationCap, ClipboardCheck, CreditCard, BarChart3, UserCog, Shield } from "lucide-react"
-import type { LucideIcon } from "lucide-react"
+import {
+  Building2,
+  Receipt,
+  CreditCard,
+  Wallet,
+  Tags,
+  Tag,
+  Package,
+  Boxes,
+  Calculator,
+  DollarSign,
+  PiggyBank,
+  BadgeDollarSign,
+  CalendarRange,
+  FileSpreadsheet,
+  Percent,
+  TrendingUp,
+  DoorOpen,
+  UserCheck,
+  Mic2,
+  SchoolIcon as StudentIcon,
+  ClipboardCheck,
+  CalendarCheck,
+  ActivityIcon as AttendanceIcon,
+  ClipboardList,
+  BarChart3,
+  UserCog,
+  Shield,
+  type LucideIcon,
+} from "lucide-react"
 
 export interface NavigationItem {
   id: string
@@ -15,44 +43,51 @@ export const navigationItems: NavigationItem[] = [
   {
     id: "administracion",
     label: "Administracion",
-    icon: CreditCard,
+    icon: Building2,
     description: "Gestion de pagos, stocks y configuraciones generales",
     items: [
       {
         id: "rendicion-general",
         label: "Rendicion General",
         href: "/caja/planilla",
+        icon: Receipt,
       },
       {
         id: "metodos-pago",
         label: "Metodos de Pago",
         href: "/metodos-pago",
+        icon: CreditCard,
       },
       {
         id: "conceptos",
         label: "Conceptos",
         href: "/conceptos",
+        icon: Tags,
       },
       {
         id: "subconceptos",
         label: "Subconceptos",
         href: "/subconceptos",
         description: "Gestion de subconceptos para conceptos",
+        icon: Tag,
       },
       {
         id: "stock",
         label: "Stock",
         href: "/stocks",
+        icon: Package,
       },
       {
         id: "tipo-stocks",
         label: "Tipo Stocks",
         href: "/tipo-stocks",
+        icon: Boxes,
       },
       {
         id: "generacion-cuotas",
         label: "Generacion de Cuotas",
         href: "/mensualidades",
+        icon: Calculator,
       },
     ],
   },
@@ -61,28 +96,32 @@ export const navigationItems: NavigationItem[] = [
   {
     id: "caja",
     label: "Caja",
-    icon: CreditCard,
+    icon: PiggyBank,
     description: "Control de ingresos y movimientos diarios",
     items: [
       {
         id: "cobranza",
         label: "Cobranza",
         href: "/pagos/formulario",
+        icon: DollarSign,
       },
       {
         id: "liquidacion",
         label: "Liquidacion",
         href: "/liquidacion",
+        icon: BadgeDollarSign,
       },
       {
         id: "caja-del-dia",
         label: "Caja del Dia",
         href: "/caja/diaria",
+        icon: Wallet,
       },
       {
         id: "rendicion-mensual",
         label: "Rendicion Mensual",
         href: "/caja/rendicion-mensual",
+        icon: FileSpreadsheet,
       },
     ],
   },
@@ -98,32 +137,35 @@ export const navigationItems: NavigationItem[] = [
         id: "bonificaciones",
         label: "Bonificaciones",
         href: "/bonificaciones",
+        icon: Percent,
       },
       {
         id: "recargos",
         label: "Recargos",
         href: "/recargos",
+        icon: TrendingUp,
       },
       {
         id: "salones",
         label: "Salones",
         href: "/salones",
+        icon: DoorOpen,
       },
       {
         id: "profesores",
-        icon: Users,
+        icon: UserCheck,
         label: "Profesores",
         href: "/profesores",
       },
       {
         id: "disciplinas",
-        icon: Music,
+        icon: Mic2,
         label: "Disciplinas",
         href: "/disciplinas",
       },
       {
         id: "alumnos",
-        icon: GraduationCap,
+        icon: StudentIcon,
         label: "Alumnos",
         href: "/alumnos/formulario",
       },
@@ -134,18 +176,20 @@ export const navigationItems: NavigationItem[] = [
   {
     id: "asistencias",
     label: "Asistencias",
-    icon: ClipboardCheck,
+    icon: CalendarCheck,
     description: "Control y seguimiento de asistencias",
     items: [
       {
         id: "asistencia-mensual",
         label: "Asistencia Mensual",
         href: "/asistencias-mensuales",
+        icon: CalendarRange,
       },
       {
         id: "asistencias-alumnos",
         label: "Asist. Alumnos",
         href: "/asistencias/alumnos",
+        icon: AttendanceIcon,
       },
     ],
   },
@@ -153,7 +197,7 @@ export const navigationItems: NavigationItem[] = [
   // Items sueltos
   {
     id: "inscripciones",
-    icon: ClipboardCheck,
+    icon: ClipboardList,
     label: "Inscripciones",
     href: "/inscripciones",
     description: "Gestion de nuevas inscripciones",

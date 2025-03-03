@@ -7,21 +7,33 @@ import { cn } from "./lib/utils"
 import { navigationItems } from "../config/navigation"
 
 interface NavItemProps {
-    icon?: React.ElementType;
-    label: string;
-    href?: string;
-    isActive?: boolean;
-    isExpanded: boolean;
-    onClick?: () => void;
-    className?: string;
-    children?: React.ReactNode; // Agregado
+    icon?: React.ElementType
+    label: string
+    href?: string
+    isActive?: boolean
+    isExpanded: boolean
+    onClick?: () => void
+    className?: string
+    children?: React.ReactNode
 }
 
-const NavItem = ({ icon: Icon, label, href, isActive = false, isExpanded, onClick, className }: NavItemProps) => {
+const NavItem = ({
+    icon: Icon,
+    label,
+    href,
+    isActive = false,
+    isExpanded,
+    onClick,
+    className,
+    children,
+}: NavItemProps) => {
     const content = (
         <>
-            {Icon && <Icon className="w-5 h-5 shrink-0" />}
-            {isExpanded && <span className="truncate">{label}</span>}
+            <div className="flex items-center gap-3 min-w-0">
+                {Icon && <Icon className="w-5 h-5 shrink-0" />}
+                {isExpanded && <span className="truncate">{label}</span>}
+            </div>
+            {children}
         </>
     )
 
@@ -29,9 +41,8 @@ const NavItem = ({ icon: Icon, label, href, isActive = false, isExpanded, onClic
         <Link
             to={href}
             className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-200",
+                "flex items-center justify-start w-full gap-3 px-3 py-2 rounded-md transition-all duration-200",
                 isActive ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                !isExpanded && "justify-center",
                 className,
             )}
             onClick={onClick}
@@ -41,9 +52,8 @@ const NavItem = ({ icon: Icon, label, href, isActive = false, isExpanded, onClic
     ) : (
         <button
             className={cn(
-                "flex w-full items-center gap-3 px-3 py-2 rounded-md transition-all duration-200",
+                "flex items-center justify-start w-full gap-3 px-3 py-2 rounded-md transition-all duration-200",
                 "text-muted-foreground hover:bg-muted hover:text-foreground",
-                !isExpanded && "justify-center",
                 className,
             )}
             onClick={onClick}
@@ -63,17 +73,15 @@ const NavGroup = ({ item, isExpanded }: NavGroupProps) => {
     const location = useLocation()
     const isActive = item.href ? location.pathname.startsWith(item.href) : false
 
-    // Si no tiene subitems, renderizar como NavItem simple
     if (!item.items) {
         return <NavItem icon={item.icon} label={item.label} href={item.href} isActive={isActive} isExpanded={isExpanded} />
     }
 
-    // Si tiene subitems, renderizar como Collapsible
     return (
         <Collapsible className="w-full">
             <CollapsibleTrigger className="w-full">
-                <NavItem icon={item.icon} label={item.label} isExpanded={isExpanded} className="justify-between w-full">
-                    {isExpanded && <ChevronDown className="w-4 h-4 shrink-0 transition-transform duration-200" />}
+                <NavItem icon={item.icon} label={item.label} isExpanded={isExpanded} className="w-full">
+                    {isExpanded && <ChevronDown className="w-4 h-4 shrink-0 transition-transform duration-200 ml-auto" />}
                 </NavItem>
             </CollapsibleTrigger>
             <CollapsibleContent className="pl-4">
@@ -103,27 +111,25 @@ export default function Sidebar() {
                 isExpanded ? "w-[var(--sidebar-width)]" : "w-[4.5rem]",
             )}
         >
-            {/* Header */}
-            <div className="flex items-center justify-between h-[var(--header-height)] px-4 border-b">
+            <div className="flex items-center h-[var(--header-height)] px-4 border-b">
                 {isExpanded ? (
                     <Link to="/" className="text-xl font-bold text-primary">
                         LE DANCE
                     </Link>
                 ) : (
-                    <Link to="/" className="text-xl font-bold text-primary mx-auto">
+                    <Link to="/" className="text-xl font-bold text-primary">
                         LD
                     </Link>
                 )}
                 <button
                     onClick={toggleSidebar}
-                    className="p-1 rounded-md hover:bg-muted"
+                    className="p-1 rounded-md hover:bg-muted ml-auto"
                     aria-label={isExpanded ? "Colapsar menu" : "Expandir menu"}
                 >
                     {isExpanded ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
                 </button>
             </div>
 
-            {/* Navigation */}
             <nav className="flex-1 overflow-y-auto py-4 px-3">
                 <div className="space-y-4">
                     {navigationItems.map((item) => (

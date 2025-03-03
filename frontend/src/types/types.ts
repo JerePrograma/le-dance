@@ -129,6 +129,7 @@ export interface AlumnoDetalleResponse {
   nombrePadres?: string;
   autorizadoParaSalirSolo: boolean;
   otrasNotas?: string;
+  activo?: boolean;
   cuotaTotal?: number;
   inscripciones: InscripcionResponse[];
 }
