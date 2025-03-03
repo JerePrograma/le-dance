@@ -1,3 +1,4 @@
+// src/funcionalidades/disciplinas/DisciplinasFormulario.tsx
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Formik, Form, Field, FieldArray, ErrorMessage } from "formik";
@@ -19,7 +20,7 @@ import type {
   SalonResponse,
   ProfesorListadoResponse,
   DisciplinaHorarioRequest,
-  DisciplinaDetalleResponse
+  DisciplinaDetalleResponse,
 } from "../../types/types";
 
 const diasSemana: string[] = ["LUNES", "MARTES", "MIERCOLES", "JUEVES", "VIERNES", "SÁBADO", "DOMINGO"];
@@ -56,20 +57,27 @@ const disciplinaSchema = Yup.object().shape({
     .min(1, "Debe ingresar al menos un horario"),
 });
 
+// Extendemos el type para incluir un campo de sugerencia que no se envía al backend
 type FormValues = DisciplinaRegistroRequest & Partial<DisciplinaModificacionRequest> & {
-  // Campo para editar la descripción del subconcepto (usado en Conceptos, por ejemplo)
-  // (En este formulario es solo un ejemplo; se puede eliminar si no es necesario)
-  subConceptoDescripcion?: string;
+  // Campo que se muestra para seleccionar el subconcepto asociado
+  // (se utiliza en otros formularios de conceptos)
+  subConceptoDescripcion: string;
+  id?: number; // ID de la disciplina (opcional)
 };
 
 const DisciplinasFormulario: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
+  // Estado para el ID de la disciplina
   const [disciplinaId, setDisciplinaId] = useState<number | null>(null);
-  const [formValues, setFormValues] = useState(initialDisciplinaValues);
-  const [mensaje, setMensaje] = useState("");
+  // Estado para el valor que se muestra en el campo "ID de Disciplina:" (en forma de string)
   const [idBusqueda, setIdBusqueda] = useState("");
+  const [formValues, setFormValues] = useState<FormValues>({
+    ...initialDisciplinaValues,
+    subConceptoDescripcion: "",
+  });
+  const [mensaje, setMensaje] = useState("");
 
   const [salones, setSalones] = useState<SalonResponse[]>([]);
   const [profesores, setProfesores] = useState<ProfesorListadoResponse[]>([]);
@@ -116,9 +124,9 @@ const DisciplinasFormulario: React.FC = () => {
     }
   }, []);
 
-  const mapDetalleToFormValues = (detalle: DisciplinaDetalleResponse) => ({
+  const mapDetalleToFormValues = (detalle: DisciplinaDetalleResponse): FormValues => ({
     nombre: detalle.nombre,
-    salonId: detalle.salonId,
+    salonId: detalle.salonId, // asegúrate de que este campo exista en la respuesta
     profesorId: detalle.profesorId ?? 0,
     recargoId: detalle.recargoId,
     valorCuota: detalle.valorCuota,
@@ -127,6 +135,8 @@ const DisciplinasFormulario: React.FC = () => {
     clasePrueba: detalle.clasePrueba,
     activo: detalle.activo,
     horarios: detalle.horarios,
+    // Suponemos que el detalle trae el subconcepto anidado en otro objeto
+    subConceptoDescripcion: detalle.subConcepto?.descripcion || "",
   });
 
   useEffect(() => {
@@ -139,12 +149,15 @@ const DisciplinasFormulario: React.FC = () => {
           const disciplinaForm = mapDetalleToFormValues(detalle);
           setFormValues(disciplinaForm);
           setDisciplinaId(detalle.id);
+          // Actualizamos el campo de ID para mostrarlo en el input
+          setIdBusqueda(String(detalle.id));
           setMensaje("Disciplina encontrada.");
         } catch (error) {
           console.error("Error al buscar la disciplina:", error);
           setMensaje("Disciplina no encontrada.");
           setFormValues(initialDisciplinaValues);
           setDisciplinaId(null);
+          setIdBusqueda("");
         }
       };
       fetchDisciplina();
@@ -166,8 +179,9 @@ const DisciplinasFormulario: React.FC = () => {
           toast.success("Disciplina actualizada correctamente.");
         } else {
           const nuevo = await disciplinasApi.registrarDisciplina(payload);
-          // Una vez creado, asignamos el ID generado al estado y se muestra en el campo.
+          // Al crear, actualizamos el ID de la disciplina en el estado
           setDisciplinaId(nuevo.id);
+          setIdBusqueda(String(nuevo.id));
           toast.success("Disciplina creada correctamente.");
         }
         setMensaje("Disciplina guardada exitosamente.");
@@ -184,21 +198,10 @@ const DisciplinasFormulario: React.FC = () => {
   return (
     <div className="page-container">
       <h1 className="page-title">Formulario de Disciplina</h1>
-      {/* Mostrar el ID de la Disciplina si existe */}
-      {disciplinaId !== null && (
-        <div className="mb-4">
-          <label htmlFor="disciplinaId" className="auth-label">ID de Disciplina:</label>
-          <input
-            type="number"
-            id="disciplinaId"
-            value={disciplinaId}
-            readOnly
-            className="form-input"
-          />
-        </div>
-      )}
+
+      {/* Campo para mostrar el ID de la Disciplina */}
       <div className="mb-4">
-        <label htmlFor="idBusqueda" className="auth-label">Búsqueda manual de ID:</label>
+        <label htmlFor="idBusqueda" className="auth-label">ID de Disciplina:</label>
         <div className="flex gap-2">
           <input
             type="number"
@@ -206,17 +209,21 @@ const DisciplinasFormulario: React.FC = () => {
             value={idBusqueda}
             onChange={(e) => setIdBusqueda(e.target.value)}
             className="form-input flex-grow"
+            readOnly={disciplinaId !== null} // Si ya existe un ID, lo mostramos en modo solo lectura
           />
+          {/* Puedes incluir aquí una lógica para búsqueda manual si lo requieres */}
           <Boton onClick={() => { /* Lógica de búsqueda manual si se requiere */ }} className="page-button">
             <Search className="w-5 h-5 mr-2" /> Buscar
           </Boton>
         </div>
       </div>
+
       {mensaje && (
         <p className={`form-mensaje ${mensaje.includes("Error") ? "form-mensaje-error" : "form-mensaje-success"}`}>
           {mensaje}
         </p>
       )}
+
       <Formik
         initialValues={{ ...formValues, matricula }}
         validationSchema={disciplinaSchema}
@@ -236,7 +243,11 @@ const DisciplinasFormulario: React.FC = () => {
                 <label htmlFor="salonId" className="auth-label">Salón:</label>
                 <Field as="select" name="salonId" className="form-input">
                   <option value="">Seleccione un salón</option>
-                  {/* Aquí se renderizan los salones */}
+                  {salones.map((salon) => (
+                    <option key={salon.id} value={salon.id}>
+                      {salon.nombre}
+                    </option>
+                  ))}
                 </Field>
                 <ErrorMessage name="salonId" component="div" className="auth-error" />
               </div>
@@ -244,7 +255,11 @@ const DisciplinasFormulario: React.FC = () => {
                 <label htmlFor="profesorId" className="auth-label">Profesor:</label>
                 <Field as="select" name="profesorId" className="form-input">
                   <option value="">Seleccione un profesor</option>
-                  {/* Aquí se renderizan los profesores */}
+                  {profesores.map((profesor) => (
+                    <option key={profesor.id} value={profesor.id}>
+                      {profesor.nombre} {profesor.apellido}
+                    </option>
+                  ))}
                 </Field>
                 <ErrorMessage name="profesorId" component="div" className="auth-error" />
               </div>
