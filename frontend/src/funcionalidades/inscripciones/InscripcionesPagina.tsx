@@ -95,18 +95,32 @@ const InscripcionesPagina = () => {
             "Disciplina",
             "Bonificacion",
             "Costo",
-            "Notas",
             "Acciones",
           ]}
           datos={currentItems}
           extraRender={(fila) => {
             if (!fila) return [];
+            // Nombre completo del alumno
+            const alumnoNombre = fila.alumno
+              ? `${fila.alumno.nombre} ${fila.alumno.apellido}`
+              : "Sin alumno";
+            // Nombre de la disciplina
+            const disciplinaNombre = fila.disciplina?.nombre || "Sin disciplina";
+            // Descripción de la bonificación
+            const bonificacionDescripcion = fila.bonificacion
+              ? fila.bonificacion.descripcion
+              : "N/A";
+            // Utilizar el costo calculado desde el backend
+            const costoMostrado = fila.costoCalculado !== null && fila.costoCalculado !== undefined
+              ? fila.costoCalculado
+              : "0.00";
+
             return [
               fila.id ?? "",
-              fila.alumno?.id ?? "Sin alumno",
-              fila.disciplina?.id ?? "Sin disciplina",
-              fila.bonificacion ? fila.bonificacion.descripcion : "N/A",
-              fila.notas || "-",
+              alumnoNombre,
+              disciplinaNombre,
+              bonificacionDescripcion,
+              costoMostrado,
             ];
           }}
           acciones={(fila) => (

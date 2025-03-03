@@ -6,17 +6,15 @@
   <component name="ChangeListManager">
     <list default="true" id="ccb8f120-972c-4a18-b18b-4ae7da723dfa" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/AsistenciaDiariaMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/AsistenciaDiariaMapper.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/AsistenciaMensualMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/AsistenciaMensualMapper.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/request/AsistenciaDiariaModificacionRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/request/AsistenciaDiariaModificacionRequest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/request/AsistenciaDiariaRegistroRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/request/AsistenciaDiariaRegistroRequest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/response/AsistenciaDiariaResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/response/AsistenciaDiariaResponse.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/response/AsistenciaMensualDetalleResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/response/AsistenciaMensualDetalleResponse.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/response/AsistenciaMensualListadoResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/response/AsistenciaMensualListadoResponse.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/entidades/AsistenciaDiaria.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/entidades/AsistenciaDiaria.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/entidades/AsistenciaMensual.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/entidades/AsistenciaMensual.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/asistencia/AsistenciaDiariaServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/asistencia/AsistenciaDiariaServicio.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/asistencia/AsistenciaMensualServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/asistencia/AsistenciaMensualServicio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/inscripcion/InscripcionMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/inscripcion/InscripcionMapper.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/inscripcion/request/InscripcionModificacionRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/inscripcion/request/InscripcionModificacionRequest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/inscripcion/request/InscripcionRegistroRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/inscripcion/request/InscripcionRegistroRequest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/inscripcion/response/InscripcionResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/inscripcion/response/InscripcionResponse.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/config/navigation.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/config/navigation.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/inscripciones/InscripcionesFormulario.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/inscripciones/InscripcionesFormulario.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/inscripciones/InscripcionesPagina.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/inscripciones/InscripcionesPagina.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/stock/StocksFormulario.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/stock/StocksFormulario.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/types/types.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/types/types.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -275,7 +273,7 @@
       <workItem from="1740891186910" duration="2692000" />
       <workItem from="1740895618149" duration="9869000" />
       <workItem from="1740939778001" duration="1755000" />
-      <workItem from="1740999036870" duration="16709000" />
+      <workItem from="1740999036870" duration="22062000" />
     </task>
     <servers />
   </component>

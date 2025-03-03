@@ -3,7 +3,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Formik, Form, Field, ErrorMessage, type FormikHelpers } from "formik";
 import { stockEsquema } from "../../validaciones/stockEsquema";
 import stocksApi from "../../api/stocksApi";
-import tipoStocksApi from "../../api/tipoStocksApi";
 import Boton from "../../componentes/comunes/Boton";
 import { toast } from "react-toastify";
 import type {
@@ -11,7 +10,6 @@ import type {
     StockModificacionRequest,
     StockResponse,
 } from "../../types/types";
-import type { TipoStockResponse } from "../../types/types";
 
 const initialStockValues: StockRegistroRequest & Partial<StockModificacionRequest> = {
     nombre: "",
@@ -31,18 +29,8 @@ const StocksFormulario: React.FC = () => {
     const [searchParams] = useSearchParams();
     const [stockId, setStockId] = useState<number | null>(null);
     const [formValues, setFormValues] = useState(initialStockValues);
-    const [tipoStocks, setTipoStocks] = useState<TipoStockResponse[]>([]);
     const [mensaje, setMensaje] = useState("");
     const [idBusqueda, setIdBusqueda] = useState("");
-
-    const fetchTipoStocks = useCallback(async () => {
-        try {
-            const response = await tipoStocksApi.listarTiposStockActivos();
-            setTipoStocks(response);
-        } catch (error) {
-            console.error("Error al cargar tipos de stock:", error);
-        }
-    }, []);
 
     const convertToStockFormValues = useCallback(
         (stock: StockResponse): StockRegistroRequest & Partial<StockModificacionRequest> => {
@@ -88,13 +76,12 @@ const StocksFormulario: React.FC = () => {
     }, []);
 
     useEffect(() => {
-        fetchTipoStocks();
         const idParam = searchParams.get("id");
         if (idParam) {
             setIdBusqueda(idParam);
             handleBuscar();
         }
-    }, [searchParams, handleBuscar, fetchTipoStocks]);
+    }, [searchParams, handleBuscar]);
 
 
     const convertirAStockModificacionRequest = (
@@ -189,20 +176,6 @@ const StocksFormulario: React.FC = () => {
                                 <ErrorMessage name="precio" component="div" className="auth-error" />
                             </div>
                             <div className="mb-4">
-                                <label htmlFor="tipoStockId" className="auth-label">
-                                    Tipo de Stock:
-                                </label>
-                                <Field as="select" name="tipoStockId" className="form-input">
-                                    <option value="">Seleccione un tipo de stock</option>
-                                    {tipoStocks.map((tipo) => (
-                                        <option key={tipo.id} value={tipo.id}>
-                                            {tipo.descripcion}
-                                        </option>
-                                    ))}
-                                </Field>
-                                <ErrorMessage name="tipoStockId" component="div" className="auth-error" />
-                            </div>
-                            <div className="mb-4">
                                 <label htmlFor="stock" className="auth-label">
                                     Stock:
                                 </label>
@@ -228,13 +201,6 @@ const StocksFormulario: React.FC = () => {
                                     )}
                                 </Field>
                                 <ErrorMessage name="requiereControlDeStock" component="div" className="auth-error" />
-                            </div>
-                            <div className="mb-4">
-                                <label htmlFor="codigoBarras" className="auth-label">
-                                    Codigo de Barras:
-                                </label>
-                                <Field name="codigoBarras" type="text" className="form-input" />
-                                <ErrorMessage name="codigoBarras" component="div" className="auth-error" />
                             </div>
                             <div className="mb-4">
                                 <label htmlFor="fechaIngreso" className="auth-label">

@@ -383,21 +383,25 @@ export interface InscripcionModificacionRequest {
 }
 
 export interface InscripcionResponse {
+  fechaInscripcion: string;
   id: number;
   alumno: {
+    apellido: any;
     id: number;
     nombre: string;
-    apellido: string;
-  };
+  }
   disciplina: {
+    valorCuota: number;
     id: number;
     nombre: string;
+    // otros campos si es necesario
   };
   bonificacion?: {
     id: number;
     descripcion: string;
+    valorFijo: number;
+    porcentajeDescuento: number;
   };
-  notas?: string;
 }
 
 // ==========================================

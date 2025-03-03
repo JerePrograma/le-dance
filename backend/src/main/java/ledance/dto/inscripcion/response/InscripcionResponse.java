@@ -1,14 +1,17 @@
 package ledance.dto.inscripcion.response;
 
+import ledance.dto.alumno.response.AlumnoListadoResponse;
+import ledance.dto.bonificacion.response.BonificacionResponse;
+import ledance.dto.disciplina.response.DisciplinaListadoResponse;
 import ledance.entidades.EstadoInscripcion;
 import java.time.LocalDate;
 
 public record InscripcionResponse(
         Long id,
-        Long alumnoId,
-        Long disciplinaId,
+        AlumnoListadoResponse alumno,
+        DisciplinaListadoResponse disciplina, // Cambiado de disciplinaId a objeto
         LocalDate fechaInscripcion,
         EstadoInscripcion estado,
-        String notas,
-        Double costoCalculado  // Nuevo campo
+        Double costoCalculado,
+        BonificacionResponse bonificacion
 ) { }

@@ -12,11 +12,10 @@ import org.mapstruct.*;
 public interface InscripcionMapper {
 
     @Mapping(target = "id", source = "id")
-    @Mapping(source = "alumno.id", target = "alumnoId")
-    @Mapping(source = "disciplina.id", target = "disciplinaId")
+    @Mapping(source = "alumno", target = "alumno")
+    @Mapping(source = "disciplina", target = "disciplina")
     @Mapping(target = "fechaInscripcion", source = "fechaInscripcion")
     @Mapping(target = "estado", source = "estado")
-    @Mapping(target = "notas", source = "notas")
     // Calcula el costo utilizando el metodo auxiliar
     @Mapping(target = "costoCalculado", expression = "java(mapCostoCalculado(inscripcion))")
     InscripcionResponse toDTO(Inscripcion inscripcion);

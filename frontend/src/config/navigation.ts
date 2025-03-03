@@ -6,7 +6,6 @@ import {
   Tags,
   Tag,
   Package,
-  Boxes,
   Calculator,
   DollarSign,
   PiggyBank,
@@ -76,12 +75,6 @@ export const navigationItems: NavigationItem[] = [
         label: "Stock",
         href: "/stocks",
         icon: Package,
-      },
-      {
-        id: "tipo-stocks",
-        label: "Tipo Stocks",
-        href: "/tipo-stocks",
-        icon: Boxes,
       },
       {
         id: "generacion-cuotas",
