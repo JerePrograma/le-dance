@@ -24,7 +24,8 @@ import type {
   DiaSemana,
 } from "../../types/types";
 
-const diasSemana: string[] = ["LUNES", "MARTES", "MIERCOLES", "JUEVES", "VIERNES", "SABADO", "DOMINGO"];
+// Usamos solo lunes a sábado para la selección
+const diasDisponibles: string[] = ["LUNES", "MARTES", "MIERCOLES", "JUEVES", "VIERNES", "SABADO"];
 
 const initialDisciplinaValues: DisciplinaRegistroRequest & Partial<DisciplinaModificacionRequest> = {
   nombre: "",
@@ -41,24 +42,22 @@ const initialDisciplinaValues: DisciplinaRegistroRequest & Partial<DisciplinaMod
 
 const disciplinaSchema = Yup.object().shape({
   nombre: Yup.string().required("El nombre es obligatorio"),
-  salonId: Yup.number().positive().required("Debe seleccionar un salon"),
+  salonId: Yup.number().positive().required("Debe seleccionar un salón"),
   profesorId: Yup.number().positive().required("Debe seleccionar un profesor"),
+  // Puedes agregar validaciones adicionales según sea necesario
 });
 
-// Extendemos el type para incluir un campo de sugerencia que no se envia al backend
+// Extendemos el type para incluir el campo ID (para edición) y que los horarios se gestionen vía checkboxes
 type FormValues = DisciplinaRegistroRequest & Partial<DisciplinaModificacionRequest> & {
-  // Campo que se muestra para seleccionar el subconcepto asociado
-  // (se utiliza en otros formularios de conceptos)
-  id?: number; // ID de la disciplina (opcional)
+  id?: number;
 };
 
 const DisciplinasFormulario: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  // Estado para el ID de la disciplina
   const [disciplinaId, setDisciplinaId] = useState<number | null>(null);
-  // Estado para el valor que se muestra en el campo "ID de Disciplina:" (en forma de string)
+  // Campo para mostrar el ID de la disciplina en el input de búsqueda
   const [idBusqueda, setIdBusqueda] = useState("");
   const [formValues, setFormValues] = useState<FormValues>({
     ...initialDisciplinaValues,
@@ -112,7 +111,7 @@ const DisciplinasFormulario: React.FC = () => {
 
   const mapDetalleToFormValues = (detalle: DisciplinaDetalleResponse): FormValues => ({
     nombre: detalle.nombre,
-    salonId: detalle.salonId, // asegurate de que este campo existe en la respuesta
+    salonId: detalle.salonId, // Asegúrate de que este campo exista en la respuesta
     profesorId: detalle.profesorId ?? 0,
     recargoId: detalle.recargoId,
     valorCuota: detalle.valorCuota,
@@ -120,19 +119,13 @@ const DisciplinasFormulario: React.FC = () => {
     claseSuelta: detalle.claseSuelta,
     clasePrueba: detalle.clasePrueba,
     activo: detalle.activo,
-    // Mapear cada horario para que cumpla con el tipo DisciplinaHorarioRequest
+    // Los horarios se mapearán al formato esperado para el formulario:
     horarios: detalle.horarios.map(horario => ({
-      // Si el tipo DiaSemana es un enum o union, hacemos una asercion:
       diaSemana: horario.diaSemana as unknown as DiaSemana,
       horarioInicio: horario.horarioInicio,
       duracion: horario.duracion,
-      // Si el campo id es opcional, puedes incluirlo:
       id: horario.id,
     })),
-    // Si en el detalle el subconcepto esta incluido, lo asignamos:
-    // (Si no, lo dejamos vacio o asignamos un valor por defecto)
-    // En este ejemplo, se asume que detalle.subConcepto existe
-    // y tiene la propiedad "descripcion"
   });
 
   useEffect(() => {
@@ -145,7 +138,6 @@ const DisciplinasFormulario: React.FC = () => {
           const disciplinaForm = mapDetalleToFormValues(detalle);
           setFormValues(disciplinaForm);
           setDisciplinaId(detalle.id);
-          // Actualizamos el campo de ID para mostrarlo en el input
           setIdBusqueda(String(detalle.id));
           setMensaje("Disciplina encontrada.");
         } catch (error) {
@@ -175,7 +167,6 @@ const DisciplinasFormulario: React.FC = () => {
           toast.success("Disciplina actualizada correctamente.");
         } else {
           const nuevo = await disciplinasApi.registrarDisciplina(payload);
-          // Al crear, actualizamos el ID de la disciplina en el estado
           setDisciplinaId(nuevo.id);
           setIdBusqueda(String(nuevo.id));
           toast.success("Disciplina creada correctamente.");
@@ -197,7 +188,9 @@ const DisciplinasFormulario: React.FC = () => {
 
       {/* Campo para mostrar el ID de la Disciplina */}
       <div className="mb-4">
-        <label htmlFor="idBusqueda" className="auth-label">ID de Disciplina:</label>
+        <label htmlFor="idBusqueda" className="auth-label">
+          ID de Disciplina:
+        </label>
         <div className="flex gap-2">
           <input
             type="number"
@@ -205,10 +198,12 @@ const DisciplinasFormulario: React.FC = () => {
             value={idBusqueda}
             onChange={(e) => setIdBusqueda(e.target.value)}
             className="form-input flex-grow"
-            readOnly={disciplinaId !== null} // Si ya existe un ID, lo mostramos en modo solo lectura
+            readOnly={disciplinaId !== null}
           />
-          {/* Puedes incluir aqui una logica para busqueda manual si lo requieres */}
-          <Boton onClick={() => { /* Logica de busqueda manual si se requiere */ }} className="page-button">
+          <Boton
+            onClick={() => { /* Lógica de búsqueda manual si se requiere */ }}
+            className="page-button"
+          >
             <Search className="w-5 h-5 mr-2" /> Buscar
           </Boton>
         </div>
@@ -226,19 +221,23 @@ const DisciplinasFormulario: React.FC = () => {
         onSubmit={handleSubmit}
         enableReinitialize
       >
-        {({ isSubmitting, values }) => (
+        {({ isSubmitting, }) => (
           <Form className="formulario max-w-4xl mx-auto">
             <div className="form-grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Campos basicos */}
+              {/* Campos básicos */}
               <div className="mb-4">
-                <label htmlFor="nombre" className="auth-label">Nombre:</label>
+                <label htmlFor="nombre" className="auth-label">
+                  Nombre:
+                </label>
                 <Field name="nombre" type="text" className="form-input" />
                 <ErrorMessage name="nombre" component="div" className="auth-error" />
               </div>
               <div className="mb-4">
-                <label htmlFor="salonId" className="auth-label">Salon:</label>
+                <label htmlFor="salonId" className="auth-label">
+                  Salón:
+                </label>
                 <Field as="select" name="salonId" className="form-input">
-                  <option value="">Seleccione un salon</option>
+                  <option value="">Seleccione un salón</option>
                   {salones.map((salon) => (
                     <option key={salon.id} value={salon.id}>
                       {salon.nombre}
@@ -248,7 +247,9 @@ const DisciplinasFormulario: React.FC = () => {
                 <ErrorMessage name="salonId" component="div" className="auth-error" />
               </div>
               <div className="mb-4">
-                <label htmlFor="profesorId" className="auth-label">Profesor:</label>
+                <label htmlFor="profesorId" className="auth-label">
+                  Profesor:
+                </label>
                 <Field as="select" name="profesorId" className="form-input">
                   <option value="">Seleccione un profesor</option>
                   {profesores.map((profesor) => (
@@ -260,17 +261,23 @@ const DisciplinasFormulario: React.FC = () => {
                 <ErrorMessage name="profesorId" component="div" className="auth-error" />
               </div>
               <div className="mb-4">
-                <label htmlFor="valorCuota" className="auth-label">Valor de Cuota:</label>
+                <label htmlFor="valorCuota" className="auth-label">
+                  Valor de Cuota:
+                </label>
                 <Field name="valorCuota" type="number" step="0.01" className="form-input" />
                 <ErrorMessage name="valorCuota" component="div" className="auth-error" />
               </div>
               <div className="mb-4">
-                <label htmlFor="claseSuelta" className="auth-label">Clase Suelta:</label>
+                <label htmlFor="claseSuelta" className="auth-label">
+                  Clase Suelta:
+                </label>
                 <Field name="claseSuelta" type="number" step="0.01" className="form-input" />
                 <ErrorMessage name="claseSuelta" component="div" className="auth-error" />
               </div>
               <div className="mb-4">
-                <label htmlFor="clasePrueba" className="auth-label">Clase de Prueba:</label>
+                <label htmlFor="clasePrueba" className="auth-label">
+                  Clase de Prueba:
+                </label>
                 <Field name="clasePrueba" type="number" step="0.01" className="form-input" />
                 <ErrorMessage name="clasePrueba" component="div" className="auth-error" />
               </div>
@@ -283,68 +290,72 @@ const DisciplinasFormulario: React.FC = () => {
                   <ErrorMessage name="activo" component="div" className="auth-error" />
                 </div>
               )}
-              {/* FieldArray para Horarios */}
+
+              {/* Sección de Horarios: fila de checkboxes para seleccionar días */}
               <div className="mb-4 col-span-1 sm:col-span-2">
-                <label className="auth-label">Horarios de Clase:</label>
+                <label className="auth-label">Seleccionar Días de Clase:</label>
                 <FieldArray name="horarios">
-                  {({ push, remove }) => (
-                    <div>
-                      {values.horarios && values.horarios.length > 0 ? (
-                        values.horarios.map((horario: DisciplinaHorarioRequest, index: number) => (
-                          <div key={index} className="horario-item border p-2 mb-2">
-                            {horario.id !== undefined && (
-                              <Field name={`horarios.${index}.id`} type="hidden" />
-                            )}
+                  {({ push, remove, form }) => {
+                    const { values } = form;
+                    const horarios = values.horarios || [];
+                    return (
+                      <>
+                        <div className="flex gap-4">
+                          {diasDisponibles.map((dia) => {
+                            const isSelected = horarios.some(
+                              (h: DisciplinaHorarioRequest) => h.diaSemana === dia
+                            );
+                            return (
+                              <label key={dia} className="flex items-center gap-1">
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => {
+                                    if (isSelected) {
+                                      // Remover el horario correspondiente
+                                      const index = horarios.findIndex(
+                                        (h: DisciplinaHorarioRequest) => h.diaSemana === dia
+                                      );
+                                      if (index >= 0) remove(index);
+                                    } else {
+                                      // Agregar un nuevo horario para ese día
+                                      push({
+                                        diaSemana: dia as unknown as DiaSemana,
+                                        horarioInicio: "",
+                                        duracion: 0,
+                                      });
+                                    }
+                                  }}
+                                />
+                                <span>{dia}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+
+                        {/* Mostrar campos para cada horario seleccionado */}
+                        {horarios.map((horario: DisciplinaHorarioRequest, index: number) => (
+                          <div key={index} className="horario-item border p-2 mt-4">
+                            <Field name={`horarios.${index}.diaSemana`} type="hidden" />
                             <div className="mb-2">
-                              <label>Dia:</label>
-                              <Field as="select" name={`horarios.${index}.diaSemana`} className="form-input">
-                                <option value="">Seleccione</option>
-                                {diasSemana.map((dia) => (
-                                  <option key={dia} value={dia}>
-                                    {dia}
-                                  </option>
-                                ))}
-                              </Field>
-                              <ErrorMessage name={`horarios.${index}.diaSemana`} component="div" className="auth-error" />
-                            </div>
-                            <div className="mb-2">
-                              <label>Horario Inicio:</label>
+                              <label>Horario Inicio ({horario.diaSemana}):</label>
                               <Field name={`horarios.${index}.horarioInicio`} type="time" className="form-input" />
                               <ErrorMessage name={`horarios.${index}.horarioInicio`} component="div" className="auth-error" />
                             </div>
                             <div className="mb-2">
-                              <label>Duracion (horas):</label>
+                              <label>Duración (horas) ({horario.diaSemana}):</label>
                               <Field name={`horarios.${index}.duracion`} type="number" step="0.1" className="form-input" />
                               <ErrorMessage name={`horarios.${index}.duracion`} component="div" className="auth-error" />
                             </div>
-                            <div className="flex justify-end">
-                              <Boton type="button" onClick={() => remove(index)} className="page-button-secondary">
-                                Eliminar Horario
-                              </Boton>
-                            </div>
                           </div>
-                        ))
-                      ) : (
-                        <div>No hay horarios agregados.</div>
-                      )}
-                      <Boton
-                        type="button"
-                        onClick={() =>
-                          push({
-                            diaSemana: "",
-                            horarioInicio: "",
-                            duracion: 0,
-                          })
-                        }
-                        className="page-button"
-                      >
-                        Agregar Horario
-                      </Boton>
-                    </div>
-                  )}
+                        ))}
+                      </>
+                    );
+                  }}
                 </FieldArray>
               </div>
             </div>
+
             <div className="form-acciones">
               <Boton type="submit" className="page-button" disabled={isSubmitting}>
                 {disciplinaId ? "Actualizar" : "Crear"} Disciplina

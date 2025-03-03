@@ -17,7 +17,7 @@ import java.util.List;
 public record AlumnoRegistroRequest(
         @NotBlank String nombre,
         @NotBlank String apellido,
-        @NotNull LocalDate fechaNacimiento,
+        LocalDate fechaNacimiento,
         @NotNull LocalDate fechaIncorporacion,
         String celular1,
         String celular2,

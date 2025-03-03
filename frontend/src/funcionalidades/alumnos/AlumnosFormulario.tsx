@@ -1,7 +1,7 @@
-import type React from "react";
+// src/funcionalidades/alumnos/AlumnosFormulario.tsx
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ErrorMessage, Field, Form, Formik, type FormikHelpers } from "formik";
+import { Formik, Form, Field, ErrorMessage, type FormikHelpers } from "formik";
 import { alumnoEsquema } from "../../validaciones/alumnoEsquema";
 import alumnosApi from "../../api/alumnosApi";
 import inscripcionesApi from "../../api/inscripcionesApi";
@@ -22,16 +22,18 @@ import {
 } from "../../utilidades/alumnoUtils";
 import { Button } from "../../componentes/ui/button";
 
+// Pre-cargamos la fecha de incorporación con la fecha actual (formato "yyyy-MM-dd")
+const today = new Date().toISOString().split("T")[0];
+
 const initialAlumnoValues: AlumnoRegistroRequest &
   Partial<AlumnoModificacionRequest> = {
   nombre: "",
   apellido: "",
   fechaNacimiento: "",
-  fechaIncorporacion: "",
+  fechaIncorporacion: today,
   celular1: "",
   celular2: "",
   email1: "",
-  email2: "",
   documento: "",
   cuit: "",
   nombrePadres: "",
@@ -51,35 +53,25 @@ const AlumnosFormulario: React.FC = () => {
   const [mensaje, setMensaje] = useState("");
   const [idBusqueda, setIdBusqueda] = useState("");
   const [nombreBusqueda, setNombreBusqueda] = useState("");
-  const [sugerenciasAlumnos, setSugerenciasAlumnos] = useState<
-    AlumnoListadoResponse[]
-  >([]);
-  const [formValues, setFormValues] = useState<
-    AlumnoRegistroRequest & Partial<AlumnoModificacionRequest>
-  >(initialAlumnoValues);
+  const [sugerenciasAlumnos, setSugerenciasAlumnos] = useState<AlumnoListadoResponse[]>([]);
+  const [formValues, setFormValues] = useState<AlumnoRegistroRequest & Partial<AlumnoModificacionRequest>>(initialAlumnoValues);
 
   const debouncedNombreBusqueda = useDebounce(nombreBusqueda, 300);
 
   const handleGuardarAlumno = async (
     values: AlumnoRegistroRequest & Partial<AlumnoModificacionRequest>,
-    {
-      setSubmitting,
-    }: FormikHelpers<AlumnoRegistroRequest & Partial<AlumnoModificacionRequest>>
+    { setSubmitting }: FormikHelpers<AlumnoRegistroRequest & Partial<AlumnoModificacionRequest>>
   ) => {
     try {
       let successMsg: string;
       if (alumnoId) {
         await alumnosApi.actualizar(
           alumnoId,
-          convertToAlumnoModificacionRequest(
-            values as AlumnoModificacionRequest
-          )
+          convertToAlumnoModificacionRequest(values as AlumnoModificacionRequest)
         );
         successMsg = "Alumno actualizado correctamente";
       } else {
-        const nuevoAlumno = await alumnosApi.registrar(
-          values as AlumnoRegistroRequest
-        );
+        const nuevoAlumno = await alumnosApi.registrar(values as AlumnoRegistroRequest);
         setAlumnoId(nuevoAlumno.id);
         successMsg = "Alumno creado correctamente";
       }
@@ -88,9 +80,7 @@ const AlumnosFormulario: React.FC = () => {
     } catch (error: any) {
       const errorMessage =
         error.response?.data?.message ||
-        (error.response?.status === 404
-          ? "Alumno no encontrado"
-          : "Error al guardar el alumno");
+        (error.response?.status === 404 ? "Alumno no encontrado" : "Error al guardar el alumno");
       setMensaje(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -125,10 +115,7 @@ const AlumnosFormulario: React.FC = () => {
     setInscripciones([]);
   };
 
-  const handleSeleccionarAlumno = async (
-    id: number,
-    nombreCompleto: string
-  ) => {
+  const handleSeleccionarAlumno = async (id: number, nombreCompleto: string) => {
     try {
       const alumno = await alumnosApi.obtenerPorId(id);
       setFormValues(convertToAlumnoRegistroRequest(alumno));
@@ -161,9 +148,7 @@ const AlumnosFormulario: React.FC = () => {
   useEffect(() => {
     const buscarSugerencias = async () => {
       if (debouncedNombreBusqueda) {
-        const sugerencias = await alumnosApi.buscarPorNombre(
-          debouncedNombreBusqueda
-        );
+        const sugerencias = await alumnosApi.buscarPorNombre(debouncedNombreBusqueda);
         setSugerenciasAlumnos(sugerencias);
       } else {
         setSugerenciasAlumnos([]);
@@ -176,9 +161,9 @@ const AlumnosFormulario: React.FC = () => {
     try {
       await inscripcionesApi.eliminar(id);
       cargarInscripciones(alumnoId);
-      toast.success("Inscripcion eliminada correctamente");
+      toast.success("Inscripción eliminada correctamente");
     } catch (error) {
-      toast.error("Error al eliminar la inscripcion");
+      toast.error("Error al eliminar la inscripción");
     }
   };
 
@@ -194,10 +179,10 @@ const AlumnosFormulario: React.FC = () => {
         {({ isSubmitting, setFieldValue }) => (
           <Form className="formulario max-w-4xl mx-auto">
             <div className="form-grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* Busqueda por ID */}
+              {/* Búsqueda por ID */}
               <div className="col-span-full mb-4">
                 <label htmlFor="idBusqueda" className="auth-label">
-                  Numero de Alumno:
+                  Número de Alumno:
                 </label>
                 <div className="flex gap-2">
                   <input
@@ -207,17 +192,14 @@ const AlumnosFormulario: React.FC = () => {
                     onChange={(e) => setIdBusqueda(e.target.value)}
                     className="form-input flex-grow"
                   />
-                  <Boton
-                    onClick={() => handleBuscar(idBusqueda)}
-                    className="page-button"
-                  >
+                  <Boton onClick={() => handleBuscar(idBusqueda)} className="page-button">
                     <Search className="w-5 h-5 mr-2" />
                     Buscar
                   </Boton>
                 </div>
               </div>
 
-              {/* Busqueda por Nombre con sugerencias */}
+              {/* Búsqueda por Nombre con sugerencias */}
               <div className="col-span-full mb-4">
                 <label htmlFor="nombreBusqueda" className="auth-label">
                   Buscar por Nombre:
@@ -245,10 +227,7 @@ const AlumnosFormulario: React.FC = () => {
                         <li
                           key={alumno.id}
                           onClick={() =>
-                            handleSeleccionarAlumno(
-                              alumno.id,
-                              `${alumno.nombre} ${alumno.apellido}`
-                            )
+                            handleSeleccionarAlumno(alumno.id, `${alumno.nombre} ${alumno.apellido}`)
                           }
                           className="sugerencia-item"
                         >
@@ -264,19 +243,11 @@ const AlumnosFormulario: React.FC = () => {
               {[
                 { name: "nombre", label: "Nombre" },
                 { name: "apellido", label: "Apellido" },
-                {
-                  name: "fechaNacimiento",
-                  label: "Fecha de Nacimiento",
-                  type: "date",
-                },
-                {
-                  name: "fechaIncorporacion",
-                  label: "Fecha de Incorporacion",
-                  type: "date",
-                },
+                { name: "fechaNacimiento", label: "Fecha de Nacimiento", type: "date" },
+                { name: "fechaIncorporacion", label: "Fecha de Incorporación", type: "date" },
                 { name: "celular1", label: "Celular 1" },
-                { name: "email1", label: "Email 1", type: "email" },
-                { name: "email2", label: "Email 2", type: "email" },
+                { name: "celular2", label: "Celular 2" },
+                { name: "email1", label: "Email", type: "email" },
                 { name: "documento", label: "Documento" },
                 { name: "nombrePadres", label: "Nombre de Padres" },
               ].map(({ name, label, type = "text" }) => (
@@ -284,101 +255,69 @@ const AlumnosFormulario: React.FC = () => {
                   <label htmlFor={name} className="auth-label">
                     {label}:
                   </label>
-                  <Field
-                    name={name}
-                    type={type}
-                    className="form-input"
-                    id={name}
-                  />
-                  <ErrorMessage
-                    name={name}
-                    component="div"
-                    className="auth-error"
-                  />
+                  <Field name={name} type={type} className="form-input" id={name} />
+                  <ErrorMessage name={name} component="div" className="auth-error" />
                 </div>
               ))}
 
-              {/* Checkboxes */}
-              {[
-                {
-                  name: "autorizadoParaSalirSolo",
-                  label: "Autorizado para salir solo",
-                },
-                { name: "activo", label: "Activo" },
-              ].map(({ name, label }) => (
-                <div key={name} className="mb-4 col-span-full">
+              {/* Checkbox: Autorizado para salir solo */}
+              <div className="mb-4 col-span-full">
+                <label className="flex items-center space-x-2">
+                  <Field name="autorizadoParaSalirSolo" type="checkbox" className="form-checkbox" />
+                  <span>Autorizado para salir solo</span>
+                </label>
+              </div>
+
+              {/* Checkbox: Activo (solo en edición) */}
+              {alumnoId !== null && (
+                <div className="mb-4 col-span-full">
                   <label className="flex items-center space-x-2">
-                    <Field
-                      name={name}
-                      type="checkbox"
-                      className="form-checkbox"
-                    />
-                    <span>{label}</span>
+                    <Field name="activo">
+                      {({ field }: any) => (
+                        <input type="checkbox" {...field} checked={field.value === true} />
+                      )}
+                    </Field>
+                    <span>Activo</span>
                   </label>
                 </div>
-              ))}
+              )}
 
               {/* Otras Notas */}
               <div className="col-span-full mb-4">
                 <label htmlFor="otrasNotas" className="auth-label">
                   Otras Notas:
                 </label>
-                <Field
-                  as="textarea"
-                  name="otrasNotas"
-                  id="otrasNotas"
-                  className="form-input h-24"
-                />
-                <ErrorMessage
-                  name="otrasNotas"
-                  component="div"
-                  className="auth-error"
-                />
+                <Field as="textarea" name="otrasNotas" id="otrasNotas" className="form-input h-24" />
+                <ErrorMessage name="otrasNotas" component="div" className="auth-error" />
               </div>
             </div>
 
             <div className="form-acciones">
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="page-button"
-              >
+              <Button type="submit" disabled={isSubmitting} className="page-button">
                 Guardar Alumno
               </Button>
               <Button
                 type="button"
-                className="page-button-group flex justify-end mb-4"
                 onClick={() => {
                   resetearFormulario();
                   Object.keys(initialAlumnoValues).forEach((key) => {
                     setFieldValue(
                       key,
-                      initialAlumnoValues[
-                      key as keyof (AlumnoRegistroRequest &
-                        Partial<AlumnoModificacionRequest>)
-                      ]
+                      initialAlumnoValues[key as keyof (AlumnoRegistroRequest & Partial<AlumnoModificacionRequest>)]
                     );
                   });
                 }}
+                className="page-button-group flex justify-end mb-4"
               >
                 Limpiar
               </Button>
-              <Button
-                type="button"
-                className="page-button-group flex justify-end mb-4"
-                onClick={() => navigate("/alumnos")}
-              >
+              <Button type="button" onClick={() => navigate("/alumnos")} className="page-button-group flex justify-end mb-4">
                 Volver al Listado
               </Button>
             </div>
 
             {mensaje && (
-              <p
-                className={`form-mensaje ${mensaje.includes("correctamente")
-                  ? "form-mensaje-success"
-                  : "form-mensaje-error"
-                  }`}
-              >
+              <p className={`form-mensaje ${mensaje.includes("correctamente") ? "form-mensaje-success" : "form-mensaje-error"}`}>
                 {mensaje}
               </p>
             )}
@@ -392,11 +331,7 @@ const AlumnosFormulario: React.FC = () => {
                 <>
                   <div className="page-button-group flex justify-end mb-4">
                     <Boton
-                      onClick={() =>
-                        navigate(
-                          `/inscripciones/formulario?alumnoId=${alumnoId}`
-                        )
-                      }
+                      onClick={() => navigate(`/inscripciones/formulario?alumnoId=${alumnoId}`)}
                       className="page-button"
                     >
                       Agregar Disciplina
@@ -407,7 +342,7 @@ const AlumnosFormulario: React.FC = () => {
                       encabezados={[
                         "ID",
                         "Disciplina",
-                        "Bonificacion",
+                        "Bonificación",
                         "Costo",
                         "Notas",
                         "Acciones",
@@ -422,11 +357,7 @@ const AlumnosFormulario: React.FC = () => {
                       acciones={(fila) => (
                         <div className="flex gap-2">
                           <Boton
-                            onClick={() =>
-                              navigate(
-                                `/inscripciones/formulario?id=${fila.id}`
-                              )
-                            }
+                            onClick={() => navigate(`/inscripciones/formulario?id=${fila.id}`)}
                             className="page-button-group flex justify-end mb-4"
                           >
                             Editar
