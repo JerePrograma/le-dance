@@ -143,7 +143,7 @@ const AlumnosFormulario: React.FC = () => {
   };
 
   useEffect(() => {
-    const alumnoIdParam = searchParams.get("alumnoId");
+    const alumnoIdParam = searchParams.get("alumnoId") || searchParams.get("id");
     if (alumnoIdParam) {
       handleBuscar(alumnoIdParam);
     }

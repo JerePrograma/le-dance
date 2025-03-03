@@ -111,6 +111,7 @@ export interface AlumnoListadoResponse {
 }
 
 export interface AlumnoDetalleResponse {
+  activo: boolean;
   id: number;
   nombre: string;
   apellido: string;
@@ -129,7 +130,6 @@ export interface AlumnoDetalleResponse {
   nombrePadres?: string;
   autorizadoParaSalirSolo: boolean;
   otrasNotas?: string;
-  activo?: boolean;
   cuotaTotal?: number;
   inscripciones: InscripcionResponse[];
 }
