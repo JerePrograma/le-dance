@@ -27,7 +27,7 @@ import type {
     MetodoPagoResponse,
 } from "../../types/types";
 
-// Función para obtener el período (mes y año) vigente
+// Funcion para obtener el periodo (mes y año) vigente
 const getMesVigente = () =>
     new Date().toLocaleString("default", { month: "long", year: "numeric" });
 
@@ -127,7 +127,7 @@ const CobranzasForm: React.FC = () => {
                 })
                 .then((matriculaResponse) => setMatricula(matriculaResponse))
                 .catch((err) =>
-                    console.error("Error al cargar inscripción o matrícula:", err)
+                    console.error("Error al cargar inscripcion o matricula:", err)
                 );
 
             loadDeudasForAlumno(Number(alumnoId), setFieldValue);
@@ -178,7 +178,7 @@ const CobranzasForm: React.FC = () => {
                     });
                 })
                 .catch((err) => {
-                    console.error("Error al cargar el pago para edición:", err);
+                    console.error("Error al cargar el pago para edicion:", err);
                     toast.error("Error al cargar los datos del pago.");
                 });
         }
@@ -235,7 +235,7 @@ const CobranzasForm: React.FC = () => {
                 saldoRestante: saldoRestante,
                 saldoAFavor: 0,
                 detallePagos: detallesFiltrados.map((d) => ({
-                    id: d.id, // Si es nuevo, será null
+                    id: d.id, // Si es nuevo, sera null
                     codigoConcepto: d.codigoConcepto,
                     concepto: d.concepto,
                     cuota: d.cuota,
@@ -270,7 +270,7 @@ const CobranzasForm: React.FC = () => {
     return (
         <div className="page-container p-4">
             <h1 className="page-title text-2xl font-bold mb-4">
-                Gestión de Cobranzas
+                Gestion de Cobranzas
             </h1>
             {ultimoPago && (
                 <div className="mb-4 p-2 border">
@@ -374,7 +374,7 @@ const CobranzasForm: React.FC = () => {
                                     {/* Al lado del campo Tarifa se agrega el selector del mes */}
                                     {values.tarifa === "CUOTA" && (
                                         <div>
-                                            <label className="block font-medium">Período Mensual:</label>
+                                            <label className="block font-medium">Periodo Mensual:</label>
                                             <Field
                                                 as="select"
                                                 name="periodoMensual"
@@ -386,7 +386,7 @@ const CobranzasForm: React.FC = () => {
                                                 <option value="Marzo 2025">Marzo 2025</option>
                                                 <option value="Abril 2025">Abril 2025</option>
                                                 <option value="Mayo 2025">Mayo 2025</option>
-                                                {/* Agrega más opciones según corresponda */}
+                                                {/* Agrega mas opciones segun corresponda */}
                                             </Field>
                                         </div>
                                     )}
@@ -435,7 +435,7 @@ const CobranzasForm: React.FC = () => {
                                     </div>
                                 </div>
                             </div>
-                            {/* Botón para agregar detalle */}
+                            {/* Boton para agregar detalle */}
                             <div className="col-span-4 mb-4">
                                 <button
                                     type="button"
@@ -488,7 +488,7 @@ const CobranzasForm: React.FC = () => {
                                                 newDetails.push({
                                                     id: null,
                                                     codigoConcepto: selectedDisc.id,
-                                                    // Aquí se concatena el período mensual al concepto
+                                                    // Aqui se concatena el periodo mensual al concepto
                                                     concepto: `${selectedDisc.nombre.toUpperCase()} - ${tarifaLabel} - ${values.periodoMensual}`,
                                                     cuota: cantidad.toString(),
                                                     valorBase: total,
@@ -546,20 +546,20 @@ const CobranzasForm: React.FC = () => {
                                     Agregar Detalle
                                 </button>
                             </div>
-                            {/* Detalles de Facturación */}
+                            {/* Detalles de Facturacion */}
                             <div className="border p-4 mb-4">
-                                <h2 className="font-bold mb-2">Detalles de Facturación</h2>
+                                <h2 className="font-bold mb-2">Detalles de Facturacion</h2>
                                 <FieldArray name="detallePagos">
                                     {({ remove }) => (
                                         <>
                                             <table className="min-w-full border mb-4">
                                                 <thead>
                                                     <tr>
-                                                        <th className="border p-2">Código (ID)</th>
+                                                        <th className="border p-2">Codigo (ID)</th>
                                                         <th className="border p-2">Concepto</th>
                                                         <th className="border p-2">Cuota/Cantidad</th>
                                                         <th className="border p-2">Valor Base</th>
-                                                        <th className="border p-2">Bonificación</th>
+                                                        <th className="border p-2">Bonificacion</th>
                                                         <th className="border p-2">Recargo</th>
                                                         <th className="border p-2">Importe</th>
                                                         <th className="border p-2">A Cobrar</th>
@@ -736,13 +736,13 @@ const CobranzasForm: React.FC = () => {
                                         </small>
                                     </div>
                                     <div>
-                                        <label className="block font-medium">Método de Pago:</label>
+                                        <label className="block font-medium">Metodo de Pago:</label>
                                         <Field
                                             as="select"
                                             name="metodoPagoId"
                                             className="border p-2 w-full"
                                         >
-                                            <option value="">Seleccione un método de pago</option>
+                                            <option value="">Seleccione un metodo de pago</option>
                                             {metodosPago.map((mp: MetodoPagoResponse) => (
                                                 <option key={mp.id} value={mp.id}>
                                                     {mp.descripcion}
@@ -762,7 +762,7 @@ const CobranzasForm: React.FC = () => {
                                     rows="3"
                                 />
                             </div>
-                            {/* Botones de Acción */}
+                            {/* Botones de Accion */}
                             <div className="flex justify-end gap-4">
                                 <button type="submit" className="bg-green-500 p-2 rounded">
                                     {searchParams.get("id")

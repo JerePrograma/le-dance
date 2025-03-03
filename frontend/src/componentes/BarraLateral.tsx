@@ -23,7 +23,7 @@ const BarraLateral = () => {
       <button
         onClick={alternarMenu}
         className="@container:hidden fixed top-4 left-4 z-50 p-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-        aria-label="Abrir menú"
+        aria-label="Abrir menu"
         aria-expanded={menuAbierto}
         aria-controls="menu-lateral"
       >
@@ -47,11 +47,10 @@ const BarraLateral = () => {
               to={link.to}
               className={({ isActive }) =>
                 `block py-2 px-4 rounded-md transition-colors
-                 ${
-                   isActive
-                     ? "bg-primary text-primary-foreground dark:bg-primary-light dark:text-background-dark"
-                     : "text-foreground dark:text-text-dark hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent-dark dark:hover:text-accent-foreground-dark"
-                 }`
+                 ${isActive
+                  ? "bg-primary text-primary-foreground dark:bg-primary-light dark:text-background-dark"
+                  : "text-foreground dark:text-text-dark hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent-dark dark:hover:text-accent-foreground-dark"
+                }`
               }
               onClick={alternarMenu}
               role="menuitem"

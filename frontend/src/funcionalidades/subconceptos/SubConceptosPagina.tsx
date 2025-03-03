@@ -77,7 +77,7 @@ const SubConceptos = () => {
                 <Tabla
                     encabezados={[
                         "ID",
-                        "Descripción",
+                        "Descripcion",
                         "Acciones",
                     ]}
                     datos={currentItems}

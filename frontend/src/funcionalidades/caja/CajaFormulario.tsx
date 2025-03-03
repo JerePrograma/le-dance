@@ -174,7 +174,7 @@ export default function PettyCash() {
     )
 }
 
-// Los componentes de íconos se mantienen igual que en tu código original
+// Los componentes de iconos se mantienen igual que en tu codigo original
 const CalendarIcon = () => (
     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path

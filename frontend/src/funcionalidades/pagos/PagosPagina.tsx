@@ -60,7 +60,7 @@ const PaymentList: React.FC = () => {
     const handleEliminar = async (id: number) => {
         try {
             await api.delete(`/pagos/${id}`);
-            // Actualizamos la lista después de "eliminar" (marcar como inactivo)
+            // Actualizamos la lista despues de "eliminar" (marcar como inactivo)
             fetchPagos();
         } catch (error) {
             console.error("Error al eliminar pago:", error);
@@ -85,7 +85,7 @@ const PaymentList: React.FC = () => {
             </div>
             <div className="page-card">
                 <Tabla
-                    encabezados={["ID", "Fecha", "Monto", "Método de Pago", "Saldo Restante", "Estado", "Acciones"]}
+                    encabezados={["ID", "Fecha", "Monto", "Metodo de Pago", "Saldo Restante", "Estado", "Acciones"]}
                     datos={currentItems}
                     extraRender={(fila) => [
                         fila.id,

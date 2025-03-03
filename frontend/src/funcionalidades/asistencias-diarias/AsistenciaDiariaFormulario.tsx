@@ -43,7 +43,7 @@ const AsistenciaDiariaForm: React.FC = () => {
     const fetchDisciplinas = useCallback(async () => {
         try {
             const data = await asistenciasApi.listarDisciplinasSimplificadas();
-            // Mapea cada elemento agregando diasSemana (por defecto, vacío o con otro valor que necesites)
+            // Mapea cada elemento agregando diasSemana (por defecto, vacio o con otro valor que necesites)
             const disciplinasConDias = data.map((d: any) => ({
                 ...d,
                 diasSemana: [], // o un array con valores por defecto si aplica
@@ -69,8 +69,8 @@ const AsistenciaDiariaForm: React.FC = () => {
             console.log("Detalle de disciplina:", response.data);
             setDiasClase(response.data?.diasSemana || []);
         } catch (error) {
-            console.error("Error al cargar días de clase:", error);
-            toast.error("Error al cargar la información de la disciplina.");
+            console.error("Error al cargar dias de clase:", error);
+            toast.error("Error al cargar la informacion de la disciplina.");
         }
     }, [selectedDisciplineId]);
 
@@ -98,20 +98,20 @@ const AsistenciaDiariaForm: React.FC = () => {
             setObservaciones(obs);
             // Si no hay registros y se espera clase, establecemos el mensaje de error
             if (pageResponse.content.length === 0) {
-                setErrorMessage("No hay clases este día");
+                setErrorMessage("No hay clases este dia");
             } else {
                 setErrorMessage(null);
             }
         } catch (err) {
             console.error("Error al cargar asistencias", err);
-            setError("Error al cargar la asistencia del día.");
-            toast.error("No se pudo cargar la asistencia del día.");
+            setError("Error al cargar la asistencia del dia.");
+            toast.error("No se pudo cargar la asistencia del dia.");
         } finally {
             setLoading(false);
         }
     }, [selectedDisciplineId]);
 
-    // Función para parsear la fecha en zona local
+    // Funcion para parsear la fecha en zona local
     const parseLocalDate = (dateStr: string): Date => {
         const [year, month, day] = dateStr.split("-").map(Number);
         return new Date(year, month - 1, day);
@@ -131,7 +131,7 @@ const AsistenciaDiariaForm: React.FC = () => {
     }, [selectedDate]);
 
     useEffect(() => {
-        console.log("useEffect: selectedDate cambió a:", selectedDate);
+        console.log("useEffect: selectedDate cambio a:", selectedDate);
         if (selectedDate && isValidClassDay) {
             cargarAsistencias(selectedDate);
         } else {
@@ -151,7 +151,7 @@ const AsistenciaDiariaForm: React.FC = () => {
         if (!selectedDate) return;
         const registro = asistencias.find(a => a.alumnoId === alumnoId);
         if (!registro) {
-            toast.error("No se encontró registro de asistencia para este alumno.");
+            toast.error("No se encontro registro de asistencia para este alumno.");
             return;
         }
         try {
@@ -180,10 +180,10 @@ const AsistenciaDiariaForm: React.FC = () => {
                 await asistenciasApi.actualizarObservacion({
                     observaciones: [{ alumnoId, observacion: obs }],
                 });
-                toast.success("Observación actualizada");
+                toast.success("Observacion actualizada");
             } catch (err) {
-                console.error("Error al actualizar observación", err);
-                toast.error("Error al actualizar la observación.");
+                console.error("Error al actualizar observacion", err);
+                toast.error("Error al actualizar la observacion.");
             }
         }, 500),
         [selectedDate]
@@ -234,7 +234,7 @@ const AsistenciaDiariaForm: React.FC = () => {
                         />
                     </div>
 
-                    {/* Botón para buscar asistencia */}
+                    {/* Boton para buscar asistencia */}
                     <div className="mb-4">
                         <Button
                             onClick={() => {
@@ -251,7 +251,7 @@ const AsistenciaDiariaForm: React.FC = () => {
 
                     {/* Mostrar mensaje de error si no hay clases */}
                     {!loading && selectedDate && asistencias.length === 0 && (
-                        <div className="text-center text-red-500 mb-4">No hay clases este día</div>
+                        <div className="text-center text-red-500 mb-4">No hay clases este dia</div>
                     )}
 
                     {loading && <div className="text-center py-4">Cargando asistencia...</div>}
@@ -262,8 +262,8 @@ const AsistenciaDiariaForm: React.FC = () => {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Alumno</TableHead>
-                                    <TableHead>Acción</TableHead>
-                                    <TableHead>Observación</TableHead>
+                                    <TableHead>Accion</TableHead>
+                                    <TableHead>Observacion</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>

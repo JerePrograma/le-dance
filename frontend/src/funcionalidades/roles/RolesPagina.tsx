@@ -75,7 +75,7 @@ const RolesPagina = () => {
       </div>
       <div className="page-card">
         <Tabla
-          encabezados={["ID", "Descripción", "Acciones"]}
+          encabezados={["ID", "Descripcion", "Acciones"]}
           datos={currentItems}
           acciones={(fila) => (
             <div className="flex gap-2">

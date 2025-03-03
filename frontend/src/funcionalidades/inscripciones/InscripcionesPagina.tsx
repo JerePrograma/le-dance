@@ -44,7 +44,7 @@ const InscripcionesPagina = () => {
       await inscripcionesApi.eliminar(id);
       setInscripciones((prev) => prev.filter((ins) => ins.id !== id));
     } catch (error) {
-      console.error("Error al eliminar inscripción:", error);
+      console.error("Error al eliminar inscripcion:", error);
     }
   }, []);
 
@@ -81,10 +81,10 @@ const InscripcionesPagina = () => {
         <Boton
           onClick={handleCrearInscripcion}
           className="page-button"
-          aria-label="Crear nueva inscripción"
+          aria-label="Crear nueva inscripcion"
         >
           <PlusCircle className="w-5 h-5 mr-2" />
-          Nueva Inscripción
+          Nueva Inscripcion
         </Boton>
       </div>
       <div className="page-card">
@@ -93,7 +93,7 @@ const InscripcionesPagina = () => {
             "ID",
             "Alumno",
             "Disciplina",
-            "Bonificación",
+            "Bonificacion",
             "Costo",
             "Notas",
             "Acciones",

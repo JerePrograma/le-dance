@@ -7,7 +7,7 @@ interface PaginationProps {
 }
 
 const Pagination: React.FC<PaginationProps> = ({ currentPage, totalPages, onPageChange }) => {
-  // Genera un array con los números de páginas
+  // Genera un array con los numeros de paginas
   const pages = Array.from({ length: totalPages }, (_, i) => i);
 
   return (

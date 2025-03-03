@@ -20,7 +20,7 @@ const initialStockValues: StockRegistroRequest & Partial<StockModificacionReques
     stock: 0,
     requiereControlDeStock: false,
     codigoBarras: "",
-    // Para el registro, no es necesario enviar "activo" (lo agregamos solo en edición)
+    // Para el registro, no es necesario enviar "activo" (lo agregamos solo en edicion)
     activo: true,
     fechaIngreso: new Date().toISOString().split("T")[0],
     fechaEgreso: undefined,
@@ -107,7 +107,7 @@ const StocksFormulario: React.FC = () => {
         stock: values.stock,
         requiereControlDeStock: values.requiereControlDeStock,
         codigoBarras: values.codigoBarras,
-        // Para la modificación el backend requiere "activo"
+        // Para la modificacion el backend requiere "activo"
         activo: values.activo as boolean,
         fechaIngreso: values.fechaIngreso,
         fechaEgreso: values.fechaEgreso,
@@ -119,13 +119,13 @@ const StocksFormulario: React.FC = () => {
             { setSubmitting }: FormikHelpers<StockRegistroRequest & Partial<StockModificacionRequest>>
         ) => {
             try {
-                // Convierte el valor vacío de tipoEgreso a null
+                // Convierte el valor vacio de tipoEgreso a null
                 const valoresAEnviar = {
                     ...values,
                 };
 
                 if (stockId) {
-                    // Para actualización, si es necesario, realiza la transformación también en la función de conversión
+                    // Para actualizacion, si es necesario, realiza la transformacion tambien en la funcion de conversion
                     const stockModificacion = convertirAStockModificacionRequest(valoresAEnviar);
                     await stocksApi.actualizarStock(stockId, stockModificacion);
                     toast.success("Stock actualizado correctamente.");
@@ -223,7 +223,7 @@ const StocksFormulario: React.FC = () => {
                                             }
                                         >
                                             <option value="false">No</option>
-                                            <option value="true">Sí</option>
+                                            <option value="true">Si</option>
                                         </select>
                                     )}
                                 </Field>
@@ -231,7 +231,7 @@ const StocksFormulario: React.FC = () => {
                             </div>
                             <div className="mb-4">
                                 <label htmlFor="codigoBarras" className="auth-label">
-                                    Código de Barras:
+                                    Codigo de Barras:
                                 </label>
                                 <Field name="codigoBarras" type="text" className="form-input" />
                                 <ErrorMessage name="codigoBarras" component="div" className="auth-error" />

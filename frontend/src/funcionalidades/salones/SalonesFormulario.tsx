@@ -43,7 +43,7 @@ const SalonesFormulario: React.FC = () => {
 
   const handleBuscar = useCallback(async () => {
     if (!idBusqueda) {
-      setMensaje("Por favor, ingrese un ID de salón.");
+      setMensaje("Por favor, ingrese un ID de salon.");
       return;
     }
 
@@ -54,10 +54,10 @@ const SalonesFormulario: React.FC = () => {
       console.log("Converted salon data:", convertedSalon);
       setFormValues(convertedSalon);
       setSalonId(salon.id);
-      setMensaje("Salón encontrado.");
+      setMensaje("Salon encontrado.");
     } catch (error) {
-      console.error("Error al buscar el salón:", error);
-      setMensaje("Salón no encontrado.");
+      console.error("Error al buscar el salon:", error);
+      setMensaje("Salon no encontrado.");
       resetearFormulario();
     }
   }, [idBusqueda, convertToSalonFormValues]);
@@ -89,19 +89,19 @@ const SalonesFormulario: React.FC = () => {
             salonId,
             values as SalonModificacionRequest
           );
-          toast.success("Salón actualizado correctamente.");
+          toast.success("Salon actualizado correctamente.");
         } else {
           const nuevoSalon = await salonesApi.registrarSalon(
             values as SalonRegistroRequest
           );
           setSalonId(nuevoSalon.id);
-          toast.success("Salón creado correctamente.");
+          toast.success("Salon creado correctamente.");
         }
-        setMensaje("Salón guardado exitosamente.");
+        setMensaje("Salon guardado exitosamente.");
       } catch (error) {
-        console.error("Error al guardar el salón:", error);
-        toast.error("Error al guardar el salón.");
-        setMensaje("Error al guardar el salón.");
+        console.error("Error al guardar el salon:", error);
+        toast.error("Error al guardar el salon.");
+        setMensaje("Error al guardar el salon.");
       }
     },
     [salonId]
@@ -109,7 +109,7 @@ const SalonesFormulario: React.FC = () => {
 
   return (
     <div className="page-container">
-      <h1 className="page-title">Formulario de Salón</h1>
+      <h1 className="page-title">Formulario de Salon</h1>
       <Formik
         initialValues={formValues}
         validationSchema={salonEsquema}
@@ -121,7 +121,7 @@ const SalonesFormulario: React.FC = () => {
             <div className="form-grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="col-span-full mb-4">
                 <label htmlFor="idBusqueda" className="auth-label">
-                  Número de Salón:
+                  Numero de Salon:
                 </label>
                 <div className="flex gap-2">
                   <input
@@ -156,7 +156,7 @@ const SalonesFormulario: React.FC = () => {
 
               <div className="mb-4">
                 <label htmlFor="descripcion" className="auth-label">
-                  Descripción:
+                  Descripcion:
                 </label>
                 <Field
                   name="descripcion"

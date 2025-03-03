@@ -86,7 +86,7 @@ const RecargosFormulario: React.FC = () => {
                     <Form className="formulario max-w-4xl mx-auto">
                         <div className="form-grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="mb-4">
-                                <label htmlFor="descripcion" className="auth-label">Descripción:</label>
+                                <label htmlFor="descripcion" className="auth-label">Descripcion:</label>
                                 <Field type="text" id="descripcion" name="descripcion" className="form-input" />
                                 <ErrorMessage name="descripcion" component="div" className="auth-error" />
                             </div>
@@ -104,7 +104,7 @@ const RecargosFormulario: React.FC = () => {
                             </div>
 
                             <div className="mb-4">
-                                <label htmlFor="diaDelMesAplicacion" className="auth-label">Día del Mes:</label>
+                                <label htmlFor="diaDelMesAplicacion" className="auth-label">Dia del Mes:</label>
                                 <Field type="number" id="diaDelMesAplicacion" name="diaDelMesAplicacion" className="form-input" min="1" max="31" />
                                 <ErrorMessage name="diaDelMesAplicacion" component="div" className="auth-error" />
                             </div>

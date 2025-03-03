@@ -18,7 +18,7 @@ export interface Pago {
   monto: number;
   observaciones?: string;
   alumno?: AlumnoMin; // { id, nombre, apellido }
-  // método de pago, etc., según tu back
+  // metodo de pago, etc., segun tu back
 }
 
 export interface Egreso {
@@ -86,7 +86,7 @@ const cajaApi = {
     fecha: string,
     monto: number,
     observaciones?: string,
-    metodoPagoId: number = 1 // Por defecto 1 => EFECTIVO, si tu back lo maneja así
+    metodoPagoId: number = 1 // Por defecto 1 => EFECTIVO, si tu back lo maneja asi
   ): Promise<Egreso> {
     const params = {
       monto,
@@ -104,7 +104,7 @@ const cajaApi = {
   },
 
   /**
-   * 4) Obtener la rendición general de caja en un rango de fechas
+   * 4) Obtener la rendicion general de caja en un rango de fechas
    *    GET /caja/rendicion?startDate=...&endDate=...
    */
   async obtenerRendicionGeneral(

@@ -44,7 +44,7 @@ const Recargos = () => {
             </div>
             <div className="page-card">
                 <Tabla
-                    encabezados={["ID", "Descripción", "Acciones"]}
+                    encabezados={["ID", "Descripcion", "Acciones"]}
                     datos={recargos}
                     acciones={(fila) => (
                         <div className="flex gap-2">

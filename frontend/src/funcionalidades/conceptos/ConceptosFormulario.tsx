@@ -16,19 +16,19 @@ import type { ConceptoResponse, SubConceptoResponse } from "../../types/types";
 const initialConceptoValues: ConceptoRegistroRequest & Partial<ConceptoModificacionRequest> = {
   descripcion: "",
   precio: 0,
-  // Este valor se asignará luego según el subconcepto seleccionado
+  // Este valor se asignara luego segun el subconcepto seleccionado
   subConceptoId: 0,
 };
 
 const conceptoSchema = Yup.object().shape({
-  descripcion: Yup.string().required("La descripción es obligatoria"),
+  descripcion: Yup.string().required("La descripcion es obligatoria"),
   precio: Yup.number().positive().required("El precio es obligatorio"),
-  subConceptoDescripcion: Yup.string().required("La descripción del subconcepto es obligatoria"),
+  subConceptoDescripcion: Yup.string().required("La descripcion del subconcepto es obligatoria"),
 });
 
 type FormValues = ConceptoRegistroRequest & Partial<ConceptoModificacionRequest> & {
   subConceptoDescripcion: string;
-  id?: number; // Campo opcional para edición
+  id?: number; // Campo opcional para edicion
 };
 
 const ConceptosFormulario: React.FC = () => {
@@ -41,12 +41,12 @@ const ConceptosFormulario: React.FC = () => {
   });
   const [mensaje, setMensaje] = useState("");
 
-  // Estados para la búsqueda de subconcepto
+  // Estados para la busqueda de subconcepto
   const [subConceptoBusqueda, setSubConceptoBusqueda] = useState("");
   const debouncedSubConceptoBusqueda = useDebounce(subConceptoBusqueda, 300);
   const [sugerenciasSubConceptos, setSugerenciasSubConceptos] = useState<SubConceptoResponse[]>([]);
 
-  // Si hay un parámetro "id" en la URL, cargar el concepto para edición
+  // Si hay un parametro "id" en la URL, cargar el concepto para edicion
   const handleBuscar = useCallback(async () => {
     const idParam = searchParams.get("id");
     if (idParam) {
@@ -98,8 +98,8 @@ const ConceptosFormulario: React.FC = () => {
   const handleSubmit = useCallback(
     async (values: FormValues) => {
       try {
-        // Si ya se seleccionó un subconcepto (campo subConceptoId distinto de 0), lo usamos;
-        // de lo contrario, se realiza la búsqueda por descripción.
+        // Si ya se selecciono un subconcepto (campo subConceptoId distinto de 0), lo usamos;
+        // de lo contrario, se realiza la busqueda por descripcion.
         let subConceptoIdFinal: number;
         if (values.subConceptoId && values.subConceptoId !== 0) {
           subConceptoIdFinal = values.subConceptoId;
@@ -157,11 +157,11 @@ const ConceptosFormulario: React.FC = () => {
       >
         {({ isSubmitting, resetForm, setFieldValue }) => (
           <Form className="formulario max-w-4xl mx-auto">
-            {/* Campos principales: Descripción y Precio */}
+            {/* Campos principales: Descripcion y Precio */}
             <div className="form-grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="mb-4">
                 <label htmlFor="descripcion" className="auth-label">
-                  Descripción:
+                  Descripcion:
                 </label>
                 <Field name="descripcion" type="text" className="form-input" />
                 <ErrorMessage name="descripcion" component="div" className="auth-error" />

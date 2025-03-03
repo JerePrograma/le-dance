@@ -66,17 +66,17 @@ const Bonificaciones = () => {
         <Boton
           onClick={() => navigate("/bonificaciones/formulario")}
           className="page-button"
-          aria-label="Registrar nueva bonificación"
+          aria-label="Registrar nueva bonificacion"
         >
           <PlusCircle className="w-5 h-5 mr-2" />
-          Registrar Nueva Bonificación
+          Registrar Nueva Bonificacion
         </Boton>
       </div>
       <div className="page-card">
         <Tabla
           encabezados={[
             "ID",
-            "Descripción",
+            "Descripcion",
             "Descuento (%)",
             "Descuento (monto)",
             "Activo",
@@ -90,14 +90,14 @@ const Bonificaciones = () => {
                   navigate(`/bonificaciones/formulario?id=${fila.id}`)
                 }
                 className="page-button-secondary"
-                aria-label={`Editar bonificación ${fila.descripcion}`}
+                aria-label={`Editar bonificacion ${fila.descripcion}`}
               >
                 <Pencil className="w-4 h-4 mr-2" />
                 Editar
               </Boton>
               <Boton
                 className="page-button-danger"
-                aria-label={`Eliminar bonificación ${fila.descripcion}`}
+                aria-label={`Eliminar bonificacion ${fila.descripcion}`}
               >
                 <Trash2 className="w-4 h-4 mr-2" />
                 Eliminar
@@ -109,7 +109,7 @@ const Bonificaciones = () => {
             fila.descripcion,
             // Si valorFijo existe, lo mostramos; de lo contrario, mostramos porcentajeDescuento
             fila.valorFijo !== undefined ? fila.valorFijo : fila.porcentajeDescuento,
-            fila.activo ? "Sí" : "No",
+            fila.activo ? "Si" : "No",
           ]}
         />
       </div>

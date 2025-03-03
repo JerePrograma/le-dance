@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 const AsistenciasSeleccion: React.FC = () => {
     return (
         <div className="page-container">
-            <h1 className="page-title text-center">Seleccione una opción de Asistencias</h1>
+            <h1 className="page-title text-center">Seleccione una opcion de Asistencias</h1>
             <div className="flex flex-col md:flex-row justify-center gap-8 my-8">
                 <Link
                     to="/asistencias-mensuales"

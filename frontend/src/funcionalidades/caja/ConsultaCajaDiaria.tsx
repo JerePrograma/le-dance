@@ -47,7 +47,7 @@ const ConsultaCajaDiaria: React.FC = () => {
     const [obsEgreso, setObsEgreso] = useState<string>("");
 
     // --------------------------------------------------------------------------
-    // Función para cargar la info del día (Pagos y Egresos)
+    // Funcion para cargar la info del dia (Pagos y Egresos)
     // --------------------------------------------------------------------------
     const handleVer = async () => {
         try {
@@ -77,7 +77,7 @@ const ConsultaCajaDiaria: React.FC = () => {
     };
 
     // --------------------------------------------------------------------------
-    // Calcular totales por método de pago
+    // Calcular totales por metodo de pago
     // (Ajusta las descripciones para que coincidan con tu BD)
     // --------------------------------------------------------------------------
     const pagos = data?.pagosDelDia || [];
@@ -170,7 +170,7 @@ const ConsultaCajaDiaria: React.FC = () => {
                     <p>Cargando...</p>
                 ) : (
                     <Tabla
-                        encabezados={["Recibo", "Código", "Alumno", "Observaciones", "Importe"]}
+                        encabezados={["Recibo", "Codigo", "Alumno", "Observaciones", "Importe"]}
                         datos={pagos}
                         extraRender={(p: PagoDelDia) => [
                             p.id, // Recibo
@@ -185,7 +185,7 @@ const ConsultaCajaDiaria: React.FC = () => {
             {/* Tabla de Egresos */}
             {egresos.length > 0 && (
                 <div className="border p-2 mt-4">
-                    <h2 className="font-semibold mb-2">Egresos del día</h2>
+                    <h2 className="font-semibold mb-2">Egresos del dia</h2>
                     <Tabla
                         encabezados={["ID", "Observaciones", "Monto"]}
                         datos={egresos}
@@ -204,7 +204,7 @@ const ConsultaCajaDiaria: React.FC = () => {
                     Imprimir
                 </Boton>
 
-                {/* Botón para Agregar Egreso */}
+                {/* Boton para Agregar Egreso */}
                 <Boton onClick={handleAbrirModalEgreso} className="bg-yellow-400 text-white p-2 rounded">
                     Agregar Egreso
                 </Boton>
@@ -250,7 +250,7 @@ const ConsultaCajaDiaria: React.FC = () => {
             {/* Totales al final */}
             <div className="text-right mt-2">
                 <p>Efectivo: $ {totalEfectivo.toLocaleString()}</p>
-                <p>Débito: $ {totalDebito.toLocaleString()}</p>
+                <p>Debito: $ {totalDebito.toLocaleString()}</p>
                 <p>Egresos: $ {totalEgresos.toLocaleString()}</p>
                 <p>
                     Total Neto: $

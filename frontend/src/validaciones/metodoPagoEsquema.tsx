@@ -4,5 +4,5 @@ import * as Yup from "yup";
 export const metodoPagoEsquema = Yup.object().shape({
     descripcion: Yup.string()
         .trim()
-        .required("La descripción es obligatoria"),
+        .required("La descripcion es obligatoria"),
 });

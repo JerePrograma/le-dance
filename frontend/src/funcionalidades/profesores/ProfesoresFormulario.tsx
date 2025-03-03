@@ -114,7 +114,7 @@ const ProfesoresFormulario: React.FC = () => {
             <div className="form-grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="col-span-full mb-4">
                 <label htmlFor="idBusqueda" className="auth-label">
-                  Número de Profesor:
+                  Numero de Profesor:
                 </label>
                 <div className="flex gap-2">
                   <input
@@ -156,7 +156,7 @@ const ProfesoresFormulario: React.FC = () => {
 
               <div className="mb-4">
                 <label htmlFor="telefono" className="auth-label">
-                  Teléfono:
+                  Telefono:
                 </label>
                 <Field name="telefono" type="text" className="form-input" />
                 <ErrorMessage name="telefono" component="div" className="auth-error" />

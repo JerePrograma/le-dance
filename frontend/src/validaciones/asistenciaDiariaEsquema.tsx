@@ -7,16 +7,16 @@ export const asistenciaDiariaEsquema = Yup.object().shape({
     .max(new Date(), "La fecha no puede ser futura"),
 
   estado: Yup.mixed<EstadoAsistencia>()
-    .oneOf(Object.values(EstadoAsistencia), "Estado de asistencia inválido")
+    .oneOf(Object.values(EstadoAsistencia), "Estado de asistencia invalido")
     .required("El estado de asistencia es requerido"),
 
   alumnoId: Yup.number()
-    .positive("El ID del alumno debe ser un número positivo")
-    .integer("El ID del alumno debe ser un número entero")
+    .positive("El ID del alumno debe ser un numero positivo")
+    .integer("El ID del alumno debe ser un numero entero")
     .required("El ID del alumno es requerido"),
 
   asistenciaMensualId: Yup.number()
-    .positive("El ID de asistencia mensual debe ser un número positivo")
-    .integer("El ID de asistencia mensual debe ser un número entero")
+    .positive("El ID de asistencia mensual debe ser un numero positivo")
+    .integer("El ID de asistencia mensual debe ser un numero entero")
     .required("El ID de asistencia mensual es requerido"),
 });

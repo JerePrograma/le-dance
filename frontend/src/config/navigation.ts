@@ -11,21 +11,21 @@ export interface NavigationItem {
 }
 
 export const navigationItems: NavigationItem[] = [
-  // CATEGORÍA "Administración"
+  // CATEGORIA "Administracion"
   {
     id: "administracion",
-    label: "Administración",
+    label: "Administracion",
     icon: CreditCard,
-    description: "Gestión de pagos, stocks y configuraciones generales",
+    description: "Gestion de pagos, stocks y configuraciones generales",
     items: [
       {
         id: "rendicion-general",
-        label: "Rendición General",
+        label: "Rendicion General",
         href: "/caja/planilla",
       },
       {
         id: "metodos-pago",
-        label: "Métodos de Pago",
+        label: "Metodos de Pago",
         href: "/metodos-pago",
       },
       {
@@ -37,7 +37,7 @@ export const navigationItems: NavigationItem[] = [
         id: "subconceptos",
         label: "Subconceptos",
         href: "/subconceptos",
-        description: "Gestión de subconceptos para conceptos",
+        description: "Gestion de subconceptos para conceptos",
       },
       {
         id: "stock",
@@ -51,13 +51,13 @@ export const navigationItems: NavigationItem[] = [
       },
       {
         id: "generacion-cuotas",
-        label: "Generación de Cuotas",
+        label: "Generacion de Cuotas",
         href: "/mensualidades",
       },
     ],
   },
 
-  // CATEGORÍA "Caja"
+  // CATEGORIA "Caja"
   {
     id: "caja",
     label: "Caja",
@@ -76,23 +76,23 @@ export const navigationItems: NavigationItem[] = [
       },
       {
         id: "caja-del-dia",
-        label: "Caja del Día",
+        label: "Caja del Dia",
         href: "/caja/diaria",
       },
       {
         id: "rendicion-mensual",
-        label: "Rendición Mensual",
+        label: "Rendicion Mensual",
         href: "/caja/rendicion-mensual",
       },
     ],
   },
 
-  // CATEGORÍA "Manejo general"
+  // CATEGORIA "Manejo general"
   {
     id: "manejo-general",
     label: "Manejo General",
     icon: ClipboardCheck,
-    description: "Gestión de alumnos, profesores y disciplinas",
+    description: "Gestion de alumnos, profesores y disciplinas",
     items: [
       {
         id: "bonificaciones",
@@ -130,7 +130,7 @@ export const navigationItems: NavigationItem[] = [
     ],
   },
 
-  // CATEGORÍA "Asistencias"
+  // CATEGORIA "Asistencias"
   {
     id: "asistencias",
     label: "Asistencias",
@@ -156,28 +156,28 @@ export const navigationItems: NavigationItem[] = [
     icon: ClipboardCheck,
     label: "Inscripciones",
     href: "/inscripciones",
-    description: "Gestión de nuevas inscripciones",
+    description: "Gestion de nuevas inscripciones",
   },
   {
     id: "reportes",
     icon: BarChart3,
     label: "Reportes",
     href: "/reportes",
-    description: "Informes y estadísticas",
+    description: "Informes y estadisticas",
   },
   {
     id: "usuarios",
     icon: UserCog,
     label: "Usuarios",
     href: "/usuarios",
-    description: "Administración de usuarios",
+    description: "Administracion de usuarios",
   },
   {
     id: "roles",
     icon: Shield,
     label: "Roles",
     href: "/roles",
-    description: "Gestión de permisos y roles",
+    description: "Gestion de permisos y roles",
   },
 ]
 

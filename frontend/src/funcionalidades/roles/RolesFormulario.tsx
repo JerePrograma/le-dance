@@ -26,7 +26,7 @@ const RolesFormulario: React.FC = () => {
       try {
         const idNum = Number(idStr);
         if (isNaN(idNum)) {
-          toast.error("ID inválido");
+          toast.error("ID invalido");
           return;
         }
         const response = await api.get<Rol>(`/roles/${idNum}`);
@@ -75,7 +75,7 @@ const RolesFormulario: React.FC = () => {
             <div className="form-grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="col-span-full mb-4">
                 <label htmlFor="idBusqueda" className="auth-label">
-                  Número de Rol:
+                  Numero de Rol:
                 </label>
                 <div className="flex gap-2">
                   <Field
@@ -105,7 +105,7 @@ const RolesFormulario: React.FC = () => {
 
               <div className="col-span-full mb-4">
                 <label htmlFor="descripcion" className="auth-label">
-                  Descripción:
+                  Descripcion:
                 </label>
                 <Field
                   name="descripcion"

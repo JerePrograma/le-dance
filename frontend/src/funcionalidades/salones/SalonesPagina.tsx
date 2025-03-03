@@ -65,13 +65,13 @@ const Salones = () => {
 
       <div className="page-card">
         <Tabla
-          encabezados={["ID", "Nombre", "Descripción", "Acciones"]}
+          encabezados={["ID", "Nombre", "Descripcion", "Acciones"]}
           datos={salones.content}
           acciones={(fila) => (
             <Boton
               onClick={() => navigate(`/salones/formulario?id=${fila.id}`)}
               className="page-button-secondary"
-              aria-label={`Editar salón ${fila.nombre}`}
+              aria-label={`Editar salon ${fila.nombre}`}
             >
               <Pencil className="w-4 h-4 mr-2" />
               Editar

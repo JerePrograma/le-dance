@@ -62,7 +62,7 @@ const Profesores = () => {
     try {
       await profesoresApi.eliminarProfesor(id);
       toast.success("Profesor eliminado correctamente.");
-      fetchProfesores(); // ✅ Refrescar la lista después de eliminar
+      fetchProfesores(); // ✅ Refrescar la lista despues de eliminar
     } catch (error) {
       toast.error("Error al eliminar el profesor.");
     }
@@ -108,7 +108,7 @@ const Profesores = () => {
               <Boton
                 className="page-button-danger"
                 aria-label={`Eliminar profesor ${fila.nombre} ${fila.apellido}`}
-                onClick={() => handleEliminarProfesor(fila.id)} // ✅ Llamar función para eliminar
+                onClick={() => handleEliminarProfesor(fila.id)} // ✅ Llamar funcion para eliminar
               >
                 <Trash2 className="w-4 h-4 mr-2" />
                 Eliminar
@@ -119,7 +119,7 @@ const Profesores = () => {
             fila.id,
             fila.nombre,
             fila.apellido,
-            fila.activo ? "Sí" : "No", // ✅ Mostrar si está activo o no
+            fila.activo ? "Si" : "No", // ✅ Mostrar si esta activo o no
           ]}
         />
       </div>

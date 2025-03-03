@@ -22,7 +22,7 @@ export default function Header() {
             </button>
 
             <div className="flex-1 flex items-center justify-between">
-                <h1 className="text-xl font-bold">Panel de Gestión - LE DANCE</h1>
+                <h1 className="text-xl font-bold">Panel de Gestion - LE DANCE</h1>
 
                 <div className="flex items-center gap-4">
                     <div className="relative hidden md:block">

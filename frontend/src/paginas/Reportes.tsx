@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import Tabla from "../componentes/comunes/Tabla";
 import Boton from "../componentes/comunes/Boton";
-import Pagination from "../componentes/comunes/Pagination"; // Componente de paginación personalizado
+import Pagination from "../componentes/comunes/Pagination"; // Componente de paginacion personalizado
 import api from "../api/axiosConfig";
 import { saveAs } from "file-saver";
 import { Bar } from "react-chartjs-2";
@@ -30,7 +30,7 @@ interface Alumno {
 interface PaginatedResponse<T> {
   content: T[];
   totalPages: number;
-  // otros campos como totalElements, etc., según el backend
+  // otros campos como totalElements, etc., segun el backend
 }
 
 const Reportes = () => {
@@ -70,7 +70,7 @@ const Reportes = () => {
     fetchAlumnos();
   }, []);
 
-  // Función para obtener los datos del reporte (con paginación)
+  // Funcion para obtener los datos del reporte (con paginacion)
   const obtenerDatosReporte = async (pagina = 0) => {
     if (!tipoReporte) return;
     setLoading(true);
@@ -79,7 +79,7 @@ const Reportes = () => {
     let params: Record<string, any> = { page: pagina };
 
     switch (tipoReporte) {
-      case "Recaudación por Disciplina":
+      case "Recaudacion por Disciplina":
         endpoint = "/reportes/recaudacion-disciplina";
         if (filtroDisciplina) {
           params.disciplinaId = filtroDisciplina;
@@ -107,7 +107,7 @@ const Reportes = () => {
         }
         break;
       default:
-        console.error("Tipo de reporte no válido");
+        console.error("Tipo de reporte no valido");
         setLoading(false);
         return;
     }
@@ -119,13 +119,13 @@ const Reportes = () => {
       setPaginaActual(pagina);
     } catch (error) {
       console.error("Error al obtener el reporte:", error);
-      setErrorMsg("Ocurrió un error al obtener el reporte. Por favor, intenta de nuevo.");
+      setErrorMsg("Ocurrio un error al obtener el reporte. Por favor, intenta de nuevo.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Función para exportar a Excel
+  // Funcion para exportar a Excel
   const exportarAExcel = async () => {
     try {
       const response = await api.get("/reportes/exportar/excel", {
@@ -137,7 +137,7 @@ const Reportes = () => {
     }
   };
 
-  // Filtrado local de los datos mediante búsqueda
+  // Filtrado local de los datos mediante busqueda
   const datosFiltrados = datos.filter((dato) =>
     Object.values(dato)
       .join(" ")
@@ -145,7 +145,7 @@ const Reportes = () => {
       .includes(busqueda.toLowerCase())
   );
 
-  // Datos para el gráfico (por ejemplo, monto total)
+  // Datos para el grafico (por ejemplo, monto total)
   const chartData = {
     labels: datos.map((d) => d.nombre || "Sin nombre"),
     datasets: [
@@ -159,10 +159,10 @@ const Reportes = () => {
 
   return (
     <div className="page-container">
-      <h1 className="page-title">Generación de Reportes</h1>
+      <h1 className="page-title">Generacion de Reportes</h1>
 
       <div className="space-y-4 mb-6">
-        {/* Selección del tipo de reporte */}
+        {/* Seleccion del tipo de reporte */}
         <div>
           <label htmlFor="tipoReporte" className="block text-sm font-medium text-foreground mb-1">
             Selecciona el Tipo de Reporte:
@@ -174,15 +174,15 @@ const Reportes = () => {
             className="form-input w-full"
           >
             <option value="">-- Seleccionar --</option>
-            <option value="Recaudación por Disciplina">Recaudación por Disciplina</option>
+            <option value="Recaudacion por Disciplina">Recaudacion por Disciplina</option>
             <option value="Asistencias por Alumno">Asistencias por Alumno</option>
             <option value="Asistencias por Disciplina">Asistencias por Disciplina</option>
             <option value="Asistencias por Disciplina y Alumno">Asistencias por Disciplina y Alumno</option>
           </select>
         </div>
 
-        {/* Filtros condicionales según el tipo de reporte */}
-        {(tipoReporte.includes("Disciplina") || tipoReporte === "Recaudación por Disciplina") && (
+        {/* Filtros condicionales segun el tipo de reporte */}
+        {(tipoReporte.includes("Disciplina") || tipoReporte === "Recaudacion por Disciplina") && (
           <div>
             <label htmlFor="disciplina" className="block text-sm font-medium text-foreground mb-1">
               Selecciona la Disciplina:
@@ -224,7 +224,7 @@ const Reportes = () => {
           </div>
         )}
 
-        {/* Campo de búsqueda para filtrar localmente */}
+        {/* Campo de busqueda para filtrar localmente */}
         <div>
           <label htmlFor="busqueda" className="block text-sm font-medium text-foreground mb-1">
             Buscar en Reporte:
@@ -239,7 +239,7 @@ const Reportes = () => {
           />
         </div>
 
-        {/* Botones de acción */}
+        {/* Botones de accion */}
         <div className="flex space-x-4">
           <Boton onClick={() => obtenerDatosReporte()} disabled={loading}>
             Generar Reporte
@@ -257,7 +257,7 @@ const Reportes = () => {
       {errorMsg && <p className="text-center text-red-600 py-4">{errorMsg}</p>}
       {loading && <p className="text-center py-4">Cargando...</p>}
 
-      {/* Renderizado de resultados, paginación y gráfico */}
+      {/* Renderizado de resultados, paginacion y grafico */}
       {datosFiltrados.length > 0 && (
         <>
           <div className="page-table-container">

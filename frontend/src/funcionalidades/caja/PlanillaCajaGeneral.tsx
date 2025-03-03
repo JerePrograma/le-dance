@@ -20,12 +20,12 @@ const PlanillaCajaGeneral: React.FC = () => {
     const [lista, setLista] = useState<CajaDiariaDTO[]>([]);
     const [loading, setLoading] = useState(false);
 
-    // Cálculos de totales (Efectivo, Transferencia) al final
+    // Calculos de totales (Efectivo, Transferencia) al final
     const totalEfectivo = lista.reduce((sum, item) => sum + item.totalEfectivo, 0);
     const totalTransf = lista.reduce((sum, item) => sum + item.totalDebito, 0);
-    const totalFinal = totalEfectivo + totalTransf  // o neto, según tu gusto
+    const totalFinal = totalEfectivo + totalTransf  // o neto, segun tu gusto
 
-    // Función para consultar la API al hacer click en "Ver"
+    // Funcion para consultar la API al hacer click en "Ver"
     const handleVer = async () => {
         try {
             setLoading(true);
@@ -40,12 +40,12 @@ const PlanillaCajaGeneral: React.FC = () => {
     };
 
     const handleImprimir = () => {
-        // Tu lógica de impresión
+        // Tu logica de impresion
         toast.info("Funcionalidad de imprimir (no implementada)");
     };
 
     const handleExportar = () => {
-        // Tu lógica de exportar a Excel/CSV
+        // Tu logica de exportar a Excel/CSV
         toast.info("Funcionalidad de exportar (no implementada)");
     };
 

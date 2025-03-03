@@ -196,7 +196,7 @@ export interface DisciplinaRegistroRequest {
   matricula: number;
   claseSuelta?: number;
   clasePrueba?: number;
-  // Nuevo campo: lista de horarios para cada día de clase
+  // Nuevo campo: lista de horarios para cada dia de clase
   horarios: DisciplinaHorarioRequest[];
 }
 
@@ -235,7 +235,7 @@ export interface DisciplinaResponse {
 }
 
 export interface DisciplinaHorarioResponse {
-  // Define aquí las propiedades que tenga un horario, por ejemplo:
+  // Define aqui las propiedades que tenga un horario, por ejemplo:
   id?: number;
   diaSemana: string;
   horarioInicio: string;
@@ -427,7 +427,7 @@ export interface BonificacionResponse {
 }
 
 // ==========================================
-// PAGO Y MÉTODOS DE PAGO
+// PAGO Y METODOS DE PAGO
 // ==========================================
 // PETICIÓN DE MODIFICACIÓN DE PAGO (para actualizar en el backend)
 export interface PagoModificacionRequest {
@@ -482,13 +482,13 @@ export interface PagoMedioResponse {
   metodo: MetodoPagoResponse; // o puedes usar metodoPagoId si es lo que prefieras
 }
 
-// RESPUESTA DEL PAGO (para recepción del backend)
+// RESPUESTA DEL PAGO (para recepcion del backend)
 export interface PagoResponse {
   id: number;
   fecha: string;
   fechaVencimiento: string;
   monto: number;
-  // Se incluye la descripción del método de pago
+  // Se incluye la descripcion del metodo de pago
   metodoPago: string;
   recargoAplicado: boolean;
   bonificacionAplicada: boolean;
@@ -524,7 +524,7 @@ export interface PagoRegistroRequest {
   inscripcionId: number;
   metodoPagoId?: number;
   recargoAplicado?: boolean;
-  // Aquí se usa "bonificacionAplicada" como monto o flag, según tu lógica de negocio
+  // Aqui se usa "bonificacionAplicada" como monto o flag, segun tu logica de negocio
   bonificacionAplicada?: boolean;
   saldoRestante: number; // Diferencia entre monto y totalCobrado
   saldoAFavor: number;
@@ -704,7 +704,7 @@ export interface ReporteResponse {
   id: number;
   tipo: string;
   descripcion: string;
-  fechaGeneracion: string; // O LocalDate, según prefieras
+  fechaGeneracion: string; // O LocalDate, segun prefieras
   usuarioId?: number;
   activo: boolean;
 }
@@ -763,7 +763,7 @@ export interface MatriculaResponse {
   valor: number;
 }
 
-// --- Métodos de Pago ---
+// --- Metodos de Pago ---
 // Interfaces actualizadas
 
 export interface MetodoPagoRegistroRequest {
@@ -832,7 +832,7 @@ export interface CobranzaDTO {
   detalles: DetalleCobranzaDTO[];
 }
 
-// En algún archivo de types, por ejemplo, types.ts
+// En algun archivo de types, por ejemplo, types.ts
 
 export interface MensualidadRegistroRequest {
   fechaCuota: LocalDate;

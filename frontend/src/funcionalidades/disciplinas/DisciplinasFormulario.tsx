@@ -21,9 +21,10 @@ import type {
   ProfesorListadoResponse,
   DisciplinaHorarioRequest,
   DisciplinaDetalleResponse,
+  DiaSemana,
 } from "../../types/types";
 
-const diasSemana: string[] = ["LUNES", "MARTES", "MIERCOLES", "JUEVES", "VIERNES", "SÁBADO", "DOMINGO"];
+const diasSemana: string[] = ["LUNES", "MARTES", "MIERCOLES", "JUEVES", "VIERNES", "SABADO", "DOMINGO"];
 
 const initialDisciplinaValues: DisciplinaRegistroRequest & Partial<DisciplinaModificacionRequest> = {
   nombre: "",
@@ -40,28 +41,14 @@ const initialDisciplinaValues: DisciplinaRegistroRequest & Partial<DisciplinaMod
 
 const disciplinaSchema = Yup.object().shape({
   nombre: Yup.string().required("El nombre es obligatorio"),
-  salonId: Yup.number().positive().required("Debe seleccionar un salón"),
+  salonId: Yup.number().positive().required("Debe seleccionar un salon"),
   profesorId: Yup.number().positive().required("Debe seleccionar un profesor"),
-  valorCuota: Yup.number().positive().required("El valor de la cuota es obligatorio"),
-  matricula: Yup.number().min(0).required("El valor de la matrícula es obligatorio"),
-  activo: Yup.boolean().required("El estado activo es obligatorio"),
-  horarios: Yup.array()
-    .of(
-      Yup.object().shape({
-        id: Yup.number().optional(),
-        diaSemana: Yup.string().required("El día es obligatorio"),
-        horarioInicio: Yup.string().required("El horario de inicio es obligatorio"),
-        duracion: Yup.number().positive().required("La duración es obligatoria"),
-      })
-    )
-    .min(1, "Debe ingresar al menos un horario"),
 });
 
-// Extendemos el type para incluir un campo de sugerencia que no se envía al backend
+// Extendemos el type para incluir un campo de sugerencia que no se envia al backend
 type FormValues = DisciplinaRegistroRequest & Partial<DisciplinaModificacionRequest> & {
   // Campo que se muestra para seleccionar el subconcepto asociado
   // (se utiliza en otros formularios de conceptos)
-  subConceptoDescripcion: string;
   id?: number; // ID de la disciplina (opcional)
 };
 
@@ -75,7 +62,6 @@ const DisciplinasFormulario: React.FC = () => {
   const [idBusqueda, setIdBusqueda] = useState("");
   const [formValues, setFormValues] = useState<FormValues>({
     ...initialDisciplinaValues,
-    subConceptoDescripcion: "",
   });
   const [mensaje, setMensaje] = useState("");
 
@@ -126,7 +112,7 @@ const DisciplinasFormulario: React.FC = () => {
 
   const mapDetalleToFormValues = (detalle: DisciplinaDetalleResponse): FormValues => ({
     nombre: detalle.nombre,
-    salonId: detalle.salonId, // asegúrate de que este campo exista en la respuesta
+    salonId: detalle.salonId, // asegurate de que este campo existe en la respuesta
     profesorId: detalle.profesorId ?? 0,
     recargoId: detalle.recargoId,
     valorCuota: detalle.valorCuota,
@@ -134,9 +120,19 @@ const DisciplinasFormulario: React.FC = () => {
     claseSuelta: detalle.claseSuelta,
     clasePrueba: detalle.clasePrueba,
     activo: detalle.activo,
-    horarios: detalle.horarios,
-    // Suponemos que el detalle trae el subconcepto anidado en otro objeto
-    subConceptoDescripcion: detalle.subConcepto?.descripcion || "",
+    // Mapear cada horario para que cumpla con el tipo DisciplinaHorarioRequest
+    horarios: detalle.horarios.map(horario => ({
+      // Si el tipo DiaSemana es un enum o union, hacemos una asercion:
+      diaSemana: horario.diaSemana as unknown as DiaSemana,
+      horarioInicio: horario.horarioInicio,
+      duracion: horario.duracion,
+      // Si el campo id es opcional, puedes incluirlo:
+      id: horario.id,
+    })),
+    // Si en el detalle el subconcepto esta incluido, lo asignamos:
+    // (Si no, lo dejamos vacio o asignamos un valor por defecto)
+    // En este ejemplo, se asume que detalle.subConcepto existe
+    // y tiene la propiedad "descripcion"
   });
 
   useEffect(() => {
@@ -211,8 +207,8 @@ const DisciplinasFormulario: React.FC = () => {
             className="form-input flex-grow"
             readOnly={disciplinaId !== null} // Si ya existe un ID, lo mostramos en modo solo lectura
           />
-          {/* Puedes incluir aquí una lógica para búsqueda manual si lo requieres */}
-          <Boton onClick={() => { /* Lógica de búsqueda manual si se requiere */ }} className="page-button">
+          {/* Puedes incluir aqui una logica para busqueda manual si lo requieres */}
+          <Boton onClick={() => { /* Logica de busqueda manual si se requiere */ }} className="page-button">
             <Search className="w-5 h-5 mr-2" /> Buscar
           </Boton>
         </div>
@@ -233,16 +229,16 @@ const DisciplinasFormulario: React.FC = () => {
         {({ isSubmitting, values }) => (
           <Form className="formulario max-w-4xl mx-auto">
             <div className="form-grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Campos básicos */}
+              {/* Campos basicos */}
               <div className="mb-4">
                 <label htmlFor="nombre" className="auth-label">Nombre:</label>
                 <Field name="nombre" type="text" className="form-input" />
                 <ErrorMessage name="nombre" component="div" className="auth-error" />
               </div>
               <div className="mb-4">
-                <label htmlFor="salonId" className="auth-label">Salón:</label>
+                <label htmlFor="salonId" className="auth-label">Salon:</label>
                 <Field as="select" name="salonId" className="form-input">
-                  <option value="">Seleccione un salón</option>
+                  <option value="">Seleccione un salon</option>
                   {salones.map((salon) => (
                     <option key={salon.id} value={salon.id}>
                       {salon.nombre}
@@ -317,7 +313,7 @@ const DisciplinasFormulario: React.FC = () => {
                               <ErrorMessage name={`horarios.${index}.horarioInicio`} component="div" className="auth-error" />
                             </div>
                             <div className="mb-2">
-                              <label>Duración (horas):</label>
+                              <label>Duracion (horas):</label>
                               <Field name={`horarios.${index}.duracion`} type="number" step="0.1" className="form-input" />
                               <ErrorMessage name={`horarios.${index}.duracion`} component="div" className="auth-error" />
                             </div>

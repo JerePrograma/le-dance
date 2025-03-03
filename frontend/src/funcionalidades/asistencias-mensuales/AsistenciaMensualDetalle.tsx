@@ -31,7 +31,7 @@ const AsistenciaMensualDetalle: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [observaciones, setObservaciones] = useState<Record<number, string>>({});
 
-  // Función debounce (sin librerías externas)
+  // Funcion debounce (sin librerias externas)
   const debounce = (func: (...args: any[]) => void, delay: number) => {
     let timer: NodeJS.Timeout;
     return (...args: any[]) => {
@@ -59,7 +59,7 @@ const AsistenciaMensualDetalle: React.FC = () => {
     fetchDisciplinas();
   }, [fetchDisciplinas]);
 
-  // Filtrar disciplinas según el input de búsqueda
+  // Filtrar disciplinas segun el input de busqueda
   const filteredDisciplinas = useMemo(() => {
     if (!disciplineFilter.trim()) return disciplinas;
     return disciplinas.filter((d) =>
@@ -67,7 +67,7 @@ const AsistenciaMensualDetalle: React.FC = () => {
     );
   }, [disciplineFilter, disciplinas]);
 
-  // Función para consultar la asistencia mensual usando los filtros (GET)
+  // Funcion para consultar la asistencia mensual usando los filtros (GET)
   const cargarAsistenciaDinamica = useCallback(async () => {
     if (!selectedDisciplineId || !selectedMonth || !selectedYear) {
       toast.warn("Por favor, complete todos los filtros antes de consultar.");
@@ -76,7 +76,7 @@ const AsistenciaMensualDetalle: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      // Llamamos al endpoint GET que obtiene la asistencia mensual por parámetros
+      // Llamamos al endpoint GET que obtiene la asistencia mensual por parametros
       const data = await asistenciasApi.obtenerAsistenciaMensualDetallePorParametros(
         selectedDisciplineId,
         selectedMonth,
@@ -91,7 +91,7 @@ const AsistenciaMensualDetalle: React.FC = () => {
         setObservaciones(obs);
       } else {
         setAsistenciaMensual(null);
-        toast.info("No se encontró asistencia mensual para estos parámetros.");
+        toast.info("No se encontro asistencia mensual para estos parametros.");
       }
     } catch (err) {
       console.error("Error al cargar la asistencia mensual", err);
@@ -115,10 +115,10 @@ const AsistenciaMensualDetalle: React.FC = () => {
             })
           ),
         });
-        toast.success("Observación actualizada");
+        toast.success("Observacion actualizada");
       } catch (err) {
-        console.error("Error al actualizar observación", err);
-        toast.error("Error al actualizar la observación.");
+        console.error("Error al actualizar observacion", err);
+        toast.error("Error al actualizar la observacion.");
       }
     }, 500),
     [asistenciaMensual, observaciones]
@@ -129,14 +129,14 @@ const AsistenciaMensualDetalle: React.FC = () => {
     debouncedActualizarObservacion(alumnoId, obs);
   };
 
-  // Función para alternar la asistencia diaria de un alumno
+  // Funcion para alternar la asistencia diaria de un alumno
   const toggleAsistencia = async (alumnoId: number, fecha: string) => {
     if (!asistenciaMensual) return;
     const registro = asistenciaMensual.asistenciasDiarias.find(
       ad => ad.alumnoId === alumnoId && ad.fecha === fecha
     );
     if (!registro) {
-      toast.error("No se encontró registro de asistencia para este alumno en esta fecha.");
+      toast.error("No se encontro registro de asistencia para este alumno en esta fecha.");
       return;
     }
     try {
@@ -183,7 +183,7 @@ const AsistenciaMensualDetalle: React.FC = () => {
   ];
   const años = Array.from({ length: 8 }, (_, i) => 2023 + i);
 
-  // Calcular días únicos de registros diarios para la tabla
+  // Calcular dias unicos de registros diarios para la tabla
   const diasRegistrados = useMemo(() => {
     if (!asistenciaMensual) return [];
     return Array.from(new Set(asistenciaMensual.asistenciasDiarias.map(a => a.fecha))).sort();
@@ -279,7 +279,7 @@ const AsistenciaMensualDetalle: React.FC = () => {
 
           {asistenciaMensual && diasRegistrados.length === 0 && (
             <div className="text-center text-red-500 mb-4">
-              No se encontraron registros diarios para este período.
+              No se encontraron registros diarios para este periodo.
             </div>
           )}
 

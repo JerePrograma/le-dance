@@ -16,7 +16,7 @@ const BotonCerrarSesion: React.FC = () => {
       className="w-full mt-4 border border-input bg-background hover:bg-accent hover:text-accent-foreground"
     >
       <LogOut className="w-4 h-4 mr-2" />
-      Cerrar sesión
+      Cerrar sesion
     </Boton>
   );
 };

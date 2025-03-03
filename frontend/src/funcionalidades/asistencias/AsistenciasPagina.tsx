@@ -55,7 +55,7 @@ const AsistenciasPage: React.FC = () => {
     try {
       const data = await asistenciasApi.obtenerAsistenciaMensualDetalle(selectedPD);
       if (!data) {
-        toast.error("No se encontró la asistencia mensual.");
+        toast.error("No se encontro la asistencia mensual.");
         setLoading(false);
         return;
       }
@@ -88,7 +88,7 @@ const AsistenciasPage: React.FC = () => {
     );
 
     if (!asistenciaDiaria) {
-      console.error("No se encontró una asistencia diaria para este alumno en esta fecha.");
+      console.error("No se encontro una asistencia diaria para este alumno en esta fecha.");
       toast.error("Error al actualizar la asistencia.");
       return;
     }
@@ -137,10 +137,10 @@ const AsistenciasPage: React.FC = () => {
             observacion,
           })),
         });
-        toast.success("Observación actualizada");
+        toast.success("Observacion actualizada");
       } catch (error) {
-        console.error("Error al guardar observación:", error);
-        toast.error("Error al guardar la observación");
+        console.error("Error al guardar observacion:", error);
+        toast.error("Error al guardar la observacion");
       }
     }, 500),
     [asistencia, observaciones]
@@ -174,7 +174,7 @@ const AsistenciasPage: React.FC = () => {
           >
             <option value="0">Seleccione disciplina...</option>
             <option value="1">BALLET PROFESORADO CIAD</option>
-            {/* Agregar más opciones según tus datos */}
+            {/* Agregar mas opciones segun tus datos */}
           </Field>
         </div>
         <div>
@@ -284,7 +284,7 @@ const AsistenciasPage: React.FC = () => {
         </div>
       ) : selectedPD > 0 ? (
         <div className="text-center py-4">
-          No se encontraron datos para el período seleccionado
+          No se encontraron datos para el periodo seleccionado
         </div>
       ) : null}
     </div>

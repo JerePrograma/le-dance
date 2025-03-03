@@ -36,7 +36,7 @@
   padding: var(--spacing-4);
 }
 
-/* Navegación */
+/* Navegacion */
 .sidebar-nav {
   display: flex;
   flex-direction: column;

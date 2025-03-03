@@ -12,7 +12,7 @@ interface Pago {
 
 const Pagos = () => {
   const [pagos, setPagos] = useState<Pago[]>([]);
-  const encabezados = ["ID", "Alumno", "Fecha", "Monto", "Método", "Acciones"];
+  const encabezados = ["ID", "Alumno", "Fecha", "Monto", "Metodo", "Acciones"];
 
   useEffect(() => {
     const fetchPagos = async () => {
@@ -29,7 +29,7 @@ const Pagos = () => {
 
   return (
     <div>
-      <h1 className="titulo-principal">Gestión de Pagos</h1>
+      <h1 className="titulo-principal">Gestion de Pagos</h1>
       <button className="boton">Registrar Nuevo Pago</Boton>
       <Tabla
         encabezados={encabezados}

@@ -15,7 +15,7 @@ import type {
 const asistenciaCache = new Map<number, AsistenciaMensualDetalleResponse>();
 
 const asistenciasApi = {
-  // Método para obtener el detalle de la asistencia mensual (solo obtener, sin crear)
+  // Metodo para obtener el detalle de la asistencia mensual (solo obtener, sin crear)
   // En asistenciasApi.ts
 
   obtenerAsistenciaMensualDetallePorParametros: async (
@@ -33,7 +33,7 @@ const asistenciasApi = {
       return response.data;
     } catch (error: any) {
       console.error(
-        "Error al obtener asistencia mensual por parámetros:",
+        "Error al obtener asistencia mensual por parametros:",
         error
       );
       toast.error(
@@ -43,7 +43,7 @@ const asistenciasApi = {
     }
   },
 
-  // Método para crear la asistencia mensual (solo crear, sin buscar)
+  // Metodo para crear la asistencia mensual (solo crear, sin buscar)
   crearAsistenciaMensualPorDisciplina: async (
     disciplinaId: number,
     mes: number,
@@ -66,7 +66,7 @@ const asistenciasApi = {
     }
   },
 
-  // Los métodos existentes permanecen sin cambios (listar, actualizar, etc.)
+  // Los metodos existentes permanecen sin cambios (listar, actualizar, etc.)
   listarAsistenciasMensuales: async (
     profesorId?: number,
     disciplinaId?: number,
@@ -120,7 +120,7 @@ const asistenciasApi = {
     } catch (error: any) {
       console.error("Error al obtener detalle de asistencia mensual:", error);
       if (error.response?.status === 404) {
-        toast.warn("No se encontró la asistencia mensual.");
+        toast.warn("No se encontro la asistencia mensual.");
       } else {
         toast.error(
           "Error al obtener la asistencia mensual. Intente nuevamente."
@@ -214,7 +214,7 @@ const asistenciasApi = {
         params: { disciplinaId, mes, anio },
       });
       if (!response.data) {
-        throw new Error("No se encontró asistencia para esta disciplina.");
+        throw new Error("No se encontro asistencia para esta disciplina.");
       }
       return response.data;
     } catch (error: any) {
@@ -266,8 +266,8 @@ const asistenciasApi = {
       const response = await api.post("/asistencias-diarias/observaciones", payload);
       return response.data;
     } catch (error: any) {
-      console.error("Error al actualizar observación:", error);
-      toast.error("Error al actualizar la observación. Intente nuevamente.");
+      console.error("Error al actualizar observacion:", error);
+      toast.error("Error al actualizar la observacion. Intente nuevamente.");
       throw error;
     }
   },

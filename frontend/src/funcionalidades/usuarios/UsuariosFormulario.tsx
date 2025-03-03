@@ -127,7 +127,7 @@ const UsuariosFormulario: React.FC = () => {
       </Formik>
       <div className="text-center mt-4">
         <a href="/login" className="auth-link">
-          ¿Ya tienes cuenta? Inicia sesión aquí
+          ¿Ya tienes cuenta? Inicia sesion aqui
         </a>
       </div>
     </div>

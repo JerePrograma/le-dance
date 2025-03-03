@@ -20,7 +20,7 @@ const AsistenciasMensualesFormulario: React.FC = () => {
   const navigate = useNavigate();
   const [disciplinas, setDisciplinas] = useState<DisciplinaListadoResponse[]>([]);
 
-  // Carga dinámica de disciplinas mediante Axios
+  // Carga dinamica de disciplinas mediante Axios
   const fetchDisciplinas = useCallback(async () => {
     try {
       const data = await disciplinasApi.listarDisciplinasSimplificadas();
@@ -43,13 +43,13 @@ const AsistenciasMensualesFormulario: React.FC = () => {
       try {
         // Llama al endpoint de registro de asistencia mensual
         await asistenciasApi.registrarAsistenciaMensual(values);
-        toast.success("Asistencia mensual registrada correctamente. Se creará a partir del 1ro de cada mes.");
+        toast.success("Asistencia mensual registrada correctamente. Se creara a partir del 1ro de cada mes.");
         // Redirige al listado actualizado
         navigate("/asistencias-mensuales");
       } catch (error: any) {
         console.error("Error al guardar la asistencia mensual:", error);
         // Suponiendo que el backend lanza un error en caso de duplicado
-        toast.error("Error: Ya existe una asistencia mensual para la disciplina y el período seleccionado.");
+        toast.error("Error: Ya existe una asistencia mensual para la disciplina y el periodo seleccionado.");
       } finally {
         setSubmitting(false);
       }
@@ -61,7 +61,7 @@ const AsistenciasMensualesFormulario: React.FC = () => {
     <div className="page-container">
       <h1 className="page-title">Formulario de Asistencia Mensual</h1>
       <p className="mb-4 text-center">
-        La asistencia se creará a partir del 1ro de cada mes.
+        La asistencia se creara a partir del 1ro de cada mes.
       </p>
       <Formik
         initialValues={initialAsistenciaMensualValues}

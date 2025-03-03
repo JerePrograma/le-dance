@@ -176,9 +176,9 @@ const AlumnosFormulario: React.FC = () => {
     try {
       await inscripcionesApi.eliminar(id);
       cargarInscripciones(alumnoId);
-      toast.success("Inscripción eliminada correctamente");
+      toast.success("Inscripcion eliminada correctamente");
     } catch (error) {
-      toast.error("Error al eliminar la inscripción");
+      toast.error("Error al eliminar la inscripcion");
     }
   };
 
@@ -194,10 +194,10 @@ const AlumnosFormulario: React.FC = () => {
         {({ isSubmitting, setFieldValue }) => (
           <Form className="formulario max-w-4xl mx-auto">
             <div className="form-grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* Búsqueda por ID */}
+              {/* Busqueda por ID */}
               <div className="col-span-full mb-4">
                 <label htmlFor="idBusqueda" className="auth-label">
-                  Número de Alumno:
+                  Numero de Alumno:
                 </label>
                 <div className="flex gap-2">
                   <input
@@ -217,7 +217,7 @@ const AlumnosFormulario: React.FC = () => {
                 </div>
               </div>
 
-              {/* Búsqueda por Nombre con sugerencias */}
+              {/* Busqueda por Nombre con sugerencias */}
               <div className="col-span-full mb-4">
                 <label htmlFor="nombreBusqueda" className="auth-label">
                   Buscar por Nombre:
@@ -271,7 +271,7 @@ const AlumnosFormulario: React.FC = () => {
                 },
                 {
                   name: "fechaIncorporacion",
-                  label: "Fecha de Incorporación",
+                  label: "Fecha de Incorporacion",
                   type: "date",
                 },
                 { name: "celular1", label: "Celular 1" },
@@ -407,7 +407,7 @@ const AlumnosFormulario: React.FC = () => {
                       encabezados={[
                         "ID",
                         "Disciplina",
-                        "Bonificación",
+                        "Bonificacion",
                         "Costo",
                         "Notas",
                         "Acciones",

@@ -25,8 +25,8 @@ const MetodosPagoPagina = () => {
       const response = await metodosPagoApi.listarMetodosPago();
       setMetodos(response);
     } catch (error) {
-      console.error("Error al cargar métodos de pago:", error);
-      setError("Error al cargar métodos de pago.");
+      console.error("Error al cargar metodos de pago:", error);
+      setError("Error al cargar metodos de pago.");
     } finally {
       setLoading(false);
     }
@@ -52,10 +52,10 @@ const MetodosPagoPagina = () => {
   const handleEliminarMetodo = async (id: number) => {
     try {
       await metodosPagoApi.eliminarMetodoPago(id);
-      toast.success("Método de pago eliminado correctamente.");
+      toast.success("Metodo de pago eliminado correctamente.");
       fetchMetodos();
     } catch (error) {
-      toast.error("Error al eliminar el método de pago.");
+      toast.error("Error al eliminar el metodo de pago.");
     }
   };
 
@@ -64,34 +64,34 @@ const MetodosPagoPagina = () => {
 
   return (
     <div className="page-container">
-      <h1 className="page-title">Métodos de Pago</h1>
+      <h1 className="page-title">Metodos de Pago</h1>
       <div className="page-button-group flex justify-end mb-4">
         <Boton
           onClick={() => navigate("/metodos-pago/formulario")}
           className="page-button"
-          aria-label="Registrar nuevo método de pago"
+          aria-label="Registrar nuevo metodo de pago"
         >
           <PlusCircle className="w-5 h-5 mr-2" />
-          Registrar Nuevo Método de Pago
+          Registrar Nuevo Metodo de Pago
         </Boton>
       </div>
       <div className="page-card">
         <Tabla
-          encabezados={["ID", "Descripción", "Recargo", "Acciones"]}
+          encabezados={["ID", "Descripcion", "Recargo", "Acciones"]}
           datos={currentItems}
           acciones={(fila: MetodoPagoResponse) => (
             <div className="flex gap-2">
               <Boton
                 onClick={() => navigate(`/metodos-pago/formulario?id=${fila.id}`)}
                 className="page-button-secondary"
-                aria-label={`Editar método de pago ${fila.descripcion}`}
+                aria-label={`Editar metodo de pago ${fila.descripcion}`}
               >
                 <Pencil className="w-4 h-4 mr-2" />
                 Editar
               </Boton>
               <Boton
                 className="page-button-danger"
-                aria-label={`Eliminar método de pago ${fila.descripcion}`}
+                aria-label={`Eliminar metodo de pago ${fila.descripcion}`}
                 onClick={() => handleEliminarMetodo(fila.id)}
               >
                 <Trash2 className="w-4 h-4 mr-2" />

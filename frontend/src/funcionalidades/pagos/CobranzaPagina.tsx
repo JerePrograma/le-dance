@@ -60,7 +60,7 @@ const CobranzaPagina: React.FC = () => {
                     </table>
                 </div>
             ) : (
-                <p className="text-center py-4">No se encontró información de cobranza.</p>
+                <p className="text-center py-4">No se encontro informacion de cobranza.</p>
             )}
         </div>
     );

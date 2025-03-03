@@ -12,7 +12,7 @@ export const useUltimoPago = (alumnoId: number | null) => {
         .obtenerUltimoPagoPorAlumno(alumnoId)
         .then(setUltimoPago)
         .catch((err) => {
-          console.error("Error al cargar último pago:", err);
+          console.error("Error al cargar ultimo pago:", err);
           setUltimoPago(null);
         });
     }

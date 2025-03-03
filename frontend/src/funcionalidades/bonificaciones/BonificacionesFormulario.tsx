@@ -50,7 +50,7 @@ const BonificacionesFormulario: React.FC = () => {
 
   const handleBuscar = useCallback(async () => {
     if (!idBusqueda) {
-      setMensaje("Por favor, ingrese un ID de bonificación.");
+      setMensaje("Por favor, ingrese un ID de bonificacion.");
       return;
     }
 
@@ -64,10 +64,10 @@ const BonificacionesFormulario: React.FC = () => {
       console.log("Converted bonificacion data:", convertedBonificacion);
       setFormValues(convertedBonificacion);
       setBonificacionId(bonificacion.id);
-      setMensaje("Bonificación encontrada.");
+      setMensaje("Bonificacion encontrada.");
     } catch (error) {
-      console.error("Error al buscar la bonificación:", error);
-      setMensaje("Bonificación no encontrada.");
+      console.error("Error al buscar la bonificacion:", error);
+      setMensaje("Bonificacion no encontrada.");
       resetearFormulario();
     }
   }, [idBusqueda, convertToBonificacionFormValues]);
@@ -101,19 +101,19 @@ const BonificacionesFormulario: React.FC = () => {
             bonificacionId,
             values as BonificacionModificacionRequest
           );
-          toast.success("Bonificación actualizada correctamente.");
+          toast.success("Bonificacion actualizada correctamente.");
         } else {
           const nuevaBonificacion = await bonificacionesApi.crearBonificacion(
             values as BonificacionRegistroRequest
           );
           setBonificacionId(nuevaBonificacion.id);
-          toast.success("Bonificación creada correctamente.");
+          toast.success("Bonificacion creada correctamente.");
         }
-        setMensaje("Bonificación guardada exitosamente.");
+        setMensaje("Bonificacion guardada exitosamente.");
       } catch (error) {
-        console.error("Error al guardar la bonificación:", error);
-        toast.error("Error al guardar la bonificación.");
-        setMensaje("Error al guardar la bonificación.");
+        console.error("Error al guardar la bonificacion:", error);
+        toast.error("Error al guardar la bonificacion.");
+        setMensaje("Error al guardar la bonificacion.");
       } finally {
         setSubmitting(false);
       }
@@ -123,7 +123,7 @@ const BonificacionesFormulario: React.FC = () => {
 
   return (
     <div className="page-container">
-      <h1 className="page-title">Formulario de Bonificación</h1>
+      <h1 className="page-title">Formulario de Bonificacion</h1>
       <Formik
         initialValues={formValues}
         validationSchema={bonificacionEsquema}
@@ -135,7 +135,7 @@ const BonificacionesFormulario: React.FC = () => {
             <div className="form-grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="col-span-full mb-4">
                 <label htmlFor="idBusqueda" className="auth-label">
-                  Número de Bonificación:
+                  Numero de Bonificacion:
                 </label>
                 <div className="flex gap-2">
                   <input
@@ -158,7 +158,7 @@ const BonificacionesFormulario: React.FC = () => {
 
               <div className="mb-4">
                 <label htmlFor="descripcion" className="auth-label">
-                  Descripción:
+                  Descripcion:
                 </label>
                 <Field
                   type="text"

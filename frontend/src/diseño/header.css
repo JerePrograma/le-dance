@@ -38,7 +38,7 @@
   width: auto;
 }
 
-/* Navegación */
+/* Navegacion */
 .header-nav {
   display: flex;
   align-items: center;
@@ -67,7 +67,7 @@
   gap: var(--spacing-4);
 }
 
-/* Barra de búsqueda */
+/* Barra de busqueda */
 .header-search {
   position: relative;
   width: 300px;
@@ -97,7 +97,7 @@
   pointer-events: none;
 }
 
-/* Menú móvil */
+/* Menu movil */
 .header-mobile-trigger {
   display: none;
   padding: var(--spacing-2);

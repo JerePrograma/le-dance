@@ -69,10 +69,10 @@ export default function AsistenciaMensualGrid({
             observacion,
           })),
         });
-        toast.success("Observación actualizada");
+        toast.success("Observacion actualizada");
       } catch (error) {
-        console.error("Error al guardar observación:", error);
-        toast.error("Error al guardar la observación");
+        console.error("Error al guardar observacion:", error);
+        toast.error("Error al guardar la observacion");
       }
     }, 500),
     [asistencia, observaciones]

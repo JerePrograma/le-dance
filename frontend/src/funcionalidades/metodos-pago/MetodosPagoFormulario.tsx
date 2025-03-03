@@ -17,7 +17,7 @@ interface MetodoPago {
 
 const initialValues: MetodoPago = {
   descripcion: "",
-  recargo: 0, // valor por defecto, puedes ajustarlo según tus necesidades
+  recargo: 0, // valor por defecto, puedes ajustarlo segun tus necesidades
 };
 
 const MetodosPagoFormulario: React.FC = () => {
@@ -29,14 +29,14 @@ const MetodosPagoFormulario: React.FC = () => {
       try {
         const idNum = Number(idStr);
         if (isNaN(idNum)) {
-          toast.error("ID inválido");
+          toast.error("ID invalido");
           return;
         }
         const response = await api.get<MetodoPagoResponse>(`/metodos-pago/${idNum}`);
         setValues(response.data);
-        toast.success("Método de pago cargado correctamente.");
+        toast.success("Metodo de pago cargado correctamente.");
       } catch {
-        toast.error("Error al cargar los datos del método de pago.");
+        toast.error("Error al cargar los datos del metodo de pago.");
         setValues(initialValues);
       }
     },
@@ -54,20 +54,20 @@ const MetodosPagoFormulario: React.FC = () => {
     try {
       if (values.id) {
         await api.put(`/metodos-pago/${values.id}`, values);
-        toast.success("Método de pago actualizado correctamente.");
+        toast.success("Metodo de pago actualizado correctamente.");
       } else {
         await api.post("/metodos-pago", values);
-        toast.success("Método de pago creado correctamente.");
+        toast.success("Metodo de pago creado correctamente.");
       }
     } catch {
-      toast.error("Error al guardar los datos del método de pago.");
+      toast.error("Error al guardar los datos del metodo de pago.");
     }
   };
 
   return (
     <div className="page-container">
       <h1 className="page-title">
-        {searchParams.get("id") ? "Editar Método de Pago" : "Nuevo Método de Pago"}
+        {searchParams.get("id") ? "Editar Metodo de Pago" : "Nuevo Metodo de Pago"}
       </h1>
       <Formik
         initialValues={initialValues}
@@ -80,7 +80,7 @@ const MetodosPagoFormulario: React.FC = () => {
             <div className="form-grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="col-span-full mb-4">
                 <label htmlFor="idBusqueda" className="auth-label">
-                  Número de Método de Pago:
+                  Numero de Metodo de Pago:
                 </label>
                 <div className="flex gap-2">
                   <Field
@@ -106,7 +106,7 @@ const MetodosPagoFormulario: React.FC = () => {
 
               <div className="col-span-full mb-4">
                 <label htmlFor="descripcion" className="auth-label">
-                  Descripción:
+                  Descripcion:
                 </label>
                 <Field name="descripcion" type="text" id="descripcion" className="form-input" />
                 <ErrorMessage name="descripcion" component="div" className="auth-error" />
@@ -122,7 +122,7 @@ const MetodosPagoFormulario: React.FC = () => {
 
             <div className="form-acciones">
               <Boton type="submit" disabled={isSubmitting} className="page-button">
-                Guardar Método de Pago
+                Guardar Metodo de Pago
               </Boton>
               <Boton
                 type="reset"

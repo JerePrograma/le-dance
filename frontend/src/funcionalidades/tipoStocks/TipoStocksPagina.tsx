@@ -77,7 +77,7 @@ const TipoStocks = () => {
                 <Tabla
                     encabezados={[
                         "ID",
-                        "Descripción",
+                        "Descripcion",
                         "Activo",
                         "Acciones",
                     ]}
@@ -105,7 +105,7 @@ const TipoStocks = () => {
                     extraRender={(fila) => [
                         fila.id,
                         fila.descripcion,
-                        fila.activo ? "Sí" : "No",
+                        fila.activo ? "Si" : "No",
                     ]}
                 />
             </div>

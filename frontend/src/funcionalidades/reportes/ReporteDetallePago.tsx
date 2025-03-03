@@ -13,8 +13,8 @@ interface FiltrosBusqueda {
     // Usaremos inputs tipo "month" que devuelven "YYYY-MM"
     fechaInicio: string;
     fechaFin: string;
-    disciplinaNombre: string; // Búsqueda por nombre de disciplina
-    profesorNombre: string;   // Búsqueda por nombre de profesor
+    disciplinaNombre: string; // Busqueda por nombre de disciplina
+    profesorNombre: string;   // Busqueda por nombre de profesor
 }
 
 // Establecemos el mes actual en formato "YYYY-MM" como valor inicial
@@ -36,7 +36,7 @@ const ReporteDetallePago: React.FC = () => {
     const [profesorBusqueda, setProfesorBusqueda] = useState<string>("");
     const debouncedProfesorBusqueda = useDebounce(profesorBusqueda, 300);
 
-    // Configuración de Formik para los filtros
+    // Configuracion de Formik para los filtros
     const formik = useFormik<FiltrosBusqueda>({
         initialValues: {
             fechaInicio: mesActual,
@@ -54,11 +54,11 @@ const ReporteDetallePago: React.FC = () => {
             setLoading(true);
             setError(null);
             try {
-                // Función para transformar "YYYY-MM" en fecha inicio (primer día) y fecha fin (último día)
+                // Funcion para transformar "YYYY-MM" en fecha inicio (primer dia) y fecha fin (ultimo dia)
                 const transformarMesAFechas = (mesStr: string): { inicio: string; fin: string } => {
                     const [year, month] = mesStr.split("-").map(Number);
                     const inicio = new Date(year, month - 1, 1);
-                    const fin = new Date(year, month, 0); // Último día del mes
+                    const fin = new Date(year, month, 0); // Último dia del mes
                     const formatear = (d: Date) =>
                         `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
                     return { inicio: formatear(inicio), fin: formatear(fin) };
@@ -74,7 +74,7 @@ const ReporteDetallePago: React.FC = () => {
                     profesorNombre: values.profesorNombre || undefined,
                 };
 
-                console.log("Llamando a /api/reportes/mensualidades/buscar con parámetros:", params);
+                console.log("Llamando a /api/reportes/mensualidades/buscar con parametros:", params);
 
                 // Se espera directamente un array de ReporteMensualidadDTO
                 const response: ReporteMensualidadDTO[] = await reporteMensualidadApi.listarReporte(params);
@@ -236,11 +236,11 @@ const ReporteDetallePago: React.FC = () => {
             <div className="overflow-x-auto">
                 <Tabla
                     encabezados={[
-                        "Código Mensualidad",
+                        "Codigo Mensualidad",
                         "Alumno",
                         "Cuota",
                         "Importe",
-                        "Bonificación",
+                        "Bonificacion",
                         "Total",
                         "Recargo",
                         "Estado",

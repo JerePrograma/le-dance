@@ -21,7 +21,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
     componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
         console.error("Error capturado en ErrorBoundary:", error, errorInfo);
 
-        // 🔥 Redirección manual al Dashboard después de un pequeño retraso
+        // 🔥 Redireccion manual al Dashboard despues de un pequeño retraso
         setTimeout(() => {
             window.location.href = "/";
         }, 100); // Redirige en 100ms (para evitar bloqueos de React)
@@ -29,7 +29,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 
     render() {
         if (this.state.hasError) {
-            return <h2>Ocurrió un error, redirigiendo al Dashboard...</h2>;
+            return <h2>Ocurrio un error, redirigiendo al Dashboard...</h2>;
         }
         return this.props.children;
     }

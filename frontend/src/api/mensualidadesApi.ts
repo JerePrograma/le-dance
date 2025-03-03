@@ -50,7 +50,7 @@ const listarMensualidades = async (): Promise<MensualidadResponse[]> => {
 };
 
 /**
- * Lista las mensualidades asociadas a una inscripción.
+ * Lista las mensualidades asociadas a una inscripcion.
  */
 const listarMensualidadesPorInscripcion = async (
   inscripcionId: number
@@ -62,7 +62,7 @@ const listarMensualidadesPorInscripcion = async (
 };
 
 /**
- * Elimina (baja lógica o física) una mensualidad.
+ * Elimina (baja logica o fisica) una mensualidad.
  */
 const eliminarMensualidad = async (id: number): Promise<void> => {
   await api.delete(`/mensualidades/${id}`);

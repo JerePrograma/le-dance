@@ -20,13 +20,13 @@ const Login: React.FC = () => {
       window.location.href = "/";
     } catch (err) {
       setError("Credenciales incorrectas. Intenta nuevamente.");
-      toast.error("Error al iniciar sesión.");
+      toast.error("Error al iniciar sesion.");
     }
   };
 
   return (
     <div className="page-container">
-      <h1 className="page-title">Iniciar Sesión</h1>
+      <h1 className="page-title">Iniciar Sesion</h1>
       <Formik
         initialValues={{ nombreUsuario: "", contrasena: "" }}
         validationSchema={loginSchema}
@@ -86,7 +86,7 @@ const Login: React.FC = () => {
       </Formik>
       <div className="text-center mt-4">
         <a href="/registro" className="text-primary hover:underline">
-          ¿No tienes cuenta? Regístrate aquí
+          ¿No tienes cuenta? Registrate aqui
         </a>
       </div>
     </div>

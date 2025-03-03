@@ -28,7 +28,7 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
     if (error.response?.status === 403) {
-      console.warn("Token inválido o expirado. Redirigiendo al login...");
+      console.warn("Token invalido o expirado. Redirigiendo al login...");
       localStorage.clear();
       window.location.href = "/login";
       return Promise.reject(error);

@@ -18,9 +18,9 @@ const HorariosFieldArray: React.FC<HorariosFieldArrayProps> = ({ name, diasSeman
                         form.values.horarios.map((_horario: DisciplinaHorarioRequest, index: number) => (
                             <div key={index} className="flex flex-col sm:flex-row gap-2 items-end mb-2 border p-2 rounded">
                                 <div className="flex-1">
-                                    <label className="block text-sm font-medium">Día</label>
+                                    <label className="block text-sm font-medium">Dia</label>
                                     <Field as="select" name={`${name}.${index}.diaSemana`} className="form-input">
-                                        <option value="">Seleccione un día</option>
+                                        <option value="">Seleccione un dia</option>
                                         {diasSemana.map((dia) => (
                                             <option key={dia} value={dia}>
                                                 {dia}
@@ -35,7 +35,7 @@ const HorariosFieldArray: React.FC<HorariosFieldArrayProps> = ({ name, diasSeman
                                     <ErrorMessage name={`${name}.${index}.horarioInicio`} component="div" className="text-red-500 text-xs" />
                                 </div>
                                 <div className="flex-1">
-                                    <label className="block text-sm font-medium">Duración (horas)</label>
+                                    <label className="block text-sm font-medium">Duracion (horas)</label>
                                     <Field name={`${name}.${index}.duracion`} type="number" step="0.5" className="form-input" />
                                     <ErrorMessage name={`${name}.${index}.duracion`} component="div" className="text-red-500 text-xs" />
                                 </div>

@@ -128,7 +128,7 @@ const Stocks = () => {
                         fila.stock,
                         fila.fechaIngreso,
                         fila.fechaEgreso || "-",
-                        fila.activo ? "Sí" : "No",
+                        fila.activo ? "Si" : "No",
                     ]}
                 />
             </div>

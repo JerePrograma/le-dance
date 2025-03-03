@@ -20,7 +20,7 @@ import type {
   DisciplinaDetalleResponse,
 } from "../../types/types";
 
-// Esquema de validación
+// Esquema de validacion
 import { inscripcionEsquema } from "../../validaciones/inscripcionEsquema";
 
 // Valores iniciales (sin fechaBaja)
@@ -46,14 +46,14 @@ const InscripcionesFormulario: React.FC = () => {
     []
   );
 
-  // ID de inscripción para saber si estamos en modo "edición" o "nuevo"
+  // ID de inscripcion para saber si estamos en modo "edicion" o "nuevo"
   const [inscripcionId, setInscripcionId] = useState<number | null>(null);
 
   // Estado con los valores del formulario
   const [initialValues, setInitialValues] =
     useState<InscripcionRegistroRequest>(initialInscripcionValues);
 
-  // Cargar catálogos (Disciplinas, Bonificaciones) con Promise.all
+  // Cargar catalogos (Disciplinas, Bonificaciones) con Promise.all
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -72,13 +72,13 @@ const InscripcionesFormulario: React.FC = () => {
     fetchData();
   }, []);
 
-  // Función para cargar datos de una Inscripción existente
+  // Funcion para cargar datos de una Inscripcion existente
   const cargarInscripcion = useCallback(
     async (idStr: string): Promise<InscripcionRegistroRequest> => {
       try {
         const idNum = Number(idStr);
         if (isNaN(idNum)) {
-          toast.error("ID de inscripción inválido");
+          toast.error("ID de inscripcion invalido");
           return initialInscripcionValues;
         }
 
@@ -87,7 +87,7 @@ const InscripcionesFormulario: React.FC = () => {
         );
         setInscripcionId(data.id);
 
-        toast.success("Inscripción cargada correctamente.");
+        toast.success("Inscripcion cargada correctamente.");
 
         // Mapeo la respuesta (InscripcionResponse) a InscripcionRegistroRequest
         return {
@@ -96,26 +96,26 @@ const InscripcionesFormulario: React.FC = () => {
             disciplinaId: data.disciplina.id,
             bonificacionId: data.bonificacion?.id,
           },
-          // Tomamos la fecha de inscripción de la entidad si la tuvieras en tu backend
-          // Aquí, para ejemplo, uso la de "data". Ajusta según tu real response
+          // Tomamos la fecha de inscripcion de la entidad si la tuvieras en tu backend
+          // Aqui, para ejemplo, uso la de "data". Ajusta segun tu real response
           fechaInscripcion: new Date().toISOString().split("T")[0],
           notas: data.notas ?? "",
         };
       } catch (err) {
-        toast.error("No se encontró la inscripción con ese ID.");
+        toast.error("No se encontro la inscripcion con ese ID.");
         return initialInscripcionValues;
       }
     },
     []
   );
 
-  // Efecto para leer parámetros de la URL e inicializar el formulario
+  // Efecto para leer parametros de la URL e inicializar el formulario
   useEffect(() => {
     const idParam = searchParams.get("id");
     const alumnoParam = searchParams.get("alumnoId");
 
     if (idParam) {
-      // Modo edición
+      // Modo edicion
       cargarInscripcion(idParam).then((data) => setInitialValues(data));
     } else if (alumnoParam) {
       // Modo nuevo con un alumno ya conocido
@@ -126,7 +126,7 @@ const InscripcionesFormulario: React.FC = () => {
     }
   }, [searchParams, cargarInscripcion]);
 
-  // Handler para guardar/actualizar la inscripción
+  // Handler para guardar/actualizar la inscripcion
   const handleGuardar = useCallback(
     async (values: InscripcionRegistroRequest) => {
       if (!values.alumnoId || !values.inscripcion.disciplinaId) {
@@ -140,18 +140,18 @@ const InscripcionesFormulario: React.FC = () => {
             alumnoId: values.alumnoId,
             disciplinaId: values.inscripcion.disciplinaId,
             bonificacionId: values.inscripcion.bonificacionId,
-            // podrías añadir "fechaBaja", "activo", etc. si es que existen
+            // podrias añadir "fechaBaja", "activo", etc. si es que existen
             notas: values.notas,
           });
-          toast.success("Inscripción actualizada correctamente.");
+          toast.success("Inscripcion actualizada correctamente.");
         } else {
           // Crear nueva
           const newIns = await inscripcionesApi.crear(values);
           setInscripcionId(newIns.id);
-          toast.success("Inscripción creada correctamente.");
+          toast.success("Inscripcion creada correctamente.");
         }
       } catch (err) {
-        toast.error("Error al guardar la inscripción.");
+        toast.error("Error al guardar la inscripcion.");
       }
     },
     [inscripcionId]
@@ -160,7 +160,7 @@ const InscripcionesFormulario: React.FC = () => {
   return (
     <div className="page-container">
       <h1 className="page-title">
-        {inscripcionId ? "Editar Inscripción" : "Nueva Inscripción"}
+        {inscripcionId ? "Editar Inscripcion" : "Nueva Inscripcion"}
       </h1>
 
       <Formik
@@ -175,7 +175,7 @@ const InscripcionesFormulario: React.FC = () => {
               {/* BUSCADOR DE INSCRIPCIÓN */}
               <div className="col-span-full mb-4">
                 <label htmlFor="idBusqueda" className="auth-label">
-                  Número de Inscripción:
+                  Numero de Inscripcion:
                 </label>
                 <div className="flex gap-2">
                   <input
@@ -256,7 +256,7 @@ const InscripcionesFormulario: React.FC = () => {
                   htmlFor="inscripcion.bonificacionId"
                   className="auth-label"
                 >
-                  Bonificación (Opcional):
+                  Bonificacion (Opcional):
                 </label>
                 <Field
                   as="select"
@@ -281,7 +281,7 @@ const InscripcionesFormulario: React.FC = () => {
               {/* FECHA INSCRIPCION */}
               <div className="mb-4">
                 <label htmlFor="fechaInscripcion" className="auth-label">
-                  Fecha de Inscripción:
+                  Fecha de Inscripcion:
                 </label>
                 <Field
                   name="fechaInscripcion"
@@ -342,7 +342,7 @@ const InscripcionesFormulario: React.FC = () => {
                 disabled={isSubmitting}
                 className="page-button"
               >
-                {inscripcionId ? "Actualizar" : "Guardar"} Inscripción
+                {inscripcionId ? "Actualizar" : "Guardar"} Inscripcion
               </Boton>
               <Boton
                 type="reset"

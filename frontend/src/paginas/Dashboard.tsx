@@ -89,7 +89,7 @@ const CategoryCard: React.FC<CategoryCardProps> = ({ item }) => {
 }
 
 const Dashboard = React.memo(() => {
-  // Separar items en categorías y elementos sueltos
+  // Separar items en categorias y elementos sueltos
   const categories = navigationItems.filter((item) => item.items?.length)
   const singleItems = navigationItems.filter((item) => !item.items?.length)
 
@@ -97,12 +97,12 @@ const Dashboard = React.memo(() => {
     <div className="container mx-auto space-y-8 p-6">
       <div className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">Panel de Control</h1>
-        <p className="text-lg text-muted-foreground">Bienvenido al sistema de gestión LE DANCE</p>
+        <p className="text-lg text-muted-foreground">Bienvenido al sistema de gestion LE DANCE</p>
       </div>
 
-      {/* Categorías */}
+      {/* Categorias */}
       <section className="space-y-4">
-        <h2 className="text-2xl font-semibold tracking-tight">Gestión del Sistema</h2>
+        <h2 className="text-2xl font-semibold tracking-tight">Gestion del Sistema</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           {categories.map((category) => (
             <CategoryCard key={category.id} item={category} />

@@ -14,10 +14,10 @@ const Tablero = () => {
   useEffect(() => {
     const fetchMetrics = async () => {
       try {
-        const response = await api.get("/metricas"); // Endpoint para obtener métricas
+        const response = await api.get("/metricas"); // Endpoint para obtener metricas
         setTarjetas(response.data);
       } catch (error) {
-        console.error("Error al cargar las métricas:", error);
+        console.error("Error al cargar las metricas:", error);
       }
     };
 

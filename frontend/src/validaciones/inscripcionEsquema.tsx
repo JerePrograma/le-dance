@@ -11,7 +11,7 @@ export const inscripcionEsquema = Yup.object().shape({
     bonificacionId: Yup.number().nullable(),
   }),
   fechaInscripcion: Yup.date().required(
-    "La fecha de inscripción es obligatoria"
+    "La fecha de inscripcion es obligatoria"
   ),
   fechaBaja: Yup.date().nullable(),
   notas: Yup.string()

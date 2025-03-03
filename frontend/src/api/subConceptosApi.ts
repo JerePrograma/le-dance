@@ -27,7 +27,7 @@ const obtenerSubConceptoPorId = async (id: number): Promise<SubConceptoResponse>
   }
 };
 
-// Obtiene un subconcepto por descripción (se espera un array y se toma el primero).
+// Obtiene un subconcepto por descripcion (se espera un array y se toma el primero).
 const obtenerSubConceptoPorDescripcion = async (
   descripcion: string
 ): Promise<SubConceptoResponse | null> => {
@@ -37,7 +37,7 @@ const obtenerSubConceptoPorDescripcion = async (
     );
     return data.length > 0 ? data[0] : null;
   } catch (error) {
-    console.error("Error al obtener subconcepto por descripción:", error);
+    console.error("Error al obtener subconcepto por descripcion:", error);
     return null;
   }
 };
@@ -55,8 +55,8 @@ const registrarSubConcepto = async (
   }
 };
 
-// Función para buscar subconceptos por nombre.
-// Se asume que el backend expone un endpoint GET en "/sub-conceptos/buscar" que recibe el parámetro "nombre"
+// Funcion para buscar subconceptos por nombre.
+// Se asume que el backend expone un endpoint GET en "/sub-conceptos/buscar" que recibe el parametro "nombre"
 const buscarSubConceptos = async (nombre: string): Promise<SubConceptoResponse[]> => {
   try {
     const { data } = await api.get<SubConceptoResponse[]>(
@@ -69,7 +69,7 @@ const buscarSubConceptos = async (nombre: string): Promise<SubConceptoResponse[]
   }
 };
 
-// Función para actualizar un subconcepto por su ID.
+// Funcion para actualizar un subconcepto por su ID.
 const actualizarSubConcepto = async (
   id: number,
   request: SubConceptoModificacionRequest
@@ -83,7 +83,7 @@ const actualizarSubConcepto = async (
   }
 };
 
-// Función para eliminar un subconcepto por su ID.
+// Funcion para eliminar un subconcepto por su ID.
 const eliminarSubConcepto = async (id: number): Promise<void> => {
   try {
     await api.delete(`/sub-conceptos/${id}`);

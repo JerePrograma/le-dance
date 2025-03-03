@@ -72,14 +72,14 @@ const actualizarPago = async (
 };
 
 /**
- * Realiza una baja lógica del pago.
+ * Realiza una baja logica del pago.
  */
 const eliminarPago = async (id: number): Promise<void> => {
   await api.delete(`/pagos/${id}`);
 };
 
 /**
- * Lista pagos filtrados por inscripción.
+ * Lista pagos filtrados por inscripcion.
  */
 const listarPagosPorInscripcion = async (
   inscripcionId: number
@@ -109,7 +109,7 @@ const listarPagosVencidos = async (): Promise<PagoResponse[]> => {
 };
 
 /**
- * Obtiene el último pago registrado para un alumno.
+ * Obtiene el ultimo pago registrado para un alumno.
  * Se asume que el backend tiene un endpoint que responde en:
  * GET /pagos/alumno/{alumnoId}/ultimo
  */
@@ -131,11 +131,11 @@ const pagosApi = {
   listarPagosPorInscripcion,
   listarPagosPorAlumno,
   listarPagosVencidos,
-  // Nuevos endpoints básicos
+  // Nuevos endpoints basicos
   listarDisciplinasBasicas,
   listarStocksBasicos,
   listarAlumnosBasicos,
-  obtenerCobranzaPorAlumno, // Agregado aquí
+  obtenerCobranzaPorAlumno, // Agregado aqui
   obtenerUltimoPagoPorAlumno,
 };
 

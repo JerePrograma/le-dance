@@ -113,7 +113,7 @@ const TipoStocksFormulario: React.FC = () => {
                             </div>
                             <div className="mb-4">
                                 <label htmlFor="descripcion" className="auth-label">
-                                    Descripción:
+                                    Descripcion:
                                 </label>
                                 <Field name="descripcion" type="text" className="form-input" />
                                 <ErrorMessage name="descripcion" component="div" className="auth-error" />

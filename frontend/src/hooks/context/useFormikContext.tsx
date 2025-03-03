@@ -18,7 +18,7 @@ export const MatriculaAutoAdd: React.FC<MatriculaAutoAddProps> = ({ matricula, c
                     c.descripcion.toLowerCase().includes("matricula")
             );
             if (!conceptoMatricula) {
-                console.error("No se encontró el concepto de matrícula en la lista.");
+                console.error("No se encontro el concepto de matricula en la lista.");
                 return;
             }
             if (values.matriculaRemoved) return;
@@ -31,7 +31,7 @@ export const MatriculaAutoAdd: React.FC<MatriculaAutoAddProps> = ({ matricula, c
             if (!matricula.pagada && !hasMatriculaDetail) {
                 const matriculaDetail = {
                     codigoConcepto: conceptoMatricula.id.toString(),
-                    concepto: conceptoMatricula.descripcion, // debe ser "Matricula" según lo definido
+                    concepto: conceptoMatricula.descripcion, // debe ser "Matricula" segun lo definido
                     cuota: "1",
                     valorBase: conceptoMatricula.precio,
                     bonificacionId: undefined,

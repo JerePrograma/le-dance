@@ -80,7 +80,7 @@ const ConceptosPagina = () => {
             </div>
             <div className="page-card">
                 <Tabla
-                    encabezados={["ID", "Descripción", "Precio", "SubConcepto", "Acciones"]}
+                    encabezados={["ID", "Descripcion", "Precio", "SubConcepto", "Acciones"]}
                     datos={currentItems}
                     acciones={(fila: ConceptoResponse) => (
                         <div className="flex gap-2">
