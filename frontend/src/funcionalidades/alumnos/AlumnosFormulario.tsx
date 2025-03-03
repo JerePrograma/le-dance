@@ -1,5 +1,5 @@
 // src/funcionalidades/alumnos/AlumnosFormulario.tsx
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Formik, Form, Field, ErrorMessage, type FormikHelpers } from "formik";
 import { alumnoEsquema } from "../../validaciones/alumnoEsquema";
@@ -58,14 +58,14 @@ const AlumnosFormulario: React.FC = () => {
 
   const debouncedNombreBusqueda = useDebounce(nombreBusqueda, 300);
 
-  // Primero se declara resetearFormulario para poder usarla posteriormente
+  // Función para resetear el formulario
   const resetearFormulario = () => {
     setFormValues(initialAlumnoValues);
     setAlumnoId(null);
     setInscripciones([]);
   };
 
-  // Se declara cargarInscripciones antes de usarla en otros callbacks
+  // Función para cargar inscripciones del alumno
   const cargarInscripciones = useCallback(async (alumnoId: number | null) => {
     if (alumnoId) {
       const inscripcionesDelAlumno = await inscripcionesApi.listar(alumnoId);
@@ -80,7 +80,6 @@ const AlumnosFormulario: React.FC = () => {
       if (id) {
         const alumno = await alumnosApi.obtenerPorId(Number(id));
         console.log("Alumno data received:", alumno);
-        // Se utiliza la función de conversión e incorpora el valor de "activo"
         const convertedAlumno = { ...convertToAlumnoRegistroRequest(alumno), activo: alumno.activo ?? true };
         console.log("Converted alumno data:", convertedAlumno);
         setFormValues(convertedAlumno);
@@ -170,6 +169,20 @@ const AlumnosFormulario: React.FC = () => {
       toast.error("Error al eliminar la inscripción");
     }
   };
+
+  // Función para calcular los 4 valores para cada inscripción
+  const calcularValores = (ins: InscripcionResponse) => {
+    const cuota = ins.disciplina?.valorCuota || 0;
+    const bonifPct = ins.bonificacion?.porcentajeDescuento || 0;
+    const bonifMonto = ins.bonificacion?.valorFijo || 0;
+    const total = cuota - bonifMonto - (cuota * bonifPct) / 100;
+    return { cuota, bonifPct, bonifMonto, total };
+  };
+
+  // Creamos un arreglo extendido que incluya una fila de totales como última fila
+  const datosExtendidos = useMemo(() => {
+    return [...inscripciones, { _totals: true } as any];
+  }, [inscripciones]);
 
   return (
     <div className="page-container">
@@ -282,9 +295,7 @@ const AlumnosFormulario: React.FC = () => {
                           type="checkbox"
                           {...field}
                           checked={field.value === true}
-                          onChange={(e) =>
-                            setFieldValue(field.name, e.target.checked)
-                          }
+                          onChange={(e) => setFieldValue(field.name, e.target.checked)}
                         />
                       )}
                     </Field>
@@ -349,40 +360,64 @@ const AlumnosFormulario: React.FC = () => {
                     </Boton>
                   </div>
                   <div className="overflow-x-auto">
+                    {/* Se crea un arreglo extendido que incluye la fila de totales */}
                     <Tabla
                       encabezados={[
                         "ID",
                         "Disciplina",
-                        "Bonificación",
-                        "Descuento (%)",
-                        "Descuento (monto)",
-                        "Valor",
+                        "Cuota",
+                        "Bonificación (%)",
+                        "Bonificación (monto)",
+                        "Total",
+                        "Acciones",
                       ]}
-                      datos={inscripciones}
-                      extraRender={(fila) => [
-                        fila.id,
-                        fila.disciplina?.nombre ?? "Sin Disciplina",
-                        fila.bonificacion?.descripcion ?? "N/A",
-                        fila.bonificacion?.porcentajeDescuento ?? "N/A",
-                        fila.bonificacion?.valorFijo ?? "N/A",
-                        fila.costoCalculado
-                      ]}
-                      acciones={(fila) => (
-                        <div className="flex gap-2">
-                          <Boton
-                            onClick={() => navigate(`/inscripciones/formulario?id=${fila.id}`)}
-                            className="page-button-group flex justify-end mb-4"
-                          >
-                            Editar
-                          </Boton>
-                          <Boton
-                            onClick={() => handleEliminarInscripcion(fila.id)}
-                            className="bg-accent text-white hover:bg-accent/90"
-                          >
-                            Eliminar
-                          </Boton>
-                        </div>
-                      )}
+                      datos={datosExtendidos}
+                      extraRender={(fila) => {
+                        if (fila._totals) {
+                          // Renderizamos la fila de totales
+                          return [
+                            <span key="totales" className="font-bold text-center">Totales</span>,
+                            "",
+                            inscripciones.reduce((sum, ins) => sum + (ins.disciplina?.valorCuota || 0), 0).toFixed(2),
+                            inscripciones.reduce((sum, ins) => sum + (ins.bonificacion?.porcentajeDescuento || 0), 0).toFixed(2),
+                            inscripciones.reduce((sum, ins) => sum + (ins.bonificacion?.valorFijo || 0), 0).toFixed(2),
+                            inscripciones.reduce((sum, ins) => {
+                              const { cuota, bonifPct, bonifMonto } = calcularValores(ins);
+                              return sum + (cuota - bonifMonto - (cuota * bonifPct) / 100);
+                            }, 0).toFixed(2),
+                            ""
+                          ];
+                        } else {
+                          const { cuota, bonifPct, bonifMonto, total } = calcularValores(fila);
+                          return [
+                            fila.id,
+                            fila.disciplina?.nombre ?? "Sin Disciplina",
+                            cuota.toFixed(2),
+                            bonifPct.toFixed(2),
+                            bonifMonto.toFixed(2),
+                            total.toFixed(2),
+                          ];
+                        }
+                      }}
+                      acciones={(fila) => {
+                        if (fila._totals) return null;
+                        return (
+                          <div className="flex gap-2">
+                            <Boton
+                              onClick={() => navigate(`/inscripciones/formulario?id=${fila.id}`)}
+                              className="page-button-group flex justify-end mb-4"
+                            >
+                              Editar
+                            </Boton>
+                            <Boton
+                              onClick={() => handleEliminarInscripcion(fila.id)}
+                              className="bg-accent text-white hover:bg-accent/90"
+                            >
+                              Eliminar
+                            </Boton>
+                          </div>
+                        );
+                      }}
                     />
                   </div>
                 </>

@@ -1,14 +1,15 @@
 import type { ReactNode } from "react"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "../ui/table"
 
 interface TablaProps<T extends Record<string, any>> {
   encabezados: string[]
   datos: T[]
   acciones?: (fila: T) => ReactNode
   extraRender?: (fila: T) => (string | number | ReactNode)[]
+  tfoot?: ReactNode
 }
 
-const Tabla = <T extends Record<string, any>>({ encabezados, datos, acciones, extraRender }: TablaProps<T>) => {
+const Tabla = <T extends Record<string, any>>({ encabezados, datos, acciones, extraRender, tfoot }: TablaProps<T>) => {
   return (
     <div className="rounded-md border">
       <Table>
@@ -45,10 +46,14 @@ const Tabla = <T extends Record<string, any>>({ encabezados, datos, acciones, ex
             </TableRow>
           )}
         </TableBody>
+        {tfoot && (
+          <TableFooter>
+            {tfoot}
+          </TableFooter>
+        )}
       </Table>
     </div>
   )
 }
 
 export default Tabla
-

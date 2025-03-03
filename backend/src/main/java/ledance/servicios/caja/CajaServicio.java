@@ -133,17 +133,16 @@ public class CajaServicio {
         return egresoRepositorio.save(egreso);
     }
 
-    // -------------------------------------------------------------------------
-    // 4. Rendicion General de Caja: detalles y totales de un rango
-    // -------------------------------------------------------------------------
+    /**
+     * Rendición General de Caja: detalles y totales de un rango de fechas.
+     */
     public RendicionDTO obtenerRendicionGeneral(LocalDate start, LocalDate end) {
-        List<Pago>   pagos   = pagoRepositorio.findByFechaBetweenAndActivoTrue(start, end);
+        List<Pago> pagos = pagoRepositorio.findByFechaBetweenAndActivoTrue(start, end);
         List<Egreso> egresos = egresoRepositorio.findByFechaBetween(start, end);
 
         double totalEfectivo = sumarPorMetodoPago(pagos, "EFECTIVO");
         double totalDebito   = sumarPorMetodoPago(pagos, "DEBITO");
-
-        double totalEgresos    = egresos.stream().mapToDouble(Egreso::getMonto).sum();
+        double totalEgresos  = egresos.stream().mapToDouble(Egreso::getMonto).sum();
 
         return new RendicionDTO(pagos, egresos, totalEfectivo, totalDebito, totalEgresos);
     }
@@ -212,4 +211,5 @@ public class CajaServicio {
                         e.getMetodoPago().getDescripcion().equalsIgnoreCase(metodoDescripcion))
                 .collect(Collectors.toList());
     }
+
 }

@@ -383,6 +383,7 @@ export interface InscripcionModificacionRequest {
 }
 
 export interface InscripcionResponse {
+  mensualidadEstado: any;
   costoCalculado: undefined;
   fechaInscripcion: string;
   id: number;
@@ -894,4 +895,54 @@ export interface SalonResponse {
   id: number;
   nombre: string;
   descripcion: string;
+}
+
+///CAJAS
+
+
+
+export interface AlumnoMin {
+  id: number;
+  nombre: string;
+  apellido: string;
+}
+
+export interface Pago {
+  descripcion: any;
+  id: number;
+  fecha: string; // "2025-02-26"
+  monto: number;
+  observaciones?: string;
+  alumno?: AlumnoMin; // { id, nombre, apellido }
+  // metodo de pago, etc., segun tu back
+}
+
+export interface Egreso {
+  id: number;
+  fecha: string;
+  monto: number;
+  observaciones?: string;
+  // etc...
+}
+
+export interface CajaDiariaDTO {
+  fecha: string; // "2025-02-26"
+  rangoRecibos: string; // "Recibo #10 al #12"
+  totalEfectivo: number;
+  totalDebito: number;
+  totalEgresos: number;
+  totalNeto: number;
+}
+
+export interface CajaDetalleDTO {
+  pagosDelDia: Pago[];
+  egresosDelDia: Egreso[];
+}
+
+export interface RendicionDTO {
+  pagos: Pago[];
+  egresos: Egreso[];
+  totalEfectivo: number;
+  totalDebito: number;
+  totalEgresos: number;
 }

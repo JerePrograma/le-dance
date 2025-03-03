@@ -5,6 +5,7 @@ import ledance.dto.mensualidad.request.MensualidadModificacionRequest;
 import ledance.dto.mensualidad.request.MensualidadRegistroRequest;
 import ledance.dto.mensualidad.response.MensualidadResponse;
 import ledance.servicios.mensualidad.MensualidadServicio;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,7 +13,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/mensualidades")
-@CrossOrigin(origins = "*") // ✅ Habilitar CORS si accedes desde frontend
+@CrossOrigin(origins = "*") // Habilitar CORS si se accede desde frontend
 public class MensualidadControlador {
 
     private final MensualidadServicio mensualidadServicio;
@@ -55,5 +56,14 @@ public class MensualidadControlador {
     public ResponseEntity<Void> eliminarMensualidad(@PathVariable Long id) {
         mensualidadServicio.eliminarMensualidad(id);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Endpoint para generar (o actualizar) las mensualidades de todas las inscripciones activas para el mes vigente.
+     */
+    @PostMapping("/generar-mensualidades")
+    public ResponseEntity<List<MensualidadResponse>> generarMensualidadesParaMesVigente() {
+        List<MensualidadResponse> respuestas = mensualidadServicio.generarMensualidadesParaMesVigente();
+        return ResponseEntity.status(HttpStatus.CREATED).body(respuestas);
     }
 }

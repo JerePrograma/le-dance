@@ -54,5 +54,12 @@ const TableCell = React.forwardRef<HTMLTableCellElement, React.TdHTMLAttributes<
 )
 TableCell.displayName = "TableCell"
 
-export { Table, TableHeader, TableHead, TableBody, TableRow, TableCell }
+// Nuevo componente TableFooter
+const TableFooter = React.forwardRef<HTMLTableSectionElement, React.HTMLAttributes<HTMLTableSectionElement>>(
+  ({ className, ...props }, ref) => (
+    <tfoot ref={ref} className={cn("bg-muted", className)} {...props} />
+  )
+)
+TableFooter.displayName = "TableFooter"
 
+export { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, TableFooter }

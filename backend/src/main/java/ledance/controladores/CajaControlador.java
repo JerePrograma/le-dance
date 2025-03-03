@@ -53,8 +53,6 @@ public class CajaControlador {
 
     /**
      * 3) Agregar Egreso en la fecha dada.
-     *    En lugar de mandarlo por query params, se puede mandar un JSON.
-     *    En este ejemplo, se mandan via query (monto, observaciones).
      */
     @PostMapping("/dia/{fecha}/egresos")
     public Egreso agregarEgreso(
@@ -63,15 +61,13 @@ public class CajaControlador {
             @RequestParam(required = false) String observaciones,
             @RequestParam(required = false, defaultValue = "1") Long metodoPagoId
     ) {
-        // Obtenemos el metodo de pago (por defecto ID=1 => EFECTIVO, por ejemplo)
         MetodoPago metodo = metodoPagoRepositorio.findById(metodoPagoId)
                 .orElseThrow(() -> new IllegalArgumentException("Metodo de pago no encontrado"));
-
         return cajaServicio.agregarEgreso(fecha, monto, observaciones, metodo);
     }
 
     /**
-     * 4) Rendicion general en un rango de fechas
+     * 4) Rendición general en un rango de fechas
      */
     @GetMapping("/rendicion")
     public RendicionDTO obtenerRendicion(
@@ -84,7 +80,16 @@ public class CajaControlador {
         return cajaServicio.obtenerRendicionGeneral(start, end);
     }
 
-    // Opcional: endpoints para eliminar/actualizar egresos si deseas
-    // anularEgreso(...)
-    // actualizarEgreso(...)
+    /**
+     * NUEVO: Endpoint para generar la rendición mensual para el mes vigente.
+     * Se determina el primer y último día del mes actual.
+     */
+    @PostMapping("/rendicion/generar")
+    public RendicionDTO generarRendicionMensual() {
+        LocalDate start = LocalDate.now().withDayOfMonth(1);
+        LocalDate end = LocalDate.now().withDayOfMonth(LocalDate.now().lengthOfMonth());
+        return cajaServicio.obtenerRendicionGeneral(start, end);
+    }
+
+    // Opcional: Endpoints para anular y actualizar egresos...
 }

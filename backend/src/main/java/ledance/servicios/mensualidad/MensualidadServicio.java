@@ -20,8 +20,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -75,6 +78,86 @@ public class MensualidadServicio implements IMensualidadService {
         return mensualidadMapper.toDTO(mensualidad);
     }
 
+    /**
+     * Método de generación automática o actualización de mensualidades para el mes vigente.
+     * Para cada inscripción activa de un alumno activo se genera (o actualiza) la mensualidad.
+     */
+    public List<MensualidadResponse> generarMensualidadesParaMesVigente() {
+        int mes = LocalDate.now().getMonthValue();
+        int anio = LocalDate.now().getYear();
+        YearMonth ym = YearMonth.of(anio, mes);
+        LocalDate inicioMes = ym.atDay(1);
+        LocalDate finMes = ym.atEndOfMonth();
+
+        log.info("Generando mensualidades para el periodo: {} - {}", inicioMes, finMes);
+
+        // Obtener todas las inscripciones activas cuyo alumno esté activo
+        List<Inscripcion> inscripcionesActivas = inscripcionRepositorio.findByEstado(EstadoInscripcion.ACTIVA)
+                .stream()
+                .filter(ins -> ins.getAlumno() != null && Boolean.TRUE.equals(ins.getAlumno().getActivo()))
+                .collect(Collectors.toList());
+
+        List<MensualidadResponse> respuestas = new ArrayList<>();
+
+        for (Inscripcion inscripcion : inscripcionesActivas) {
+            Optional<Mensualidad> optMensualidad = mensualidadRepositorio
+                    .findByInscripcionIdAndFechaCuotaBetween(inscripcion.getId(), inicioMes, finMes);
+            if (optMensualidad.isPresent()) {
+                // Actualizar la mensualidad existente
+                Mensualidad mensualidadExistente = optMensualidad.get();
+                // Actualiza el valor base según la disciplina
+                Double valorCuota = inscripcion.getDisciplina().getValorCuota();
+                mensualidadExistente.setValorBase(valorCuota);
+                // Se actualiza la bonificación asignada en la inscripción
+                mensualidadExistente.setBonificacion(inscripcion.getBonificacion());
+                // Se determina y actualiza el recargo automáticamente (según la lógica actual)
+                Recargo recargo = determinarRecargoAutomatico(inicioMes.getDayOfMonth());
+                mensualidadExistente.setRecargo(recargo);
+                // Se recalcula el total a pagar
+                mensualidadExistente.calcularTotal();
+                mensualidadExistente = mensualidadRepositorio.save(mensualidadExistente);
+                log.info("Mensualidad actualizada para inscripción id {}: mensualidad id {}", inscripcion.getId(), mensualidadExistente.getId());
+                respuestas.add(mensualidadMapper.toDTO(mensualidadExistente));
+            } else {
+                // Crear una nueva mensualidad para la inscripción
+                Mensualidad nuevaMensualidad = new Mensualidad();
+                nuevaMensualidad.setInscripcion(inscripcion);
+                // Se asigna la fecha de cuota como el primer día del mes vigente
+                nuevaMensualidad.setFechaCuota(inicioMes);
+                // Valor base tomado de la disciplina
+                nuevaMensualidad.setValorBase(inscripcion.getDisciplina().getValorCuota());
+                // Se asigna la bonificación actual de la inscripción
+                nuevaMensualidad.setBonificacion(inscripcion.getBonificacion());
+                // Se determina el recargo automáticamente (si corresponde)
+                Recargo recargo = determinarRecargoAutomatico(inicioMes.getDayOfMonth());
+                nuevaMensualidad.setRecargo(recargo);
+                // Estado inicial de la cuota: PENDIENTE (suponiendo que ese valor existe en el enum)
+                nuevaMensualidad.setEstado(EstadoMensualidad.PENDIENTE);
+                // Calcular el total a pagar
+                nuevaMensualidad.calcularTotal();
+                nuevaMensualidad = mensualidadRepositorio.save(nuevaMensualidad);
+                log.info("Mensualidad creada para inscripción id {}: mensualidad id {}", inscripcion.getId(), nuevaMensualidad.getId());
+                respuestas.add(mensualidadMapper.toDTO(nuevaMensualidad));
+            }
+        }
+
+        return respuestas;
+    }
+
+    /**
+     * Método auxiliar para determinar el recargo de forma automática.
+     * Se utiliza la lógica: si el día de la cuota es mayor a "diaDelMesAplicacion" de algún recargo, se toma el de mayor día.
+     */
+    private Recargo determinarRecargoAutomatico(int diaCuota) {
+        return recargoRepositorio.findAll().stream()
+                .filter(r -> diaCuota > r.getDiaDelMesAplicacion())
+                .max(Comparator.comparing(Recargo::getDiaDelMesAplicacion))
+                .orElse(null);
+    }
+
+    // ... (otros métodos existentes, por ejemplo actualizarMensualidad, listarMensualidades, etc.)
+
+    // El método determinarRecargo que recibe una MensualidadRegistroRequest se mantiene para los casos manuales.
     private Recargo determinarRecargo(MensualidadRegistroRequest request) {
         if (request.recargoId() != null) {
             Recargo recargo = recargoRepositorio.findById(request.recargoId())
@@ -94,6 +177,46 @@ public class MensualidadServicio implements IMensualidadService {
             }
             return recargo;
         }
+    }
+
+    public MensualidadResponse generarCuota(Long inscripcionId, int mes, int anio) {
+        log.info("Generando cuota para inscripción id: {} para {}/{}", inscripcionId, mes, anio);
+
+        // 1. Obtener la inscripción
+        Inscripcion inscripcion = inscripcionRepositorio.findById(inscripcionId)
+                .orElseThrow(() -> new IllegalArgumentException("Inscripción no encontrada"));
+
+        // 2. Validar que no exista ya una cuota para el mes y año indicados
+        YearMonth yearMonth = YearMonth.of(anio, mes);
+        LocalDate inicioMes = yearMonth.atDay(1);
+        LocalDate finMes = yearMonth.atEndOfMonth();
+        Optional<Mensualidad> cuotaExistente = mensualidadRepositorio.findByInscripcionIdAndFechaCuotaBetween(inscripcionId, inicioMes, finMes);
+        if (cuotaExistente.isPresent()) {
+            throw new IllegalStateException("La cuota para este mes ya fue generada para esta inscripción.");
+        }
+
+        // 3. Crear la nueva Mensualidad
+        Mensualidad mensualidad = new Mensualidad();
+        mensualidad.setInscripcion(inscripcion);
+        // Se asigna la fecha de cuota como el primer día del mes (puedes modificar este comportamiento)
+        mensualidad.setFechaCuota(inicioMes);
+        // El valor base es el valorCuota de la disciplina
+        Double valorCuota = inscripcion.getDisciplina().getValorCuota();
+        mensualidad.setValorBase(valorCuota);
+        // Se copia la bonificación actual de la inscripción (valor original)
+        mensualidad.setBonificacion(inscripcion.getBonificacion());
+        // No se aplica recargo en la generación a demanda
+        mensualidad.setRecargo(null);
+        // Estado inicial de la cuota: PENDIENTE (se asume que el enum tiene, por ejemplo, PENDIENTE y PAGADO)
+        mensualidad.setEstado(EstadoMensualidad.PENDIENTE);
+        // Calcular el total a pagar
+        mensualidad.calcularTotal();
+
+        // 4. Persistir la cuota
+        mensualidad = mensualidadRepositorio.save(mensualidad);
+        log.info("Cuota generada con id: {} y total a pagar: {}", mensualidad.getId(), mensualidad.getTotalPagar());
+
+        return mensualidadMapper.toDTO(mensualidad);
     }
 
     @Override

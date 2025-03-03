@@ -1,8 +1,6 @@
 "use client"
 
-import type React from "react"
-
-import { useEffect, useState, useCallback } from "react"
+import React, { useEffect, useState, useCallback } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import { Formik, Form, Field, ErrorMessage } from "formik"
 import { toast } from "react-toastify"
@@ -101,6 +99,30 @@ const InscripcionesFormulario: React.FC = () => {
     fetchPrevInscripciones()
   }, [fetchPrevInscripciones])
 
+  // Para cada inscripción, calculamos los 4 valores:
+  // Cuota, Bonificación (%), Bonificación (monto) y Total
+  const calcularValores = (ins: InscripcionResponse) => {
+    const cuota = ins.disciplina?.valorCuota || 0
+    const bonifPct = ins.bonificacion?.porcentajeDescuento || 0
+    const bonifMonto = ins.bonificacion?.valorFijo || 0
+    const total = cuota - bonifMonto - (cuota * bonifPct) / 100
+    return { cuota, bonifPct, bonifMonto, total }
+  }
+
+  // Sumas totales
+  const totales = prevInscripciones.reduce(
+    (acc, ins) => {
+      const { cuota, bonifPct, bonifMonto, total } = calcularValores(ins)
+      return {
+        cuota: acc.cuota + cuota,
+        bonifPct: acc.bonifPct + bonifPct,
+        bonifMonto: acc.bonifMonto + bonifMonto,
+        total: acc.total + total,
+      }
+    },
+    { cuota: 0, bonifPct: 0, bonifMonto: 0, total: 0 },
+  )
+
   // Función para agregar una nueva inscripción (formulario vacío)
   const agregarInscripcion = () => {
     setInscripcionesList((prev) => [...prev, { ...initialInscripcion, alumnoId }])
@@ -115,10 +137,7 @@ const InscripcionesFormulario: React.FC = () => {
     try {
       await inscripcionesApi.eliminar(ins.id)
       toast.success("Inscripción eliminada correctamente.")
-      // Actualiza el estado removiendo la inscripción eliminada
-      setPrevInscripciones(prev => prev.filter(item => item.id !== ins.id))
-      // O, alternativamente, puedes recargar la lista:
-      // fetchPrevInscripciones()
+      setPrevInscripciones((prev) => prev.filter((item) => item.id !== ins.id))
     } catch (error) {
       console.error("Error al eliminar inscripción:", error)
       toast.error("Error al eliminar inscripción.")
@@ -127,7 +146,6 @@ const InscripcionesFormulario: React.FC = () => {
 
   // Función para "editar" una inscripción previa: la carga en el listado de formularios
   const handleEditarInscripcion = (ins: InscripcionResponse) => {
-    // Buscamos la disciplina en el catálogo usando el id que trae el API en el objeto disciplina
     const disciplinaEncontrada = disciplinas.find((d) => d.id === ins.disciplina.id)
     if (!disciplinaEncontrada) {
       toast.error("La inscripción seleccionada no tiene disciplina asignada.")
@@ -144,7 +162,6 @@ const InscripcionesFormulario: React.FC = () => {
       fechaInscripcion: ins.fechaInscripcion || new Date().toISOString().split("T")[0],
     }
 
-    // Actualizamos la lista de inscripciones
     setInscripcionesList((prev) => {
       const idx = prev.findIndex((item) => item.id === formData.id)
       if (idx !== -1) {
@@ -156,7 +173,7 @@ const InscripcionesFormulario: React.FC = () => {
     })
   }
 
-  // Handler para guardar una inscripción (si tiene id, actualizar; sino, crear)
+  // Handler para guardar una inscripción (crear o actualizar)
   const handleGuardarInscripcion = async (values: InscripcionFormData, resetForm: () => void) => {
     if (!values.alumnoId || !values.inscripcion.disciplinaId) {
       toast.error("Debes asignar un alumno y una disciplina.")
@@ -172,10 +189,9 @@ const InscripcionesFormulario: React.FC = () => {
         toast.success("Inscripción actualizada correctamente.")
       } else {
         await inscripcionesApi.crear(values)
-        toast.success("Inscripción creada correctamente.")
+        toast.success("Inscripción creada correctamente. La cuota del mes vigente se generó automáticamente.")
       }
       resetForm()
-      // También recargamos la lista de inscripciones previas
       fetchPrevInscripciones()
     } catch (err) {
       toast.error("Error al guardar la inscripción.")
@@ -183,46 +199,89 @@ const InscripcionesFormulario: React.FC = () => {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto p-6 space-y-8">
       <h1 className="text-3xl font-bold tracking-tight mb-6">Registrar Inscripciones</h1>
 
-      {/* Listado de inscripciones previas con botón "Editar" */}
+      {/* Listado de inscripciones previas */}
       {prevInscripciones.length > 0 && (
         <div className="mb-6">
           <h2 className="text-xl font-semibold mb-2">Inscripciones Previas</h2>
           <div className="overflow-x-auto">
             <table className="min-w-full border border-border">
-              <thead>
-                <tr className="bg-muted">
+              <thead className="bg-muted">
+                <tr>
                   <th className="px-4 py-2 border border-border">ID</th>
                   <th className="px-4 py-2 border border-border">Disciplina</th>
                   <th className="px-4 py-2 border border-border">Fecha Inscripción</th>
+                  <th className="px-4 py-2 border border-border">Estado Cuota</th>
+                  <th className="px-4 py-2 border border-border">Cuota</th>
+                  <th className="px-4 py-2 border border-border">Bonificación (%)</th>
+                  <th className="px-4 py-2 border border-border">Bonificación (monto)</th>
+                  <th className="px-4 py-2 border border-border">Total</th>
                   <th className="px-4 py-2 border border-border">Acciones</th>
                 </tr>
               </thead>
               <tbody>
-                {prevInscripciones.map((ins) => (
-                  <tr key={ins.id} className="border-t border-border">
-                    <td className="px-4 py-2 border border-border">{ins.id}</td>
-                    <td className="px-4 py-2 border border-border">{ins.disciplina?.nombre || "N/A"}</td>
-                    <td className="px-4 py-2 border border-border">{ins.fechaInscripcion}</td>
-                    <td className="px-4 py-2 border border-border">
-                      <Boton
-                        onClick={() => handleEditarInscripcion(ins)}
-                        className="inline-flex items-center gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/90"
-                      >
-                        Editar
-                      </Boton>
-                      <Boton
-                        onClick={() => handleEliminarInscripcion(ins)}
-                        className="page-button-danger"
-                      >
-                        Eliminar
-                      </Boton>
-                    </td>
-                  </tr>
-                ))}
+                {prevInscripciones.map((ins) => {
+                  const { cuota, bonifPct, bonifMonto, total } = calcularValores(ins)
+                  return (
+                    <tr key={ins.id} className="border-t border-border">
+                      <td className="px-4 py-2 border border-border">{ins.id}</td>
+                      <td className="px-4 py-2 border border-border">{ins.disciplina?.nombre || "N/A"}</td>
+                      <td className="px-4 py-2 border border-border">{ins.fechaInscripcion}</td>
+                      <td className="px-4 py-2 border border-border">
+                        {ins.mensualidadEstado ? (
+                          <span className="px-2 py-1 rounded bg-green-200 text-green-800 text-xs">
+                            {ins.mensualidadEstado}
+                          </span>
+                        ) : (
+                          "Sin cuota"
+                        )}
+                      </td>
+                      <td className="px-4 py-2 border border-border text-center">{cuota.toFixed(2)}</td>
+                      <td className="px-4 py-2 border border-border text-center">{bonifPct.toFixed(2)}</td>
+                      <td className="px-4 py-2 border border-border text-center">{bonifMonto.toFixed(2)}</td>
+                      <td className="px-4 py-2 border border-border text-center">{total.toFixed(2)}</td>
+                      <td className="px-4 py-2 border border-border">
+                        <div className="flex gap-2">
+                          <Boton
+                            onClick={() => handleEditarInscripcion(ins)}
+                            className="inline-flex items-center gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/90"
+                          >
+                            Editar
+                          </Boton>
+                          <Boton
+                            onClick={() => handleEliminarInscripcion(ins)}
+                            className="page-button-danger"
+                          >
+                            Eliminar
+                          </Boton>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
+              <tfoot className="bg-muted">
+                <tr>
+                  <td className="px-4 py-2 border border-border" colSpan={4}>
+                    Totales
+                  </td>
+                  <td className="px-4 py-2 border border-border text-center">
+                    {totales.cuota.toFixed(2)}
+                  </td>
+                  <td className="px-4 py-2 border border-border text-center">
+                    {totales.bonifPct.toFixed(2)}
+                  </td>
+                  <td className="px-4 py-2 border border-border text-center">
+                    {totales.bonifMonto.toFixed(2)}
+                  </td>
+                  <td className="px-4 py-2 border border-border text-center">
+                    {totales.total.toFixed(2)}
+                  </td>
+                  <td className="px-4 py-2 border border-border"></td>
+                </tr>
+              </tfoot>
             </table>
           </div>
         </div>
@@ -235,130 +294,126 @@ const InscripcionesFormulario: React.FC = () => {
             initialValues={inscripcion}
             validationSchema={inscripcionEsquema}
             onSubmit={(values, { setSubmitting, resetForm }) => {
-              handleGuardarInscripcion(values, resetForm).finally(() => {
-                setSubmitting(false)
-              })
+              handleGuardarInscripcion(values, resetForm).finally(() => setSubmitting(false))
             }}
             enableReinitialize
           >
             {({ isSubmitting, values, setFieldValue }) => {
-              const selectedDiscipline = disciplinas.find((d) => d.id === Number(values.inscripcion.disciplinaId))
+              const selectedDiscipline = disciplinas.find(
+                (d) => d.id === Number(values.inscripcion.disciplinaId),
+              )
               const cuota = selectedDiscipline?.valorCuota ?? 0
 
               const selectedBonification = bonificaciones.find(
                 (b) => b.id === Number(values.inscripcion.bonificacionId),
               )
+              const bonificacionPorcentaje = selectedBonification?.porcentajeDescuento ?? 0
               const bonificacionValor = selectedBonification?.valorFijo ?? 0
 
-              const total = cuota - bonificacionValor
+              const total = cuota - bonificacionValor - (cuota * bonificacionPorcentaje) / 100
 
               return (
-                <Form className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  {/* Campo oculto para alumnoId */}
-                  <Field type="hidden" name="alumnoId" />
+                <Form className="space-y-6">
+                  {/* Sección Datos Básicos */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 border-b pb-4">
+                    <div className="space-y-2">
+                      <label htmlFor="inscripcion.disciplinaId" className="block text-sm font-medium">
+                        Disciplina
+                      </label>
+                      <Field
+                        as="select"
+                        name="inscripcion.disciplinaId"
+                        className="w-full px-3 py-2 border border-border rounded-md bg-background"
+                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                          setFieldValue("inscripcion.disciplinaId", Number(e.target.value))
+                        }}
+                      >
+                        <option value={0}>-- Seleccionar --</option>
+                        {disciplinas.map((disc) => (
+                          <option key={disc.id} value={disc.id}>
+                            {disc.nombre}
+                          </option>
+                        ))}
+                      </Field>
+                      <ErrorMessage name="inscripcion.disciplinaId" component="div" className="text-destructive text-sm" />
+                    </div>
 
-                  {/* Seleccionar Disciplina */}
-                  <div className="space-y-2">
-                    <label htmlFor="inscripcion.disciplinaId" className="block text-sm font-medium">
-                      Disciplina:
-                    </label>
-                    <Field
-                      as="select"
-                      name="inscripcion.disciplinaId"
-                      className="w-full px-3 py-2 border border-border rounded-md bg-background"
-                      onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-                        setFieldValue("inscripcion.disciplinaId", Number(e.target.value))
-                      }}
-                    >
-                      <option value={0}>-- Seleccionar --</option>
-                      {disciplinas.map((disc) => (
-                        <option key={disc.id} value={disc.id}>
-                          {disc.nombre}
-                        </option>
-                      ))}
-                    </Field>
-                    <ErrorMessage
-                      name="inscripcion.disciplinaId"
-                      component="div"
-                      className="text-destructive text-sm"
-                    />
+                    <div className="space-y-2">
+                      <label htmlFor="inscripcion.bonificacionId" className="block text-sm font-medium">
+                        Bonificación (Opcional)
+                      </label>
+                      <Field
+                        as="select"
+                        name="inscripcion.bonificacionId"
+                        className="w-full px-3 py-2 border border-border rounded-md bg-background"
+                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                          setFieldValue("inscripcion.bonificacionId", e.target.value ? Number(e.target.value) : undefined)
+                        }}
+                      >
+                        <option value="">-- Ninguna --</option>
+                        {bonificaciones.map((bon) => (
+                          <option key={bon.id} value={bon.id}>
+                            {bon.descripcion}
+                          </option>
+                        ))}
+                      </Field>
+                      <ErrorMessage name="inscripcion.bonificacionId" component="div" className="text-destructive text-sm" />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label htmlFor="fechaInscripcion" className="block text-sm font-medium">
+                        Fecha de Inscripción
+                      </label>
+                      <Field
+                        name="fechaInscripcion"
+                        type="date"
+                        className="w-full px-3 py-2 border border-border rounded-md bg-background"
+                      />
+                      <ErrorMessage name="fechaInscripcion" component="div" className="text-destructive text-sm" />
+                    </div>
                   </div>
 
-                  {/* Mostrar Cuota (solo lectura) */}
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium">Cuota:</label>
-                    <input
-                      type="number"
-                      value={cuota}
-                      readOnly
-                      className="w-full px-3 py-2 border border-border rounded-md bg-muted text-foreground"
-                    />
+                  {/* Sección Resumen de Valores */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="space-y-1 text-sm">
+                      <label className="font-medium">Cuota</label>
+                      <input
+                        type="number"
+                        value={cuota}
+                        readOnly
+                        className="w-full px-2 py-1 border border-border rounded bg-muted text-foreground text-center"
+                      />
+                    </div>
+                    <div className="space-y-1 text-sm">
+                      <label className="font-medium">Bonificación (%)</label>
+                      <input
+                        type="number"
+                        value={bonificacionPorcentaje}
+                        readOnly
+                        className="w-full px-2 py-1 border border-border rounded bg-muted text-foreground text-center"
+                      />
+                    </div>
+                    <div className="space-y-1 text-sm">
+                      <label className="font-medium">Bonificación (monto)</label>
+                      <input
+                        type="number"
+                        value={bonificacionValor}
+                        readOnly
+                        className="w-full px-2 py-1 border border-border rounded bg-muted text-foreground text-center"
+                      />
+                    </div>
+                    <div className="space-y-1 text-sm">
+                      <label className="font-medium">Total</label>
+                      <input
+                        type="number"
+                        value={total.toFixed(2)}
+                        readOnly
+                        className="w-full px-2 py-1 border border-border rounded bg-muted text-foreground text-center"
+                      />
+                    </div>
                   </div>
 
-                  {/* Seleccionar Bonificación */}
-                  <div className="space-y-2">
-                    <label htmlFor="inscripcion.bonificacionId" className="block text-sm font-medium">
-                      Bonificación (Opcional):
-                    </label>
-                    <Field
-                      as="select"
-                      name="inscripcion.bonificacionId"
-                      className="w-full px-3 py-2 border border-border rounded-md bg-background"
-                      onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-                        setFieldValue("inscripcion.bonificacionId", e.target.value ? Number(e.target.value) : undefined)
-                      }}
-                    >
-                      <option value="">-- Ninguna --</option>
-                      {bonificaciones.map((bon) => (
-                        <option key={bon.id} value={bon.id}>
-                          {bon.descripcion}
-                        </option>
-                      ))}
-                    </Field>
-                    <ErrorMessage
-                      name="inscripcion.bonificacionId"
-                      component="div"
-                      className="text-destructive text-sm"
-                    />
-                  </div>
-
-                  {/* Mostrar Valor de Bonificación (solo lectura) */}
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium">Valor Bonificación:</label>
-                    <input
-                      type="number"
-                      value={bonificacionValor}
-                      readOnly
-                      className="w-full px-3 py-2 border border-border rounded-md bg-muted text-foreground"
-                    />
-                  </div>
-
-                  {/* Fecha de Inscripción */}
-                  <div className="space-y-2">
-                    <label htmlFor="fechaInscripcion" className="block text-sm font-medium">
-                      Fecha de Inscripción:
-                    </label>
-                    <Field
-                      name="fechaInscripcion"
-                      type="date"
-                      className="w-full px-3 py-2 border border-border rounded-md bg-background"
-                    />
-                    <ErrorMessage name="fechaInscripcion" component="div" className="text-destructive text-sm" />
-                  </div>
-
-                  {/* Mostrar Total Calculado */}
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium">Total (Cuota - Bonificación):</label>
-                    <input
-                      type="number"
-                      value={total}
-                      readOnly
-                      className="w-full px-3 py-2 border border-border rounded-md bg-muted text-foreground"
-                    />
-                  </div>
-
-                  {/* Botones para Guardar y Eliminar */}
-                  <div className="flex gap-4 col-span-full">
+                  <div className="flex gap-4 mt-6">
                     <Boton
                       type="submit"
                       disabled={isSubmitting}
@@ -400,4 +455,3 @@ const InscripcionesFormulario: React.FC = () => {
 }
 
 export default InscripcionesFormulario
-

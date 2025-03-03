@@ -1,4 +1,4 @@
-// mensualidadesApi.ts
+// src/mensualidadesApi.ts
 import api from "./axiosConfig";
 import type {
   MensualidadRegistroRequest,
@@ -9,13 +9,8 @@ import type {
 /**
  * Crea una nueva mensualidad.
  */
-const crearMensualidad = async (
-  request: MensualidadRegistroRequest
-): Promise<MensualidadResponse> => {
-  const { data } = await api.post<MensualidadResponse>(
-    "/mensualidades",
-    request
-  );
+const crearMensualidad = async (request: MensualidadRegistroRequest): Promise<MensualidadResponse> => {
+  const { data } = await api.post<MensualidadResponse>("/mensualidades", request);
   return data;
 };
 
@@ -26,10 +21,7 @@ const actualizarMensualidad = async (
   id: number,
   request: MensualidadModificacionRequest
 ): Promise<MensualidadResponse> => {
-  const { data } = await api.put<MensualidadResponse>(
-    `/mensualidades/${id}`,
-    request
-  );
+  const { data } = await api.put<MensualidadResponse>(`/mensualidades/${id}`, request);
   return data;
 };
 
@@ -50,22 +42,28 @@ const listarMensualidades = async (): Promise<MensualidadResponse[]> => {
 };
 
 /**
- * Lista las mensualidades asociadas a una inscripcion.
+ * Lista las mensualidades asociadas a una inscripción.
  */
 const listarMensualidadesPorInscripcion = async (
   inscripcionId: number
 ): Promise<MensualidadResponse[]> => {
-  const { data } = await api.get<MensualidadResponse[]>(
-    `/mensualidades/inscripcion/${inscripcionId}`
-  );
+  const { data } = await api.get<MensualidadResponse[]>(`/mensualidades/inscripcion/${inscripcionId}`);
   return data;
 };
 
 /**
- * Elimina (baja logica o fisica) una mensualidad.
+ * Elimina (baja lógica o física) una mensualidad.
  */
 const eliminarMensualidad = async (id: number): Promise<void> => {
   await api.delete(`/mensualidades/${id}`);
+};
+
+/**
+ * NUEVO: Genera (o actualiza) las mensualidades para el mes vigente.
+ */
+const generarMensualidadesParaMesVigente = async (): Promise<MensualidadResponse[]> => {
+  const { data } = await api.post<MensualidadResponse[]>("/mensualidades/generar-mensualidades");
+  return data;
 };
 
 const mensualidadesApi = {
@@ -75,6 +73,7 @@ const mensualidadesApi = {
   listarMensualidades,
   listarMensualidadesPorInscripcion,
   eliminarMensualidad,
+  generarMensualidadesParaMesVigente,
 };
 
 export default mensualidadesApi;

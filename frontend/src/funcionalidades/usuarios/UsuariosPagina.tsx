@@ -8,9 +8,9 @@ import { PlusCircle, Pencil, Trash2 } from "lucide-react";
 
 interface Usuario {
   id: number;
-  nombre: string;
-  correo: string;
-  rol: string;
+  nombreUsuario: string;
+  rolDescripcion: string;
+  activo: string;
 }
 
 const UsuariosPagina = () => {
@@ -91,14 +91,14 @@ const UsuariosPagina = () => {
       </div>
       <div className="page-card">
         <Tabla
-          encabezados={["ID", "Nombre", "Correo", "Rol", "Acciones"]}
+          encabezados={["ID", "Nombre", "Rol", "Activo", "Acciones"]}
           datos={currentItems}
           acciones={(fila) => (
             <div className="flex gap-2">
               <Boton
                 onClick={() => navigate(`/usuarios/formulario?id=${fila.id}`)}
                 className="page-button-secondary"
-                aria-label={`Editar usuario ${fila.nombre}`}
+                aria-label={`Editar usuario ${fila.nombreUsuario}`}
               >
                 <Pencil className="w-4 h-4 mr-2" />
                 Editar
@@ -106,14 +106,14 @@ const UsuariosPagina = () => {
               <Boton
                 onClick={() => handleEliminarUsuario(fila.id)}
                 className="page-button-danger"
-                aria-label={`Eliminar usuario ${fila.nombre}`}
+                aria-label={`Eliminar usuario ${fila.nombreUsuario}`}
               >
                 <Trash2 className="w-4 h-4 mr-2" />
                 Eliminar
               </Boton>
             </div>
           )}
-          extraRender={(fila) => [fila.id, fila.nombre, fila.correo, fila.rol]}
+          extraRender={(fila) => [fila.id, fila.nombreUsuario, fila.rolDescripcion, fila.activo]}
         />
       </div>
       {pageCount > 1 && (

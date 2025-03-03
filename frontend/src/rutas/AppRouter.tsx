@@ -73,6 +73,7 @@ const Pagos = lazy(() => import("../funcionalidades/pagos/PagosPagina"));
 const FormularioPagos = lazy(() => import("../funcionalidades/pagos/PagosFormulario"));
 const Caja = lazy(() => import("../funcionalidades/caja/CajaPagina"));
 const CajaFormulario = lazy(() => import("../funcionalidades/caja/CajaFormulario")); // Nueva importacion
+const RendicionMensual = lazy(() => import("../funcionalidades/caja/RendicionMensual")); // Nueva importacion
 
 // NUEVAS PAGINAS: STOCKS y TIPO-STOCKS
 const Stocks = lazy(() => import("../funcionalidades/stock/StocksPagina"));
@@ -202,6 +203,7 @@ const AppRouter = () => {
             {/* NUEVAS RUTAS: */}
             <Route path="/caja/planilla" element={<PlanillaCajaGeneral />} />
             <Route path="/caja/diaria" element={<ConsultaCajaDiaria />} />
+            <Route path="/caja/rendicion-mensual" element={<RendicionMensual />} />
 
             {/* Gestion de Recargos */}
             <Route path="/recargos" element={<Recargos />} />

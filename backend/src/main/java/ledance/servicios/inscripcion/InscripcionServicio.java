@@ -10,6 +10,8 @@ import ledance.infra.errores.TratadorDeErrores;
 import ledance.repositorios.*;
 import jakarta.transaction.Transactional;
 import ledance.servicios.asistencia.AsistenciaMensualServicio;
+import ledance.servicios.mensualidad.MensualidadServicio;
+import ledance.dto.mensualidad.response.MensualidadResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -31,12 +33,16 @@ public class InscripcionServicio implements IInscripcionServicio {
     private final InscripcionMapper inscripcionMapper;
     private final AsistenciaMensualRepositorio asistenciaMensualRepositorio;
     private final AsistenciaMensualServicio asistenciaMensualServicio;
+    private final MensualidadServicio mensualidadServicio; // Inyectamos el servicio de mensualidades
 
     public InscripcionServicio(InscripcionRepositorio inscripcionRepositorio,
                                AlumnoRepositorio alumnoRepositorio,
                                DisciplinaRepositorio disciplinaRepositorio,
                                BonificacionRepositorio bonificacionRepositorio,
-                               InscripcionMapper inscripcionMapper, AsistenciaMensualRepositorio asistenciaMensualRepositorio, AsistenciaMensualServicio asistenciaMensualServicio) {
+                               InscripcionMapper inscripcionMapper,
+                               AsistenciaMensualRepositorio asistenciaMensualRepositorio,
+                               AsistenciaMensualServicio asistenciaMensualServicio,
+                               MensualidadServicio mensualidadServicio) {
         this.inscripcionRepositorio = inscripcionRepositorio;
         this.alumnoRepositorio = alumnoRepositorio;
         this.disciplinaRepositorio = disciplinaRepositorio;
@@ -44,10 +50,12 @@ public class InscripcionServicio implements IInscripcionServicio {
         this.inscripcionMapper = inscripcionMapper;
         this.asistenciaMensualRepositorio = asistenciaMensualRepositorio;
         this.asistenciaMensualServicio = asistenciaMensualServicio;
+        this.mensualidadServicio = mensualidadServicio;
     }
 
     /**
-     * ✅ Registrar una nueva inscripcion.
+     * ✅ Registrar una nueva inscripción.
+     * Se genera automáticamente, para el mes vigente, una cuota asociada a esta inscripción.
      */
     @Transactional
     public InscripcionResponse crearInscripcion(InscripcionRegistroRequest request) {
@@ -70,13 +78,13 @@ public class InscripcionServicio implements IInscripcionServicio {
                     .orElse(null);
         }
 
-        // Convertir request -> entidad (sin asignar fecha aún)
+        // Convertir request → entidad (sin asignar fecha aún)
         Inscripcion inscripcion = inscripcionMapper.toEntity(request);
         inscripcion.setAlumno(alumno);
         inscripcion.setDisciplina(disciplina);
         inscripcion.setBonificacion(bonificacion);
 
-        // ✅ Si "fechaInscripcion" vino nula, usar "LocalDate.now()"
+        // Si "fechaInscripcion" vino nula, usar LocalDate.now()
         if (request.fechaInscripcion() == null) {
             inscripcion.setFechaInscripcion(LocalDate.now());
         } else {
@@ -87,7 +95,19 @@ public class InscripcionServicio implements IInscripcionServicio {
         Inscripcion guardada = inscripcionRepositorio.save(inscripcion);
         log.info("Inscripción guardada con ID: {}", guardada.getId());
 
-        // NUEVA LÓGICA: Verificar si es la primera inscripción activa para la disciplina.
+        // Lógica adicional: Generar automáticamente la cuota del mes vigente para esta inscripción.
+        try {
+            int mesActual = LocalDate.now().getMonthValue();
+            int anioActual = LocalDate.now().getYear();
+            MensualidadResponse cuotaGenerada = mensualidadServicio.generarCuota(guardada.getId(), mesActual, anioActual);
+            log.info("Cuota generada automáticamente para inscripción id: {} con cuota id: {}",
+                    guardada.getId(), cuotaGenerada.id());
+        } catch (IllegalStateException e) {
+            // En caso de que ya exista una cuota para este mes (o algún otro error de validación), se registra la advertencia.
+            log.warn("No se generó cuota automática para la inscripción id {}: {}", guardada.getId(), e.getMessage());
+        }
+
+        // NUEVA LÓGICA: Si es la primera inscripción activa para la disciplina, crear asistencia mensual.
         List<Inscripcion> inscripcionesActivas = inscripcionRepositorio
                 .findAllByDisciplina_IdAndEstado(disciplina.getId(), EstadoInscripcion.ACTIVA);
         if (inscripcionesActivas.size() == 1) { // Es la primera inscripción activa
@@ -100,49 +120,35 @@ public class InscripcionServicio implements IInscripcionServicio {
         return inscripcionMapper.toDTO(guardada);
     }
 
-    /**
-     * ✅ Obtener una inscripcion por ID.
-     */
     @Override
     public InscripcionResponse obtenerPorId(Long id) {
         Inscripcion inscripcion = inscripcionRepositorio.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Inscripcion no encontrada."));
+                .orElseThrow(() -> new IllegalArgumentException("Inscripción no encontrada."));
         return inscripcionMapper.toDTO(inscripcion);
     }
 
-    /**
-     * ✅ Actualizar una inscripcion.
-     */
     @Override
     @Transactional
     public InscripcionResponse actualizarInscripcion(Long id, InscripcionModificacionRequest request) {
-        log.info("Actualizando inscripcion con id: {}", id);
-
-        // 1) Buscar la inscripcion existente
+        log.info("Actualizando inscripción con id: {}", id);
+        // 1) Buscar la inscripción existente
         Inscripcion inscripcion = inscripcionRepositorio.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Inscripcion no encontrada."));
+                .orElseThrow(() -> new IllegalArgumentException("Inscripción no encontrada."));
 
         // 2) Mapear los cambios desde el DTO
         inscripcionMapper.updateEntityFromRequest(request, inscripcion);
 
-        // 3) Logica adicional: si la fechaBaja no es null, cambiar estado a BAJA
+        // 3) Si fechaBaja no es null, cambiar estado a BAJA
         if (request.fechaBaja() != null) {
             inscripcion.setFechaBaja(request.fechaBaja());
-            // opcional: si tu mapper no asigno ya la fechaBaja
             inscripcion.setEstado(EstadoInscripcion.BAJA);
-            // asume que "EstadoInscripcion" tiene un valor "BAJA"
         }
 
         // 4) Guardar los cambios
         Inscripcion actualizada = inscripcionRepositorio.save(inscripcion);
-
-        // 5) Retornar la inscripcion actualizada
         return inscripcionMapper.toDTO(actualizada);
     }
 
-    /**
-     * ✅ Listar inscripciones por disciplina.
-     */
     @Override
     public List<InscripcionResponse> listarPorDisciplina(Long disciplinaId) {
         List<Inscripcion> inscripciones = inscripcionRepositorio.findByDisciplinaId(disciplinaId);
@@ -154,9 +160,6 @@ public class InscripcionServicio implements IInscripcionServicio {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * ✅ Listar inscripciones por alumno.
-     */
     @Override
     public List<InscripcionResponse> listarPorAlumno(Long alumnoId) {
         List<Inscripcion> inscripciones = inscripcionRepositorio.findAllByAlumno_IdAndEstado(alumnoId, EstadoInscripcion.ACTIVA);
@@ -184,14 +187,14 @@ public class InscripcionServicio implements IInscripcionServicio {
     @Transactional
     public void eliminarInscripcion(Long id) {
         Inscripcion inscripcion = inscripcionRepositorio.findById(id)
-                .orElseThrow(() -> new TratadorDeErrores.RecursoNoEncontradoException("Inscripcion no encontrada."));
+                .orElseThrow(() -> new TratadorDeErrores.RecursoNoEncontradoException("Inscripción no encontrada."));
         inscripcionRepositorio.delete(inscripcion);
     }
 
     @Transactional
     public void darBajaInscripcion(Long id) {
         Inscripcion inscripcion = inscripcionRepositorio.findById(id)
-                .orElseThrow(() -> new TratadorDeErrores.RecursoNoEncontradoException("Inscripcion no encontrada."));
+                .orElseThrow(() -> new TratadorDeErrores.RecursoNoEncontradoException("Inscripción no encontrada."));
         inscripcion.setEstado(EstadoInscripcion.BAJA);
         inscripcionRepositorio.save(inscripcion);
     }
@@ -213,7 +216,6 @@ public class InscripcionServicio implements IInscripcionServicio {
     public EstadisticasInscripcionResponse obtenerEstadisticas() {
         long totalInscripciones = inscripcionRepositorio.count();
 
-        // Convert the List<Object[]> to Map<String, Long>
         Map<String, Long> inscripcionesPorDisciplina = inscripcionRepositorio.countByDisciplinaGrouped().stream()
                 .collect(Collectors.toMap(
                         arr -> (String) arr[0],
@@ -233,7 +235,7 @@ public class InscripcionServicio implements IInscripcionServicio {
     public InscripcionResponse obtenerInscripcionActiva(Long alumnoId) {
         Inscripcion inscripcion = inscripcionRepositorio
                 .findFirstByAlumno_IdAndEstadoOrderByIdAsc(alumnoId, EstadoInscripcion.ACTIVA)
-                .orElseThrow(() -> new IllegalArgumentException("Inscripcion activa no encontrada para el alumno " + alumnoId));
+                .orElseThrow(() -> new IllegalArgumentException("Inscripción activa no encontrada para el alumno " + alumnoId));
         return inscripcionMapper.toDTO(inscripcion);
     }
 }

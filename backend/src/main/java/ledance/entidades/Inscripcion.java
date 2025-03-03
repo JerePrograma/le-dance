@@ -39,8 +39,6 @@ public class Inscripcion {
     @NotNull
     private EstadoInscripcion estado = EstadoInscripcion.ACTIVA;
 
-    private String notas;
-
     @OneToMany(mappedBy = "inscripcion", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     private List<Pago> pagos;
