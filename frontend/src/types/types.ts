@@ -383,6 +383,7 @@ export interface InscripcionModificacionRequest {
 }
 
 export interface InscripcionResponse {
+  costoCalculado: undefined;
   fechaInscripcion: string;
   id: number;
   alumno: {

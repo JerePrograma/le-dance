@@ -355,7 +355,6 @@ const AlumnosFormulario: React.FC = () => {
                         "Disciplina",
                         "Bonificación",
                         "Costo",
-                        "Notas",
                         "Acciones",
                       ]}
                       datos={inscripciones}
@@ -363,7 +362,6 @@ const AlumnosFormulario: React.FC = () => {
                         fila.id,
                         fila.disciplina?.nombre ?? "Sin Disciplina",
                         fila.bonificacion?.descripcion ?? "N/A",
-                        fila.notas || "-",
                       ]}
                       acciones={(fila) => (
                         <div className="flex gap-2">
