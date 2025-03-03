@@ -185,6 +185,13 @@ public class InscripcionServicio implements IInscripcionServicio {
     public void eliminarInscripcion(Long id) {
         Inscripcion inscripcion = inscripcionRepositorio.findById(id)
                 .orElseThrow(() -> new TratadorDeErrores.RecursoNoEncontradoException("Inscripcion no encontrada."));
+        inscripcionRepositorio.delete(inscripcion);
+    }
+
+    @Transactional
+    public void darBajaInscripcion(Long id) {
+        Inscripcion inscripcion = inscripcionRepositorio.findById(id)
+                .orElseThrow(() -> new TratadorDeErrores.RecursoNoEncontradoException("Inscripcion no encontrada."));
         inscripcion.setEstado(EstadoInscripcion.BAJA);
         inscripcionRepositorio.save(inscripcion);
     }

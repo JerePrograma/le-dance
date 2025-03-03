@@ -354,14 +354,18 @@ const AlumnosFormulario: React.FC = () => {
                         "ID",
                         "Disciplina",
                         "Bonificación",
-                        "Costo",
-                        "Acciones",
+                        "Descuento (%)",
+                        "Descuento (monto)",
+                        "Valor",
                       ]}
                       datos={inscripciones}
                       extraRender={(fila) => [
                         fila.id,
                         fila.disciplina?.nombre ?? "Sin Disciplina",
                         fila.bonificacion?.descripcion ?? "N/A",
+                        fila.bonificacion?.porcentajeDescuento ?? "N/A",
+                        fila.bonificacion?.valorFijo ?? "N/A",
+                        fila.costoCalculado
                       ]}
                       acciones={(fila) => (
                         <div className="flex gap-2">
