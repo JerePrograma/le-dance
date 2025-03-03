@@ -23,7 +23,7 @@ import type {
   DisciplinaDetalleResponse
 } from "../../types/types";
 
-const diasSemana: string[] = ["LUNES", "MARTES", "MIERCOLES", "JUEVES", "VIERNES", "SÁBADO", "DOMINGO"];
+const diasSemana: string[] = ["LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO", "DOMINGO"];
 
 const initialDisciplinaValues: DisciplinaRegistroRequest & Partial<DisciplinaModificacionRequest> = {
   nombre: "",
@@ -123,7 +123,7 @@ const DisciplinasFormulario: React.FC = () => {
     clasePrueba: detalle.clasePrueba,
     activo: detalle.activo,
     horarios: detalle.horarios, // Se espera que la API envíe este arreglo
-  }); 1
+  });
 
   useEffect(() => {
     fetchMatricula();
@@ -166,6 +166,7 @@ const DisciplinasFormulario: React.FC = () => {
           toast.success("Disciplina creada correctamente.");
         }
         setMensaje("Disciplina guardada exitosamente.");
+        navigate("/disciplinas");
       } catch (error) {
         console.error("Error al guardar la disciplina:", error);
         toast.error("Error al guardar la disciplina.");
@@ -178,6 +179,15 @@ const DisciplinasFormulario: React.FC = () => {
   return (
     <div className="page-container">
       <h1 className="page-title">Formulario de Disciplina</h1>
+
+      {/* Nuevo bloque para mostrar el ID de la Disciplina */}
+      {disciplinaId !== null && (
+        <div className="mb-4">
+          <label htmlFor="disciplinaId" className="auth-label">ID de la Disciplina:</label>
+          <Field name="id" type="number" className="form-input" readOnly />
+        </div>
+      )}
+
       <div className="mb-4">
         <label htmlFor="idBusqueda" className="auth-label">ID de Disciplina:</label>
         <div className="flex gap-2">
