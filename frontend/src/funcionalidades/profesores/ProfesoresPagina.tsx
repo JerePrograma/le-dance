@@ -17,6 +17,9 @@ const Profesores = () => {
   const [currentPage, setCurrentPage] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Estados nuevos para búsqueda y orden
+  const [searchTerm, setSearchTerm] = useState("")
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
   const navigate = useNavigate()
 
   const fetchProfesores = useCallback(async () => {
@@ -37,11 +40,29 @@ const Profesores = () => {
     fetchProfesores()
   }, [fetchProfesores])
 
-  const pageCount = useMemo(() => Math.ceil(profesores.length / itemsPerPage), [profesores.length])
+  // Filtrar y ordenar profesores
+  const profesoresFiltradosYOrdenados = useMemo(() => {
+    const filtrados = profesores.filter((profesor) => {
+      const nombreCompleto = `${profesor.nombre} ${profesor.apellido}`.toLowerCase()
+      return nombreCompleto.includes(searchTerm.toLowerCase())
+    })
+    return filtrados.sort((a, b) => {
+      const nombreA = `${a.nombre} ${a.apellido}`.toLowerCase()
+      const nombreB = `${b.nombre} ${b.apellido}`.toLowerCase()
+      if (sortOrder === "asc") return nombreA.localeCompare(nombreB)
+      return nombreB.localeCompare(nombreA)
+    })
+  }, [profesores, searchTerm, sortOrder])
+
+  const pageCount = useMemo(() => Math.ceil(profesoresFiltradosYOrdenados.length / itemsPerPage), [profesoresFiltradosYOrdenados.length])
 
   const currentItems = useMemo(
-    () => profesores.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage),
-    [profesores, currentPage],
+    () =>
+      profesoresFiltradosYOrdenados.slice(
+        currentPage * itemsPerPage,
+        (currentPage + 1) * itemsPerPage,
+      ),
+    [profesoresFiltradosYOrdenados, currentPage],
   )
 
   const handlePageChange = useCallback(
@@ -63,6 +84,14 @@ const Profesores = () => {
     }
   }
 
+  // Opciones únicas para el datalist (nombres completos)
+  const nombresUnicos = useMemo(() => {
+    const nombresSet = new Set(
+      profesores.map((profesor) => `${profesor.nombre} ${profesor.apellido}`),
+    )
+    return Array.from(nombresSet)
+  }, [profesores])
+
   if (loading) return <div className="text-center py-4">Cargando...</div>
   if (error) return <div className="text-center py-4 text-destructive">{error}</div>
 
@@ -80,10 +109,51 @@ const Profesores = () => {
         </Boton>
       </div>
 
+      {/* Controles de búsqueda y orden */}
+      <div className="flex flex-col sm:flex-row sm:justify-between gap-4">
+        <div>
+          <label htmlFor="search" className="mr-2 font-medium">
+            Buscar por nombre:
+          </label>
+          <input
+            id="search"
+            list="nombres"
+            type="text"
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value)
+              setCurrentPage(0)
+            }}
+            placeholder="Escribe o selecciona un nombre..."
+            className="border rounded px-2 py-1"
+          />
+          <datalist id="nombres">
+            {nombresUnicos.map((nombre) => (
+              <option key={nombre} value={nombre} />
+            ))}
+          </datalist>
+        </div>
+        <div>
+          <label htmlFor="sortOrder" className="mr-2 font-medium">
+            Orden:
+          </label>
+          <select
+            id="sortOrder"
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value as "asc" | "desc")}
+            className="border rounded px-2 py-1"
+          >
+            <option value="asc">Ascendente</option>
+            <option value="desc">Descendente</option>
+          </select>
+        </div>
+      </div>
+
       <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
         <Tabla
           encabezados={["ID", "Nombre", "Apellido", "Acciones", "Activo"]}
           datos={currentItems}
+          extraRender={(fila) => [fila.id, fila.nombre, fila.apellido, fila.activo ? "Si" : "No"]}
           acciones={(fila) => (
             <div className="flex gap-2">
               <Boton
@@ -104,7 +174,6 @@ const Profesores = () => {
               </Boton>
             </div>
           )}
-          extraRender={(fila) => [fila.id, fila.nombre, fila.apellido, fila.activo ? "Si" : "No"]}
         />
 
         {pageCount > 1 && (
@@ -123,4 +192,3 @@ const Profesores = () => {
 }
 
 export default Profesores
-

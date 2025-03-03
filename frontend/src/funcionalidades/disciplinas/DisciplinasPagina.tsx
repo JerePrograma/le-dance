@@ -19,6 +19,9 @@ const Disciplinas = () => {
   const [currentPage, setCurrentPage] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Estados para búsqueda y orden
+  const [searchTerm, setSearchTerm] = useState("")
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
   const itemsPerPage = 5
   const navigate = useNavigate()
 
@@ -40,11 +43,22 @@ const Disciplinas = () => {
     fetchDisciplinas()
   }, [fetchDisciplinas])
 
-  const pageCount = useMemo(() => Math.ceil(disciplinas.length / itemsPerPage), [disciplinas.length])
+  // Filtrar y ordenar las disciplinas según el nombre
+  const disciplinasFiltradasYOrdenadas = useMemo(() => {
+    const filtradas = disciplinas.filter((disciplina) =>
+      disciplina.nombre.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    return filtradas.sort((a, b) => {
+      const nombreA = a.nombre.toLowerCase()
+      const nombreB = b.nombre.toLowerCase()
+      return sortOrder === "asc" ? nombreA.localeCompare(nombreB) : nombreB.localeCompare(nombreA)
+    })
+  }, [disciplinas, searchTerm, sortOrder])
 
+  const pageCount = useMemo(() => Math.ceil(disciplinasFiltradasYOrdenadas.length / itemsPerPage), [disciplinasFiltradasYOrdenadas.length])
   const currentItems = useMemo(
-    () => disciplinas.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage),
-    [disciplinas, currentPage],
+    () => disciplinasFiltradasYOrdenadas.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage),
+    [disciplinasFiltradasYOrdenadas, currentPage, itemsPerPage]
   )
 
   const handlePageChange = useCallback(
@@ -53,8 +67,14 @@ const Disciplinas = () => {
         setCurrentPage(newPage)
       }
     },
-    [pageCount],
+    [pageCount]
   )
+
+  // Opciones únicas para el datalist a partir de los nombres
+  const nombresUnicos = useMemo(() => {
+    const nombresSet = new Set(disciplinas.map((disciplina) => disciplina.nombre))
+    return Array.from(nombresSet)
+  }, [disciplinas])
 
   if (loading) return <div className="text-center py-4">Cargando...</div>
   if (error) return <div className="text-center py-4 text-destructive">{error}</div>
@@ -73,10 +93,51 @@ const Disciplinas = () => {
         </Boton>
       </div>
 
+      {/* Controles de búsqueda y orden */}
+      <div className="flex flex-col sm:flex-row sm:justify-between gap-4">
+        <div>
+          <label htmlFor="search" className="mr-2 font-medium">
+            Buscar por nombre:
+          </label>
+          <input
+            id="search"
+            list="nombres"
+            type="text"
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value)
+              setCurrentPage(0)
+            }}
+            placeholder="Escribe o selecciona un nombre..."
+            className="border rounded px-2 py-1"
+          />
+          <datalist id="nombres">
+            {nombresUnicos.map((nombre) => (
+              <option key={nombre} value={nombre} />
+            ))}
+          </datalist>
+        </div>
+        <div>
+          <label htmlFor="sortOrder" className="mr-2 font-medium">
+            Orden:
+          </label>
+          <select
+            id="sortOrder"
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value as "asc" | "desc")}
+            className="border rounded px-2 py-1"
+          >
+            <option value="asc">Ascendente</option>
+            <option value="desc">Descendente</option>
+          </select>
+        </div>
+      </div>
+
       <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
         <Tabla
           encabezados={["ID", "Nombre", "Horario", "Acciones"]}
           datos={currentItems}
+          extraRender={(fila) => [fila.id, fila.nombre, fila.horario]}
           acciones={(fila) => (
             <div className="flex gap-2">
               <Boton
@@ -96,7 +157,6 @@ const Disciplinas = () => {
               </Boton>
             </div>
           )}
-          extraRender={(fila) => [fila.id, fila.nombre, fila.horario]}
         />
 
         {pageCount > 1 && (
@@ -115,4 +175,3 @@ const Disciplinas = () => {
 }
 
 export default Disciplinas
-

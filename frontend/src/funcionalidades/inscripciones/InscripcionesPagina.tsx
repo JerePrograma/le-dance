@@ -11,10 +11,16 @@ import Pagination from "../../componentes/ui/Pagination"
 import { toast } from "react-toastify"
 import mensualidadesApi from "../../api/mensualidadesApi" // API para generar cuotas
 
+const itemsPerPage = 5
+
 const InscripcionesPagina = () => {
   const [inscripciones, setInscripciones] = useState<InscripcionResponse[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [currentPage, setCurrentPage] = useState(0)
+  // Estados para búsqueda y orden
+  const [searchTerm, setSearchTerm] = useState("")
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
   const navigate = useNavigate()
 
   const fetchInscripciones = useCallback(async () => {
@@ -72,7 +78,7 @@ const InscripcionesPagina = () => {
 
   const gruposArray = useMemo(() => Object.values(gruposInscripciones), [gruposInscripciones])
 
-  // Para cada grupo, calcular el costo total
+  // Calcular el costo total por grupo
   const gruposConCosto = useMemo(() => {
     return gruposArray.map((grupo) => {
       const costoTotal = grupo.inscripciones.reduce(
@@ -83,14 +89,32 @@ const InscripcionesPagina = () => {
     })
   }, [gruposArray])
 
-  // Si hay muchos alumnos, se puede agregar paginación (opcional)
-  const itemsPerPage = 5
-  const pageCount = useMemo(() => Math.ceil(gruposConCosto.length / itemsPerPage), [gruposConCosto.length])
-  const currentPage = useState(0)[0] // Para simplificar, aquí usamos la primera página.
+  // Filtrar por nombre del alumno y ordenar
+  const gruposFiltradosYOrdenados = useMemo(() => {
+    const filtrados = gruposConCosto.filter((grupo) => {
+      const nombreCompleto = `${grupo.alumno.nombre} ${grupo.alumno.apellido}`.toLowerCase()
+      return nombreCompleto.includes(searchTerm.toLowerCase())
+    })
+    return filtrados.sort((a, b) => {
+      const nombreA = `${a.alumno.nombre} ${a.alumno.apellido}`.toLowerCase()
+      const nombreB = `${b.alumno.nombre} ${b.alumno.apellido}`.toLowerCase()
+      return sortOrder === "asc" ? nombreA.localeCompare(nombreB) : nombreB.localeCompare(nombreA)
+    })
+  }, [gruposConCosto, searchTerm, sortOrder])
+
+  const pageCount = useMemo(() => Math.ceil(gruposFiltradosYOrdenados.length / itemsPerPage), [gruposFiltradosYOrdenados.length])
   const currentItems = useMemo(
-    () => gruposConCosto.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage),
-    [gruposConCosto, currentPage, itemsPerPage]
+    () => gruposFiltradosYOrdenados.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage),
+    [gruposFiltradosYOrdenados, currentPage]
   )
+
+  // Opciones únicas para el datalist (nombres completos)
+  const nombresUnicos = useMemo(() => {
+    const nombresSet = new Set(
+      gruposConCosto.map((grupo) => `${grupo.alumno.nombre} ${grupo.alumno.apellido}`)
+    )
+    return Array.from(nombresSet)
+  }, [gruposConCosto])
 
   if (loading) return <div className="text-center py-4">Cargando...</div>
   if (error) return <div className="text-center py-4 text-destructive">{error}</div>
@@ -118,7 +142,47 @@ const InscripcionesPagina = () => {
         </div>
       </div>
 
-      {gruposConCosto.length === 0 ? (
+      {/* Controles de búsqueda y orden */}
+      <div className="flex flex-col sm:flex-row sm:justify-between gap-4">
+        <div>
+          <label htmlFor="search" className="mr-2 font-medium">
+            Buscar por nombre:
+          </label>
+          <input
+            id="search"
+            list="nombres"
+            type="text"
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value)
+              setCurrentPage(0)
+            }}
+            placeholder="Escribe o selecciona un nombre..."
+            className="border rounded px-2 py-1"
+          />
+          <datalist id="nombres">
+            {nombresUnicos.map((nombre) => (
+              <option key={nombre} value={nombre} />
+            ))}
+          </datalist>
+        </div>
+        <div>
+          <label htmlFor="sortOrder" className="mr-2 font-medium">
+            Orden:
+          </label>
+          <select
+            id="sortOrder"
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value as "asc" | "desc")}
+            className="border rounded px-2 py-1"
+          >
+            <option value="asc">Ascendente</option>
+            <option value="desc">Descendente</option>
+          </select>
+        </div>
+      </div>
+
+      {gruposFiltradosYOrdenados.length === 0 ? (
         <div className="text-center py-4">No hay inscripciones disponibles.</div>
       ) : (
         <div className="overflow-x-auto">
@@ -155,12 +219,7 @@ const InscripcionesPagina = () => {
           <Pagination
             currentPage={currentPage}
             totalPages={pageCount}
-            onPageChange={(newPage) => {
-              if (newPage >= 0 && newPage < pageCount) {
-                // Actualizar el estado de la página, por ejemplo:
-                // setCurrentPage(newPage)
-              }
-            }}
+            onPageChange={setCurrentPage}
             className="justify-center"
           />
         </div>
@@ -169,4 +228,4 @@ const InscripcionesPagina = () => {
   )
 }
 
-export default InscripcionesPagina;
+export default InscripcionesPagina

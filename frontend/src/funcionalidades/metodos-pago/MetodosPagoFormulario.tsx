@@ -1,8 +1,9 @@
-// src/funcionalidades/metodos-pago/MetodosPagoFormulario.tsx
-import React, { useEffect, useCallback } from "react";
+"use client"
+
+import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Formik, Form, Field, ErrorMessage } from "formik";
-import { metodoPagoEsquema } from "../../validaciones/metodoPagoEsquema"; // Crea este esquema con Yup
+import { metodoPagoEsquema } from "../../validaciones/metodoPagoEsquema";
 import api from "../../api/axiosConfig";
 import Boton from "../../componentes/comunes/Boton";
 import { toast } from "react-toastify";
@@ -17,36 +18,38 @@ interface MetodoPago {
 
 const initialValues: MetodoPago = {
   descripcion: "",
-  recargo: 0, // valor por defecto, puedes ajustarlo segun tus necesidades
+  recargo: 0,
 };
 
 const MetodosPagoFormulario: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const handleBuscar = useCallback(
-    async (idStr: string, setValues: (vals: MetodoPago) => void) => {
-      try {
-        const idNum = Number(idStr);
-        if (isNaN(idNum)) {
-          toast.error("ID invalido");
-          return;
-        }
-        const response = await api.get<MetodoPagoResponse>(`/metodos-pago/${idNum}`);
-        setValues(response.data);
-        toast.success("Metodo de pago cargado correctamente.");
-      } catch {
-        toast.error("Error al cargar los datos del metodo de pago.");
-        setValues(initialValues);
-      }
-    },
-    []
-  );
+  // Estado para almacenar los valores del formulario
+  const [formValues, setFormValues] = useState<MetodoPago>(initialValues);
 
+  // Función para buscar y actualizar los valores
+  const handleBuscar = useCallback(async (idStr: string) => {
+    try {
+      const idNum = Number(idStr);
+      if (isNaN(idNum)) {
+        toast.error("ID inválido");
+        return;
+      }
+      const response = await api.get<MetodoPagoResponse>(`/metodos-pago/${idNum}`);
+      setFormValues(response.data);
+      toast.success("Método de pago cargado correctamente.");
+    } catch {
+      toast.error("Error al cargar los datos del método de pago.");
+      setFormValues(initialValues);
+    }
+  }, []);
+
+  // Si existe un id en la URL, cargar los datos al montar el componente
   useEffect(() => {
     const id = searchParams.get("id");
     if (id) {
-      handleBuscar(id, () => { });
+      handleBuscar(id);
     }
   }, [searchParams, handleBuscar]);
 
@@ -54,23 +57,23 @@ const MetodosPagoFormulario: React.FC = () => {
     try {
       if (values.id) {
         await api.put(`/metodos-pago/${values.id}`, values);
-        toast.success("Metodo de pago actualizado correctamente.");
+        toast.success("Método de pago actualizado correctamente.");
       } else {
         await api.post("/metodos-pago", values);
-        toast.success("Metodo de pago creado correctamente.");
+        toast.success("Método de pago creado correctamente.");
       }
     } catch {
-      toast.error("Error al guardar los datos del metodo de pago.");
+      toast.error("Error al guardar los datos del método de pago.");
     }
   };
 
   return (
     <div className="page-container">
       <h1 className="page-title">
-        {searchParams.get("id") ? "Editar Metodo de Pago" : "Nuevo Metodo de Pago"}
+        {searchParams.get("id") ? "Editar Método de Pago" : "Nuevo Método de Pago"}
       </h1>
       <Formik
-        initialValues={initialValues}
+        initialValues={formValues}
         validationSchema={metodoPagoEsquema}
         onSubmit={handleGuardar}
         enableReinitialize
@@ -80,7 +83,7 @@ const MetodosPagoFormulario: React.FC = () => {
             <div className="form-grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="col-span-full mb-4">
                 <label htmlFor="idBusqueda" className="auth-label">
-                  Numero de Metodo de Pago:
+                  Número de Método de Pago:
                 </label>
                 <div className="flex gap-2">
                   <Field
@@ -89,12 +92,13 @@ const MetodosPagoFormulario: React.FC = () => {
                     name="id"
                     className="form-input flex-grow"
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      handleBuscar(e.target.value, (vals) => resetForm({ values: vals }))
+                      // Actualizamos temporalmente el campo id y buscamos
+                      handleBuscar(e.target.value)
                     }
                   />
                   <Boton
                     onClick={() =>
-                      handleBuscar(values.id?.toString() || "", (vals) => resetForm({ values: vals }))
+                      handleBuscar(values.id?.toString() || "")
                     }
                     className="page-button"
                   >
@@ -106,7 +110,7 @@ const MetodosPagoFormulario: React.FC = () => {
 
               <div className="col-span-full mb-4">
                 <label htmlFor="descripcion" className="auth-label">
-                  Descripcion:
+                  Descripción:
                 </label>
                 <Field name="descripcion" type="text" id="descripcion" className="form-input" />
                 <ErrorMessage name="descripcion" component="div" className="auth-error" />
@@ -122,11 +126,14 @@ const MetodosPagoFormulario: React.FC = () => {
 
             <div className="form-acciones">
               <Boton type="submit" disabled={isSubmitting} className="page-button">
-                Guardar Metodo de Pago
+                Guardar Método de Pago
               </Boton>
               <Boton
                 type="reset"
-                onClick={() => resetForm({ values: initialValues })}
+                onClick={() => {
+                  resetForm({ values: initialValues });
+                  setFormValues(initialValues);
+                }}
                 className="page-button-secondary"
               >
                 Limpiar

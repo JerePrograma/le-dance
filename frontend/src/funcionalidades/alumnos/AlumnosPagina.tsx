@@ -19,6 +19,9 @@ const Alumnos = () => {
   const [currentPage, setCurrentPage] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Estados nuevos para búsqueda y orden
+  const [searchTerm, setSearchTerm] = useState("")
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
   const itemsPerPage = 5
   const navigate = useNavigate()
 
@@ -40,10 +43,24 @@ const Alumnos = () => {
     fetchAlumnos()
   }, [fetchAlumnos])
 
-  const pageCount = useMemo(() => Math.ceil(alumnos.length / itemsPerPage), [alumnos.length])
+  // Filtrar y ordenar alumnos
+  const alumnosFiltradosYOrdenados = useMemo(() => {
+    const filtrados = alumnos.filter((alumno) => {
+      const nombreCompleto = `${alumno.nombre} ${alumno.apellido}`.toLowerCase()
+      return nombreCompleto.includes(searchTerm.toLowerCase())
+    })
+    return filtrados.sort((a, b) => {
+      const nombreA = `${a.nombre} ${a.apellido}`.toLowerCase()
+      const nombreB = `${b.nombre} ${b.apellido}`.toLowerCase()
+      if (sortOrder === "asc") return nombreA.localeCompare(nombreB)
+      else return nombreB.localeCompare(nombreA)
+    })
+  }, [alumnos, searchTerm, sortOrder])
+
+  const pageCount = useMemo(() => Math.ceil(alumnosFiltradosYOrdenados.length / itemsPerPage), [alumnosFiltradosYOrdenados.length])
   const currentItems = useMemo(() => {
-    return alumnos.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage)
-  }, [alumnos, currentPage])
+    return alumnosFiltradosYOrdenados.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage)
+  }, [alumnosFiltradosYOrdenados, currentPage, itemsPerPage])
 
   const handlePageChange = useCallback(
     (newPage: number) => {
@@ -53,6 +70,12 @@ const Alumnos = () => {
     },
     [pageCount],
   )
+
+  // Generar las opciones para el datalist
+  const nombresUnicos = useMemo(() => {
+    const nombresSet = new Set(alumnos.map((alumno) => `${alumno.nombre} ${alumno.apellido}`))
+    return Array.from(nombresSet)
+  }, [alumnos])
 
   if (loading) return <div className="text-center py-4">Cargando...</div>
   if (error) return <div className="text-center py-4 text-destructive">{error}</div>
@@ -69,6 +92,46 @@ const Alumnos = () => {
           <PlusCircle className="w-5 h-5" />
           Ficha de Alumnos
         </Boton>
+      </div>
+
+      {/* Controles de búsqueda y orden */}
+      <div className="flex flex-col sm:flex-row sm:justify-between gap-4">
+        <div>
+          <label htmlFor="search" className="mr-2 font-medium">
+            Buscar por nombre:
+          </label>
+          <input
+            id="search"
+            list="nombres"
+            type="text"
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value)
+              setCurrentPage(0) // reiniciar la página
+            }}
+            placeholder="Escribe o selecciona un nombre..."
+            className="border rounded px-2 py-1"
+          />
+          <datalist id="nombres">
+            {nombresUnicos.map((nombre) => (
+              <option key={nombre} value={nombre} />
+            ))}
+          </datalist>
+        </div>
+        <div>
+          <label htmlFor="sortOrder" className="mr-2 font-medium">
+            Orden:
+          </label>
+          <select
+            id="sortOrder"
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value as "asc" | "desc")}
+            className="border rounded px-2 py-1"
+          >
+            <option value="asc">Ascendente</option>
+            <option value="desc">Descendente</option>
+          </select>
+        </div>
       </div>
 
       <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
@@ -114,4 +177,3 @@ const Alumnos = () => {
 }
 
 export default Alumnos
-
