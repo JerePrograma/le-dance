@@ -23,7 +23,7 @@ import type {
   DisciplinaDetalleResponse
 } from "../../types/types";
 
-const diasSemana: string[] = ["LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO", "DOMINGO"];
+const diasSemana: string[] = ["LUNES", "MARTES", "MIERCOLES", "JUEVES", "VIERNES", "SÁBADO", "DOMINGO"];
 
 const initialDisciplinaValues: DisciplinaRegistroRequest & Partial<DisciplinaModificacionRequest> = {
   nombre: "",
