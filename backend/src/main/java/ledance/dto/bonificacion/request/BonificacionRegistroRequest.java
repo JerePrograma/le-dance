@@ -10,8 +10,8 @@ import jakarta.validation.constraints.Positive;
  */
 public record BonificacionRegistroRequest(
         @NotBlank String descripcion,
-        @Positive Integer porcentajeDescuento,
+        Integer porcentajeDescuento,
         String observaciones,
         // Nuevo campo: valor fijo (opcional)
-        @Positive Double valorFijo
+        Double valorFijo
 ) {}
