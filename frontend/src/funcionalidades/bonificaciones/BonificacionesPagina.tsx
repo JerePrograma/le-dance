@@ -83,6 +83,13 @@ const Bonificaciones = () => {
             "Acciones",
           ]}
           datos={currentItems}
+          extraRender={(fila) => [
+            fila.id,
+            fila.descripcion,
+            fila.porcentajeDescuento,  // Columna de descuento en porcentaje
+            fila.valorFijo,            // Columna de descuento en monto fijo
+            fila.activo ? "Si" : "No",
+          ]}
           acciones={(fila) => (
             <div className="flex gap-2">
               <Boton
@@ -104,13 +111,6 @@ const Bonificaciones = () => {
               </Boton>
             </div>
           )}
-          extraRender={(fila) => [
-            fila.id,
-            fila.descripcion,
-            // Si valorFijo existe, lo mostramos; de lo contrario, mostramos porcentajeDescuento
-            fila.valorFijo !== undefined ? fila.valorFijo : fila.porcentajeDescuento,
-            fila.activo ? "Si" : "No",
-          ]}
         />
       </div>
       {pageCount > 1 && (

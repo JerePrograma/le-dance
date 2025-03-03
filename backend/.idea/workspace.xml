@@ -5,7 +5,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="ccb8f120-972c-4a18-b18b-4ae7da723dfa" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/../frontend/src/api/axiosConfig.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/api/axiosConfig.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/bonificaciones/BonificacionesPagina.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/bonificaciones/BonificacionesPagina.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/disciplinas/DisciplinasFormulario.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/disciplinas/DisciplinasFormulario.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/rutas/AppRouter.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/rutas/AppRouter.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/validaciones/bonificacionEsquema.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/validaciones/bonificacionEsquema.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/validaciones/disciplinaEsquema.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/validaciones/disciplinaEsquema.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -60,7 +65,7 @@
     "RequestMappingsPanelWidth1": "75",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "Spring Boot.Main.executor": "Run",
-    "git-widget-placeholder": "Merging main",
+    "git-widget-placeholder": "main",
     "kotlin-language-version-configured": "true",
     "last_directory_selection": "D:/laburo/LE Dance/backend/src/main/java/ledance/validaciones",
     "last_opened_file_path": "C:/Users/Policia/IdeaProjects/le-dance/backend",
@@ -264,7 +269,7 @@
       <workItem from="1740891186910" duration="2692000" />
       <workItem from="1740895618149" duration="9869000" />
       <workItem from="1740939778001" duration="1755000" />
-      <workItem from="1740999036870" duration="8414000" />
+      <workItem from="1740999036870" duration="9009000" />
     </task>
     <servers />
   </component>
