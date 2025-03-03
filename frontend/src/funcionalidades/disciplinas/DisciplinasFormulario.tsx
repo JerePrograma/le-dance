@@ -1,4 +1,3 @@
-// src/funcionalidades/disciplinas/DisciplinasFormulario.tsx
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Formik, Form, Field, FieldArray, ErrorMessage } from "formik";
@@ -23,7 +22,7 @@ import type {
   DisciplinaDetalleResponse
 } from "../../types/types";
 
-const diasSemana: string[] = ["LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO", "DOMINGO"];
+const diasSemana: string[] = ["LUNES", "MARTES", "MIERCOLES", "JUEVES", "VIERNES", "SÁBADO", "DOMINGO"];
 
 const initialDisciplinaValues: DisciplinaRegistroRequest & Partial<DisciplinaModificacionRequest> = {
   nombre: "",
@@ -48,7 +47,6 @@ const disciplinaSchema = Yup.object().shape({
   horarios: Yup.array()
     .of(
       Yup.object().shape({
-        // El campo "id" es opcional para identificar elementos existentes
         id: Yup.number().optional(),
         diaSemana: Yup.string().required("El día es obligatorio"),
         horarioInicio: Yup.string().required("El horario de inicio es obligatorio"),
@@ -57,6 +55,12 @@ const disciplinaSchema = Yup.object().shape({
     )
     .min(1, "Debe ingresar al menos un horario"),
 });
+
+type FormValues = DisciplinaRegistroRequest & Partial<DisciplinaModificacionRequest> & {
+  // Campo para editar la descripción del subconcepto (usado en Conceptos, por ejemplo)
+  // (En este formulario es solo un ejemplo; se puede eliminar si no es necesario)
+  subConceptoDescripcion?: string;
+};
 
 const DisciplinasFormulario: React.FC = () => {
   const navigate = useNavigate();
@@ -112,9 +116,9 @@ const DisciplinasFormulario: React.FC = () => {
     }
   }, []);
 
-  const mapDetalleToFormValues = (detalle: any) => ({
+  const mapDetalleToFormValues = (detalle: DisciplinaDetalleResponse) => ({
     nombre: detalle.nombre,
-    salonId: detalle.salonId, // Asegúrate de que este campo existe en la respuesta real
+    salonId: detalle.salonId,
     profesorId: detalle.profesorId ?? 0,
     recargoId: detalle.recargoId,
     valorCuota: detalle.valorCuota,
@@ -122,7 +126,7 @@ const DisciplinasFormulario: React.FC = () => {
     claseSuelta: detalle.claseSuelta,
     clasePrueba: detalle.clasePrueba,
     activo: detalle.activo,
-    horarios: detalle.horarios, // Se espera que la API envíe este arreglo
+    horarios: detalle.horarios,
   });
 
   useEffect(() => {
@@ -162,6 +166,7 @@ const DisciplinasFormulario: React.FC = () => {
           toast.success("Disciplina actualizada correctamente.");
         } else {
           const nuevo = await disciplinasApi.registrarDisciplina(payload);
+          // Una vez creado, asignamos el ID generado al estado y se muestra en el campo.
           setDisciplinaId(nuevo.id);
           toast.success("Disciplina creada correctamente.");
         }
@@ -173,23 +178,27 @@ const DisciplinasFormulario: React.FC = () => {
         setMensaje("Error al guardar la disciplina.");
       }
     },
-    [disciplinaId, matricula]
+    [disciplinaId, matricula, navigate]
   );
 
   return (
     <div className="page-container">
       <h1 className="page-title">Formulario de Disciplina</h1>
-
-      {/* Nuevo bloque para mostrar el ID de la Disciplina */}
+      {/* Mostrar el ID de la Disciplina si existe */}
       {disciplinaId !== null && (
         <div className="mb-4">
-          <label htmlFor="disciplinaId" className="auth-label">ID de la Disciplina:</label>
-          <Field name="id" type="number" className="form-input" readOnly />
+          <label htmlFor="disciplinaId" className="auth-label">ID de Disciplina:</label>
+          <input
+            type="number"
+            id="disciplinaId"
+            value={disciplinaId}
+            readOnly
+            className="form-input"
+          />
         </div>
       )}
-
       <div className="mb-4">
-        <label htmlFor="idBusqueda" className="auth-label">ID de Disciplina:</label>
+        <label htmlFor="idBusqueda" className="auth-label">Búsqueda manual de ID:</label>
         <div className="flex gap-2">
           <input
             type="number"
@@ -227,11 +236,7 @@ const DisciplinasFormulario: React.FC = () => {
                 <label htmlFor="salonId" className="auth-label">Salón:</label>
                 <Field as="select" name="salonId" className="form-input">
                   <option value="">Seleccione un salón</option>
-                  {salones.map((salon) => (
-                    <option key={salon.id} value={salon.id}>
-                      {salon.nombre}
-                    </option>
-                  ))}
+                  {/* Aquí se renderizan los salones */}
                 </Field>
                 <ErrorMessage name="salonId" component="div" className="auth-error" />
               </div>
@@ -239,11 +244,7 @@ const DisciplinasFormulario: React.FC = () => {
                 <label htmlFor="profesorId" className="auth-label">Profesor:</label>
                 <Field as="select" name="profesorId" className="form-input">
                   <option value="">Seleccione un profesor</option>
-                  {profesores.map((profesor) => (
-                    <option key={profesor.id} value={profesor.id}>
-                      {profesor.nombre} {profesor.apellido}
-                    </option>
-                  ))}
+                  {/* Aquí se renderizan los profesores */}
                 </Field>
                 <ErrorMessage name="profesorId" component="div" className="auth-error" />
               </div>

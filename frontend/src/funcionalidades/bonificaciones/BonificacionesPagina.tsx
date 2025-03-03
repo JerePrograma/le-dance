@@ -5,17 +5,10 @@ import api from "../../api/axiosConfig";
 import ReactPaginate from "react-paginate";
 import Boton from "../../componentes/comunes/Boton";
 import { PlusCircle, Pencil, Trash2 } from "lucide-react";
-
-interface Bonificacion {
-  id: number;
-  descripcion: string;
-  porcentajeDescuento: number;
-  activo: boolean;
-  observaciones?: string;
-}
+import { BonificacionResponse } from "../../types/types";
 
 const Bonificaciones = () => {
-  const [bonificaciones, setBonificaciones] = useState<Bonificacion[]>([]);
+  const [bonificaciones, setBonificaciones] = useState<BonificacionResponse[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +19,7 @@ const Bonificaciones = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await api.get<Bonificacion[]>("/bonificaciones");
+      const response = await api.get<BonificacionResponse[]>("/bonificaciones");
       setBonificaciones(response.data);
     } catch (error) {
       console.error("Error al cargar bonificaciones:", error);
@@ -85,6 +78,7 @@ const Bonificaciones = () => {
             "ID",
             "Descripción",
             "Descuento (%)",
+            "Descuento (monto)",
             "Activo",
             "Acciones",
           ]}
@@ -113,7 +107,8 @@ const Bonificaciones = () => {
           extraRender={(fila) => [
             fila.id,
             fila.descripcion,
-            fila.porcentajeDescuento,
+            // Si valorFijo existe, lo mostramos; de lo contrario, mostramos porcentajeDescuento
+            fila.valorFijo !== undefined ? fila.valorFijo : fila.porcentajeDescuento,
             fila.activo ? "Sí" : "No",
           ]}
         />
