@@ -32,6 +32,4 @@ public class AsistenciaDiaria {
     @ManyToOne
     @JoinColumn(name = "asistencia_mensual_id", nullable = false)
     private AsistenciaMensual asistenciaMensual;
-
-    private String observacion;
 }

@@ -17,7 +17,6 @@ public interface AsistenciaDiariaMapper {
     @Mapping(target = "alumnoApellido", source = "alumno.apellido")
     @Mapping(target = "asistenciaMensualId", source = "asistenciaMensual.id")
     @Mapping(target = "disciplinaId", source = "asistenciaMensual.inscripcion.disciplina.id")
-    @Mapping(target = "observacion", source = "observacion")
     AsistenciaDiariaResponse toDTO(AsistenciaDiaria asistenciaDiaria);
 
     @Mapping(target = "id", ignore = false) // Permite actualizar si ya existe

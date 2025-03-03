@@ -69,33 +69,9 @@ public class AsistenciaMensualServicio {
         AsistenciaMensual existente = asistenciaMensualRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("No existe AsistenciaMensual con ID: " + id));
 
-        actualizarObservaciones(existente, request.observacionesAlumnos());
         asistenciaMensualMapper.updateEntityFromRequest(request, existente);
         AsistenciaMensual actualizada = asistenciaMensualRepositorio.save(existente);
         return asistenciaMensualMapper.toDetalleDTO(actualizada);
-    }
-
-    private void actualizarObservaciones(AsistenciaMensual asistenciaMensual, Map<Long, String> observacionesMap) {
-        if (observacionesMap == null) return;
-        for (Map.Entry<Long, String> entry : observacionesMap.entrySet()) {
-            Long alumnoId = entry.getKey();
-            String texto = entry.getValue();
-            Optional<ObservacionMensual> optObs = asistenciaMensual.getObservaciones().stream()
-                    .filter(obs -> obs.getAlumno().getId().equals(alumnoId))
-                    .findFirst();
-            ObservacionMensual observacion;
-            if (optObs.isPresent()) {
-                observacion = optObs.get();
-            } else {
-                observacion = new ObservacionMensual();
-                observacion.setAsistenciaMensual(asistenciaMensual);
-                Alumno alumno = alumnoRepositorio.findById(alumnoId)
-                        .orElseThrow(() -> new IllegalArgumentException("No existe Alumno con ID: " + alumnoId));
-                observacion.setAlumno(alumno);
-                asistenciaMensual.getObservaciones().add(observacion);
-            }
-            observacion.setObservacion(texto);
-        }
     }
 
     @Transactional(readOnly = true)
@@ -190,7 +166,7 @@ public class AsistenciaMensualServicio {
 
                 // Crear las nuevas asistencias diarias
                 List<AsistenciaDiaria> nuevasAsistencias = nuevasFechas.stream()
-                        .map(f -> new AsistenciaDiaria(null, f, EstadoAsistencia.AUSENTE, inscripcion.getAlumno(), am, null))
+                        .map(f -> new AsistenciaDiaria(null, f, EstadoAsistencia.AUSENTE, inscripcion.getAlumno(), am))
                         .collect(Collectors.toList());
                 asistenciaDiariaRepositorio.saveAll(nuevasAsistencias);
             }

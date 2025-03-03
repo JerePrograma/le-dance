@@ -7,6 +7,5 @@ import ledance.entidades.EstadoAsistencia;
 public record AsistenciaDiariaModificacionRequest(
         @NotNull Long id,
         LocalDate fecha,
-        @NotNull EstadoAsistencia estado,
-        String observacion
+        @NotNull EstadoAsistencia estado
 ) {}

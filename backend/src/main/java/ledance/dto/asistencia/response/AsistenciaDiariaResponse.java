@@ -11,6 +11,5 @@ public record AsistenciaDiariaResponse(
         String alumnoNombre,
         String alumnoApellido,
         Long asistenciaMensualId,
-        Long disciplinaId, // obtenido desde asistenciaMensual.inscripcion.disciplina.id
-        String observacion
+        Long disciplinaId // obtenido desde asistenciaMensual.inscripcion.disciplina.id
 ) {}

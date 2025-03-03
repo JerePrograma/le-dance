@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -28,9 +29,11 @@ public class AsistenciaMensual {
     @JoinColumn(name = "inscripcion_id", nullable = false)
     private Inscripcion inscripcion;
 
+    // Se inicializa la lista para evitar null
     @OneToMany(mappedBy = "asistenciaMensual", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<AsistenciaDiaria> asistenciasDiarias;
+    private List<AsistenciaDiaria> asistenciasDiarias = new ArrayList<>();
 
-    @OneToMany(mappedBy = "asistenciaMensual", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ObservacionMensual> observaciones;
+    // Se elimina la lista de ObservacionMensual y se reemplaza por un único String.
+    // Si en el pasado se usaba la lista para almacenar observaciones, ahora se guardará todo en este campo.
+    private String observacion;
 }

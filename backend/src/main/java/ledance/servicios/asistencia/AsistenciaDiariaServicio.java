@@ -69,7 +69,6 @@ public class AsistenciaDiariaServicio {
         asistencia.setEstado(request.estado());
         asistencia.setAlumno(alumno);
         asistencia.setAsistenciaMensual(asistenciaMensual);
-        asistencia.setObservacion(request.observacion());
 
         asistencia = asistenciaDiariaRepositorio.save(asistencia);
         return asistenciaDiariaMapper.toDTO(asistencia);
@@ -85,10 +84,6 @@ public class AsistenciaDiariaServicio {
 
         asistencia.setFecha(request.fecha());
         asistencia.setEstado(request.estado());
-        if (request.observacion() != null) {
-            asistencia.setObservacion(request.observacion());
-        }
-
         return asistenciaDiariaMapper.toDTO(asistenciaDiariaRepositorio.save(asistencia));
     }
 
@@ -142,7 +137,7 @@ public class AsistenciaDiariaServicio {
 
         // Crea las asistencias para cada fecha
         List<AsistenciaDiaria> nuevasAsistencias = fechasClase.stream()
-                .map(fecha -> new AsistenciaDiaria(null, fecha, EstadoAsistencia.AUSENTE, inscripcion.getAlumno(), asistenciaMensual, null))
+                .map(fecha -> new AsistenciaDiaria(null, fecha, EstadoAsistencia.AUSENTE, inscripcion.getAlumno(), asistenciaMensual))
                 .collect(Collectors.toList());
 
         asistenciaDiariaRepositorio.saveAll(nuevasAsistencias);
@@ -175,7 +170,6 @@ public class AsistenciaDiariaServicio {
 
         asistencia.setFecha(request.fecha());
         asistencia.setEstado(request.estado());
-        asistencia.setObservacion(request.observacion());
 
         AsistenciaMensual asistenciaMensual = asistenciaMensualRepositorio.findById(request.asistenciaMensualId())
                 .orElseThrow(() -> new IllegalArgumentException("No se encontró asistencia mensual"));

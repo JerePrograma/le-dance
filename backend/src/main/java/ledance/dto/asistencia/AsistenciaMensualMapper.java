@@ -12,6 +12,7 @@ import ledance.entidades.ObservacionMensual;
 import org.mapstruct.*;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Mapper(componentModel = "spring", uses = {AsistenciaDiariaMapper.class})
@@ -27,7 +28,7 @@ public interface AsistenciaMensualMapper {
     @Mapping(target = "mes", source = "mes")
     @Mapping(target = "anio", source = "anio")
     @Mapping(target = "asistenciasDiarias", source = "asistenciasDiarias")
-    @Mapping(target = "observaciones", source = "observaciones")
+    @Mapping(target = "observacion", source = "observacion")
     @Mapping(target = "disciplinaId", source = "inscripcion.disciplina.id")
     @Mapping(target = "alumnos", expression = "java(mapAlumnosToResumen(asistenciaMensual.getInscripcion().getDisciplina().getInscripciones()))")
     AsistenciaMensualDetalleResponse toDetalleDTO(AsistenciaMensual asistenciaMensual);
@@ -38,7 +39,7 @@ public interface AsistenciaMensualMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "inscripcion", ignore = true)
     @Mapping(target = "asistenciasDiarias", ignore = true)
-    @Mapping(target = "observaciones", ignore = true)
+    @Mapping(target = "observacion", ignore = true)
     AsistenciaMensual toEntity(AsistenciaMensualRegistroRequest request);
 
     /**
@@ -63,27 +64,23 @@ public interface AsistenciaMensualMapper {
     @Mapping(target = "anio", source = "anio")
     AsistenciaMensualListadoResponse toListadoDTO(AsistenciaMensual asistenciaMensual);
 
-    @Named("mapAlumnosToResumen")
     default List<AlumnoResumenResponse> mapAlumnosToResumen(List<Inscripcion> inscripciones) {
-        if (inscripciones == null) return List.of();
+        if (inscripciones == null) {
+            return null;
+        }
         return inscripciones.stream()
-                .map(inscripcion -> new AlumnoResumenResponse(
-                        inscripcion.getAlumno().getId(),
-                        inscripcion.getAlumno().getNombre(),
-                        inscripcion.getAlumno().getApellido()
-                ))
+                .map(inscripcion -> {
+                    if (inscripcion == null || inscripcion.getAlumno() == null) {
+                        return null;
+                    }
+                    return new AlumnoResumenResponse(
+                            inscripcion.getAlumno().getId(),
+                            inscripcion.getAlumno().getNombre(),
+                            inscripcion.getAlumno().getApellido()
+                    );
+                })
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
-    @Named("mapObservacionesToDTO")
-    default List<ObservacionMensualResponse> mapObservacionesToDTO(List<ObservacionMensual> observaciones) {
-        if (observaciones == null) return List.of();
-        return observaciones.stream()
-                .map(obs -> new ObservacionMensualResponse(
-                        obs.getId(),
-                        obs.getAlumno().getId(),
-                        obs.getObservacion()
-                ))
-                .collect(Collectors.toList());
-    }
 }

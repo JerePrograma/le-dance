@@ -5,6 +5,7 @@ public record AsistenciaMensualListadoResponse(
         Integer mes,
         Integer anio,
         Long inscripcionId,
+        String observacion,
         String disciplina,
         String profesor
-) {}
+) { }

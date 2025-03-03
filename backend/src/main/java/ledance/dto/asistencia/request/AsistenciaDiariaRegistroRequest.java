@@ -9,6 +9,5 @@ public record AsistenciaDiariaRegistroRequest(
         @NotNull LocalDate fecha,
         @NotNull EstadoAsistencia estado,
         @NotNull Long alumnoId,
-        @NotNull Long asistenciaMensualId,
-        String observacion
+        @NotNull Long asistenciaMensualId
 ) {}
