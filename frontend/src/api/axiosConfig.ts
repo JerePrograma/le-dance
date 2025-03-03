@@ -4,7 +4,7 @@ import axios from "axios";
 const isDevelopment = process.env.NODE_ENV === "development";
 const baseURL = isDevelopment
   ? "http://localhost:8080/api"
-  : "https://tuservidor.com/api";
+  : "http://82.25.68.219/api";
 
 const api = axios.create({
   baseURL,

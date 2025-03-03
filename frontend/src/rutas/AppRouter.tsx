@@ -1,7 +1,6 @@
 import { lazy, Suspense } from "react";
 import { Routes, Route } from "react-router-dom";
 import ProtectedRoute from "./ProtectedRoute";
-import ErrorBoundary from "./ErrorBoundary";
 
 // Páginas principales (públicas)
 const Login = lazy(() => import("../paginas/Login"));
@@ -134,7 +133,6 @@ const AppRouter = () => {
   return (
     <>
       <Suspense fallback={<div>Cargando...</div>}>
-        <ErrorBoundary>
           <Routes>
             {/* Rutas públicas */}
             <Route path="/login" element={<Login />} />
@@ -219,7 +217,6 @@ const AppRouter = () => {
 
             </Route>
           </Routes>
-        </ErrorBoundary>
       </Suspense>
     </>
   );

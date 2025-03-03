@@ -18,7 +18,7 @@ public class ConfiguracionCors implements WebMvcConfigurer {
         configuration.setAllowedOrigins(List.of(
                 "http://localhost:8100",
                 "http://localhost:5173",
-                "https://jereprograma.com",
+                "http://82.25.68.219",
                 "http://82.29.61.150"
         ));
         configuration.setAllowedMethods(List.of("GET", "POST", "OPTIONS", "PUT", "DELETE", "PATCH"));

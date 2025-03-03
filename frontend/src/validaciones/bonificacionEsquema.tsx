@@ -6,12 +6,11 @@ export const bonificacionEsquema = Yup.object().shape({
     .max(50, "La descripción no puede superar los 50 caracteres")
     .required("La descripción es obligatoria"),
   porcentajeDescuento: Yup.number()
-    .min(1, "El porcentaje debe ser mayor a 0")
-    .max(100, "El porcentaje no puede ser mayor a 100")
-    .required("El porcentaje de descuento es obligatorio"),
+    .max(100, "El porcentaje no puede ser mayor a 100"),
   activo: Yup.boolean().required(),
   observaciones: Yup.string().max(
     255,
     "Las observaciones no pueden superar los 255 caracteres"
   ),
 });
+
