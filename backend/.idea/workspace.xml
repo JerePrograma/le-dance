@@ -5,68 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="ccb8f120-972c-4a18-b18b-4ae7da723dfa" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/disciplina/request/DisciplinaHorarioModificacionRequest.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../frontend/src/componentes/ui/scroll-area.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/disciplinas/HorariosFieldArray.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources.local.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dataSources.local.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/dc664d6d-3794-447a-ac7c-3902d50751ab.xml" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/SubConceptoControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/SubConceptoControlador.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/request/AsistenciaDiariaLoteRequest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/concepto/SubConceptoMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/concepto/SubConceptoMapper.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/disciplina/DisciplinaHorarioMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/disciplina/DisciplinaHorarioMapper.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/disciplina/DisciplinaMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/disciplina/DisciplinaMapper.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/disciplina/request/DisciplinaModificacionRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/disciplina/request/DisciplinaModificacionRequest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/entidades/DiaSemana.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/entidades/DiaSemana.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/entidades/Disciplina.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/entidades/Disciplina.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/entidades/DisciplinaHorario.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/entidades/DisciplinaHorario.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/infra/errores/TratadorDeErrores.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/infra/errores/TratadorDeErrores.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/repositorios/AsistenciaDiariaRepositorio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/repositorios/AsistenciaDiariaRepositorio.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/repositorios/AsistenciaMensualRepositorio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/repositorios/AsistenciaMensualRepositorio.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/repositorios/InscripcionRepositorio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/repositorios/InscripcionRepositorio.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/repositorios/SubConceptoRepositorio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/repositorios/SubConceptoRepositorio.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/asistencia/AsistenciaDiariaServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/asistencia/AsistenciaDiariaServicio.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/asistencia/AsistenciaMensualServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/asistencia/AsistenciaMensualServicio.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/concepto/ConceptoServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/concepto/ConceptoServicio.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/concepto/SubConceptoServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/concepto/SubConceptoServicio.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/disciplina/DisciplinaHorarioServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/disciplina/DisciplinaHorarioServicio.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/disciplina/DisciplinaServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/disciplina/DisciplinaServicio.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/disciplina/IDisciplinaServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/disciplina/IDisciplinaServicio.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/inscripcion/InscripcionServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/inscripcion/InscripcionServicio.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/api/asistenciasApi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/api/asistenciasApi.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/api/matriculasApi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/api/matriculasApi.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/componentes/Header.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/componentes/Header.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/componentes/Layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/componentes/Layout.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/componentes/MainContent.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/componentes/ModalEntidad.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/componentes/Sidebar.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/componentes/Sidebar.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/componentes/comunes/Encabezado.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/componentes/comunes/Tabla.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/componentes/comunes/Tabla.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/componentes/layout/MainLayout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/componentes/layout/MainLayout.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/componentes/ui/button.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/componentes/ui/button.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/componentes/ui/dropdown-menu.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/componentes/ui/dropdown-menu.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/componentes/ui/table.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/componentes/ui/table.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/config/navigation.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/config/navigation.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/diseño/Home.css" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/diseño/custom.css" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/diseño/global.css" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/diseño/global.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/diseño/layout.css" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/alumnos/AlumnosFormulario.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/alumnos/AlumnosFormulario.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/asistencias-diarias/AsistenciaDiariaFormulario.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/asistencias-diarias/AsistenciaDiariaFormulario.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/asistencias-mensuales/AsistenciaMensualDetalle.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/asistencias-mensuales/AsistenciaMensualDetalle.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/caja/CajaPagina.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/caja/CajaPagina.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/caja/ConsultaCajaDiaria.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/caja/ConsultaCajaDiaria.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/conceptos/ConceptosFormulario.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/conceptos/ConceptosFormulario.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/disciplinas/DisciplinasFormulario.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/disciplinas/DisciplinasFormulario.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/inscripciones/InscripcionesPagina.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/inscripciones/InscripcionesPagina.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/pagos/PagosFormulario.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/pagos/PagosFormulario.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/reportes/ReporteDetallePago.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/reportes/ReporteDetallePago.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/hooks/useCobranzasData.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/hooks/useCobranzasData.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/paginas/Dashboard.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/paginas/Dashboard.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/paginas/Home.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/rutas/AppRouter.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/rutas/AppRouter.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/types/types.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/types/types.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/bonificacion/request/BonificacionModificacionRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/bonificacion/request/BonificacionModificacionRequest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/bonificacion/request/BonificacionRegistroRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/bonificacion/request/BonificacionRegistroRequest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/infra/seguridad/SecurityConfigurations.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/infra/seguridad/SecurityConfigurations.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -98,10 +40,10 @@
     &quot;accountId&quot;: &quot;d3f1a8b4-ae73-4fe7-afa2-09087344a099&quot;
   }
 }</component>
-  <component name="KubernetesApiPersistence"><![CDATA[{}]]></component>
-  <component name="KubernetesApiProvider"><![CDATA[{
-  "isMigrated": true
-}]]></component>
+  <component name="KubernetesApiPersistence">{}</component>
+  <component name="KubernetesApiProvider">{
+  &quot;isMigrated&quot;: true
+}</component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 1
 }</component>
@@ -197,8 +139,8 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-jdk-9823dce3aa75-28b599e66164-intellij.indexing.shared.core-IU-242.23726.103" />
-        <option value="bundled-js-predefined-d6986cc7102b-5c90d61e3bab-JavaScript-IU-242.23726.103" />
+        <option value="bundled-jdk-9f38398b9061-18abd8497189-intellij.indexing.shared.core-IU-241.14494.240" />
+        <option value="bundled-js-predefined-1d06a55b98c1-74d2a5396914-JavaScript-IU-241.14494.240" />
       </set>
     </attachedChunks>
   </component>
@@ -324,6 +266,8 @@
       <workItem from="1740871004498" duration="1764000" />
       <workItem from="1740891186910" duration="2692000" />
       <workItem from="1740895618149" duration="9869000" />
+      <workItem from="1740939778001" duration="1755000" />
+      <workItem from="1740999036870" duration="3452000" />
     </task>
     <servers />
   </component>
