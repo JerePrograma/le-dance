@@ -54,6 +54,13 @@ public class AlumnoControlador {
     }
 
     @DeleteMapping("/{id}")
+    public ResponseEntity<Void> eliminarAlumno(@PathVariable Long id) {
+        log.info("Eliminando al alumno con id: {}", id);
+        alumnoServicio.eliminarAlumno(id);
+        return ResponseEntity.noContent().build(); // ✅ 204 No Content
+    }
+
+    @DeleteMapping("/dar-baja/{id}")
     public ResponseEntity<Void> darBajaAlumno(@PathVariable Long id) {
         log.info("Dando de baja al alumno con id: {}", id);
         alumnoServicio.darBajaAlumno(id);

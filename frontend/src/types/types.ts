@@ -858,6 +858,7 @@ export interface MensualidadModificacionRequest {
 }
 
 export interface MensualidadResponse {
+  totalPagar: any;
   id: number;
   fechaCuota: LocalDate;
   valorBase: number;

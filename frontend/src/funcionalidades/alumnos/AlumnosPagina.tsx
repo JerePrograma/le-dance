@@ -5,8 +5,9 @@ import { useNavigate } from "react-router-dom"
 import Tabla from "../../componentes/comunes/Tabla"
 import alumnosApi from "../../api/alumnosApi"
 import Boton from "../../componentes/comunes/Boton"
-import { PlusCircle, Pencil, CreditCard } from "lucide-react"
+import { PlusCircle, Pencil, CreditCard, Trash2 } from "lucide-react"
 import Pagination from "../../componentes/ui/Pagination"
+import { toast } from "react-toastify"
 
 interface AlumnoListado {
   id: number
@@ -79,6 +80,17 @@ const Alumnos = () => {
 
   if (loading) return <div className="text-center py-4">Cargando...</div>
   if (error) return <div className="text-center py-4 text-destructive">{error}</div>
+
+  const eliminarAlumno = async (id: number) => {
+    try {
+      await alumnosApi.eliminar(id)
+      toast.success("Alumno eliminado correctamente.")
+      // Vuelve a cargar la lista de alumnos para reflejar el cambio
+      fetchAlumnos()
+    } catch (error) {
+      toast.error("Error al eliminar el Alumno.")
+    }
+  }
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -156,6 +168,14 @@ const Alumnos = () => {
               >
                 <CreditCard className="w-4 h-4" />
                 Cobranza
+              </Boton>
+              <Boton
+                className="inline-flex items-center bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                aria-label={`Eliminar alumno ${fila.nombre} ${fila.apellido}`}
+                onClick={() => eliminarAlumno(fila.id)}
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Eliminar
               </Boton>
             </div>
           )}

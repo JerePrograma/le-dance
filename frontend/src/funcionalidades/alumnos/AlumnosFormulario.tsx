@@ -46,7 +46,7 @@ const initialAlumnoValues: AlumnoRegistroRequest &
 
 const AlumnosFormulario: React.FC = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [alumnoId, setAlumnoId] = useState<number | null>(null);
   const [inscripciones, setInscripciones] = useState<InscripcionResponse[]>([]);
@@ -58,11 +58,27 @@ const AlumnosFormulario: React.FC = () => {
 
   const debouncedNombreBusqueda = useDebounce(nombreBusqueda, 300);
 
-  // Función para resetear el formulario
+  // Función para calcular la edad a partir de la fecha de nacimiento
+  const calcularEdad = (fecha: string) => {
+    const hoy = new Date();
+    const nacimiento = new Date(fecha);
+    let edad = hoy.getFullYear() - nacimiento.getFullYear();
+    const mes = hoy.getMonth() - nacimiento.getMonth();
+    if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
+      edad--;
+    }
+    return edad;
+  };
+
+  // Función para resetear el formulario y los estados relacionados, además de limpiar el query de la URL
   const resetearFormulario = () => {
     setFormValues(initialAlumnoValues);
     setAlumnoId(null);
     setInscripciones([]);
+    setIdBusqueda("");
+    setNombreBusqueda("");
+    // Limpiar los parámetros de la URL
+    setSearchParams({});
   };
 
   // Función para cargar inscripciones del alumno
@@ -79,11 +95,11 @@ const AlumnosFormulario: React.FC = () => {
     try {
       if (id) {
         const alumno = await alumnosApi.obtenerPorId(Number(id));
-        console.log("Alumno data received:", alumno);
         const convertedAlumno = { ...convertToAlumnoRegistroRequest(alumno), activo: alumno.activo ?? true };
-        console.log("Converted alumno data:", convertedAlumno);
         setFormValues(convertedAlumno);
         setAlumnoId(alumno.id);
+        // Actualizamos el campo "Número de Alumno:" con el ID del alumno encontrado
+        setIdBusqueda(String(alumno.id));
         cargarInscripciones(alumno.id);
         setMensaje("");
       } else {
@@ -98,6 +114,11 @@ const AlumnosFormulario: React.FC = () => {
 
   const handleSeleccionarAlumno = async (id: number, nombreCompleto: string) => {
     try {
+      // Reiniciamos el formulario para borrar datos pre cargados
+      resetearFormulario();
+      // Actualizamos el campo "Número de Alumno:" con el ID seleccionado
+      setIdBusqueda(String(id));
+
       const alumno = await alumnosApi.obtenerPorId(id);
       const convertedAlumno = { ...convertToAlumnoRegistroRequest(alumno), activo: alumno.activo ?? true };
       setFormValues(convertedAlumno);
@@ -116,6 +137,22 @@ const AlumnosFormulario: React.FC = () => {
     { setSubmitting }: FormikHelpers<AlumnoRegistroRequest & Partial<AlumnoModificacionRequest>>
   ) => {
     try {
+      // Evitamos la duplicación de alumnos (nombre y apellido exactos) al registrar uno nuevo
+      if (!alumnoId) {
+        const alumnoDuplicado = sugerenciasAlumnos.find(
+          (a) =>
+            a.nombre.trim().toLowerCase() === values.nombre.trim().toLowerCase() &&
+            a.apellido.trim().toLowerCase() === values.apellido.trim().toLowerCase()
+        );
+        if (alumnoDuplicado) {
+          const mensajeError = "Ya existe un alumno con ese nombre y apellido.";
+          setMensaje(mensajeError);
+          toast.error(mensajeError);
+          setSubmitting(false);
+          return;
+        }
+      }
+
       let successMsg: string;
       if (alumnoId) {
         await alumnosApi.actualizar(
@@ -126,6 +163,8 @@ const AlumnosFormulario: React.FC = () => {
       } else {
         const nuevoAlumno = await alumnosApi.registrar(values as AlumnoRegistroRequest);
         setAlumnoId(nuevoAlumno.id);
+        // Actualizamos el campo "Número de Alumno:" con el ID del alumno recién creado
+        setIdBusqueda(String(nuevoAlumno.id));
         successMsg = "Alumno creado correctamente";
       }
       setMensaje(successMsg);
@@ -170,7 +209,7 @@ const AlumnosFormulario: React.FC = () => {
     }
   };
 
-  // Función para calcular los 4 valores para cada inscripción
+  // Función para calcular los valores de cada inscripción
   const calcularValores = (ins: InscripcionResponse) => {
     const cuota = ins.disciplina?.valorCuota || 0;
     const bonifPct = ins.bonificacion?.porcentajeDescuento || 0;
@@ -179,7 +218,7 @@ const AlumnosFormulario: React.FC = () => {
     return { cuota, bonifPct, bonifMonto, total };
   };
 
-  // Creamos un arreglo extendido que incluya una fila de totales como última fila
+  // Arreglo extendido que incluye la fila de totales
   const datosExtendidos = useMemo(() => {
     return [...inscripciones, { _totals: true } as any];
   }, [inscripciones]);
@@ -206,8 +245,14 @@ const AlumnosFormulario: React.FC = () => {
                     type="number"
                     id="idBusqueda"
                     value={idBusqueda}
-                    onChange={(e) => setIdBusqueda(e.target.value)}
+                    onChange={(e) => {
+                      // Permitir cambio manual solo si no hay alumno seleccionado
+                      if (!alumnoId) {
+                        setIdBusqueda(e.target.value);
+                      }
+                    }}
                     className="form-input flex-grow"
+                    readOnly={alumnoId !== null}
                   />
                   <Boton onClick={() => handleBuscar(idBusqueda)} className="page-button">
                     <Search className="w-5 h-5 mr-2" />
@@ -232,9 +277,13 @@ const AlumnosFormulario: React.FC = () => {
                   {nombreBusqueda && (
                     <Button
                       type="button"
-                      onClick={() => setNombreBusqueda("")}
-                      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      onClick={() => {
+                        // Al limpiar con la cruz se reinicia el formulario y se borran los valores de búsqueda y la query
+                        resetearFormulario();
+                      }}
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-200 hover:text-gray-800"
                     >
+                      Limpiar
                       <X className="w-5 h-5" />
                     </Button>
                   )}
@@ -260,8 +309,40 @@ const AlumnosFormulario: React.FC = () => {
               {[
                 { name: "nombre", label: "Nombre" },
                 { name: "apellido", label: "Apellido" },
-                { name: "fechaNacimiento", label: "Fecha de Nacimiento", type: "date" },
-                { name: "fechaIncorporacion", label: "Fecha de Incorporación", type: "date" },
+              ].map(({ name, label = "text" }) => (
+                <div key={name} className="mb-4">
+                  <label htmlFor={name} className="auth-label">
+                    {label}:
+                  </label>
+                  <Field name={name} className="form-input" id={name} />
+                  <ErrorMessage name={name} component="div" className="auth-error" />
+                </div>
+              ))}
+
+              {/* Fecha de Nacimiento y Edad */}
+              <div className="mb-4">
+                <label htmlFor="fechaNacimiento" className="auth-label">
+                  Fecha de Nacimiento:
+                </label>
+                <Field name="fechaNacimiento" type="date" className="form-input" id="fechaNacimiento" />
+                <ErrorMessage name="fechaNacimiento" component="div" className="auth-error" />
+                {formValues.fechaNacimiento && (
+                  <div className="text-sm mt-1">
+                    Edad: {calcularEdad(formValues.fechaNacimiento)} años
+                  </div>
+                )}
+              </div>
+
+              {/* Fecha de Incorporación */}
+              <div className="mb-4">
+                <label htmlFor="fechaIncorporacion" className="auth-label">
+                  Fecha de Incorporación:
+                </label>
+                <Field name="fechaIncorporacion" type="date" className="form-input" id="fechaIncorporacion" />
+                <ErrorMessage name="fechaIncorporacion" component="div" className="auth-error" />
+              </div>
+
+              {[
                 { name: "celular1", label: "Celular 1" },
                 { name: "celular2", label: "Celular 2" },
                 { name: "email1", label: "Email", type: "email" },
@@ -322,18 +403,12 @@ const AlumnosFormulario: React.FC = () => {
                 type="button"
                 onClick={() => {
                   resetearFormulario();
-                  Object.keys(initialAlumnoValues).forEach((key) => {
-                    setFieldValue(
-                      key,
-                      initialAlumnoValues[key as keyof (AlumnoRegistroRequest & Partial<AlumnoModificacionRequest>)]
-                    );
-                  });
                 }}
-                className="page-button-group flex justify-end mb-4"
               >
                 Limpiar
+                <X className="w-5 h-5" />
               </Button>
-              <Button type="button" onClick={() => navigate("/alumnos")} className="page-button-group flex justify-end mb-4">
+              <Button type="button" onClick={() => navigate("/alumnos")} >
                 Volver al Listado
               </Button>
             </div>
@@ -360,7 +435,6 @@ const AlumnosFormulario: React.FC = () => {
                     </Boton>
                   </div>
                   <div className="overflow-x-auto">
-                    {/* Se crea un arreglo extendido que incluye la fila de totales */}
                     <Tabla
                       encabezados={[
                         "ID",
@@ -374,7 +448,6 @@ const AlumnosFormulario: React.FC = () => {
                       datos={datosExtendidos}
                       extraRender={(fila) => {
                         if (fila._totals) {
-                          // Renderizamos la fila de totales
                           return [
                             <span key="totales" className="font-bold text-center">Totales</span>,
                             "",
@@ -385,7 +458,7 @@ const AlumnosFormulario: React.FC = () => {
                               const { cuota, bonifPct, bonifMonto } = calcularValores(ins);
                               return sum + (cuota - bonifMonto - (cuota * bonifPct) / 100);
                             }, 0).toFixed(2),
-                            ""
+                            "",
                           ];
                         } else {
                           const { cuota, bonifPct, bonifMonto, total } = calcularValores(fila);

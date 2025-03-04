@@ -124,4 +124,13 @@ public class AlumnoServicio implements IAlumnoServicio {
         }
         return 0;
     }
+
+    @Transactional
+    public void eliminarAlumno(Long id) {
+        log.info("Eliminando al alumno con id: {}", id);
+        Alumno alumno = alumnoRepositorio.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Alumno no encontrado."));
+
+        alumnoRepositorio.delete(alumno);
+    }
 }

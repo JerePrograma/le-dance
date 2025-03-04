@@ -13,7 +13,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "alumnos")
-@ToString(exclude = "inscripciones")
+@ToString(exclude = {"inscripciones", "matriculas"})
 public class Alumno {
 
     @Id
@@ -50,7 +50,13 @@ public class Alumno {
     @Column(nullable = false)
     private Boolean activo = true;
 
+    // Relación con inscripciones (ya definida)
     @OneToMany(mappedBy = "alumno", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     private List<Inscripcion> inscripciones;
+
+    // Nueva relación con matrículas para que se eliminen en cascada
+    @OneToMany(mappedBy = "alumno", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private List<Matricula> matriculas;
 }

@@ -44,6 +44,11 @@ const obtenerInscripcionActiva = async (alumnoId: number): Promise<InscripcionRe
   return data;
 };
 
+const obtenerInscripcionesActivas = async (alumnoId: number): Promise<InscripcionResponse[]> => {
+  const { data } = await api.get<InscripcionResponse[]>(`/inscripciones/alumno/${alumnoId}/activas`);
+  return data;
+};
+
 const inscripcionesApi = {
   crear,
   listar,
@@ -52,6 +57,7 @@ const inscripcionesApi = {
   actualizar,
   eliminar,
   obtenerInscripcionActiva,
+  obtenerInscripcionesActivas
 };
 
 export default inscripcionesApi;

@@ -34,6 +34,10 @@ const alumnosApi = {
   },
 
   darBaja: async (id: number): Promise<void> => {
+    await api.delete(`/alumnos/dar-baja/${id}`);
+  },
+
+  eliminar: async (id: number): Promise<void> => {
     await api.delete(`/alumnos/${id}`);
   },
 
@@ -55,6 +59,7 @@ const alumnosApi = {
     const response = await api.get(`/alumnos/${alumnoId}/disciplinas`);
     return response.data;
   },
+
 };
 
 export default alumnosApi;

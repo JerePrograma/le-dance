@@ -6,6 +6,11 @@
   <component name="ChangeListManager">
     <list default="true" id="ccb8f120-972c-4a18-b18b-4ae7da723dfa" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/AlumnoControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/AlumnoControlador.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/InscripcionControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/InscripcionControlador.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/entidades/Alumno.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/entidades/Alumno.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/alumno/AlumnoServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/alumno/AlumnoServicio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/mensualidad/MensualidadServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/mensualidad/MensualidadServicio.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/alumnos/AlumnosPagina.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/alumnos/AlumnosPagina.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -266,7 +271,7 @@
       <workItem from="1740895618149" duration="9869000" />
       <workItem from="1740939778001" duration="1755000" />
       <workItem from="1740999036870" duration="29712000" />
-      <workItem from="1741040645239" duration="630000" />
+      <workItem from="1741040645239" duration="4315000" />
     </task>
     <servers />
   </component>

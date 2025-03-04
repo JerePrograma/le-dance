@@ -109,4 +109,11 @@ public class InscripcionControlador {
         InscripcionResponse response = inscripcionServicio.obtenerInscripcionActiva(alumnoId);
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/alumno/{alumnoId}/activas")
+    public ResponseEntity<List<InscripcionResponse>> obtenerInscripcionesActivas(@PathVariable Long alumnoId) {
+        List<InscripcionResponse> responses = inscripcionServicio.listarPorAlumno(alumnoId);
+        return ResponseEntity.ok(responses);
+    }
+
 }
