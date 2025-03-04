@@ -3,11 +3,11 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Tabla from "../../componentes/comunes/Tabla";
 import conceptosApi from "../../api/conceptosApi";
-import ReactPaginate from "react-paginate";
 import Boton from "../../componentes/comunes/Boton";
-import { PlusCircle, Pencil, Trash2 } from "lucide-react";
+import { PlusCircle, Pencil, Trash2 } from 'lucide-react';
 import type { ConceptoResponse } from "../../types/types";
 import { toast } from "react-toastify";
+import Pagination from "../../componentes/ui/Pagination";
 
 const itemsPerPage = 5;
 
@@ -36,21 +36,16 @@ const ConceptosPagina = () => {
         fetchConceptos();
     }, [fetchConceptos]);
 
-    const pageCount = useMemo(() => Math.ceil(conceptos.length / itemsPerPage), [conceptos.length]);
+    const totalPages = useMemo(() => Math.ceil(conceptos.length / itemsPerPage), [conceptos.length]);
 
     const currentItems = useMemo(
         () => conceptos.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage),
         [conceptos, currentPage]
     );
 
-    const handlePageClick = useCallback(
-        ({ selected }: { selected: number }) => {
-            if (selected < pageCount) {
-                setCurrentPage(selected);
-            }
-        },
-        [pageCount]
-    );
+    const handlePageChange = useCallback((newPage: number) => {
+        setCurrentPage(newPage);
+    }, []);
 
     const handleEliminarConcepto = async (id: number) => {
         try {
@@ -110,17 +105,15 @@ const ConceptosPagina = () => {
                     ]}
                 />
             </div>
-            {pageCount > 1 && (
-                <ReactPaginate
-                    previousLabel={"← Anterior"}
-                    nextLabel={"Siguiente →"}
-                    breakLabel={"..."}
-                    pageCount={pageCount}
-                    onPageChange={handlePageClick}
-                    containerClassName={"pagination"}
-                    activeClassName={"active"}
-                    disabledClassName={"disabled"}
-                />
+            {totalPages > 1 && (
+                <div className="mt-4">
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={handlePageChange}
+                        className="justify-center"
+                    />
+                </div>
             )}
         </div>
     );

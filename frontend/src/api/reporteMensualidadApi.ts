@@ -8,6 +8,12 @@ const reporteMensualidadApi = {
         // Asumiendo que el backend devuelve un array directamente
         return response.data;
     },
+
+    buscarMensualidadesAlumno: async (params: any): Promise<ReporteMensualidadDTO[]> => {
+        const response = await api.get("/reportes/mensualidades/buscar-mensualidades-alumno-por-mes", { params });
+        // Asumiendo que el backend devuelve un array directamente
+        return response.data;
+    },
 };
 
 export default reporteMensualidadApi;

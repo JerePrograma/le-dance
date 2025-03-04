@@ -1,6 +1,11 @@
 package ledance.servicios.mensualidad;
 
+import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.Predicate;
+import ledance.dto.alumno.response.AlumnoListadoResponse;
+import ledance.dto.bonificacion.response.BonificacionResponse;
+import ledance.dto.disciplina.response.DisciplinaListadoResponse;
 import ledance.dto.mensualidad.MensualidadMapper;
 import ledance.dto.mensualidad.request.MensualidadModificacionRequest;
 import ledance.dto.mensualidad.request.MensualidadRegistroRequest;
@@ -334,24 +339,41 @@ public class MensualidadServicio implements IMensualidadService {
     }
 
     public ReporteMensualidadDTO mapearReporte(Mensualidad mensualidad) {
-        String alumnoNombre = mensualidad.getInscripcion().getAlumno().getNombre() + " " +
-                mensualidad.getInscripcion().getAlumno().getApellido();
+        // Mapeo del alumno
+        AlumnoListadoResponse alumno = new AlumnoListadoResponse(
+                mensualidad.getInscripcion().getAlumno().getId(),
+                mensualidad.getInscripcion().getAlumno().getNombre(),
+                mensualidad.getInscripcion().getAlumno().getApellido(),
+                mensualidad.getInscripcion().getAlumno().getActivo()
+        );
 
-        // Determinar el tipo de cuota usando el método auxiliar:
+        // Determinar el tipo de cuota (método auxiliar que ya tienes definido)
         String cuota = determinarTipoCuota(mensualidad);
 
+        // Valor base de la mensualidad
         Double importe = mensualidad.getValorBase();
 
-        double bonificacion = 0.0;
+        // Calcular y mapear la bonificación
+        BonificacionResponse bonificacionResponse = null;
         if (mensualidad.getBonificacion() != null) {
             double valorFijo = mensualidad.getBonificacion().getValorFijo() != null
                     ? mensualidad.getBonificacion().getValorFijo() : 0.0;
             double porcentaje = mensualidad.getBonificacion().getPorcentajeDescuento() != null
                     ? mensualidad.getBonificacion().getPorcentajeDescuento() / 100.0 * mensualidad.getValorBase()
                     : 0.0;
-            bonificacion = valorFijo + porcentaje;
+            double computedBonificacion = valorFijo + porcentaje;
+
+            bonificacionResponse = new BonificacionResponse(
+                    mensualidad.getBonificacion().getId(),
+                    mensualidad.getBonificacion().getDescripcion(),
+                    mensualidad.getBonificacion().getPorcentajeDescuento(),
+                    mensualidad.getBonificacion().getActivo(),
+                    mensualidad.getBonificacion().getObservaciones(),
+                    computedBonificacion
+            );
         }
 
+        // Calcular recargo (se asume que mensualidad.getRecargo() retorna un objeto similar a Bonificacion)
         double recargo = 0.0;
         if (mensualidad.getRecargo() != null) {
             double recargoFijo = mensualidad.getRecargo().getValorFijo() != null
@@ -362,23 +384,35 @@ public class MensualidadServicio implements IMensualidadService {
             recargo = recargoFijo + recargoPorcentaje;
         }
 
-        // Se puede utilizar el método calcularTotal() o realizar la fórmula de forma explícita:
-        Double total = importe - bonificacion + recargo;
+        // Calcular el total: importe - bonificación + recargo
+        Double total = importe - (bonificacionResponse != null ? bonificacionResponse.valorFijo() : 0.0) + recargo;
 
+        // Determinar el estado
         String estado = mensualidad.getEstado() == EstadoMensualidad.PAGADO ? "Abonado" : "Pendiente";
 
-        String disciplina = mensualidad.getInscripcion().getDisciplina().getNombre();
+        // Mapear la disciplina
+        DisciplinaListadoResponse disciplinaResponse = new DisciplinaListadoResponse(
+                mensualidad.getInscripcion().getDisciplina().getId(),
+                mensualidad.getInscripcion().getDisciplina().getNombre(),
+                mensualidad.getInscripcion().getDisciplina().getActivo(),
+                mensualidad.getInscripcion().getDisciplina().getProfesor().getId(),
+                mensualidad.getInscripcion().getDisciplina().getProfesor().getNombre(),
+                mensualidad.getInscripcion().getDisciplina().getClaseSuelta(),
+                mensualidad.getInscripcion().getDisciplina().getClasePrueba(),
+                mensualidad.getInscripcion().getDisciplina().getValorCuota()
+        );
 
+        // Construir y retornar el DTO
         return new ReporteMensualidadDTO(
                 mensualidad.getId(),
-                alumnoNombre,
+                alumno,
                 cuota,
                 importe,
-                bonificacion,
+                bonificacionResponse,
                 total,
                 recargo,
                 estado,
-                disciplina
+                disciplinaResponse
         );
     }
 
@@ -395,6 +429,39 @@ public class MensualidadServicio implements IMensualidadService {
         }
         // En caso de que no coincida con ninguno, se puede devolver un valor por defecto:
         return "CUOTA";
+    }
+
+    public List<ReporteMensualidadDTO> buscarMensualidadesAlumnoPorMes(LocalDate fechaMes, String alumnoNombre) {
+        log.info("Buscando mensualidades para alumno '{}' en el mes de {}", alumnoNombre, fechaMes);
+
+        // Calcular primer y último día del mes indicado.
+        LocalDate primerDia = fechaMes.withDayOfMonth(1);
+        LocalDate ultimoDia = fechaMes.withDayOfMonth(fechaMes.lengthOfMonth());
+
+        Specification<Mensualidad> spec = Specification.where((root, query, cb) ->
+                cb.between(root.get("fechaGeneracion"), primerDia, ultimoDia)
+        );
+
+        // Filtrar por alumno (a través del join: Mensualidad -> Inscripcion -> Alumno)
+        if (alumnoNombre != null && !alumnoNombre.isEmpty()) {
+            spec = spec.and((root, query, cb) -> {
+                Join<Mensualidad, Inscripcion> inscripcion = root.join("inscripcion");
+                Predicate inscripcionActiva = cb.equal(inscripcion.get("estado"), EstadoInscripcion.ACTIVA);
+                Join<Inscripcion, Alumno> alumno = inscripcion.join("alumno");
+
+                Expression<String> fullName = cb.concat(cb.concat(cb.lower(alumno.get("nombre")), " "), cb.lower(alumno.get("apellido")));
+                Predicate fullNameLike = cb.like(fullName, "%" + alumnoNombre.toLowerCase() + "%");
+
+                return cb.and(inscripcionActiva, fullNameLike);
+            });
+        }
+
+        List<Mensualidad> mensualidades = mensualidadRepositorio.findAll(spec);
+        log.info("Total de mensualidades encontradas: {}", mensualidades.size());
+
+        return mensualidades.stream()
+                .map(this::mapearReporte)
+                .collect(Collectors.toList());
     }
 
 }

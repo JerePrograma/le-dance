@@ -1,14 +1,18 @@
 // ReporteMensualidadDTO.java
 package ledance.dto.reporte;
 
+import ledance.dto.alumno.response.AlumnoListadoResponse;
+import ledance.dto.bonificacion.response.BonificacionResponse;
+import ledance.dto.disciplina.response.DisciplinaListadoResponse;
+
 public record ReporteMensualidadDTO(
         Long mensualidadId,
-        String alumnoNombre,
+        AlumnoListadoResponse alumno,
         String cuota,
         Double importe,
-        Double bonificacion,
+        BonificacionResponse bonificacion,
         Double total,
         Double recargo,
         String estado,
-        String disciplina
+        DisciplinaListadoResponse disciplina
 ) {}

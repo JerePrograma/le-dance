@@ -145,7 +145,6 @@ public class ProfesorServicio implements IProfesorServicio {
         return new DisciplinaListadoResponse(
                 disciplina.getId(),
                 disciplina.getNombre(),
-                primerHorario.map(DisciplinaHorario::getHorarioInicio).orElse(null), // Manejo seguro
                 disciplina.getActivo(),
                 disciplina.getProfesor().getId(),
                 disciplina.getProfesor().getNombre(),

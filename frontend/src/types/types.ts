@@ -887,16 +887,27 @@ export interface MensualidadResponse {
 // DTO para reporte de mensualidades
 export interface ReporteMensualidadDTO {
   mensualidadId: number;
-  alumnoNombre: string;
+  alumno: {
+    id: number;
+    nombre: string;
+  }
   cuota: string;
   importe: number;
-  bonificacion: number;
+  bonificacion: {
+    id: number;
+    descripcion: string;
+    porcentajeDescuento: number;
+    valorFijo: number;
+  }
   total: number;
   recargo: number;
   estado: string;
-  disciplina: string;
+  disciplina: {
+    id: number;
+    nombre: string;
+    valorCuota: number;
+  }
 }
-
 
 export interface SalonRegistroRequest {
   nombre: string;

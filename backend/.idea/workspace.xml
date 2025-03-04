@@ -6,17 +6,17 @@
   <component name="ChangeListManager">
     <list default="true" id="ccb8f120-972c-4a18-b18b-4ae7da723dfa" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/InscripcionControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/InscripcionControlador.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/MatriculaControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/MatriculaControlador.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/MensualidadControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/MensualidadControlador.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/inscripcion/InscripcionMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/inscripcion/InscripcionMapper.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/inscripcion/request/InscripcionModificacionRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/inscripcion/request/InscripcionModificacionRequest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/entidades/Disciplina.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/entidades/Disciplina.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/entidades/Inscripcion.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/entidades/Inscripcion.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/entidades/Profesor.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/entidades/Profesor.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/inscripcion/InscripcionServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/inscripcion/InscripcionServicio.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/inscripciones/InscripcionesFormulario.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/inscripciones/InscripcionesFormulario.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/ReporteMensualidadControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/ReporteMensualidadControlador.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/disciplina/DisciplinaMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/disciplina/DisciplinaMapper.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/disciplina/response/DisciplinaListadoResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/disciplina/response/DisciplinaListadoResponse.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/reporte/ReporteMensualidadDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/reporte/ReporteMensualidadDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/entidades/Mensualidad.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/entidades/Mensualidad.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/mensualidad/MensualidadServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/mensualidad/MensualidadServicio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/profesor/ProfesorServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/profesor/ProfesorServicio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/api/reporteMensualidadApi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/api/reporteMensualidadApi.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/conceptos/ConceptosPagina.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/conceptos/ConceptosPagina.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/pagos/PagosFormulario.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/pagos/PagosFormulario.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/reportes/ReporteDetallePago.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/reportes/ReporteDetallePago.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../frontend/src/types/types.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/types/types.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -71,11 +71,11 @@
     &quot;RequestMappingsPanelWidth0&quot;: &quot;75&quot;,
     &quot;RequestMappingsPanelWidth1&quot;: &quot;75&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;Spring Boot.Main.executor&quot;: &quot;Debug&quot;,
+    &quot;Spring Boot.Main.executor&quot;: &quot;Run&quot;,
     &quot;git-widget-placeholder&quot;: &quot;main&quot;,
     &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
     &quot;last_directory_selection&quot;: &quot;D:/laburo/LE Dance/backend/src/main/java/ledance/validaciones&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/Policia/IdeaProjects/le-dance/backend&quot;,
+    &quot;last_opened_file_path&quot;: &quot;D:/laburo/LE Dance/le-dance/backend&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
@@ -286,6 +286,8 @@
       <workItem from="1741074639154" duration="409000" />
       <workItem from="1741075062837" duration="1154000" />
       <workItem from="1741076245496" duration="733000" />
+      <workItem from="1741078267492" duration="6824000" />
+      <workItem from="1741089616800" duration="1013000" />
     </task>
     <servers />
   </component>

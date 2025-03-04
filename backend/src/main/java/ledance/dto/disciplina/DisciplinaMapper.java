@@ -19,7 +19,6 @@ public interface DisciplinaMapper {
     @Mapping(target = "claseSuelta", source = "claseSuelta")
     @Mapping(target = "clasePrueba", source = "clasePrueba")
     @Mapping(target = "valorCuota", source = "valorCuota")
-    @Mapping(target = "horarioInicio", expression = "java((disciplina.getHorarios() != null && !disciplina.getHorarios().isEmpty()) ? disciplina.getHorarios().get(0).getHorarioInicio() : null)")
     DisciplinaListadoResponse toListadoResponse(Disciplina disciplina);
 
     @Mapping(target = "id", source = "id")

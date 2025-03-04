@@ -240,7 +240,8 @@ const ReporteDetallePago: React.FC = () => {
                         "Alumno",
                         "Cuota",
                         "Importe",
-                        "Bonificacion",
+                        "Bonificacion (%)",
+                        "Bonificacion (monto)",
                         "Total",
                         "Recargo",
                         "Estado",
@@ -249,14 +250,15 @@ const ReporteDetallePago: React.FC = () => {
                     datos={resultados}
                     extraRender={(item) => [
                         item.mensualidadId,
-                        item.alumnoNombre,
+                        item.alumno.nombre,
                         item.cuota,
                         item.importe,
-                        item.bonificacion,
+                        item.bonificacion.porcentajeDescuento,
+                        item.bonificacion.valorFijo,
                         item.total,
                         item.recargo,
                         item.estado,
-                        item.disciplina
+                        item.disciplina.nombre
                     ]}
                 />
             </div>

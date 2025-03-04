@@ -20,6 +20,9 @@ public class Mensualidad {
     private Long id;
 
     @NotNull
+    private LocalDate fechaGeneracion; // Fecha del vencimiento de la mensualidad
+
+    @NotNull
     private LocalDate fechaCuota; // Fecha del vencimiento de la mensualidad
 
     @NotNull

@@ -45,4 +45,14 @@ public class ReporteMensualidadControlador {
         return ResponseEntity.ok(resultados);
     }
 
+    @GetMapping("/buscar-mensualidades-alumno-por-mes")
+    public ResponseEntity<List<ReporteMensualidadDTO>> buscarMensualidadesAlumnoPorMes(
+            @RequestParam(name = "fechaInicio") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaMes,
+            @RequestParam String alumnoNombre
+    ) {
+        List<ReporteMensualidadDTO> resultados = mensualidadServicio
+                .buscarMensualidadesAlumnoPorMes(fechaMes, alumnoNombre);
+        return ResponseEntity.ok(resultados);
+    }
+
 }
