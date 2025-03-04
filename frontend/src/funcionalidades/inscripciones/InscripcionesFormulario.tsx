@@ -17,6 +17,7 @@ import type {
   InscripcionResponse,
   BonificacionResponse,
   DisciplinaDetalleResponse,
+  InscripcionModificacionRequest, // Asegúrate de que este tipo esté importado
 } from "../../types/types"
 
 // Esquema de validación
@@ -49,7 +50,9 @@ const InscripcionesFormulario: React.FC = () => {
   const [alumnoId, setAlumnoId] = useState<number>(0)
 
   // Lista dinámica de inscripciones a agregar/editar
-  const [inscripcionesList, setInscripcionesList] = useState<InscripcionFormData[]>([{ ...initialInscripcion }])
+  const [inscripcionesList, setInscripcionesList] = useState<InscripcionFormData[]>([
+    { ...initialInscripcion },
+  ])
 
   // Lista de inscripciones previas (ya guardadas) del alumno
   const [prevInscripciones, setPrevInscripciones] = useState<InscripcionResponse[]>([])
@@ -78,7 +81,9 @@ const InscripcionesFormulario: React.FC = () => {
       const aId = Number(alumnoParam)
       if (!isNaN(aId)) {
         setAlumnoId(aId)
-        setInscripcionesList((prev) => prev.map((insc) => ({ ...insc, alumnoId: aId })))
+        setInscripcionesList((prev) =>
+          prev.map((insc) => ({ ...insc, alumnoId: aId }))
+        )
       }
     }
   }, [searchParams])
@@ -120,7 +125,7 @@ const InscripcionesFormulario: React.FC = () => {
         total: acc.total + total,
       }
     },
-    { cuota: 0, bonifPct: 0, bonifMonto: 0, total: 0 },
+    { cuota: 0, bonifPct: 0, bonifMonto: 0, total: 0 }
   )
 
   // Función para agregar una nueva inscripción (formulario vacío)
@@ -159,7 +164,8 @@ const InscripcionesFormulario: React.FC = () => {
         disciplinaId: disciplinaEncontrada.id,
         bonificacionId: ins.bonificacion?.id,
       },
-      fechaInscripcion: ins.fechaInscripcion || new Date().toISOString().split("T")[0],
+      fechaInscripcion:
+        ins.fechaInscripcion || new Date().toISOString().split("T")[0],
     }
 
     setInscripcionesList((prev) => {
@@ -174,25 +180,46 @@ const InscripcionesFormulario: React.FC = () => {
   }
 
   // Handler para guardar una inscripción (crear o actualizar)
-  const handleGuardarInscripcion = async (values: InscripcionFormData, resetForm: () => void) => {
+  const handleGuardarInscripcion = async (
+    values: InscripcionFormData,
+    _resetForm: () => void
+  ) => {
     if (!values.alumnoId || !values.inscripcion.disciplinaId) {
       toast.error("Debes asignar un alumno y una disciplina.")
       return
     }
     try {
-      if (values.id) {
-        await inscripcionesApi.actualizar(values.id, {
-          alumnoId: values.alumnoId,
+      const payload: InscripcionModificacionRequest = {
+        alumnoId: values.alumnoId,
+        inscripcion: {
           disciplinaId: values.inscripcion.disciplinaId,
           bonificacionId: values.inscripcion.bonificacionId,
-        })
-        toast.success("Inscripción actualizada correctamente.")
-      } else {
-        await inscripcionesApi.crear(values)
-        toast.success("Inscripción creada correctamente. La cuota del mes vigente se generó automáticamente.")
+        },
       }
-      resetForm()
+
+      if (values.id) {
+        await inscripcionesApi.actualizar(values.id, payload)
+        toast.success("Inscripción actualizada correctamente.")
+        // Actualizamos el estado local para mantener los cambios en el formulario
+        setInscripcionesList((prev) =>
+          prev.map((insc) =>
+            insc.id === values.id ? { ...values } : insc
+          )
+        )
+      } else {
+        // Si es creación, puedes optar por NO reiniciar el formulario o
+        // actualizar el estado con el nuevo objeto retornado por la API (si lo tienes)
+        const nuevaInscripcion = { ...values } // o lo que retorne la API
+        await inscripcionesApi.crear(payload)
+        toast.success(
+          "Inscripción creada correctamente. La cuota del mes vigente se generó automáticamente."
+        )
+        setInscripcionesList((prev) => [...prev, nuevaInscripcion])
+      }
+
+      // Se actualiza el listado de inscripciones previas
       fetchPrevInscripciones()
+      // En lugar de resetForm(), no se llama para mantener los valores en el formulario.
     } catch (err) {
       toast.error("Error al guardar la inscripción.")
     }
@@ -200,7 +227,9 @@ const InscripcionesFormulario: React.FC = () => {
 
   return (
     <div className="container mx-auto p-6 space-y-8">
-      <h1 className="text-3xl font-bold tracking-tight mb-6">Registrar Inscripciones</h1>
+      <h1 className="text-3xl font-bold tracking-tight mb-6">
+        Registrar Inscripciones
+      </h1>
 
       {/* Listado de inscripciones previas */}
       {prevInscripciones.length > 0 && (
@@ -223,12 +252,17 @@ const InscripcionesFormulario: React.FC = () => {
               </thead>
               <tbody>
                 {prevInscripciones.map((ins) => {
-                  const { cuota, bonifPct, bonifMonto, total } = calcularValores(ins)
+                  const { cuota, bonifPct, bonifMonto, total } =
+                    calcularValores(ins)
                   return (
                     <tr key={ins.id} className="border-t border-border">
                       <td className="px-4 py-2 border border-border">{ins.id}</td>
-                      <td className="px-4 py-2 border border-border">{ins.disciplina?.nombre || "N/A"}</td>
-                      <td className="px-4 py-2 border border-border">{ins.fechaInscripcion}</td>
+                      <td className="px-4 py-2 border border-border">
+                        {ins.disciplina?.nombre || "N/A"}
+                      </td>
+                      <td className="px-4 py-2 border border-border">
+                        {ins.fechaInscripcion}
+                      </td>
                       <td className="px-4 py-2 border border-border">
                         {ins.mensualidadEstado ? (
                           <span className="px-2 py-1 rounded bg-green-200 text-green-800 text-xs">
@@ -238,10 +272,18 @@ const InscripcionesFormulario: React.FC = () => {
                           "Sin cuota"
                         )}
                       </td>
-                      <td className="px-4 py-2 border border-border text-center">{cuota.toFixed(2)}</td>
-                      <td className="px-4 py-2 border border-border text-center">{bonifPct.toFixed(2)}</td>
-                      <td className="px-4 py-2 border border-border text-center">{bonifMonto.toFixed(2)}</td>
-                      <td className="px-4 py-2 border border-border text-center">{total.toFixed(2)}</td>
+                      <td className="px-4 py-2 border border-border text-center">
+                        {cuota.toFixed(2)}
+                      </td>
+                      <td className="px-4 py-2 border border-border text-center">
+                        {bonifPct.toFixed(2)}
+                      </td>
+                      <td className="px-4 py-2 border border-border text-center">
+                        {bonifMonto.toFixed(2)}
+                      </td>
+                      <td className="px-4 py-2 border border-border text-center">
+                        {total.toFixed(2)}
+                      </td>
                       <td className="px-4 py-2 border border-border">
                         <div className="flex gap-2">
                           <Boton
@@ -289,43 +331,62 @@ const InscripcionesFormulario: React.FC = () => {
 
       {/* Sección de formularios para agregar/editar inscripciones */}
       {inscripcionesList.map((inscripcion, index) => (
-        <div key={index} className="border border-border rounded-lg p-6 mb-6 bg-card">
+        <div
+          key={inscripcion.id || index}
+          className="border border-border rounded-lg p-6 mb-6 bg-card"
+        >
           <Formik
+            key={inscripcion.id || index}
             initialValues={inscripcion}
             validationSchema={inscripcionEsquema}
             onSubmit={(values, { setSubmitting, resetForm }) => {
-              handleGuardarInscripcion(values, resetForm).finally(() => setSubmitting(false))
+              handleGuardarInscripcion(values, resetForm).finally(() =>
+                setSubmitting(false)
+              )
             }}
-            enableReinitialize
           >
             {({ isSubmitting, values, setFieldValue }) => {
               const selectedDiscipline = disciplinas.find(
-                (d) => d.id === Number(values.inscripcion.disciplinaId),
+                (d) =>
+                  d.id === Number(values.inscripcion.disciplinaId)
               )
               const cuota = selectedDiscipline?.valorCuota ?? 0
 
               const selectedBonification = bonificaciones.find(
-                (b) => b.id === Number(values.inscripcion.bonificacionId),
+                (b) =>
+                  b.id === Number(values.inscripcion.bonificacionId)
               )
-              const bonificacionPorcentaje = selectedBonification?.porcentajeDescuento ?? 0
-              const bonificacionValor = selectedBonification?.valorFijo ?? 0
+              const bonificacionPorcentaje =
+                selectedBonification?.porcentajeDescuento ?? 0
+              const bonificacionValor =
+                selectedBonification?.valorFijo ?? 0
 
-              const total = cuota - bonificacionValor - (cuota * bonificacionPorcentaje) / 100
+              const total =
+                cuota -
+                bonificacionValor -
+                (cuota * bonificacionPorcentaje) / 100
 
               return (
                 <Form className="space-y-6">
-                  {/* Sección Datos Básicos */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 border-b pb-4">
                     <div className="space-y-2">
-                      <label htmlFor="inscripcion.disciplinaId" className="block text-sm font-medium">
+                      <label
+                        htmlFor="inscripcion.disciplinaId"
+                        className="block text-sm font-medium"
+                      >
                         Disciplina
                       </label>
                       <Field
                         as="select"
                         name="inscripcion.disciplinaId"
                         className="w-full px-3 py-2 border border-border rounded-md bg-background"
-                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-                          setFieldValue("inscripcion.disciplinaId", Number(e.target.value))
+                        onChange={(
+                          e: React.ChangeEvent<HTMLSelectElement>
+                        ) => {
+                          setFieldValue(
+                            "inscripcion.disciplinaId",
+                            Number(e.target.value)
+                          )
                         }}
                       >
                         <option value={0}>-- Seleccionar --</option>
@@ -335,19 +396,33 @@ const InscripcionesFormulario: React.FC = () => {
                           </option>
                         ))}
                       </Field>
-                      <ErrorMessage name="inscripcion.disciplinaId" component="div" className="text-destructive text-sm" />
+                      <ErrorMessage
+                        name="inscripcion.disciplinaId"
+                        component="div"
+                        className="text-destructive text-sm"
+                      />
                     </div>
 
                     <div className="space-y-2">
-                      <label htmlFor="inscripcion.bonificacionId" className="block text-sm font-medium">
+                      <label
+                        htmlFor="inscripcion.bonificacionId"
+                        className="block text-sm font-medium"
+                      >
                         Bonificación (Opcional)
                       </label>
                       <Field
                         as="select"
                         name="inscripcion.bonificacionId"
                         className="w-full px-3 py-2 border border-border rounded-md bg-background"
-                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-                          setFieldValue("inscripcion.bonificacionId", e.target.value ? Number(e.target.value) : undefined)
+                        onChange={(
+                          e: React.ChangeEvent<HTMLSelectElement>
+                        ) => {
+                          setFieldValue(
+                            "inscripcion.bonificacionId",
+                            e.target.value
+                              ? Number(e.target.value)
+                              : undefined
+                          )
                         }}
                       >
                         <option value="">-- Ninguna --</option>
@@ -357,11 +432,18 @@ const InscripcionesFormulario: React.FC = () => {
                           </option>
                         ))}
                       </Field>
-                      <ErrorMessage name="inscripcion.bonificacionId" component="div" className="text-destructive text-sm" />
+                      <ErrorMessage
+                        name="inscripcion.bonificacionId"
+                        component="div"
+                        className="text-destructive text-sm"
+                      />
                     </div>
 
                     <div className="space-y-2">
-                      <label htmlFor="fechaInscripcion" className="block text-sm font-medium">
+                      <label
+                        htmlFor="fechaInscripcion"
+                        className="block text-sm font-medium"
+                      >
                         Fecha de Inscripción
                       </label>
                       <Field
@@ -369,11 +451,14 @@ const InscripcionesFormulario: React.FC = () => {
                         type="date"
                         className="w-full px-3 py-2 border border-border rounded-md bg-background"
                       />
-                      <ErrorMessage name="fechaInscripcion" component="div" className="text-destructive text-sm" />
+                      <ErrorMessage
+                        name="fechaInscripcion"
+                        component="div"
+                        className="text-destructive text-sm"
+                      />
                     </div>
                   </div>
 
-                  {/* Sección Resumen de Valores */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="space-y-1 text-sm">
                       <label className="font-medium">Cuota</label>
@@ -394,7 +479,9 @@ const InscripcionesFormulario: React.FC = () => {
                       />
                     </div>
                     <div className="space-y-1 text-sm">
-                      <label className="font-medium">Bonificación (monto)</label>
+                      <label className="font-medium">
+                        Bonificación (monto)
+                      </label>
                       <input
                         type="number"
                         value={bonificacionValor}
@@ -444,7 +531,13 @@ const InscripcionesFormulario: React.FC = () => {
           Agregar Inscripción
         </Boton>
         <Boton
-          onClick={() => navigate(alumnoId ? `/alumnos/formulario?id=${alumnoId}` : "/inscripciones")}
+          onClick={() =>
+            navigate(
+              alumnoId
+                ? `/alumnos/formulario?id=${alumnoId}`
+                : "/inscripciones"
+            )
+          }
           className="inline-flex items-center gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/90"
         >
           Volver

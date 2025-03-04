@@ -30,6 +30,7 @@ public class Disciplina {
     @ManyToOne
     @JoinColumn(name = "profesor_id", nullable = false)
     @NotNull(message = "La disciplina debe tener un profesor asignado")
+    @EqualsAndHashCode.Exclude
     private Profesor profesor;
 
     @NotNull

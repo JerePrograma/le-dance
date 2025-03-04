@@ -8,8 +8,7 @@ import java.time.LocalDate;
  */
 public record InscripcionModificacionRequest(
         @NotNull Long alumnoId,
-        @NotNull Long disciplinaId,
-        Long bonificacionId, // Opcional
+        InscripcionDisciplinaRequest inscripcion,
         LocalDate fechaBaja, // ✅ Permite dar de baja una inscripcion
         Double costoParticular
 ) {}

@@ -25,8 +25,9 @@ public class MatriculaControlador {
     }
 
     @PutMapping("/{matriculaId}")
-    public ResponseEntity<MatriculaResponse> actualizarMatricula(@PathVariable Long matriculaId,
-                                                                 @RequestBody MatriculaModificacionRequest request) {
+    public ResponseEntity<MatriculaResponse> actualizarMatricula(
+            @PathVariable Long matriculaId,
+            @RequestBody MatriculaModificacionRequest request) {
         MatriculaResponse updated = matriculaServicio.actualizarEstadoMatricula(matriculaId, request);
         return ResponseEntity.ok(updated);
     }

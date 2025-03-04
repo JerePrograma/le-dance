@@ -6,12 +6,18 @@
   <component name="ChangeListManager">
     <list default="true" id="ccb8f120-972c-4a18-b18b-4ae7da723dfa" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/AlumnoControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/AlumnoControlador.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/InscripcionControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/InscripcionControlador.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/entidades/Alumno.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/entidades/Alumno.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/alumno/AlumnoServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/alumno/AlumnoServicio.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/mensualidad/MensualidadServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/mensualidad/MensualidadServicio.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/alumnos/AlumnosPagina.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/alumnos/AlumnosPagina.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/MatriculaControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/MatriculaControlador.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/MensualidadControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/MensualidadControlador.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/inscripcion/InscripcionMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/inscripcion/InscripcionMapper.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/inscripcion/request/InscripcionModificacionRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/inscripcion/request/InscripcionModificacionRequest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/entidades/Disciplina.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/entidades/Disciplina.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/entidades/Inscripcion.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/entidades/Inscripcion.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/entidades/Profesor.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/entidades/Profesor.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/inscripcion/InscripcionServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/inscripcion/InscripcionServicio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/inscripciones/InscripcionesFormulario.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/inscripciones/InscripcionesFormulario.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/pagos/PagosFormulario.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/pagos/PagosFormulario.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/types/types.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/types/types.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -65,7 +71,7 @@
     &quot;RequestMappingsPanelWidth0&quot;: &quot;75&quot;,
     &quot;RequestMappingsPanelWidth1&quot;: &quot;75&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;Spring Boot.Main.executor&quot;: &quot;Run&quot;,
+    &quot;Spring Boot.Main.executor&quot;: &quot;Debug&quot;,
     &quot;git-widget-placeholder&quot;: &quot;main&quot;,
     &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
     &quot;last_directory_selection&quot;: &quot;D:/laburo/LE Dance/backend/src/main/java/ledance/validaciones&quot;,
@@ -78,7 +84,7 @@
     &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
     &quot;project.structure.proportion&quot;: &quot;0.0&quot;,
     &quot;project.structure.side.proportion&quot;: &quot;0.15977012&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.lookFeel&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;project.propCompiler&quot;,
     &quot;ts.external.directory.path&quot;: &quot;D:\\IntelliJ IDEA 2024.1\\plugins\\javascript-impl\\jsLanguageServicesImpl\\external&quot;,
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   },
@@ -271,11 +277,32 @@
       <workItem from="1740895618149" duration="9869000" />
       <workItem from="1740939778001" duration="1755000" />
       <workItem from="1740999036870" duration="29712000" />
-      <workItem from="1741040645239" duration="4315000" />
+      <workItem from="1741040645239" duration="7442000" />
+      <workItem from="1741054312864" duration="7657000" />
+      <workItem from="1741071132601" duration="903000" />
+      <workItem from="1741072569687" duration="40000" />
+      <workItem from="1741072944641" duration="303000" />
+      <workItem from="1741073730477" duration="604000" />
+      <workItem from="1741074639154" duration="409000" />
+      <workItem from="1741075062837" duration="1154000" />
+      <workItem from="1741076245496" duration="733000" />
     </task>
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <default-breakpoints>
+        <breakpoint enabled="true" log-message="true" log-stack="true" type="java-exception">
+          <dependency id="0" />
+        </breakpoint>
+        <breakpoint enabled="true" log-message="true" log-stack="true" type="javascript-exception">
+          <dependency leave-enabled="true" master-id="0" />
+          <properties uncaughtOnly="true" />
+        </breakpoint>
+      </default-breakpoints>
+    </breakpoint-manager>
   </component>
 </project>

@@ -13,7 +13,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/mensualidades")
-@CrossOrigin(origins = "*") // Habilitar CORS si se accede desde frontend
+@CrossOrigin(origins = "*")
 public class MensualidadControlador {
 
     private final MensualidadServicio mensualidadServicio;
@@ -42,14 +42,10 @@ public class MensualidadControlador {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping
-    public ResponseEntity<List<MensualidadResponse>> listarMensualidades() {
-        return ResponseEntity.ok(mensualidadServicio.listarMensualidades());
-    }
-
     @GetMapping("/inscripcion/{inscripcionId}")
     public ResponseEntity<List<MensualidadResponse>> listarPorInscripcion(@PathVariable Long inscripcionId) {
-        return ResponseEntity.ok(mensualidadServicio.listarPorInscripcion(inscripcionId));
+        List<MensualidadResponse> respuestas = mensualidadServicio.listarPorInscripcion(inscripcionId);
+        return ResponseEntity.ok(respuestas);
     }
 
     @DeleteMapping("/{id}")
@@ -58,9 +54,6 @@ public class MensualidadControlador {
         return ResponseEntity.noContent().build();
     }
 
-    /**
-     * Endpoint para generar (o actualizar) las mensualidades de todas las inscripciones activas para el mes vigente.
-     */
     @PostMapping("/generar-mensualidades")
     public ResponseEntity<List<MensualidadResponse>> generarMensualidadesParaMesVigente() {
         List<MensualidadResponse> respuestas = mensualidadServicio.generarMensualidadesParaMesVigente();

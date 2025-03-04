@@ -368,21 +368,41 @@ export interface InscripcionRegistroRequest {
   alumnoId: number;
   inscripcion: InscripcionDisciplinaRequest;
   fechaInscripcion?: string; // Opcional
-  notas?: string;
 }
 
 export interface InscripcionModificacionRequest {
   alumnoId: number;
-  disciplinaId: number;
-  bonificacionId?: number;
+  inscripcion: InscripcionDisciplinaRequest;
   fechaBaja?: string; // Cambiado de LocalDate a string
   activo?: boolean;
   costoParticular?: number;
-  notas?: string;
   estado?: EstadoInscripcion;
 }
 
+
+// ==========================================
+// BONIFICACIÓN
+// ==========================================
+// inscripcionTypes.ts
+
+export interface InscripcionRequest {
+  alumnoId: number;
+  disciplinaId: number;
+  bonificacionId?: number;
+  fechaInscripcion: string;
+  fechaBaja?: string;         // Opcional, para actualización
+  costoParticular?: number;   // Opcional, para actualización
+}
+
+// Para el formulario, agregamos opcionalmente el id (para edición)
+export interface InscripcionFormData extends InscripcionRequest {
+  id?: number;
+}
+
+// La respuesta se mantiene igual (o se ajusta según convenga)
+
 export interface InscripcionResponse {
+  length: number;
   mensualidadEstado: any;
   costoCalculado: undefined;
   fechaInscripcion: string;
@@ -405,10 +425,6 @@ export interface InscripcionResponse {
     porcentajeDescuento: number;
   };
 }
-
-// ==========================================
-// BONIFICACIÓN
-// ==========================================
 export interface BonificacionRegistroRequest {
   descripcion: string;
   porcentajeDescuento?: number;

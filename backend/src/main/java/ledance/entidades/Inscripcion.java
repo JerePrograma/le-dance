@@ -41,14 +41,17 @@ public class Inscripcion {
 
     @OneToMany(mappedBy = "inscripcion", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
+    @EqualsAndHashCode.Exclude
     private List<Pago> pagos;
 
     @OneToMany(mappedBy = "inscripcion", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
+    @EqualsAndHashCode.Exclude
     private List<AsistenciaMensual> asistenciasMensuales;
 
     @OneToMany(mappedBy = "inscripcion", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
+    @EqualsAndHashCode.Exclude
     private List<Mensualidad> mensualidades;
 
 }

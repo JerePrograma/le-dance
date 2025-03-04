@@ -26,6 +26,23 @@ public class InscripcionControlador {
         this.inscripcionServicio = inscripcionServicio;
     }
 
+    @PostMapping
+    public ResponseEntity<InscripcionResponse> crear(@RequestBody @Validated InscripcionRegistroRequest request) {
+        log.info("Creando inscripción para alumnoId: {} en disciplinaId: {}",
+                request.alumnoId(), request.inscripcion().disciplinaId());
+        InscripcionResponse response = inscripcionServicio.crearInscripcion(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<InscripcionResponse> actualizar(@PathVariable Long id,
+                                                          @RequestBody @Validated InscripcionModificacionRequest request) {
+        log.info("Actualizando inscripción con id: {}", id);
+        InscripcionResponse response = inscripcionServicio.actualizarInscripcion(id, request);
+        return ResponseEntity.ok(response);
+    }
+
+
     @PostMapping("/bulk")
     public ResponseEntity<List<InscripcionResponse>> crearInscripcionesMasivas(@RequestBody List<InscripcionRegistroRequest> requests) {
         List<InscripcionResponse> responses = inscripcionServicio.crearInscripcionesMasivas(requests);
@@ -36,17 +53,6 @@ public class InscripcionControlador {
     public ResponseEntity<EstadisticasInscripcionResponse> obtenerEstadisticas() {
         EstadisticasInscripcionResponse estadisticas = inscripcionServicio.obtenerEstadisticas();
         return ResponseEntity.ok(estadisticas);
-    }
-
-    /**
-     * ✅ Registrar una nueva inscripción.
-     */
-    @PostMapping
-    public ResponseEntity<InscripcionResponse> crear(@RequestBody @Validated InscripcionRegistroRequest request) {
-        log.info("Creando inscripción para alumnoId: {} en disciplinaId: {}",
-                request.alumnoId(), request.inscripcion().disciplinaId());
-        InscripcionResponse response = inscripcionServicio.crearInscripcion(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping
@@ -76,14 +82,6 @@ public class InscripcionControlador {
         return inscripciones.isEmpty()
                 ? ResponseEntity.noContent().build()
                 : ResponseEntity.ok(inscripciones);
-    }
-
-    @PutMapping("/{id}")
-    public ResponseEntity<InscripcionResponse> actualizar(@PathVariable Long id,
-                                                          @RequestBody @Validated InscripcionModificacionRequest request) {
-        log.info("Actualizando inscripción con id: {}", id);
-        InscripcionResponse response = inscripcionServicio.actualizarInscripcion(id, request);
-        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{id}")

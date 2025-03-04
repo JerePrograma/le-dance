@@ -134,9 +134,8 @@ public class InscripcionServicio implements IInscripcionServicio {
         // 1) Buscar la inscripción existente
         Inscripcion inscripcion = inscripcionRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Inscripción no encontrada."));
-
         // 2) Mapear los cambios desde el DTO
-        inscripcionMapper.updateEntityFromRequest(request, inscripcion);
+        inscripcion = inscripcionMapper.updateEntityFromRequest(request, inscripcion);
 
         // 3) Si fechaBaja no es null, cambiar estado a BAJA
         if (request.fechaBaja() != null) {

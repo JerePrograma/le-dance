@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
@@ -39,6 +40,7 @@ public class Profesor {
 
     @OneToMany(mappedBy = "profesor")
     @JsonIgnore
+    @EqualsAndHashCode.Exclude
     private List<Disciplina> disciplinas;
 
     @OneToOne

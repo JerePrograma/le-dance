@@ -27,14 +27,13 @@ import type {
     CobranzasFormValues,
     MetodoPagoResponse,
     MensualidadResponse,
-    // Se asume que InscripcionResponse ya está tipado
 } from "../../types/types";
 
-// Función para obtener el periodo (mes y año) vigente
+// Función para obtener el periodo vigente (mes y año)
 const getMesVigente = () =>
     new Date().toLocaleString("default", { month: "long", year: "numeric" });
 
-// Valores por defecto del formulario
+// Valores iniciales del formulario
 const defaultValues: CobranzasFormValues = {
     id: 0,
     reciboNro: "AUTO-001",
@@ -42,7 +41,6 @@ const defaultValues: CobranzasFormValues = {
     inscripcionId: "",
     fecha: new Date().toISOString().split("T")[0],
     detallePagos: [],
-    // Campos auxiliares para agregar detalles manualmente
     disciplina: "",
     tarifa: "",
     conceptoSeleccionado: "",
@@ -56,114 +54,129 @@ const defaultValues: CobranzasFormValues = {
     periodoMensual: getMesVigente(),
 };
 
+// Validación del formulario
 const validationSchema = Yup.object().shape({
     alumno: Yup.string().required("El alumno es obligatorio"),
     fecha: Yup.string().required("La fecha es obligatoria"),
 });
 
+// Constante para el valor de matrícula
 const MATRICULA_FEE = 100000;
 
 const CobranzasForm: React.FC = () => {
-    const [initialValues, setInitialValues] = useState<CobranzasFormValues>(defaultValues);
+    const [initialValues, setInitialValues] = useState<CobranzasFormValues>(
+        defaultValues
+    );
     const [matricula, setMatricula] = useState<MatriculaResponse | null>(null);
-    // Estado para guardar las inscripciones activas del alumno
     const [inscripciones, setInscripciones] = useState<any[]>([]);
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
-
-    // Mantengo otros datos globales
     const { alumnos, stocks, metodosPago, conceptos } = useCobranzasData();
     const { loadDeudasForAlumno } = useAlumnoDeudas();
     const [selectedAlumnoId, setSelectedAlumnoId] = useState<number | null>(null);
     const ultimoPago = useUltimoPago(selectedAlumnoId);
 
-    // Función para cargar inscripciones activas, matrícula y cuotas pendientes
+    // Separa la carga de inscripciones activas
+    const loadInscripciones = async (
+        alumnoId: number,
+        setFieldValue: (field: string, value: any) => void
+    ) => {
+        const inscripcionesApi = await import("../../api/inscripcionesApi");
+        const inscripcionesActivas = await inscripcionesApi.default.obtenerInscripcionesActivas(
+            alumnoId
+        );
+        setInscripciones(inscripcionesActivas);
+        setFieldValue("inscripcionId", inscripcionesActivas.length > 0 ? inscripcionesActivas[0].id : "");
+        return inscripcionesActivas;
+    };
+
+    // Carga la matrícula del alumno (única por año)
+    const loadMatricula = async (alumnoId: number) => {
+        const response = await matriculasApi.obtenerMatricula(alumnoId);
+        setMatricula(response);
+        return response;
+    };
+
+    // Carga las mensualidades pendientes de la inscripción activa
+    const loadMensualidades = async (
+        inscripcionId: number,
+        matriculaResponse: MatriculaResponse,
+        setFieldValue: (field: string, value: any) => void
+    ) => {
+        const mensualidades: MensualidadResponse[] = await mensualidadesApi.listarPorInscripcion(
+            inscripcionId
+        );
+        const pendingCuotas = mensualidades.filter(
+            (cuota) =>
+                cuota.estado &&
+                cuota.estado.toUpperCase() === "PENDIENTE"
+        );
+        const cuotasDetails = pendingCuotas.map((cuota) => ({
+            id: cuota.id,
+            codigoConcepto: cuota.id,
+            concepto: `Mensualidad - Inscripción ${cuota.inscripcionId} - ${getMesVigente()}`,
+            cuota: "1",
+            valorBase: cuota.valorBase,
+            bonificacionId: "",
+            recargoId: "",
+            aFavor: 0,
+            importe: cuota.totalPagar,
+            aCobrar: cuota.totalPagar,
+            abono: 0,
+        }));
+        // Si la matrícula no está pagada, agregar el detalle de matrícula
+        let matriculaDetail: any[] = [];
+        if (matriculaResponse && !matriculaResponse.pagada) {
+            matriculaDetail = [
+                {
+                    id: null,
+                    codigoConcepto: "MATRICULA",
+                    concepto: "Matrícula",
+                    cuota: "1",
+                    valorBase: MATRICULA_FEE,
+                    bonificacionId: "",
+                    recargoId: "",
+                    aFavor: 0,
+                    importe: MATRICULA_FEE,
+                    aCobrar: MATRICULA_FEE,
+                    abono: 0,
+                },
+            ];
+        }
+        const nuevosDetalles = [...cuotasDetails, ...matriculaDetail];
+        setFieldValue("detallePagos", nuevosDetalles);
+        const totalCobrado = nuevosDetalles.reduce(
+            (sum, det) => sum + (Number(det.aCobrar) || 0),
+            0
+        );
+        setFieldValue("totalCobrado", totalCobrado);
+    };
+
+    // Maneja el cambio de alumno, cargando inscripciones, matrícula y mensualidades
     const handleAlumnoChange = useCallback(
         async (alumnoId: string, setFieldValue: (field: string, value: any) => void) => {
+            const numAlumnoId = Number(alumnoId);
+            setFieldValue("alumno", alumnoId);
+            setSelectedAlumnoId(numAlumnoId);
+            setFieldValue("matriculaRemoved", false);
+
             try {
-                setFieldValue("alumno", alumnoId);
-                setSelectedAlumnoId(Number(alumnoId));
-                setFieldValue("matriculaRemoved", false);
-
-                // Importar el API de inscripciones
-                const inscripcionesApi = await import("../../api/inscripcionesApi");
-                // Llamar al nuevo endpoint que retorna un arreglo de inscripciones activas
-                const inscripcionesActivas = await inscripcionesApi.default.obtenerInscripcionesActivas(Number(alumnoId));
-                setInscripciones(inscripcionesActivas);
-
-                // Si el alumno tiene al menos una inscripción activa, establecemos la primera como predeterminada
+                const inscripcionesActivas = await loadInscripciones(numAlumnoId, setFieldValue);
+                const matriculaResponse = await loadMatricula(numAlumnoId);
                 if (inscripcionesActivas.length > 0) {
-                    setFieldValue("inscripcionId", inscripcionesActivas[0].id);
-                } else {
-                    setFieldValue("inscripcionId", "");
+                    const inscripcionId = inscripcionesActivas[0].id;
+                    await loadMensualidades(inscripcionId, matriculaResponse, setFieldValue);
                 }
-
-                // Cargar la matrícula
-                const matriculaResponse = await matriculasApi.obtenerMatricula(Number(alumnoId));
-                setMatricula(matriculaResponse);
-
-                // Cargar las mensualidades pendientes para la inscripción seleccionada
-                const inscripcionId = inscripcionesActivas.length > 0 ? inscripcionesActivas[0].id : null;
-                if (inscripcionId) {
-                    const mensualidades: MensualidadResponse[] = await mensualidadesApi.listarPorInscripcion(inscripcionId);
-
-                    // Filtrar cuotas pendientes
-                    const pendingCuotas = mensualidades.filter(
-                        (cuota) => cuota.estado && cuota.estado.toUpperCase() === "PENDIENTE"
-                    );
-                    // Mapear a detallePagos
-                    const cuotasDetails = pendingCuotas.map((cuota) => ({
-                        id: cuota.id,
-                        codigoConcepto: cuota.id,
-                        concepto: `Mensualidad - Inscripción ${cuota.inscripcionId} - ${getMesVigente()}`,
-                        cuota: "1",
-                        valorBase: cuota.valorBase,
-                        bonificacionId: "",
-                        recargoId: "",
-                        aFavor: 0,
-                        importe: cuota.totalPagar,
-                        aCobrar: cuota.totalPagar,
-                        abono: 0,
-                    }));
-                    // Si la matrícula está pendiente, agregar el detalle de matrícula
-                    let matriculaDetail: any[] = [];
-                    if (matriculaResponse && !matriculaResponse.pagada) {
-                        matriculaDetail = [
-                            {
-                                id: null,
-                                codigoConcepto: "MATRICULA",
-                                concepto: "Matrícula",
-                                cuota: "1",
-                                valorBase: MATRICULA_FEE,
-                                bonificacionId: "",
-                                recargoId: "",
-                                aFavor: 0,
-                                importe: MATRICULA_FEE,
-                                aCobrar: MATRICULA_FEE,
-                                abono: 0,
-                            },
-                        ];
-                    }
-                    // Actualizar detallePagos y totalCobrado
-                    const nuevosDetalles = [...cuotasDetails, ...matriculaDetail];
-                    setFieldValue("detallePagos", nuevosDetalles);
-                    const totalCobrado = nuevosDetalles.reduce(
-                        (sum, det) => sum + (Number(det.aCobrar) || 0),
-                        0
-                    );
-                    setFieldValue("totalCobrado", totalCobrado);
-                }
-
-                // Cargar las deudas pendientes del alumno si es necesario
-                loadDeudasForAlumno(Number(alumnoId), setFieldValue);
+                // Cargar deudas pendientes (si es parte del flujo)
+                loadDeudasForAlumno(numAlumnoId, setFieldValue);
             } catch (err) {
-                console.error("Error al cargar inscripción, matrícula o cuotas pendientes:", err);
+                console.error("Error al cargar datos del alumno:", err);
             }
         },
         [loadDeudasForAlumno]
     );
 
-    // Precarga valores si no se pasa id por query y existe alumno y último pago
+    // Precarga valores para edición o en caso de tener último pago
     useEffect(() => {
         if (!searchParams.get("id") && selectedAlumnoId && ultimoPago) {
             setInitialValues({
@@ -253,26 +266,20 @@ const CobranzasForm: React.FC = () => {
         }
     }, [searchParams]);
 
-    const calculateTotalAPagar = (
-        detallePagos: CobranzasFormValues["detallePagos"]
-    ) =>
+    const calculateTotalAPagar = (detallePagos: CobranzasFormValues["detallePagos"]) =>
         detallePagos.reduce(
             (total, item) => total + Number(item.importe || 0),
             0
         );
 
-    const actualizarDetalleImporte = (detalle: any) => {
-        return { ...detalle };
-    };
+    const actualizarDetalleImporte = (detalle: any) => ({ ...detalle });
 
     const onSubmit = async (
         values: CobranzasFormValues,
         actions: FormikHelpers<CobranzasFormValues>
     ) => {
         try {
-            const detallePagosActualizados = values.detallePagos.map((detalle) =>
-                actualizarDetalleImporte(detalle)
-            );
+            const detallePagosActualizados = values.detallePagos.map(actualizarDetalleImporte);
             const detallesFiltrados = detallePagosActualizados.filter(
                 (detalle) => Number(detalle.importe) !== 0
             );
@@ -397,7 +404,7 @@ const CobranzasForm: React.FC = () => {
                                     </div>
                                 </div>
                             </div>
-                            {/* Datos de Disciplina y Concepto/Stock */}
+                            {/* Sección de Disciplina y Conceptos */}
                             <div className="border p-4 mb-4">
                                 <h2 className="font-bold mb-2">Datos de Disciplina y Conceptos</h2>
                                 <div className="grid grid-cols-4 gap-4 items-end">
@@ -408,13 +415,11 @@ const CobranzasForm: React.FC = () => {
                                             name="disciplina"
                                             className="border p-2 w-full"
                                             onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-                                                const selectedId = e.target.value;
-                                                setFieldValue("disciplina", selectedId);
+                                                setFieldValue("disciplina", e.target.value);
                                                 setFieldValue("tarifa", "");
                                             }}
                                         >
                                             <option value="">Seleccione una disciplina</option>
-                                            {/* Aquí se listan solo las disciplinas en las que está inscripto el alumno */}
                                             {inscripciones.map((insc) => (
                                                 <option key={insc.id} value={insc.disciplina.id}>
                                                     {insc.disciplina.nombre}
@@ -431,7 +436,6 @@ const CobranzasForm: React.FC = () => {
                                             <option value="CLASE_PRUEBA">CLASE DE PRUEBA</option>
                                         </Field>
                                     </div>
-                                    {/* Selector del mes para tarifa CUOTA */}
                                     {values.tarifa === "CUOTA" && (
                                         <div>
                                             <label className="block font-medium">Periodo Mensual:</label>
@@ -449,11 +453,7 @@ const CobranzasForm: React.FC = () => {
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
                                                 <label className="block font-medium">Concepto:</label>
-                                                <Field
-                                                    as="select"
-                                                    name="conceptoSeleccionado"
-                                                    className="border p-2 w-full"
-                                                >
+                                                <Field as="select" name="conceptoSeleccionado" className="border p-2 w-full">
                                                     <option value="">Seleccione un concepto</option>
                                                     {conceptos.map((conc: ConceptoResponse) => (
                                                         <option key={conc.id} value={conc.id}>
@@ -464,11 +464,7 @@ const CobranzasForm: React.FC = () => {
                                             </div>
                                             <div>
                                                 <label className="block font-medium">Stock:</label>
-                                                <Field
-                                                    as="select"
-                                                    name="stockSeleccionado"
-                                                    className="border p-2 w-full"
-                                                >
+                                                <Field as="select" name="stockSeleccionado" className="border p-2 w-full">
                                                     <option value="">Seleccione un stock</option>
                                                     {stocks.map((prod: StockResponse) => (
                                                         <option key={prod.id} value={prod.id}>
@@ -481,12 +477,7 @@ const CobranzasForm: React.FC = () => {
                                     </div>
                                     <div>
                                         <label className="block font-medium">Cantidad:</label>
-                                        <Field
-                                            name="cantidad"
-                                            type="number"
-                                            className="border p-2 w-full"
-                                            min="1"
-                                        />
+                                        <Field name="cantidad" type="number" className="border p-2 w-full" min="1" />
                                     </div>
                                 </div>
                             </div>
@@ -497,7 +488,7 @@ const CobranzasForm: React.FC = () => {
                                     className="bg-green-500 text-white p-2 rounded mt-4"
                                     onClick={() => {
                                         const newDetails = [...values.detallePagos];
-                                        // Agregar detalle desde concepto seleccionado
+                                        // Agregar detalle por concepto seleccionado
                                         if (values.conceptoSeleccionado) {
                                             const selectedConcept = conceptos.find(
                                                 (c: ConceptoResponse) =>
@@ -519,14 +510,12 @@ const CobranzasForm: React.FC = () => {
                                                 });
                                             }
                                         }
-                                        // Agregar detalle desde disciplina y tarifa
+                                        // Agregar detalle basado en disciplina y tarifa
                                         if (values.disciplina && values.tarifa) {
-                                            // Buscamos la inscripción cuya disciplina coincida con la seleccionada
                                             const inscripcionSeleccionada = inscripciones.find(
                                                 (insc) => insc.disciplina.id.toString() === values.disciplina
                                             );
                                             if (inscripcionSeleccionada) {
-                                                // Aquí asumimos que la información de tarifas se extrae de la disciplina de la inscripción
                                                 let precio = 0;
                                                 let tarifaLabel = "";
                                                 if (values.tarifa === "CUOTA") {
@@ -556,11 +545,10 @@ const CobranzasForm: React.FC = () => {
                                                 });
                                             }
                                         }
-                                        // Agregar detalle desde Stock
+                                        // Agregar detalle por Stock seleccionado
                                         if (values.stockSeleccionado) {
                                             const selectedStock = stocks.find(
-                                                (s: StockResponse) =>
-                                                    s.id.toString() === values.stockSeleccionado
+                                                (s: StockResponse) => s.id.toString() === values.stockSeleccionado
                                             );
                                             if (selectedStock) {
                                                 const cantidad = Number(values.cantidad) || 1;
@@ -601,133 +589,98 @@ const CobranzasForm: React.FC = () => {
                                     Agregar Detalle
                                 </button>
                             </div>
-                            {/* Detalles de Facturación */}
+                            {/* Detalle de Facturación */}
                             <div className="border p-4 mb-4">
                                 <h2 className="font-bold mb-2">Detalles de Facturación</h2>
                                 <FieldArray name="detallePagos">
                                     {({ remove }) => (
-                                        <>
-                                            <table className="min-w-full border mb-4">
-                                                <thead>
-                                                    <tr>
-                                                        <th className="border p-2">Código (ID)</th>
-                                                        <th className="border p-2">Concepto</th>
-                                                        <th className="border p-2">Cuota/Cantidad</th>
-                                                        <th className="border p-2">Valor Base</th>
-                                                        <th className="border p-2">Bonificación</th>
-                                                        <th className="border p-2">Recargo</th>
-                                                        <th className="border p-2">Importe</th>
-                                                        <th className="border p-2">A Cobrar</th>
-                                                        <th className="border p-2" style={{ display: "none" }}>Abono</th>
-                                                        <th className="border p-2">Acciones</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {values.detallePagos && values.detallePagos.length > 0 ? (
-                                                        values.detallePagos.map((_detalle, index) => (
-                                                            <tr key={index}>
-                                                                <td className="border p-2">
-                                                                    <Field
-                                                                        name={`detallePagos.${index}.codigoConcepto`}
-                                                                        type="text"
-                                                                        className="w-full"
-                                                                    />
-                                                                </td>
-                                                                <td className="border p-2">
-                                                                    <Field
-                                                                        name={`detallePagos.${index}.concepto`}
-                                                                        type="text"
-                                                                        className="w-full"
-                                                                    />
-                                                                </td>
-                                                                <td className="border p-2">
-                                                                    <Field
-                                                                        name={`detallePagos.${index}.cuota`}
-                                                                        type="text"
-                                                                        className="w-full"
-                                                                    />
-                                                                </td>
-                                                                <td className="border p-2">
-                                                                    <Field
-                                                                        name={`detallePagos.${index}.valorBase`}
-                                                                        type="number"
-                                                                        className="w-full"
-                                                                    />
-                                                                </td>
-                                                                <td className="border p-2">
-                                                                    <Field
-                                                                        name={`detallePagos.${index}.bonificacionId`}
-                                                                        type="number"
-                                                                        className="w-full"
-                                                                    />
-                                                                </td>
-                                                                <td className="border p-2">
-                                                                    <Field
-                                                                        name={`detallePagos.${index}.recargoId`}
-                                                                        type="number"
-                                                                        className="w-full"
-                                                                    />
-                                                                </td>
-                                                                <td className="border p-2">
-                                                                    <Field
-                                                                        name={`detallePagos.${index}.importe`}
-                                                                        type="number"
-                                                                        className="w-full"
-                                                                        readOnly
-                                                                    />
-                                                                </td>
-                                                                <td className="border p-2">
-                                                                    <Field name={`detallePagos.${index}.aCobrar`}>
-                                                                        {({ field, form }: FieldProps) => (
-                                                                            <input
-                                                                                type="number"
-                                                                                {...field}
-                                                                                className="w-full"
-                                                                                onChange={(e) => {
-                                                                                    const inputValue = e.target.value;
-                                                                                    const importe = Number(values.detallePagos[index].importe) || 0;
-                                                                                    const newACobrar = inputValue === "" ? importe : Number(inputValue);
-                                                                                    form.setFieldValue(`detallePagos.${index}.aCobrar`, newACobrar);
-                                                                                    form.setFieldValue(`detallePagos.${index}.abono`, importe - newACobrar);
-                                                                                    const updatedTotal = values.detallePagos.reduce(
-                                                                                        (sum, d, idx) =>
-                                                                                            sum + (idx === index ? newACobrar : Number(d.aCobrar) || 0),
-                                                                                        0
-                                                                                    );
-                                                                                    form.setFieldValue("totalCobrado", updatedTotal);
-                                                                                }}
-                                                                            />
-                                                                        )}
-                                                                    </Field>
-                                                                </td>
-                                                                <td className="border p-2" style={{ display: "none" }}>
-                                                                    <Field
-                                                                        name={`detallePagos.${index}.abono`}
-                                                                        type="number"
-                                                                        className="w-full"
-                                                                    />
-                                                                </td>
-                                                                <td className="border p-2 text-center">
-                                                                    <button
-                                                                        type="button"
-                                                                        className="bg-red-500 text-white p-1 rounded"
-                                                                        onClick={() => remove(index)}
-                                                                    >
-                                                                        Eliminar
-                                                                    </button>
-                                                                </td>
-                                                            </tr>
-                                                        ))
-                                                    ) : (
-                                                        <tr>
-                                                            <td colSpan={9} className="text-center p-2">
-                                                                No hay conceptos agregados
+                                        <table className="min-w-full border mb-4">
+                                            <thead>
+                                                <tr>
+                                                    <th className="border p-2">Código (ID)</th>
+                                                    <th className="border p-2">Concepto</th>
+                                                    <th className="border p-2">Cuota/Cantidad</th>
+                                                    <th className="border p-2">Valor Base</th>
+                                                    <th className="border p-2">Bonificación</th>
+                                                    <th className="border p-2">Recargo</th>
+                                                    <th className="border p-2">Importe</th>
+                                                    <th className="border p-2">A Cobrar</th>
+                                                    <th className="border p-2" style={{ display: "none" }}>Abono</th>
+                                                    <th className="border p-2">Acciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {values.detallePagos && values.detallePagos.length > 0 ? (
+                                                    values.detallePagos.map((_detalle, index) => (
+                                                        <tr key={index}>
+                                                            <td className="border p-2">
+                                                                <Field name={`detallePagos.${index}.codigoConcepto`} type="text" className="w-full" />
+                                                            </td>
+                                                            <td className="border p-2">
+                                                                <Field name={`detallePagos.${index}.concepto`} type="text" className="w-full" />
+                                                            </td>
+                                                            <td className="border p-2">
+                                                                <Field name={`detallePagos.${index}.cuota`} type="text" className="w-full" />
+                                                            </td>
+                                                            <td className="border p-2">
+                                                                <Field name={`detallePagos.${index}.valorBase`} type="number" className="w-full" />
+                                                            </td>
+                                                            <td className="border p-2">
+                                                                <Field name={`detallePagos.${index}.bonificacionId`} type="number" className="w-full" />
+                                                            </td>
+                                                            <td className="border p-2">
+                                                                <Field name={`detallePagos.${index}.recargoId`} type="number" className="w-full" />
+                                                            </td>
+                                                            <td className="border p-2">
+                                                                <Field name={`detallePagos.${index}.importe`} type="number" className="w-full" readOnly />
+                                                            </td>
+                                                            <td className="border p-2">
+                                                                <Field name={`detallePagos.${index}.aCobrar`}>
+                                                                    {({ field, form }: FieldProps) => (
+                                                                        <input
+                                                                            type="number"
+                                                                            {...field}
+                                                                            className="w-full"
+                                                                            onChange={(e) => {
+                                                                                const inputValue = e.target.value;
+                                                                                const importe = Number(values.detallePagos[index].importe) || 0;
+                                                                                const newACobrar = inputValue === "" ? importe : Number(inputValue);
+                                                                                form.setFieldValue(`detallePagos.${index}.aCobrar`, newACobrar);
+                                                                                form.setFieldValue(`detallePagos.${index}.abono`, importe - newACobrar);
+                                                                                const updatedTotal = values.detallePagos.reduce(
+                                                                                    (sum, d, idx) =>
+                                                                                        sum + (idx === index ? newACobrar : Number(d.aCobrar) || 0),
+                                                                                    0
+                                                                                );
+                                                                                form.setFieldValue("totalCobrado", updatedTotal);
+                                                                            }}
+                                                                        />
+                                                                    )}
+                                                                </Field>
+                                                            </td>
+                                                            <td className="border p-2" style={{ display: "none" }}>
+                                                                <Field name={`detallePagos.${index}.abono`} type="number" className="w-full" />
+                                                            </td>
+                                                            <td className="border p-2 text-center">
+                                                                <button
+                                                                    type="button"
+                                                                    className="bg-red-500 text-white p-1 rounded"
+                                                                    onClick={() => remove(index)}
+                                                                >
+                                                                    Eliminar
+                                                                </button>
                                                             </td>
                                                         </tr>
-                                                    )}
-                                                </tbody>
-                                            </table>
-                                        </>
+                                                    ))
+                                                ) : (
+                                                    <tr>
+                                                        <td colSpan={9} className="text-center p-2">
+                                                            No hay conceptos agregados
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
                                     )}
                                 </FieldArray>
                             </div>
@@ -776,11 +729,7 @@ const CobranzasForm: React.FC = () => {
                                     </div>
                                     <div>
                                         <label className="block font-medium">Método de Pago:</label>
-                                        <Field
-                                            as="select"
-                                            name="metodoPagoId"
-                                            className="border p-2 w-full"
-                                        >
+                                        <Field as="select" name="metodoPagoId" className="border p-2 w-full">
                                             <option value="">Seleccione un método de pago</option>
                                             {metodosPago.map((mp: MetodoPagoResponse) => (
                                                 <option key={mp.id} value={mp.id}>
@@ -794,12 +743,7 @@ const CobranzasForm: React.FC = () => {
                             {/* Observaciones */}
                             <div className="border p-4 mb-4">
                                 <label className="block font-medium">Observaciones:</label>
-                                <Field
-                                    as="textarea"
-                                    name="observaciones"
-                                    className="border p-2 w-full"
-                                    rows="3"
-                                />
+                                <Field as="textarea" name="observaciones" className="border p-2 w-full" rows="3" />
                             </div>
                             {/* Botones de Acción */}
                             <div className="flex justify-end gap-4">
