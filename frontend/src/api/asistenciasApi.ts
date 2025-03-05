@@ -260,6 +260,11 @@ const asistenciasApi = {
     }
   },
 
+
+  crearAsistenciasParaInscripcionesActivas: async () => {
+    return api.post(`/asistencias-mensuales/crear-asistencias-activos-detallado`);
+  },
+
   // En tu archivo de API (por ejemplo, asistenciasApi.ts o similar)
   actualizarObservacion: async (payload: { observaciones: { alumnoId: number; observacion: string }[] }) => {
     try {

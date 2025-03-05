@@ -4,6 +4,7 @@ import ledance.dto.asistencia.request.AsistenciaMensualRegistroRequest;
 import ledance.dto.asistencia.request.AsistenciaMensualModificacionRequest;
 import ledance.dto.asistencia.response.AsistenciaMensualDetalleResponse;
 import ledance.dto.asistencia.response.AsistenciaMensualListadoResponse;
+import ledance.dto.asistencia.response.AsistenciasActivasResponse;
 import ledance.servicios.asistencia.AsistenciaMensualServicio;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,8 +73,10 @@ public class AsistenciaMensualControlador {
         }
     }
 
-    @GetMapping(value = "/crear-asistencias-activos", produces = "application/json")
-    public void crearAsistenciasParaInscripcionesActivas() {
-        asistenciaMensualServicio.crearAsistenciasParaInscripcionesActivas();
+    @PostMapping("/crear-asistencias-activos-detallado")
+    public ResponseEntity<AsistenciasActivasResponse> crearAsistenciasParaInscripcionesActivasDetallado() {
+        AsistenciasActivasResponse response = asistenciaMensualServicio.crearAsistenciasParaInscripcionesActivasDetallado();
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
+
 }

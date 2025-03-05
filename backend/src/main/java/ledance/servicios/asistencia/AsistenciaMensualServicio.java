@@ -1,10 +1,10 @@
 package ledance.servicios.asistencia;
 
 import ledance.dto.asistencia.request.AsistenciaMensualModificacionRequest;
-import ledance.dto.asistencia.request.AsistenciaMensualRegistroRequest;
 import ledance.dto.asistencia.response.AsistenciaMensualDetalleResponse;
 import ledance.dto.asistencia.response.AsistenciaMensualListadoResponse;
 import ledance.dto.asistencia.AsistenciaMensualMapper;
+import ledance.dto.asistencia.response.AsistenciasActivasResponse;
 import ledance.entidades.*;
 import ledance.repositorios.AsistenciaMensualRepositorio;
 import ledance.repositorios.DisciplinaRepositorio;
@@ -15,9 +15,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -77,7 +75,7 @@ public class AsistenciaMensualServicio {
      * Incorpora un alumno (a través de su inscripción) a la planilla de asistencia de su disciplina.
      */
     @Transactional
-    public AsistenciaMensualDetalleResponse agregarAlumnoAPlanilla(Long inscripcionId, int mes, int anio) {
+    public void agregarAlumnoAPlanilla(Long inscripcionId, int mes, int anio) {
         Inscripcion inscripcion = inscripcionRepositorio.findById(inscripcionId)
                 .orElseThrow(() -> new IllegalArgumentException("Inscripción no encontrada con ID: " + inscripcionId));
         Long disciplinaId = inscripcion.getDisciplina().getId();
@@ -85,7 +83,6 @@ public class AsistenciaMensualServicio {
         AsistenciaMensualDetalleResponse planillaDTO = crearPlanilla(disciplinaId, mes, anio);
         // Incorporar al alumno generando sus asistencias diarias en la planilla (si aún no existen)
         asistenciaDiariaServicio.registrarAsistenciasParaNuevoAlumno(inscripcionId, planillaDTO.id());
-        return planillaDTO;
     }
 
     @Transactional(readOnly = true)
@@ -150,14 +147,65 @@ public class AsistenciaMensualServicio {
     }
 
     @Transactional
-    public void crearAsistenciasParaInscripcionesActivas() {
+    public AsistenciasActivasResponse crearAsistenciasParaInscripcionesActivasDetallado() {
         int mes = LocalDate.now().getMonthValue();
         int anio = LocalDate.now().getYear();
-        // Obtiene todas las inscripciones activas
+
         List<Inscripcion> inscripcionesActivas = inscripcionRepositorio.findByEstado(EstadoInscripcion.ACTIVA);
-        for (Inscripcion inscripcion : inscripcionesActivas) {
-            // Se utiliza el método existente para agregar al alumno a la planilla de su disciplina
-            agregarAlumnoAPlanilla(inscripcion.getId(), mes, anio);
+        // Agrupar las inscripciones activas por disciplina
+        Map<Disciplina, List<Inscripcion>> inscripcionesPorDisciplina =
+                inscripcionesActivas.stream().collect(Collectors.groupingBy(Inscripcion::getDisciplina));
+
+        int planillasCreadas = 0;
+        int totalAsistenciasGeneradas = 0;
+        List<String> detalles = new ArrayList<>();
+
+        for (Map.Entry<Disciplina, List<Inscripcion>> entry : inscripcionesPorDisciplina.entrySet()) {
+            Disciplina disciplina = entry.getKey();
+            List<Inscripcion> inscripciones = entry.getValue();
+
+            // Buscar o crear la planilla para esta disciplina, mes y año
+            Optional<AsistenciaMensual> planillaOpt = asistenciaMensualRepositorio.findByDisciplina_IdAndMesAndAnio(disciplina.getId(), mes, anio);
+            AsistenciaMensual planilla;
+            if (planillaOpt.isPresent()) {
+                planilla = planillaOpt.get();
+            } else {
+                planilla = new AsistenciaMensual();
+                planilla.setMes(mes);
+                planilla.setAnio(anio);
+                planilla.setDisciplina(disciplina);
+                planilla = asistenciaMensualRepositorio.save(planilla);
+                planillasCreadas++;
+            }
+
+            // Obtener los días de clase para la disciplina
+            List<LocalDate> fechasClase = disciplinaServicio.obtenerDiasClase(disciplina.getId(), mes, anio);
+            int asistenciasGeneradasParaDisciplina = 0;
+            // Para cada inscripción de esta disciplina
+            for (Inscripcion inscripcion : inscripciones) {
+                // Si ya existen asistencias para este alumno en la planilla, se omite
+                boolean existe = asistenciaDiariaRepositorio.existsByAlumnoIdAndAsistenciaMensualId(
+                        inscripcion.getAlumno().getId(), planilla.getId());
+                if (!existe) {
+                    AsistenciaMensual finalPlanilla = planilla;
+                    List<AsistenciaDiaria> nuevasAsistencias = fechasClase.stream()
+                            .map(fecha -> new AsistenciaDiaria(null, fecha, EstadoAsistencia.AUSENTE, inscripcion.getAlumno(), finalPlanilla))
+                            .collect(Collectors.toList());
+                    asistenciaDiariaRepositorio.saveAll(nuevasAsistencias);
+                    asistenciasGeneradasParaDisciplina += nuevasAsistencias.size();
+                }
+            }
+            detalles.add("Disciplina " + disciplina.getNombre() + " - Inscripciones: " + inscripciones.size()
+                    + ", Asistencias generadas: " + asistenciasGeneradasParaDisciplina);
+            totalAsistenciasGeneradas += asistenciasGeneradasParaDisciplina;
         }
+
+        return new AsistenciasActivasResponse(
+                inscripcionesActivas.size(),
+                planillasCreadas,
+                totalAsistenciasGeneradas,
+                detalles
+        );
     }
+
 }

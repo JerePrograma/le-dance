@@ -96,12 +96,6 @@ public class InscripcionControlador {
         }
     }
 
-    @PostMapping("/crear-asistencias-activos")
-    public ResponseEntity<?> crearAsistenciasMensuales(@RequestParam int mes, @RequestParam int anio) {
-        inscripcionServicio.crearAsistenciaMensualParaInscripcionesActivas(mes, anio);
-        return ResponseEntity.ok("Asistencias mensuales creadas exitosamente.");
-    }
-
     @GetMapping("/alumno/{alumnoId}")
     public ResponseEntity<InscripcionResponse> obtenerInscripcionActiva(@PathVariable Long alumnoId) {
         InscripcionResponse response = inscripcionServicio.obtenerInscripcionActiva(alumnoId);

@@ -10,6 +10,7 @@ import Boton from "../../componentes/comunes/Boton"
 import { Pencil } from "lucide-react"
 import Pagination from "../../componentes/ui/Pagination"
 import { toast } from "react-toastify"
+import asistenciasApi from "../../api/asistenciasApi"
 
 const itemsPerPage = 5
 
@@ -42,11 +43,8 @@ const InscripcionesPagina = () => {
 
   const handleGenerarAsistencias = async () => {
     try {
-      const hoy = new Date();
-      const mes = hoy.getMonth() + 1; // getMonth() devuelve 0 para enero, por eso se suma 1
-      const anio = hoy.getFullYear();
       // Asegúrate de que la función en inscripcionesApi acepte mes y anio
-      await inscripcionesApi.crearAsistenciasParaInscripcionesActivas(mes, anio);
+      await asistenciasApi.crearAsistenciasParaInscripcionesActivas();
       toast.success("Asistencias generadas exitosamente para inscripciones activas");
       fetchInscripciones();
     } catch (error) {

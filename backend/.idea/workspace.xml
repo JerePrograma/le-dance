@@ -6,7 +6,10 @@
   <component name="ChangeListManager">
     <list default="true" id="ccb8f120-972c-4a18-b18b-4ae7da723dfa" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/AsistenciaMensualControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/AsistenciaMensualControlador.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/InscripcionControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/InscripcionControlador.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/asistencia/AsistenciaMensualServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/asistencia/AsistenciaMensualServicio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/inscripcion/InscripcionServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/inscripcion/InscripcionServicio.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -279,7 +282,7 @@
       <workItem from="1741089616800" duration="1013000" />
       <workItem from="1741135169658" duration="5868000" />
       <workItem from="1741175745368" duration="11836000" />
-      <workItem from="1741199007428" duration="4266000" />
+      <workItem from="1741199007428" duration="5249000" />
     </task>
     <servers />
   </component>

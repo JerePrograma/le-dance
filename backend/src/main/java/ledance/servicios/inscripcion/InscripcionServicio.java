@@ -9,11 +9,7 @@ import ledance.dto.response.EstadisticasInscripcionResponse;
 import ledance.dto.inscripcion.response.InscripcionResponse;
 import ledance.entidades.*;
 import ledance.infra.errores.TratadorDeErrores;
-import ledance.repositorios.AlumnoRepositorio;
-import ledance.repositorios.BonificacionRepositorio;
-import ledance.repositorios.DisciplinaRepositorio;
-import ledance.repositorios.InscripcionRepositorio;
-import ledance.repositorios.AsistenciaMensualRepositorio;
+import ledance.repositorios.*;
 import ledance.servicios.asistencia.AsistenciaMensualServicio;
 import ledance.servicios.mensualidad.MensualidadServicio;
 import ledance.dto.mensualidad.response.MensualidadResponse;
@@ -38,10 +34,8 @@ public class InscripcionServicio implements IInscripcionServicio {
     private final DisciplinaRepositorio disciplinaRepositorio;
     private final BonificacionRepositorio bonificacionRepositorio;
     private final InscripcionMapper inscripcionMapper;
-    private final AsistenciaMensualRepositorio asistenciaMensualRepositorio;
     private final AsistenciaMensualServicio asistenciaMensualServicio;
     private final MensualidadServicio mensualidadServicio;
-    private final AsistenciaMensualMapper asistenciaMensualMapper;
 
     public InscripcionServicio(InscripcionRepositorio inscripcionRepositorio,
                                AlumnoRepositorio alumnoRepositorio,
@@ -56,10 +50,8 @@ public class InscripcionServicio implements IInscripcionServicio {
         this.disciplinaRepositorio = disciplinaRepositorio;
         this.bonificacionRepositorio = bonificacionRepositorio;
         this.inscripcionMapper = inscripcionMapper;
-        this.asistenciaMensualRepositorio = asistenciaMensualRepositorio;
         this.asistenciaMensualServicio = asistenciaMensualServicio;
         this.mensualidadServicio = mensualidadServicio;
-        this.asistenciaMensualMapper = asistenciaMensualMapper;
     }
 
     /**
@@ -207,30 +199,5 @@ public class InscripcionServicio implements IInscripcionServicio {
         return inscripcionMapper.toDTO(inscripcion);
     }
 
-    @Transactional
-    public void crearAsistenciaMensualParaInscripcionesActivas(int mes, int anio) {
-        // Obtener todas las inscripciones activas
-        List<Inscripcion> inscripcionesActivas = inscripcionRepositorio.findByEstado(EstadoInscripcion.ACTIVA);
-
-        // Agrupar las inscripciones activas por disciplina
-        Map<Disciplina, List<Inscripcion>> inscripcionesPorDisciplina =
-                inscripcionesActivas.stream()
-                        .collect(Collectors.groupingBy(Inscripcion::getDisciplina));
-
-        // Para cada disciplina que tenga inscripciones activas, crear la planilla si no existe
-        for (Map.Entry<Disciplina, List<Inscripcion>> entry : inscripcionesPorDisciplina.entrySet()) {
-            Disciplina disciplina = entry.getKey();
-            // Verificar si ya existe la planilla para esta disciplina, mes y año
-            Optional<AsistenciaMensual> planillaOpt = asistenciaMensualRepositorio.findByDisciplina_IdAndMesAndAnio(
-                    disciplina.getId(), mes, anio);
-            if (planillaOpt.isEmpty()) {
-                AsistenciaMensual planilla = new AsistenciaMensual();
-                planilla.setMes(mes);
-                planilla.setAnio(anio);
-                planilla.setDisciplina(disciplina);
-                asistenciaMensualRepositorio.save(planilla);
-            }
-        }
-    }
 
 }
