@@ -232,7 +232,7 @@ const AlumnosFormulario: React.FC = () => {
         onSubmit={handleGuardarAlumno}
         enableReinitialize
       >
-        {({ isSubmitting, setFieldValue }) => (
+        {({ isSubmitting, setFieldValue, resetForm }) => (
           <Form className="formulario max-w-4xl mx-auto">
             <div className="form-grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* Búsqueda por ID */}
@@ -278,7 +278,7 @@ const AlumnosFormulario: React.FC = () => {
                     <Button
                       type="button"
                       onClick={() => {
-                        // Al limpiar con la cruz se reinicia el formulario y se borran los valores de búsqueda y la query
+                        resetForm(); // Resetea el estado interno de Formik
                         resetearFormulario();
                       }}
                       className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-200 hover:text-gray-800"
@@ -402,6 +402,7 @@ const AlumnosFormulario: React.FC = () => {
               <Button
                 type="button"
                 onClick={() => {
+                  resetForm(); // Resetea el estado interno de Formik
                   resetearFormulario();
                 }}
               >

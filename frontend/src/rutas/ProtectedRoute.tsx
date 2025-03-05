@@ -2,18 +2,31 @@ import React from "react";
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../hooks/context/authContext";
 
-const ProtectedRoute: React.FC<{ redirectPath?: string }> = ({
-  redirectPath = "/login",
-}) => {
-  const { isAuth, loading } = useAuth();
+interface ProtectedRouteProps {
+  redirectPath?: string;
+  requiredRole?: string;
+}
 
-  // Mostrar un spinner o mensaje de carga mientras se verifica la autenticacion
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
+  redirectPath = "/login",
+  requiredRole,
+}) => {
+  const { isAuth, loading, hasRole } = useAuth();
+
   if (loading) {
-    return <div>Cargando...</div>; // Puedes reemplazar esto por un Spinner o componente de carga
+    return <div>Cargando...</div>;
   }
 
-  // Redirige al login si no esta autenticado
-  return isAuth ? <Outlet /> : <Navigate to={redirectPath} replace />;
+  if (!isAuth) {
+    return <Navigate to={redirectPath} replace />;
+  }
+
+  if (requiredRole && !hasRole(requiredRole)) {
+    // Redirige a una ruta de "No autorizado" si no se cumple el rol
+    return <Navigate to="/unauthorized" replace />;
+  }
+
+  return <Outlet />;
 };
 
 export default ProtectedRoute;

@@ -58,4 +58,12 @@ public class UsuarioControlador {
         return ResponseEntity.ok("Usuario eliminado.");
     }
 
+    @GetMapping("/perfil")
+    public ResponseEntity<UsuarioResponse> obtenerPerfil(@AuthenticationPrincipal Usuario usuario) {
+        if (usuario == null) {
+            return ResponseEntity.status(401).build();
+        }
+        return ResponseEntity.ok(usuarioService.convertirAUsuarioResponse(usuario));
+    }
+
 }

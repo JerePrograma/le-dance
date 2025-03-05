@@ -110,36 +110,33 @@ public class DisciplinaServicio implements IDisciplinaServicio {
     @Transactional
     public DisciplinaDetalleResponse actualizarDisciplina(Long id, DisciplinaModificacionRequest request) {
         log.info("Iniciando actualización de disciplina con id: {}", id);
+
+        // Recupera la disciplina existente
         Disciplina existente = disciplinaRepositorio.findById(id)
                 .orElseThrow(() -> new TratadorDeErrores.DisciplinaNotFoundException(id));
         log.debug("Disciplina encontrada: {}", existente.getNombre());
 
-        log.debug("Buscando profesor con id: {}", request.profesorId());
+        // Recupera el profesor indicado en la request
         Profesor profesor = profesorRepositorio.findById(request.profesorId())
                 .orElseThrow(() -> new TratadorDeErrores.ProfesorNotFoundException(request.profesorId()));
         log.debug("Profesor encontrado: {} {}", profesor.getNombre(), profesor.getApellido());
 
-        log.debug("Actualizando campos de la disciplina mediante el mapper");
-        // Actualiza los campos básicos (sin horarios) mediante el mapper
+        // Actualiza los campos básicos de la disciplina mediante el mapper
         disciplinaMapper.updateEntityFromRequest(request, existente);
         existente.setProfesor(profesor);
 
-        // Aquí actualizamos la colección de horarios de forma diferencial.
-        // Se asume que el DTO de modificación contiene una lista de DisciplinaHorarioModificacionRequest
-        if (request.horarios() != null) {
+        // Actualiza la colección de horarios de la disciplina, si se proporcionan
+        if (request.horarios() != null && !request.horarios().isEmpty()) {
             log.info("Actualizando horarios para la disciplina id: {}", existente.getId());
-            // Convertimos la lista de horarios recibida al tipo de modificación.
-            // Si tu DTO en la request ya es de tipo DisciplinaHorarioModificacionRequest, se pasa directamente.
-            List<DisciplinaHorarioModificacionRequest> horariosParaActualizar =
-                    (List<DisciplinaHorarioModificacionRequest>)(Object) request.horarios();
-            disciplinaHorarioServicio.actualizarHorarios(existente, horariosParaActualizar);
+            // Se asume que request.horarios() ya es de tipo List<DisciplinaHorarioModificacionRequest>
+            disciplinaHorarioServicio.actualizarHorarios(existente, request.horarios(), LocalDate.now());
         }
 
-        log.debug("Guardando disciplina actualizada en la base de datos");
+        // Guarda la disciplina actualizada en la base de datos
         Disciplina disciplinaActualizada = disciplinaRepositorio.save(existente);
-        DisciplinaDetalleResponse response = disciplinaMapper.toDetalleResponse(disciplinaActualizada);
         log.info("Disciplina actualizada correctamente con id: {}", disciplinaActualizada.getId());
-        return response;
+
+        return disciplinaMapper.toDetalleResponse(disciplinaActualizada);
     }
 
     /**
@@ -148,12 +145,11 @@ public class DisciplinaServicio implements IDisciplinaServicio {
     @Override
     @Transactional
     public void eliminarDisciplina(Long id) {
-        log.info("Iniciando baja lógica de la disciplina con id: {}", id);
+        log.info("Iniciando eliminación de la disciplina con id: {}", id);
         Disciplina disciplina = disciplinaRepositorio.findById(id)
                 .orElseThrow(() -> new TratadorDeErrores.DisciplinaNotFoundException(id));
-        disciplina.setActivo(false);
-        disciplinaRepositorio.save(disciplina);
-        log.info("Disciplina con id: {} marcada como inactiva", id);
+        disciplinaRepositorio.delete(disciplina);
+        log.info("Disciplina con id: {} eliminada", id);
     }
 
     /**
@@ -327,5 +323,14 @@ public class DisciplinaServicio implements IDisciplinaServicio {
                 .collect(Collectors.toList());
         log.debug("Se encontraron {} horarios para la disciplina id: {}", horarios.size(), disciplinaId);
         return horarios;
+    }
+
+    public void darBajaDisciplina(Long id) {
+        log.info("Iniciando baja lógica de la disciplina con id: {}", id);
+        Disciplina disciplina = disciplinaRepositorio.findById(id)
+                .orElseThrow(() -> new TratadorDeErrores.DisciplinaNotFoundException(id));
+        disciplina.setActivo(false);
+        disciplinaRepositorio.save(disciplina);
+        log.info("Disciplina con id: {} marcada como inactiva", id);
     }
 }

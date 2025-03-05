@@ -14,4 +14,7 @@ public interface RolRepositorio extends JpaRepository<Rol, Long> {
     boolean existsByDescripcion(String descripcion);
 
     List<Rol> findByActivoTrue();
+
+    Optional<Rol> findByDescripcionIgnoreCase(String descripcion);
+
 }

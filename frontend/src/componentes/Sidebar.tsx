@@ -1,20 +1,21 @@
-import type React from "react"
-import { Link, useLocation } from "react-router-dom"
-import { useSidebar } from "../hooks/context/SideBarContext"
-import { ChevronRight, ChevronLeft, ChevronDown } from "lucide-react"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible"
-import { cn } from "./lib/utils"
-import { navigationItems } from "../config/navigation"
+import React from "react";
+import { Link, useLocation } from "react-router-dom";
+import { useSidebar } from "../hooks/context/SideBarContext";
+import { ChevronRight, ChevronLeft, ChevronDown } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible";
+import { cn } from "./lib/utils";
+import { navigationItems, NavigationItem } from "../config/navigation";
+import { useAuth } from "../hooks/context/authContext";
 
 interface NavItemProps {
-    icon?: React.ElementType
-    label: string
-    href?: string
-    isActive?: boolean
-    isExpanded: boolean
-    onClick?: () => void
-    className?: string
-    children?: React.ReactNode
+    icon?: React.ElementType;
+    label: string;
+    href?: string;
+    isActive?: boolean;
+    isExpanded: boolean;
+    onClick?: () => void;
+    className?: string;
+    children?: React.ReactNode;
 }
 
 const NavItem = ({
@@ -35,15 +36,17 @@ const NavItem = ({
             </div>
             {children}
         </>
-    )
+    );
 
     return href ? (
         <Link
             to={href}
             className={cn(
                 "flex items-center justify-start w-full gap-3 px-3 py-2 rounded-md transition-all duration-200",
-                isActive ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                className,
+                isActive
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                className
             )}
             onClick={onClick}
         >
@@ -54,27 +57,28 @@ const NavItem = ({
             className={cn(
                 "flex items-center justify-start w-full gap-3 px-3 py-2 rounded-md transition-all duration-200",
                 "text-muted-foreground hover:bg-muted hover:text-foreground",
-                className,
+                className
             )}
             onClick={onClick}
         >
             {content}
         </button>
-    )
-}
+    );
+};
 
 interface NavGroupProps {
-    item: (typeof navigationItems)[0]
-    isExpanded: boolean
-    level?: number
+    item: NavigationItem;
+    isExpanded: boolean;
 }
 
 const NavGroup = ({ item, isExpanded }: NavGroupProps) => {
-    const location = useLocation()
-    const isActive = item.href ? location.pathname.startsWith(item.href) : false
+    const location = useLocation();
+    const isActive = item.href ? location.pathname.startsWith(item.href) : false;
 
     if (!item.items) {
-        return <NavItem icon={item.icon} label={item.label} href={item.href} isActive={isActive} isExpanded={isExpanded} />
+        return (
+            <NavItem icon={item.icon} label={item.label} href={item.href} isActive={isActive} isExpanded={isExpanded} />
+        );
     }
 
     return (
@@ -97,18 +101,36 @@ const NavGroup = ({ item, isExpanded }: NavGroupProps) => {
                 ))}
             </CollapsibleContent>
         </Collapsible>
-    )
-}
+    );
+};
 
 export default function Sidebar() {
-    const { isExpanded, toggleSidebar } = useSidebar()
+    const { isExpanded, toggleSidebar } = useSidebar();
+    const { hasRole } = useAuth();
+
+    // Filtrar items según el rol requerido
+    const filteredNavigation = navigationItems.filter((item) => {
+        // Si el item requiere un rol, lo mostramos solo si se cumple
+        if (item.requiredRole && !hasRole(item.requiredRole)) {
+            return false;
+        }
+        // Si el item tiene sub-items, filtrarlos también
+        if (item.items) {
+            item.items = item.items.filter((subItem) => {
+                if (subItem.requiredRole && !hasRole(subItem.requiredRole)) {
+                    return false;
+                }
+                return true;
+            });
+        }
+        return true;
+    });
 
     return (
         <aside
             className={cn(
-                "fixed inset-y-0 left-0 z-40 flex flex-col bg-background border-r",
-                "transition-all duration-300",
-                isExpanded ? "w-[var(--sidebar-width)]" : "w-[4.5rem]",
+                "fixed inset-y-0 left-0 z-40 flex flex-col bg-background border-r transition-all duration-300",
+                isExpanded ? "w-[var(--sidebar-width)]" : "w-[4.5rem]"
             )}
         >
             <div className="flex items-center h-[var(--header-height)] px-4 border-b">
@@ -121,23 +143,18 @@ export default function Sidebar() {
                         LD
                     </Link>
                 )}
-                <button
-                    onClick={toggleSidebar}
-                    className="p-1 rounded-md hover:bg-muted ml-auto"
-                    aria-label={isExpanded ? "Colapsar menu" : "Expandir menu"}
-                >
+                <button onClick={toggleSidebar} className="p-1 rounded-md hover:bg-muted ml-auto" aria-label={isExpanded ? "Colapsar menu" : "Expandir menu"}>
                     {isExpanded ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
                 </button>
             </div>
 
             <nav className="flex-1 overflow-y-auto py-4 px-3">
                 <div className="space-y-4">
-                    {navigationItems.map((item) => (
+                    {filteredNavigation.map((item) => (
                         <NavGroup key={item.id} item={item} isExpanded={isExpanded} />
                     ))}
                 </div>
             </nav>
         </aside>
-    )
+    );
 }
-

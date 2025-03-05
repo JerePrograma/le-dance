@@ -34,7 +34,27 @@ export const useCargaMensualidades = (alumnos: AlumnoListadoResponse[]) => {
                     fechaInicio,
                     alumnoNombre,
                 });
-
+            /**  mensualidadId: number;
+              alumno: {
+                id: number;
+                nombre: string;
+              }
+              cuota: string;
+              importe: number;
+              bonificacion: {
+                id: number;
+                descripcion: string;
+                porcentajeDescuento: number;
+                valorFijo: number;
+              }
+              total: number;
+              recargo: number;
+              estado: string;
+              disciplina: {
+                id: number;
+                nombre: string;
+                valorCuota: number;
+              } */
             const cuotasDetails = mensualidades
                 .filter(isCuotaPendiente)
                 .map((cuota) => {
@@ -42,7 +62,7 @@ export const useCargaMensualidades = (alumnos: AlumnoListadoResponse[]) => {
                         Number(cuota.importe) - Number(cuota.bonificacion) + Number(cuota.recargo);
                     return {
                         id: cuota.mensualidadId,
-                        codigoConcepto: cuota.mensualidadId,
+                        codigoConcepto: cuota.disciplina.nombre,
                         concepto: `${cuota.disciplina} - CUOTA - ${new Date().toLocaleString("default", {
                             month: "long",
                             year: "numeric",

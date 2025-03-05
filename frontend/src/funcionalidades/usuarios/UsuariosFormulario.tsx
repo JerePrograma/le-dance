@@ -2,12 +2,13 @@ import React, { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { ErrorMessage, Field, Form, Formik } from "formik";
 import { usuarioEsquema } from "../../validaciones/usuarioEsquema";
+import * as Yup from "yup"; // Para construir el esquema vacío
 import usuariosApi from "../../api/usuariosApi";
 import api from "../../api/axiosConfig"; // Se utiliza para cargar roles
 import { toast } from "react-toastify";
 import Boton from "../../componentes/comunes/Boton";
 
-// Definimos la interfaz local para el formulario, donde 'activo' es obligatorio
+// Interfaz local para el formulario, donde 'activo' es obligatorio
 interface UsuarioFormValues {
   nombreUsuario: string;
   contrasena: string;
@@ -37,7 +38,7 @@ const UsuariosFormulario: React.FC = () => {
   const navigate = useNavigate();
   const userId = searchParams.get("id");
 
-  // Cargar roles (puedes refactorizar a un módulo rolesApi si lo deseas)
+  // Cargar roles (se puede refactorizar a un módulo rolesApi si se desea)
   useEffect(() => {
     const fetchRoles = async () => {
       try {
@@ -61,7 +62,7 @@ const UsuariosFormulario: React.FC = () => {
             nombreUsuario: response.nombreUsuario,
             contrasena: "", // Se deja vacía por seguridad
             rol: response.rol,
-            activo: response.activo, // Campo obligatorio
+            activo: response.activo,
           });
           setIsEditMode(true);
         } catch (err) {
@@ -76,7 +77,6 @@ const UsuariosFormulario: React.FC = () => {
 
   const handleSubmit = async (values: UsuarioFormValues) => {
     if (isEditMode && userId) {
-      // Modo edición: se actualiza el usuario, enviando el objeto completo
       try {
         await usuariosApi.actualizarUsuario(Number(userId), values);
         toast.success("Usuario actualizado correctamente.");
@@ -86,8 +86,8 @@ const UsuariosFormulario: React.FC = () => {
         toast.error("Error al actualizar el usuario. Verifica los datos.");
       }
     } else {
-      // Modo registro: extraemos solo los campos necesarios (activo se ignora en el registro)
       try {
+        // En registro se ignora 'activo'
         const { activo, ...registroValues } = values;
         await usuariosApi.registrarUsuario(registroValues);
         toast.success("Usuario registrado correctamente.");
@@ -101,13 +101,16 @@ const UsuariosFormulario: React.FC = () => {
 
   if (loading) return <div className="text-center py-4">Cargando datos...</div>;
 
+  // Definimos el esquema de validación: si es edición, no validamos nada
+  const validationSchema = isEditMode ? Yup.object().shape({}) : usuarioEsquema;
+
   return (
     <div className="page-container">
       <h1 className="page-title">{isEditMode ? "Editar Usuario" : "Registro de Usuario"}</h1>
       <Formik
         enableReinitialize
         initialValues={initialValues}
-        validationSchema={usuarioEsquema}
+        validationSchema={validationSchema}
         onSubmit={handleSubmit}
       >
         {({ isSubmitting }) => (
@@ -117,12 +120,7 @@ const UsuariosFormulario: React.FC = () => {
                 <label htmlFor="nombreUsuario" className="auth-label">
                   Nombre de Usuario:
                 </label>
-                <Field
-                  type="text"
-                  name="nombreUsuario"
-                  id="nombreUsuario"
-                  className="form-input"
-                />
+                <Field type="text" name="nombreUsuario" id="nombreUsuario" className="form-input" />
                 <ErrorMessage name="nombreUsuario" component="div" className="auth-error" />
               </div>
               <div className="mb-4">
@@ -131,12 +129,7 @@ const UsuariosFormulario: React.FC = () => {
                     ? "Nueva Contraseña (dejar en blanco para mantener la actual)"
                     : "Contraseña:"}
                 </label>
-                <Field
-                  type="password"
-                  name="contrasena"
-                  id="contrasena"
-                  className="form-input"
-                />
+                <Field type="password" name="contrasena" id="contrasena" className="form-input" />
                 <ErrorMessage name="contrasena" component="div" className="auth-error" />
               </div>
               <div className="mb-4">

@@ -42,6 +42,74 @@ public class DisciplinaHorarioServicio {
         this.asistenciaMensualServicio = asistenciaMensualServicio;
     }
 
+
+    /**
+     * Actualiza los horarios de una disciplina en base a una lista de solicitudes de modificación.
+     * Se actualizan los horarios existentes, se crean nuevos y se eliminan los que no vienen en la solicitud.
+     * Finalmente, se invoca la actualización de la planilla de asistencia (por cambio de horario)
+     * usando la fecha de cambio (puedes recibirla como parámetro o usar LocalDate.now()).
+     *
+     * @param disciplina   la disciplina a la cual se actualizarán los horarios
+     * @param horariosRequest lista de solicitudes de modificación de horarios
+     * @param fechaCambio  la fecha a partir de la cual se deben recalcular las asistencias
+     * @return la lista de horarios guardados
+     */
+    @Transactional
+    public List<DisciplinaHorario> actualizarHorarios(Disciplina disciplina,
+                                                      List<DisciplinaHorarioModificacionRequest> horariosRequest,
+                                                      LocalDate fechaCambio) {
+        log.info("Actualizando {} horarios para disciplina id: {}", horariosRequest.size(), disciplina.getId());
+
+        // Obtén la lista actual de horarios asociados a la disciplina
+        List<DisciplinaHorario> existentes = new ArrayList<>(disciplina.getHorarios());
+
+        // Mapea los horarios existentes por su ID para facilitar actualizaciones
+        Map<Long, DisciplinaHorario> existentesMap = existentes.stream()
+                .filter(h -> h.getId() != null)
+                .collect(Collectors.toMap(DisciplinaHorario::getId, h -> h));
+
+        List<DisciplinaHorario> updatedHorarios = new ArrayList<>();
+
+        // Procesa cada DTO recibido: si tiene ID y existe, se actualiza; si no, se crea nuevo
+        for (DisciplinaHorarioModificacionRequest dto : horariosRequest) {
+            if (dto.id() != null && existentesMap.containsKey(dto.id())) {
+                // Actualizar horario existente
+                DisciplinaHorario horarioExistente = existentesMap.get(dto.id());
+                horarioExistente.setDiaSemana(dto.diaSemana());
+                horarioExistente.setHorarioInicio(dto.horarioInicio());
+                horarioExistente.setDuracion(dto.duracion());
+                updatedHorarios.add(horarioExistente);
+                // Remueve del mapa para identificar los que deben eliminarse
+                existentesMap.remove(dto.id());
+            } else {
+                // Se trata de un nuevo horario; se mapea y se asigna la disciplina
+                DisciplinaHorario nuevo = disciplinaHorarioMapper.toEntity(
+                        new DisciplinaHorarioRequest(dto.diaSemana(), dto.horarioInicio(), dto.duracion())
+                );
+                nuevo.setDisciplina(disciplina);
+                updatedHorarios.add(nuevo);
+            }
+        }
+
+        // Los horarios que quedan en existentesMap son los que deben eliminarse
+        for (DisciplinaHorario eliminado : existentesMap.values()) {
+            disciplina.getHorarios().remove(eliminado);
+            disciplinaHorarioRepositorio.delete(eliminado);
+        }
+
+        // Actualiza la colección de horarios en la disciplina sin reemplazar la instancia
+        disciplina.getHorarios().clear();
+        disciplina.getHorarios().addAll(updatedHorarios);
+        List<DisciplinaHorario> savedHorarios = disciplinaHorarioRepositorio.saveAll(updatedHorarios);
+        log.info("Actualizados {} horarios para disciplina id: {}", savedHorarios.size(), disciplina.getId());
+
+        // Invoca la actualización de las planillas de asistencia debido al cambio de horario.
+        // Se utiliza la fecha de cambio proporcionada.
+        asistenciaMensualServicio.actualizarPlanillaPorCambioHorario(disciplina.getId(), fechaCambio);
+
+        return savedHorarios;
+    }
+
     /**
      * Guarda los horarios para una disciplina.
      * Primero elimina los horarios existentes y luego guarda los nuevos.
@@ -80,63 +148,6 @@ public class DisciplinaHorarioServicio {
         disciplina.getHorarios().addAll(savedHorarios);
 
         log.debug("Colección de horarios actualizada en la disciplina: {}", disciplina.getHorarios());
-
-        return savedHorarios;
-    }
-
-    // DisciplinaHorarioServicio.java
-    @Transactional
-    public List<DisciplinaHorario> actualizarHorarios(Disciplina disciplina,
-                                                      List<DisciplinaHorarioModificacionRequest> horariosRequest) {
-
-        log.info("Actualizando {} horarios para disciplina id: {}", horariosRequest.size(), disciplina.getId());
-
-        // Obtén la lista actual de horarios asociados (suponiendo que la colección ya está cargada)
-        List<DisciplinaHorario> existentes = new ArrayList<>(disciplina.getHorarios());
-
-        // Mapea los horarios existentes por su ID
-        Map<Long, DisciplinaHorario> existentesMap = existentes.stream()
-                .filter(h -> h.getId() != null)
-                .collect(Collectors.toMap(DisciplinaHorario::getId, h -> h));
-
-        List<DisciplinaHorario> updatedHorarios = new ArrayList<>();
-
-        // Procesa cada DTO recibido
-        for (DisciplinaHorarioModificacionRequest dto : horariosRequest) {
-            if (dto.id() != null && existentesMap.containsKey(dto.id())) {
-                // Actualiza el horario existente
-                DisciplinaHorario horarioExistente = existentesMap.get(dto.id());
-                horarioExistente.setDiaSemana(dto.diaSemana());
-                horarioExistente.setHorarioInicio(dto.horarioInicio());
-                horarioExistente.setDuracion(dto.duracion());
-                updatedHorarios.add(horarioExistente);
-                // Remueve del mapa para identificar los que se eliminarán
-                existentesMap.remove(dto.id());
-            } else {
-                // Si no tiene id, se trata como nuevo
-                DisciplinaHorario nuevo = disciplinaHorarioMapper.toEntity(
-                        new DisciplinaHorarioRequest(dto.diaSemana(), dto.horarioInicio(), dto.duracion())
-                );
-                nuevo.setDisciplina(disciplina);
-                updatedHorarios.add(nuevo);
-            }
-        }
-
-        // Los horarios que queden en existentesMap son los eliminados en la request
-        for (DisciplinaHorario eliminado : existentesMap.values()) {
-            disciplina.getHorarios().remove(eliminado);
-            disciplinaHorarioRepositorio.delete(eliminado);
-        }
-
-        // Actualiza la colección de la Disciplina sin reemplazar la instancia
-        disciplina.getHorarios().clear();
-        disciplina.getHorarios().addAll(updatedHorarios);
-        List<DisciplinaHorario> savedHorarios = disciplinaHorarioRepositorio.saveAll(updatedHorarios);
-        log.info("Actualizados {} horarios para disciplina id: {}", savedHorarios.size(), disciplina.getId());
-
-        // INVOCAMOS la actualización de asistencias a partir de la fecha del cambio.
-        // Aquí usamos LocalDate.now() como fecha de cambio; podrías recibirla como parámetro si es necesario.
-        asistenciaMensualServicio.actualizarAsistenciasPorCambioHorario(disciplina.getId(), LocalDate.now());
 
         return savedHorarios;
     }

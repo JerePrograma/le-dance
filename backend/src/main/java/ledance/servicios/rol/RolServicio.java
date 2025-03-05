@@ -34,6 +34,7 @@ public class RolServicio implements IRolServicio {
             throw new IllegalArgumentException("El rol ya existe.");
         }
         Rol rol = rolMapper.toEntity(request);
+        rol.setDescripcion(rol.getDescripcion().toUpperCase());
         Rol guardado = rolRepositorio.save(rol);
         return rolMapper.toDTO(guardado);
     }

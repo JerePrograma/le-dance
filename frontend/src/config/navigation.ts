@@ -26,15 +26,17 @@ import {
   UserCog,
   Shield,
   type LucideIcon,
-} from "lucide-react"
+} from "lucide-react";
 
 export interface NavigationItem {
-  id: string
-  icon?: LucideIcon
-  label: string
-  href?: string
-  description?: string
-  items?: NavigationItem[]
+  id: string;
+  icon?: LucideIcon;
+  label: string;
+  href?: string;
+  description?: string;
+  // Si se define, este item solo se muestra para usuarios con el rol indicado.
+  requiredRole?: string;
+  items?: NavigationItem[];
 }
 
 export const navigationItems: NavigationItem[] = [
@@ -43,17 +45,17 @@ export const navigationItems: NavigationItem[] = [
     id: "administracion",
     label: "Administracion",
     icon: Building2,
-    description: "Gestion de pagos, stocks y configuraciones generales",
+    description: "Gestión de pagos, stocks y configuraciones generales",
     items: [
       {
         id: "rendicion-general",
-        label: "Rendicion General",
+        label: "Rendición General",
         href: "/caja/planilla",
         icon: Receipt,
       },
       {
         id: "metodos-pago",
-        label: "Metodos de Pago",
+        label: "Métodos de Pago",
         href: "/metodos-pago",
         icon: CreditCard,
       },
@@ -67,7 +69,7 @@ export const navigationItems: NavigationItem[] = [
         id: "subconceptos",
         label: "Subconceptos",
         href: "/subconceptos",
-        description: "Gestion de subconceptos para conceptos",
+        description: "Gestión de subconceptos para conceptos",
         icon: Tag,
       },
       {
@@ -78,7 +80,7 @@ export const navigationItems: NavigationItem[] = [
       },
       {
         id: "generacion-cuotas",
-        label: "Generacion de Cuotas",
+        label: "Generación de Cuotas",
         href: "/mensualidades",
         icon: Calculator,
       },
@@ -100,19 +102,19 @@ export const navigationItems: NavigationItem[] = [
       },
       {
         id: "liquidacion",
-        label: "Liquidacion",
+        label: "Liquidación",
         href: "/liquidacion",
         icon: BadgeDollarSign,
       },
       {
         id: "caja-del-dia",
-        label: "Caja del Dia",
+        label: "Caja del Día",
         href: "/caja/diaria",
         icon: Wallet,
       },
       {
         id: "rendicion-mensual",
-        label: "Rendicion Mensual",
+        label: "Rendición Mensual",
         href: "/caja/rendicion-mensual",
         icon: FileSpreadsheet,
       },
@@ -124,7 +126,7 @@ export const navigationItems: NavigationItem[] = [
     id: "manejo-general",
     label: "Manejo General",
     icon: ClipboardCheck,
-    description: "Gestion de alumnos, profesores y disciplinas",
+    description: "Gestión de alumnos, profesores y disciplinas",
     items: [
       {
         id: "bonificaciones",
@@ -191,30 +193,31 @@ export const navigationItems: NavigationItem[] = [
   {
     id: "inscripciones",
     icon: ClipboardList,
-    label: "Inscripciones",
+    label: "Activos",
     href: "/inscripciones",
-    description: "Gestion de nuevas inscripciones",
+    description: "Gestión de Activos",
   },
   {
     id: "reportes",
     icon: BarChart3,
     label: "Reportes",
     href: "/reportes",
-    description: "Informes y estadisticas",
+    description: "Informes y estadísticas",
   },
   {
     id: "usuarios",
     icon: UserCog,
     label: "Usuarios",
     href: "/usuarios",
-    description: "Administracion de usuarios",
+    description: "Administración de usuarios",
+    requiredRole: "ADMINISTRADOR", // Solo se muestra a administradores
   },
   {
     id: "roles",
     icon: Shield,
     label: "Roles",
     href: "/roles",
-    description: "Gestion de permisos y roles",
+    description: "Gestión de permisos y roles",
+    requiredRole: "ADMINISTRADOR",
   },
-]
-
+];

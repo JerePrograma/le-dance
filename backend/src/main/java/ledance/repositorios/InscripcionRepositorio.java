@@ -7,7 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-
 import java.util.List;
 import java.util.Optional;
 
@@ -28,10 +27,8 @@ public interface InscripcionRepositorio extends JpaRepository<Inscripcion, Long>
 
     List<Inscripcion> findAllByDisciplinaIdAndEstado(Long disciplinaId, EstadoInscripcion estado);
 
-    // Nuevo metodo: buscar inscripciones de un alumno con estado = X
     List<Inscripcion> findAllByAlumno_IdAndEstado(Long alumnoId, EstadoInscripcion estado);
 
-    // Nuevo metodo: buscar inscripciones con un estado especifico (ej.: ACTIVA)
     List<Inscripcion> findByEstado(EstadoInscripcion estado);
 
     @Query("SELECT i.disciplina.nombre, SUM(i.disciplina.valorCuota) " +

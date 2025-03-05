@@ -77,8 +77,13 @@ const UsuariosPagina = () => {
       </div>
       <div className="page-card">
         <Tabla
-          encabezados={["ID", "Nombre", "Rol", "Activo", "Acciones"]}
+          encabezados={["ID", "Nombre", "Rol"]}
           datos={currentItems}
+          extraRender={(fila: UsuarioResponse) => [
+            fila.id,
+            fila.nombreUsuario,
+            fila.rol,
+          ]}
           acciones={(fila: UsuarioResponse) => (
             <div className="flex gap-2">
               <Boton
@@ -99,12 +104,6 @@ const UsuariosPagina = () => {
               </Boton>
             </div>
           )}
-          extraRender={(fila: UsuarioResponse) => [
-            fila.id,
-            fila.nombreUsuario,
-            fila.rol,
-            fila.activo ? "Activo" : "Inactivo",
-          ]}
         />
       </div>
       {pageCount > 1 && (

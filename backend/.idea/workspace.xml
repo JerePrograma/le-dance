@@ -7,18 +7,50 @@
     <list default="true" id="ccb8f120-972c-4a18-b18b-4ae7da723dfa" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/dataSources.local.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dataSources.local.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/AsistenciaMensualControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/AsistenciaMensualControlador.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/DisciplinaControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/DisciplinaControlador.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/UsuarioControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/UsuarioControlador.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/rol/request/RolModificacionRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/rol/request/RolModificacionRequest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/rol/request/RolRegistroRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/rol/request/RolRegistroRequest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/rol/response/RolResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/rol/response/RolResponse.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/usuario/request/UsuarioModificacionRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/usuario/request/UsuarioModificacionRequest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/usuario/request/UsuarioRegistroRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/usuario/request/UsuarioRegistroRequest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/usuario/response/UsuarioResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/usuario/response/UsuarioResponse.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/AsistenciaDiariaMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/AsistenciaDiariaMapper.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/AsistenciaMensualMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/AsistenciaMensualMapper.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/request/AsistenciaMensualRegistroRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/request/AsistenciaMensualRegistroRequest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/response/AsistenciaDiariaResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/response/AsistenciaDiariaResponse.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/response/AsistenciaMensualDetalleResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/response/AsistenciaMensualDetalleResponse.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/response/AsistenciaMensualListadoResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/response/AsistenciaMensualListadoResponse.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/inscripcion/request/InscripcionRequest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/usuario/UsuarioMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/usuario/UsuarioMapper.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/entidades/AsistenciaMensual.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/entidades/AsistenciaMensual.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/entidades/Inscripcion.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/entidades/Inscripcion.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/ledance/entidades/Usuario.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/entidades/Usuario.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/repositorios/AsistenciaDiariaRepositorio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/repositorios/AsistenciaDiariaRepositorio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/repositorios/AsistenciaMensualRepositorio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/repositorios/AsistenciaMensualRepositorio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/repositorios/InscripcionRepositorio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/repositorios/InscripcionRepositorio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/repositorios/RolRepositorio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/repositorios/RolRepositorio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/asistencia/AsistenciaDiariaServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/asistencia/AsistenciaDiariaServicio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/asistencia/AsistenciaMensualServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/asistencia/AsistenciaMensualServicio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/disciplina/DisciplinaHorarioServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/disciplina/DisciplinaHorarioServicio.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/disciplina/DisciplinaServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/disciplina/DisciplinaServicio.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/usuario/IUsuarioServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/usuario/IUsuarioServicio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/inscripcion/InscripcionServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/inscripcion/InscripcionServicio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/mensualidad/MensualidadServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/mensualidad/MensualidadServicio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/rol/RolServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/rol/RolServicio.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/usuario/UsuarioServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/usuario/UsuarioServicio.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/types/types.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/types/types.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/api/disciplinasApi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/api/disciplinasApi.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/componentes/BarraLateral.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/componentes/Sidebar.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/componentes/Sidebar.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/componentes/layout/MainLayout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/componentes/layout/MainLayout.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/componentes/theme-toggle.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/componentes/theme-toggle.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/config/navigation.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/config/navigation.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/alumnos/AlumnosFormulario.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/alumnos/AlumnosFormulario.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/disciplinas/DisciplinasPagina.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/disciplinas/DisciplinasPagina.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/inscripciones/InscripcionesFormulario.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/inscripciones/InscripcionesFormulario.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/inscripciones/InscripcionesPagina.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/inscripciones/InscripcionesPagina.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/usuarios/UsuariosFormulario.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/usuarios/UsuariosFormulario.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/usuarios/UsuariosPagina.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/usuarios/UsuariosPagina.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/hooks/context/SideBarContext.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/hooks/context/SideBarContext.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/hooks/context/authContext.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/hooks/context/authContext.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/hooks/useCargaMensualidades.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/hooks/useCargaMensualidades.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/paginas/Dashboard.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/paginas/Dashboard.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/rutas/AppRouter.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/rutas/AppRouter.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/rutas/ProtectedRoute.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/rutas/ProtectedRoute.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -149,8 +181,8 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-jdk-9823dce3aa75-28b599e66164-intellij.indexing.shared.core-IU-242.23726.103" />
-        <option value="bundled-js-predefined-d6986cc7102b-5c90d61e3bab-JavaScript-IU-242.23726.103" />
+        <option value="bundled-jdk-9f38398b9061-18abd8497189-intellij.indexing.shared.core-IU-241.14494.240" />
+        <option value="bundled-js-predefined-1d06a55b98c1-74d2a5396914-JavaScript-IU-241.14494.240" />
       </set>
     </attachedChunks>
   </component>
@@ -290,6 +322,7 @@
       <workItem from="1741078267492" duration="6824000" />
       <workItem from="1741089616800" duration="1013000" />
       <workItem from="1741135169658" duration="5868000" />
+      <workItem from="1741175745368" duration="10982000" />
     </task>
     <servers />
   </component>

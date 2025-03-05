@@ -43,19 +43,14 @@ public class UsuarioServicio implements IUsuarioServicio {
         if (usuarioRepositorio.findByNombreUsuario(datosRegistro.nombreUsuario()).isPresent()) {
             throw new IllegalArgumentException("El nombre de usuario ya está en uso.");
         }
-        Rol rol = rolRepositorio.findByDescripcion(datosRegistro.rol().toUpperCase())
+        // Buscar el rol y lanzar error si no existe
+        Rol rol = rolRepositorio.findByDescripcionIgnoreCase(datosRegistro.rol())
                 .orElseThrow(() -> new IllegalArgumentException("Rol no válido: " + datosRegistro.rol()));
         Usuario usuario = usuarioMapper.toEntity(datosRegistro);
         usuario.setContrasena(passwordEncoder.encode(datosRegistro.contrasena()));
         usuario.setRol(rol);
         usuarioRepositorio.save(usuario);
         return "Usuario creado exitosamente.";
-    }
-
-    public UsuarioResponse obtenerUsuario(Long idUsuario) {
-        Usuario usuario = usuarioRepositorio.findById(idUsuario)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
-        return convertirAUsuarioResponse(usuario);
     }
 
     @Transactional
@@ -66,7 +61,7 @@ public class UsuarioServicio implements IUsuarioServicio {
         if (modificacionRequest.nombreUsuario() != null && !modificacionRequest.nombreUsuario().isBlank()) {
             usuario.setNombreUsuario(modificacionRequest.nombreUsuario());
         }
-        // Actualizar contraseña (se codifica) si se envía y no es vacío
+        // Actualizar contraseña si se envía y no es vacío (se codifica)
         if (modificacionRequest.contrasena() != null && !modificacionRequest.contrasena().isBlank()) {
             usuario.setContrasena(passwordEncoder.encode(modificacionRequest.contrasena()));
         }
@@ -76,11 +71,17 @@ public class UsuarioServicio implements IUsuarioServicio {
                     .orElseThrow(() -> new IllegalArgumentException("Rol no válido: " + modificacionRequest.rol()));
             usuario.setRol(rol);
         }
-        // Actualizar el estado activo si se envía (para alta o baja)
+        // Actualizar el estado activo (alta o baja)
         if (modificacionRequest.activo() != null) {
             usuario.setActivo(modificacionRequest.activo());
         }
         usuarioRepositorio.save(usuario);
+    }
+
+    public UsuarioResponse obtenerUsuario(Long idUsuario) {
+        Usuario usuario = usuarioRepositorio.findById(idUsuario)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
+        return convertirAUsuarioResponse(usuario);
     }
 
     @Override
@@ -111,5 +112,4 @@ public class UsuarioServicio implements IUsuarioServicio {
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
         usuarioRepositorio.delete(usuario);
     }
-
 }

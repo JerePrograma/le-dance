@@ -71,9 +71,16 @@ public class DisciplinaControlador {
     /**
      * ✅ Dar de baja (baja logica) a una disciplina.
      */
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/dar-baja/{id}")
     public ResponseEntity<Void> darBajaDisciplina(@PathVariable Long id) {
         log.info("Dando de baja la disciplina con id: {}", id);
+        disciplinaServicio.darBajaDisciplina(id);
+        return ResponseEntity.noContent().build(); // 204 No Content
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> eliminarDisciplina(@PathVariable Long id) {
+        log.info("Eliminando la disciplina con id: {}", id);
         disciplinaServicio.eliminarDisciplina(id);
         return ResponseEntity.noContent().build(); // 204 No Content
     }

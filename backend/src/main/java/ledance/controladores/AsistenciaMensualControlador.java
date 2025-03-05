@@ -4,19 +4,16 @@ import ledance.dto.asistencia.request.AsistenciaMensualRegistroRequest;
 import ledance.dto.asistencia.request.AsistenciaMensualModificacionRequest;
 import ledance.dto.asistencia.response.AsistenciaMensualDetalleResponse;
 import ledance.dto.asistencia.response.AsistenciaMensualListadoResponse;
-import ledance.entidades.AsistenciaMensual;
 import ledance.servicios.asistencia.AsistenciaMensualServicio;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import jakarta.validation.Valid;
 
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/asistencias-mensuales")
@@ -30,54 +27,53 @@ public class AsistenciaMensualControlador {
     }
 
     @GetMapping
-    public ResponseEntity<List<AsistenciaMensualListadoResponse>> listarAsistenciasMensuales(
+    public ResponseEntity<List<AsistenciaMensualListadoResponse>> listarPlanillas(
             @RequestParam(required = false) Long profesorId,
             @RequestParam(required = false) Long disciplinaId,
             @RequestParam(required = false) Integer mes,
             @RequestParam(required = false) Integer anio) {
-        log.info("Listando asistencias mensuales con filtros: profesorId={}, disciplinaId={}, mes={}, anio={}",
+        log.info("Listando planillas con filtros: profesorId={}, disciplinaId={}, mes={}, anio={}",
                 profesorId, disciplinaId, mes, anio);
-        return ResponseEntity.ok(asistenciaMensualServicio.listarAsistenciasMensuales(profesorId, disciplinaId, mes, anio));
+        List<AsistenciaMensualListadoResponse> lista =
+                asistenciaMensualServicio.listarPlanillas(profesorId, disciplinaId, mes, anio);
+        return ResponseEntity.ok(lista);
     }
 
     @PostMapping
-    public ResponseEntity<AsistenciaMensualDetalleResponse> registrarAsistenciaMensual(
+    public ResponseEntity<AsistenciaMensualDetalleResponse> crearPlanilla(
             @Valid @RequestBody AsistenciaMensualRegistroRequest request) {
-        log.info("Registrando asistencia mensual para inscripcionId={} en mes={} y anio={}",
-                request.inscripcionId(), request.mes(), request.anio());
-        return new ResponseEntity<>(asistenciaMensualServicio.registrarAsistenciaMensual(request), HttpStatus.CREATED);
+        log.info("Creando planilla para disciplinaId={} en mes={} y anio={}",
+                request.disciplinaId(), request.mes(), request.anio());
+        AsistenciaMensualDetalleResponse response =
+                asistenciaMensualServicio.crearPlanilla(request.disciplinaId(), request.mes(), request.anio());
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<AsistenciaMensualDetalleResponse> actualizarAsistenciaMensual(
+    public ResponseEntity<AsistenciaMensualDetalleResponse> actualizarPlanilla(
             @PathVariable Long id, @Valid @RequestBody AsistenciaMensualModificacionRequest request) {
-        log.info("Actualizando asistencia mensual con id={}", id);
-        return ResponseEntity.ok(asistenciaMensualServicio.actualizarAsistenciaMensual(id, request));
+        log.info("Actualizando planilla con id={}", id);
+        AsistenciaMensualDetalleResponse response =
+                asistenciaMensualServicio.actualizarPlanillaAsistencia(id, request);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping(value = "/por-disciplina/detalle", produces = "application/json")
-    public ResponseEntity<AsistenciaMensualDetalleResponse> obtenerAsistenciaMensualPorParametros(
+    public ResponseEntity<AsistenciaMensualDetalleResponse> obtenerPlanillaPorParametros(
             @RequestParam Long disciplinaId,
             @RequestParam int mes,
             @RequestParam int anio) {
         try {
-            AsistenciaMensualDetalleResponse response = asistenciaMensualServicio
-                    .obtenerAsistenciaMensualPorParametros(disciplinaId, mes, anio);
+            AsistenciaMensualDetalleResponse response =
+                    asistenciaMensualServicio.obtenerPlanillaPorDisciplinaYMes(disciplinaId, mes, anio);
             return ResponseEntity.ok(response);
         } catch (NoSuchElementException e) {
             return ResponseEntity.notFound().build();
         }
     }
-//
-//    @PostMapping("/por-disciplina/crear")
-//    public ResponseEntity<AsistenciaMensualDetalleResponse> crearAsistenciaPorDisciplina(
-//            @RequestBody DisciplinaMesAnioRequest request) {
-//        try {
-//            AsistenciaMensualDetalleResponse response = asistenciaMensualServicio.crearAsistenciaPorDisciplina(
-//                    request.disciplinaId(), request.mes(), request.anio());
-//            return new ResponseEntity<>(response, HttpStatus.CREATED);
-//        } catch (IllegalStateException | IllegalArgumentException e) {
-//            return ResponseEntity.status(HttpStatus.CONFLICT).body(null);
-//        }
-//    }
+
+    @GetMapping(value = "/crear-asistencias-activos", produces = "application/json")
+    public void crearAsistenciasParaInscripcionesActivas() {
+        asistenciaMensualServicio.crearAsistenciasParaInscripcionesActivas();
+    }
 }

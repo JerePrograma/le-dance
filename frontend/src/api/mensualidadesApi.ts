@@ -63,6 +63,10 @@ const listarPorInscripcion = async (inscripcionId: number): Promise<MensualidadR
   return data;
 };
 
+const crearAsistenciasParaInscripcionesActivas = () => {
+  (`/mensualidades/crear-asistencias-activos/`);
+};
+
 /**
  * NUEVO: Genera (o actualiza) las mensualidades para el mes vigente.
  */
@@ -72,6 +76,7 @@ const generarMensualidadesParaMesVigente = async (): Promise<MensualidadResponse
 };
 
 const mensualidadesApi = {
+  crearAsistenciasParaInscripcionesActivas,
   crearMensualidad,
   actualizarMensualidad,
   obtenerMensualidad,

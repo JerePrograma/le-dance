@@ -1,18 +1,26 @@
-"use client"
-
-import React from "react"
-import { Link } from "react-router-dom"
-import { navigationItems, type NavigationItem } from "../config/navigation"
-import { ChevronDown, ExternalLink } from "lucide-react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../componentes/ui/card"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../componentes/ui/collapsible"
-import { Button } from "../componentes/ui/button"
-import { ScrollArea } from "../componentes/ui/scroll-area"
-import { cn } from "../componentes/lib/utils"
+import React from "react";
+import { Link } from "react-router-dom";
+import { navigationItems, type NavigationItem } from "../config/navigation";
+import { ChevronDown, ExternalLink } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../componentes/ui/card";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "../componentes/ui/collapsible";
+import { Button } from "../componentes/ui/button";
+import { ScrollArea } from "../componentes/ui/scroll-area";
+import { cn } from "../componentes/lib/utils";
+import { useAuth } from "../hooks/context/authContext";
 
 const SingleCard: React.FC<{ item: NavigationItem }> = ({ item }) => {
-  const Icon = item.icon
-
+  const Icon = item.icon;
   return (
     <Link to={item.href ?? "#"} className="block">
       <Card className="group h-full transition-all hover:shadow-lg hover:-translate-y-1 duration-300">
@@ -34,17 +42,16 @@ const SingleCard: React.FC<{ item: NavigationItem }> = ({ item }) => {
         </CardContent>
       </Card>
     </Link>
-  )
-}
+  );
+};
 
 interface CategoryCardProps {
-  item: NavigationItem
+  item: NavigationItem;
 }
 
 const CategoryCard: React.FC<CategoryCardProps> = ({ item }) => {
-  const Icon = item.icon
-  const subItems = item.items || []
-
+  const Icon = item.icon;
+  const subItems = item.items || [];
   return (
     <Card className="overflow-hidden">
       <Collapsible>
@@ -66,7 +73,7 @@ const CategoryCard: React.FC<CategoryCardProps> = ({ item }) => {
             </div>
           </CardHeader>
         </CollapsibleTrigger>
-        <CollapsibleContent>
+        <CollapsibleContent className="pl-4">
           <CardContent className="grid gap-4 p-6 pt-0">
             <ScrollArea className="h-full">
               {subItems.map((subItem) => (
@@ -85,24 +92,37 @@ const CategoryCard: React.FC<CategoryCardProps> = ({ item }) => {
         </CollapsibleContent>
       </Collapsible>
     </Card>
-  )
-}
+  );
+};
 
-const Dashboard = React.memo(() => {
-  // Separar items en categorias y elementos sueltos
-  const categories = navigationItems.filter((item) => item.items?.length)
-  const singleItems = navigationItems.filter((item) => !item.items?.length)
+const Dashboard: React.FC = () => {
+  const { hasRole } = useAuth();
+
+  // Filtra la navegación según rol usando el mismo criterio
+  const filteredNavigation = navigationItems.filter((item) => {
+    if (item.requiredRole && !hasRole(item.requiredRole)) return false;
+    if (item.items) {
+      item.items = item.items.filter((subItem) =>
+        subItem.requiredRole ? hasRole(subItem.requiredRole) : true
+      );
+    }
+    return true;
+  });
+
+  // Separa items con sub-items (categorías) y sin ellos (accesos directos)
+  const categories = filteredNavigation.filter((item) => item.items && item.items.length > 0);
+  const singleItems = filteredNavigation.filter((item) => !item.items || item.items.length === 0);
 
   return (
     <div className="container mx-auto space-y-8 p-6">
       <div className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">Panel de Control</h1>
-        <p className="text-lg text-muted-foreground">Bienvenido al sistema de gestion LE DANCE</p>
+        <p className="text-lg text-muted-foreground">Bienvenido al sistema de gestión LE DANCE</p>
       </div>
 
-      {/* Categorias */}
+      {/* Categorías */}
       <section className="space-y-4">
-        <h2 className="text-2xl font-semibold tracking-tight">Gestion del Sistema</h2>
+        <h2 className="text-2xl font-semibold tracking-tight">Gestión del Sistema</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           {categories.map((category) => (
             <CategoryCard key={category.id} item={category} />
@@ -122,10 +142,9 @@ const Dashboard = React.memo(() => {
         </section>
       )}
     </div>
-  )
-})
+  );
+};
 
-Dashboard.displayName = "Dashboard"
+Dashboard.displayName = "Dashboard";
 
-export default Dashboard
-
+export default Dashboard;

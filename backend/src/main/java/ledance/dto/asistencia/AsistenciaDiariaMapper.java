@@ -16,10 +16,11 @@ public interface AsistenciaDiariaMapper {
     @Mapping(target = "alumnoNombre", source = "alumno.nombre")
     @Mapping(target = "alumnoApellido", source = "alumno.apellido")
     @Mapping(target = "asistenciaMensualId", source = "asistenciaMensual.id")
-    @Mapping(target = "disciplinaId", source = "asistenciaMensual.inscripcion.disciplina.id")
+    // Actualizado para obtener el disciplinaId desde la relación directa: asistenciaMensual.disciplina.id
+    @Mapping(target = "disciplinaId", source = "asistenciaMensual.disciplina.id")
     AsistenciaDiariaResponse toDTO(AsistenciaDiaria asistenciaDiaria);
 
-    @Mapping(target = "id", ignore = false) // Permite actualizar si ya existe
+    @Mapping(target = "id", ignore = false) // Se permite la actualización si ya existe
     @Mapping(target = "alumno", ignore = true)
     @Mapping(target = "asistenciaMensual", ignore = true)
     AsistenciaDiaria toEntity(AsistenciaDiariaRegistroRequest request);

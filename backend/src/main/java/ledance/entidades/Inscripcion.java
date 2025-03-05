@@ -27,7 +27,7 @@ public class Inscripcion {
     private Disciplina disciplina;
 
     @ManyToOne
-    @JoinColumn(name = "bonificacion_id", nullable = true)
+    @JoinColumn(name = "bonificacion_id")
     private Bonificacion bonificacion;
 
     @NotNull
@@ -47,11 +47,5 @@ public class Inscripcion {
     @OneToMany(mappedBy = "inscripcion", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     @EqualsAndHashCode.Exclude
-    private List<AsistenciaMensual> asistenciasMensuales;
-
-    @OneToMany(mappedBy = "inscripcion", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonIgnore
-    @EqualsAndHashCode.Exclude
     private List<Mensualidad> mensualidades;
-
 }

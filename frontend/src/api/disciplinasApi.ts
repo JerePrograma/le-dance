@@ -36,8 +36,12 @@ const disciplinasApi = {
     return response.data;
   },
 
-  darBajaDisciplina: async (id: number): Promise<void> => {
+  eliminarDisciplina: async (id: number): Promise<void> => {
     await api.delete(`/disciplinas/${id}`);
+  },
+
+  darBajaDisciplina: async (id: number): Promise<void> => {
+    await api.delete(`/disciplinas/dar-baja/${id}`);
   },
 
   listarDisciplinasSimplificadas: async (): Promise<

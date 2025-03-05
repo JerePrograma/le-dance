@@ -1,83 +1,92 @@
-"use client"
+"use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react"
-import { useNavigate } from "react-router-dom"
-import Tabla from "../../componentes/comunes/Tabla"
-import api from "../../api/axiosConfig"
-import Boton from "../../componentes/comunes/Boton"
-import { PlusCircle, Pencil, Trash2 } from "lucide-react"
-import Pagination from "../../componentes/ui/Pagination"
+import { useEffect, useState, useCallback, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import Tabla from "../../componentes/comunes/Tabla";
+import api from "../../api/axiosConfig";
+import Boton from "../../componentes/comunes/Boton";
+import { PlusCircle, Pencil, Trash2 } from "lucide-react";
+import Pagination from "../../componentes/ui/Pagination";
+import disciplinasApi from "../../api/disciplinasApi";
 
 interface Disciplina {
-  id: number
-  nombre: string
-  horario: string
+  id: number;
+  nombre: string;
+  horario: string;
 }
 
 const Disciplinas = () => {
-  const [disciplinas, setDisciplinas] = useState<Disciplina[]>([])
-  const [currentPage, setCurrentPage] = useState(0)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  // Estados para búsqueda y orden
-  const [searchTerm, setSearchTerm] = useState("")
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
-  const itemsPerPage = 5
-  const navigate = useNavigate()
+  const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const itemsPerPage = 5;
+  const navigate = useNavigate();
 
   const fetchDisciplinas = useCallback(async () => {
     try {
-      setLoading(true)
-      setError(null)
-      const response = await api.get<Disciplina[]>("/disciplinas")
-      setDisciplinas(response.data)
+      setLoading(true);
+      setError(null);
+      const response = await api.get<Disciplina[]>("/disciplinas");
+      setDisciplinas(response.data);
     } catch (error) {
-      console.error("Error al cargar disciplinas:", error)
-      setError("Error al cargar disciplinas.")
+      console.error("Error al cargar disciplinas:", error);
+      setError("Error al cargar disciplinas.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
-    fetchDisciplinas()
-  }, [fetchDisciplinas])
+    fetchDisciplinas();
+  }, [fetchDisciplinas]);
 
-  // Filtrar y ordenar las disciplinas según el nombre
   const disciplinasFiltradasYOrdenadas = useMemo(() => {
     const filtradas = disciplinas.filter((disciplina) =>
       disciplina.nombre.toLowerCase().includes(searchTerm.toLowerCase())
-    )
+    );
     return filtradas.sort((a, b) => {
-      const nombreA = a.nombre.toLowerCase()
-      const nombreB = b.nombre.toLowerCase()
-      return sortOrder === "asc" ? nombreA.localeCompare(nombreB) : nombreB.localeCompare(nombreA)
-    })
-  }, [disciplinas, searchTerm, sortOrder])
+      const nombreA = a.nombre.toLowerCase();
+      const nombreB = b.nombre.toLowerCase();
+      return sortOrder === "asc" ? nombreA.localeCompare(nombreB) : nombreB.localeCompare(nombreA);
+    });
+  }, [disciplinas, searchTerm, sortOrder]);
 
-  const pageCount = useMemo(() => Math.ceil(disciplinasFiltradasYOrdenadas.length / itemsPerPage), [disciplinasFiltradasYOrdenadas.length])
+  const pageCount = useMemo(() => Math.ceil(disciplinasFiltradasYOrdenadas.length / itemsPerPage), [disciplinasFiltradasYOrdenadas.length]);
   const currentItems = useMemo(
     () => disciplinasFiltradasYOrdenadas.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage),
     [disciplinasFiltradasYOrdenadas, currentPage, itemsPerPage]
-  )
+  );
 
   const handlePageChange = useCallback(
     (newPage: number) => {
       if (newPage >= 0 && newPage < pageCount) {
-        setCurrentPage(newPage)
+        setCurrentPage(newPage);
       }
     },
     [pageCount]
-  )
+  );
 
-  // Opciones únicas para el datalist a partir de los nombres
   const nombresUnicos = useMemo(() => {
-    const nombresSet = new Set(disciplinas.map((disciplina) => disciplina.nombre))
-    return Array.from(nombresSet)
-  }, [disciplinas])
+    const nombresSet = new Set(disciplinas.map((disciplina) => disciplina.nombre));
+    return Array.from(nombresSet);
+  }, [disciplinas]);
 
-  if (loading) return <div className="text-center py-4">Cargando...</div>
-  if (error) return <div className="text-center py-4 text-destructive">{error}</div>
+  const handleEliminarDisciplina = useCallback(async (id: number) => {
+    if (window.confirm("¿Seguro que deseas eliminar esta disciplina?")) {
+      try {
+        await disciplinasApi.eliminarDisciplina(id);
+        setDisciplinas((prev) => prev.filter((d) => d.id !== id));
+      } catch (err) {
+        console.error("Error al eliminar disciplina:", err);
+      }
+    }
+  }, []);
+
+  if (loading) return <div className="text-center py-4">Cargando...</div>;
+  if (error) return <div className="text-center py-4 text-destructive">{error}</div>;
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -105,8 +114,8 @@ const Disciplinas = () => {
             type="text"
             value={searchTerm}
             onChange={(e) => {
-              setSearchTerm(e.target.value)
-              setCurrentPage(0)
+              setSearchTerm(e.target.value);
+              setCurrentPage(0);
             }}
             placeholder="Escribe o selecciona un nombre..."
             className="border rounded px-2 py-1"
@@ -149,6 +158,7 @@ const Disciplinas = () => {
                 Editar
               </Boton>
               <Boton
+                onClick={() => handleEliminarDisciplina(fila.id)}
                 className="inline-flex items-center gap-2 bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 aria-label={`Eliminar disciplina ${fila.nombre}`}
               >
@@ -171,7 +181,7 @@ const Disciplinas = () => {
         )}
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default Disciplinas
+export default Disciplinas;

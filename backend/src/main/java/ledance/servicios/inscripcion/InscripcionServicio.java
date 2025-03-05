@@ -1,5 +1,7 @@
 package ledance.servicios.inscripcion;
 
+import ledance.dto.asistencia.AsistenciaMensualMapper;
+import ledance.dto.asistencia.response.AsistenciaMensualListadoResponse;
 import ledance.dto.inscripcion.InscripcionMapper;
 import ledance.dto.inscripcion.request.InscripcionModificacionRequest;
 import ledance.dto.inscripcion.request.InscripcionRegistroRequest;
@@ -7,14 +9,18 @@ import ledance.dto.response.EstadisticasInscripcionResponse;
 import ledance.dto.inscripcion.response.InscripcionResponse;
 import ledance.entidades.*;
 import ledance.infra.errores.TratadorDeErrores;
-import ledance.repositorios.*;
-import jakarta.transaction.Transactional;
+import ledance.repositorios.AlumnoRepositorio;
+import ledance.repositorios.BonificacionRepositorio;
+import ledance.repositorios.DisciplinaRepositorio;
+import ledance.repositorios.InscripcionRepositorio;
+import ledance.repositorios.AsistenciaMensualRepositorio;
 import ledance.servicios.asistencia.AsistenciaMensualServicio;
 import ledance.servicios.mensualidad.MensualidadServicio;
 import ledance.dto.mensualidad.response.MensualidadResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import jakarta.transaction.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -33,7 +39,8 @@ public class InscripcionServicio implements IInscripcionServicio {
     private final InscripcionMapper inscripcionMapper;
     private final AsistenciaMensualRepositorio asistenciaMensualRepositorio;
     private final AsistenciaMensualServicio asistenciaMensualServicio;
-    private final MensualidadServicio mensualidadServicio; // Inyectamos el servicio de mensualidades
+    private final MensualidadServicio mensualidadServicio;
+    private final AsistenciaMensualMapper asistenciaMensualMapper;
 
     public InscripcionServicio(InscripcionRepositorio inscripcionRepositorio,
                                AlumnoRepositorio alumnoRepositorio,
@@ -42,7 +49,7 @@ public class InscripcionServicio implements IInscripcionServicio {
                                InscripcionMapper inscripcionMapper,
                                AsistenciaMensualRepositorio asistenciaMensualRepositorio,
                                AsistenciaMensualServicio asistenciaMensualServicio,
-                               MensualidadServicio mensualidadServicio) {
+                               MensualidadServicio mensualidadServicio, AsistenciaMensualMapper asistenciaMensualMapper) {
         this.inscripcionRepositorio = inscripcionRepositorio;
         this.alumnoRepositorio = alumnoRepositorio;
         this.disciplinaRepositorio = disciplinaRepositorio;
@@ -51,11 +58,12 @@ public class InscripcionServicio implements IInscripcionServicio {
         this.asistenciaMensualRepositorio = asistenciaMensualRepositorio;
         this.asistenciaMensualServicio = asistenciaMensualServicio;
         this.mensualidadServicio = mensualidadServicio;
+        this.asistenciaMensualMapper = asistenciaMensualMapper;
     }
 
     /**
-     * ✅ Registrar una nueva inscripción.
-     * Se genera automáticamente, para el mes vigente, una cuota asociada a esta inscripción.
+     * Registrar una nueva inscripción.
+     * Se genera automáticamente una cuota para el mes vigente y se incorpora al alumno a la planilla de asistencia (por disciplina).
      */
     @Transactional
     public InscripcionResponse crearInscripcion(InscripcionRegistroRequest request) {
@@ -64,38 +72,25 @@ public class InscripcionServicio implements IInscripcionServicio {
 
         Alumno alumno = alumnoRepositorio.findById(request.alumnoId())
                 .orElseThrow(() -> new IllegalArgumentException("Alumno no encontrado."));
-
         Disciplina disciplina = disciplinaRepositorio.findById(request.inscripcion().disciplinaId())
                 .orElseThrow(() -> new IllegalArgumentException("Disciplina no encontrada."));
-
         if (disciplina.getProfesor() == null) {
             throw new IllegalStateException("La disciplina indicada no tiene profesor asignado.");
         }
-
         Bonificacion bonificacion = null;
         if (request.inscripcion().bonificacionId() != null) {
             bonificacion = bonificacionRepositorio.findById(request.inscripcion().bonificacionId())
                     .orElse(null);
         }
-
-        // Convertir request → entidad (sin asignar fecha aún)
         Inscripcion inscripcion = inscripcionMapper.toEntity(request);
         inscripcion.setAlumno(alumno);
         inscripcion.setDisciplina(disciplina);
         inscripcion.setBonificacion(bonificacion);
+        inscripcion.setFechaInscripcion(request.fechaInscripcion() == null ? LocalDate.now() : request.fechaInscripcion());
 
-        // Si "fechaInscripcion" vino nula, usar LocalDate.now()
-        if (request.fechaInscripcion() == null) {
-            inscripcion.setFechaInscripcion(LocalDate.now());
-        } else {
-            inscripcion.setFechaInscripcion(request.fechaInscripcion());
-        }
-
-        // Guardar inscripción
         Inscripcion guardada = inscripcionRepositorio.save(inscripcion);
         log.info("Inscripción guardada con ID: {}", guardada.getId());
 
-        // Lógica adicional: Generar automáticamente la cuota del mes vigente para esta inscripción.
         try {
             int mesActual = LocalDate.now().getMonthValue();
             int anioActual = LocalDate.now().getYear();
@@ -103,19 +98,13 @@ public class InscripcionServicio implements IInscripcionServicio {
             log.info("Cuota generada automáticamente para inscripción id: {} con cuota id: {}",
                     guardada.getId(), cuotaGenerada.id());
         } catch (IllegalStateException e) {
-            // En caso de que ya exista una cuota para este mes (o algún otro error de validación), se registra la advertencia.
             log.warn("No se generó cuota automática para la inscripción id {}: {}", guardada.getId(), e.getMessage());
         }
 
-        // NUEVA LÓGICA: Si es la primera inscripción activa para la disciplina, crear asistencia mensual.
-        List<Inscripcion> inscripcionesActivas = inscripcionRepositorio
-                .findAllByDisciplina_IdAndEstado(disciplina.getId(), EstadoInscripcion.ACTIVA);
-        if (inscripcionesActivas.size() == 1) { // Es la primera inscripción activa
-            int mes = LocalDate.now().getMonthValue();
-            int anio = LocalDate.now().getYear();
-            log.info("Primera inscripción activa en la disciplina. Creando asistencia mensual para {}/{}.", mes, anio);
-            asistenciaMensualServicio.crearAsistenciaPorDisciplina(disciplina.getId(), mes, anio);
-        }
+        int mes = LocalDate.now().getMonthValue();
+        int anio = LocalDate.now().getYear();
+        log.info("Incorporando alumno a la planilla de asistencia para {}/{}.", mes, anio);
+        asistenciaMensualServicio.agregarAlumnoAPlanilla(guardada.getId(), mes, anio);
 
         return inscripcionMapper.toDTO(guardada);
     }
@@ -131,19 +120,13 @@ public class InscripcionServicio implements IInscripcionServicio {
     @Transactional
     public InscripcionResponse actualizarInscripcion(Long id, InscripcionModificacionRequest request) {
         log.info("Actualizando inscripción con id: {}", id);
-        // 1) Buscar la inscripción existente
         Inscripcion inscripcion = inscripcionRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Inscripción no encontrada."));
-        // 2) Mapear los cambios desde el DTO
         inscripcion = inscripcionMapper.updateEntityFromRequest(request, inscripcion);
-
-        // 3) Si fechaBaja no es null, cambiar estado a BAJA
         if (request.fechaBaja() != null) {
             inscripcion.setFechaBaja(request.fechaBaja());
             inscripcion.setEstado(EstadoInscripcion.BAJA);
         }
-
-        // 4) Guardar los cambios
         Inscripcion actualizada = inscripcionRepositorio.save(inscripcion);
         return inscripcionMapper.toDTO(actualizada);
     }
@@ -168,18 +151,6 @@ public class InscripcionServicio implements IInscripcionServicio {
         return inscripciones.stream()
                 .map(inscripcionMapper::toDTO)
                 .collect(Collectors.toList());
-    }
-
-    @Transactional
-    public void crearAsistenciaMensualParaInscripcionesActivas(int mes, int anio) {
-        List<Inscripcion> inscripcionesActivas = inscripcionRepositorio.findByEstado(EstadoInscripcion.ACTIVA);
-        for (Inscripcion inscripcion : inscripcionesActivas) {
-            AsistenciaMensual asistenciaMensual = new AsistenciaMensual();
-            asistenciaMensual.setMes(mes);
-            asistenciaMensual.setAnio(anio);
-            asistenciaMensual.setInscripcion(inscripcion);
-            asistenciaMensualRepositorio.save(asistenciaMensual);
-        }
     }
 
     @Override
@@ -214,19 +185,16 @@ public class InscripcionServicio implements IInscripcionServicio {
 
     public EstadisticasInscripcionResponse obtenerEstadisticas() {
         long totalInscripciones = inscripcionRepositorio.count();
-
         Map<String, Long> inscripcionesPorDisciplina = inscripcionRepositorio.countByDisciplinaGrouped().stream()
                 .collect(Collectors.toMap(
                         arr -> (String) arr[0],
                         arr -> (Long) arr[1]
                 ));
-
         Map<Integer, Long> inscripcionesPorMes = inscripcionRepositorio.countByMonthGrouped().stream()
                 .collect(Collectors.toMap(
                         arr -> (Integer) arr[0],
                         arr -> (Long) arr[1]
                 ));
-
         return new EstadisticasInscripcionResponse(totalInscripciones, inscripcionesPorDisciplina, inscripcionesPorMes);
     }
 
@@ -236,5 +204,16 @@ public class InscripcionServicio implements IInscripcionServicio {
                 .findFirstByAlumno_IdAndEstadoOrderByIdAsc(alumnoId, EstadoInscripcion.ACTIVA)
                 .orElseThrow(() -> new IllegalArgumentException("Inscripción activa no encontrada para el alumno " + alumnoId));
         return inscripcionMapper.toDTO(inscripcion);
+    }
+
+    @Transactional
+    public void crearAsistenciaMensualParaInscripcionesActivas(int mes, int anio) {
+        List<Inscripcion> inscripcionesActivas = inscripcionRepositorio.findByEstado(EstadoInscripcion.ACTIVA);
+        for (Inscripcion inscripcion : inscripcionesActivas) {
+            AsistenciaMensual asistenciaMensual = new AsistenciaMensual();
+            asistenciaMensual.setMes(mes);
+            asistenciaMensual.setAnio(anio);
+            asistenciaMensualRepositorio.save(asistenciaMensual);
+        }
     }
 }

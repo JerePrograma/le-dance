@@ -4,12 +4,12 @@ import { useEffect, useState, useCallback, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
 import Tabla from "../../componentes/comunes/Tabla"
 import inscripcionesApi from "../../api/inscripcionesApi"
+import mensualidadesApi from "../../api/mensualidadesApi"
 import type { InscripcionResponse } from "../../types/types"
 import Boton from "../../componentes/comunes/Boton"
-import { PlusCircle, Pencil } from "lucide-react"
+import { Pencil } from "lucide-react"
 import Pagination from "../../componentes/ui/Pagination"
 import { toast } from "react-toastify"
-import mensualidadesApi from "../../api/mensualidadesApi" // API para generar cuotas
 
 const itemsPerPage = 5
 
@@ -18,7 +18,6 @@ const InscripcionesPagina = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(0)
-  // Estados para búsqueda y orden
   const [searchTerm, setSearchTerm] = useState("")
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
   const navigate = useNavigate()
@@ -41,9 +40,16 @@ const InscripcionesPagina = () => {
     fetchInscripciones()
   }, [fetchInscripciones])
 
-  const handleCrearInscripcion = useCallback(() => {
-    navigate("/inscripciones/formulario")
-  }, [navigate])
+  const handleGenerarAsistencias = async () => {
+    try {
+      mensualidadesApi.crearAsistenciasParaInscripcionesActivas()
+      toast.success("Asistencias generadas exitosamente para inscripciones activas")
+      fetchInscripciones()
+    } catch (error) {
+      console.error("Error al generar asistencias:", error)
+      toast.error("Error al generar asistencias para inscripciones activas")
+    }
+  }
 
   const handleGenerarCuotas = async () => {
     try {
@@ -56,7 +62,6 @@ const InscripcionesPagina = () => {
     }
   }
 
-  // Función para calcular el costo de una inscripción
   const calcularCostoInscripcion = (ins: InscripcionResponse) => {
     const cuota = ins.disciplina?.valorCuota || 0
     const bonifPct = ins.bonificacion?.porcentajeDescuento || 0
@@ -64,7 +69,7 @@ const InscripcionesPagina = () => {
     return cuota - bonifMonto - (cuota * bonifPct) / 100
   }
 
-  // Agrupar inscripciones por alumno
+  // Agrupa las inscripciones por alumno
   const gruposInscripciones = useMemo(() => {
     return inscripciones.reduce((acc, ins) => {
       const alumnoId = ins.alumno.id
@@ -78,7 +83,6 @@ const InscripcionesPagina = () => {
 
   const gruposArray = useMemo(() => Object.values(gruposInscripciones), [gruposInscripciones])
 
-  // Calcular el costo total por grupo
   const gruposConCosto = useMemo(() => {
     return gruposArray.map((grupo) => {
       const costoTotal = grupo.inscripciones.reduce(
@@ -89,7 +93,6 @@ const InscripcionesPagina = () => {
     })
   }, [gruposArray])
 
-  // Filtrar por nombre del alumno y ordenar
   const gruposFiltradosYOrdenados = useMemo(() => {
     const filtrados = gruposConCosto.filter((grupo) => {
       const nombreCompleto = `${grupo.alumno.nombre} ${grupo.alumno.apellido}`.toLowerCase()
@@ -108,7 +111,6 @@ const InscripcionesPagina = () => {
     [gruposFiltradosYOrdenados, currentPage]
   )
 
-  // Opciones únicas para el datalist (nombres completos)
   const nombresUnicos = useMemo(() => {
     const nombresSet = new Set(
       gruposConCosto.map((grupo) => `${grupo.alumno.nombre} ${grupo.alumno.apellido}`)
@@ -125,12 +127,11 @@ const InscripcionesPagina = () => {
         <h1 className="text-3xl font-bold tracking-tight">Inscripciones por Alumno</h1>
         <div className="flex gap-4">
           <Boton
-            onClick={handleCrearInscripcion}
-            className="inline-flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
-            aria-label="Crear nueva inscripción"
+            onClick={handleGenerarAsistencias}
+            className="inline-flex items-center gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/90"
+            aria-label="Generar Asistencias"
           >
-            <PlusCircle className="w-5 h-5" />
-            Nueva Inscripción
+            Generar Asistencias
           </Boton>
           <Boton
             onClick={handleGenerarCuotas}
@@ -142,7 +143,6 @@ const InscripcionesPagina = () => {
         </div>
       </div>
 
-      {/* Controles de búsqueda y orden */}
       <div className="flex flex-col sm:flex-row sm:justify-between gap-4">
         <div>
           <label htmlFor="search" className="mr-2 font-medium">
@@ -187,12 +187,7 @@ const InscripcionesPagina = () => {
       ) : (
         <div className="overflow-x-auto">
           <Tabla
-            encabezados={[
-              "ID Alumno",
-              "Nombre Alumno",
-              "Costo Total",
-              "Acciones"
-            ]}
+            encabezados={["ID Alumno", "Nombre Alumno", "Costo Total", "Acciones"]}
             datos={currentItems}
             extraRender={(grupo) => [
               grupo.alumno.id,

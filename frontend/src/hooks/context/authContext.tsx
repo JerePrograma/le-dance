@@ -1,10 +1,6 @@
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  ReactNode,
-} from "react";
+"use client";
+
+import React, { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../api/axiosConfig";
 
@@ -15,6 +11,8 @@ interface AuthContextProps {
   logout: () => void;
   accessToken: string | null;
   refreshToken: string | null;
+  rol: string | null;
+  hasRole: (role: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
@@ -22,18 +20,17 @@ const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 export const useAuth = (): AuthContextProps => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error("useAuth debe estar dentro de AuthProvider");
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };
 
-export const AuthProvider: React.FC<{ children: ReactNode }> = ({
-  children,
-}) => {
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [isAuth, setIsAuth] = useState(false);
   const [loading, setLoading] = useState(true);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState<string | null>(null);
+  const [rol, setRol] = useState<string | null>(null);
 
   const navigate = useNavigate();
 
@@ -45,14 +42,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       setAccessToken(storedAccess);
       setRefreshToken(storedRefresh);
       setIsAuth(true);
+      // Obtener el perfil para establecer el rol
+      api.get("/usuarios/perfil")
+        .then((response) => {
+          setRol(response.data.rol);
+        })
+        .catch((error) => {
+          console.error("Error al obtener el perfil:", error);
+        });
     }
-
     setLoading(false);
   }, []);
 
   useEffect(() => {
     if (loading) return;
-
     const publicPaths = ["/login", "/registro"];
     if (!isAuth && !publicPaths.includes(window.location.pathname)) {
       navigate("/login");
@@ -68,6 +71,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     setAccessToken(data.accessToken);
     setRefreshToken(data.refreshToken);
     setIsAuth(true);
+
+    try {
+      const profileResponse = await api.get("/usuarios/perfil");
+      setRol(profileResponse.data.rol);
+    } catch (error) {
+      console.error("Error al obtener el perfil:", error);
+    }
   };
 
   const logout = (): void => {
@@ -75,12 +85,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     setAccessToken(null);
     setRefreshToken(null);
     setIsAuth(false);
+    setRol(null);
     navigate("/login");
+  };
+
+  const hasRole = (role: string): boolean => {
+    return rol !== null && rol === role;
   };
 
   return (
     <AuthContext.Provider
-      value={{ isAuth, loading, login, logout, accessToken, refreshToken }}
+      value={{ isAuth, loading, login, logout, accessToken, refreshToken, rol, hasRole }}
     >
       {children}
     </AuthContext.Provider>

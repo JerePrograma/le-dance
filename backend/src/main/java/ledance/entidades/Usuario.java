@@ -7,7 +7,6 @@ import lombok.NoArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-
 import java.util.Collection;
 import java.util.List;
 
@@ -28,7 +27,7 @@ public class Usuario implements UserDetails {
     private String contrasena;
 
     @ManyToOne
-    @JoinColumn(name = "rol_id", nullable = false) // ✅ Asegura que siempre haya un rol
+    @JoinColumn(name = "rol_id", nullable = false)
     private Rol rol;
 
     @Column(nullable = false)
@@ -36,7 +35,9 @@ public class Usuario implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_" + rol.getDescripcion()));
+        // Se previene NPE (aunque rol no debería ser nulo)
+        String rolDesc = (rol != null) ? rol.getDescripcion() : "UNKNOWN";
+        return List.of(new SimpleGrantedAuthority("ROLE_" + rolDesc));
     }
 
     @Override

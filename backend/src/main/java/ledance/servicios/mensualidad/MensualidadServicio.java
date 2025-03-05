@@ -188,30 +188,29 @@ public class MensualidadServicio implements IMensualidadService {
         Inscripcion inscripcion = inscripcionRepositorio.findById(inscripcionId)
                 .orElseThrow(() -> new IllegalArgumentException("Inscripción no encontrada"));
 
-        // 2. Validar que no exista ya una cuota para el mes y año indicados
-        YearMonth yearMonth = YearMonth.of(anio, mes);
-        LocalDate inicioMes = yearMonth.atDay(1);
-        LocalDate finMes = yearMonth.atEndOfMonth();
-        Optional<Mensualidad> cuotaExistente = mensualidadRepositorio.findByInscripcionIdAndFechaCuotaBetween(inscripcionId, inicioMes, finMes);
-        if (cuotaExistente.isPresent()) {
-            throw new IllegalStateException("La cuota para este mes ya fue generada para esta inscripción.");
+        // Usar la fecha de inscripción enviada desde el formulario
+        LocalDate fechaMensualidad = inscripcion.getFechaInscripcion();
+        // Si lo deseas, puedes validar que la fecha de inscripción coincida con los parámetros mes/anio
+        if (fechaMensualidad.getMonthValue() != mes || fechaMensualidad.getYear() != anio) {
+            log.warn("La fecha de inscripción ({}) no coincide con el mes/anio especificados ({}-{}). Se usará la fecha de inscripción.",
+                    fechaMensualidad, mes, anio);
         }
 
         // 3. Crear la nueva Mensualidad
         Mensualidad mensualidad = new Mensualidad();
         mensualidad.setInscripcion(inscripcion);
-        // Se asigna la fecha de cuota como el primer día del mes (puedes modificar este comportamiento)
-        mensualidad.setFechaCuota(inicioMes);
-        // El valor base es el valorCuota de la disciplina
-        Double valorCuota = inscripcion.getDisciplina().getValorCuota();
-        mensualidad.setValorBase(valorCuota);
-        // Se copia la bonificación actual de la inscripción (valor original)
+        // Aquí se asignan ambos campos con la fecha enviada
+        mensualidad.setFechaCuota(fechaMensualidad);
+        mensualidad.setFechaGeneracion(fechaMensualidad);
+        // Valor base tomado de la disciplina
+        mensualidad.setValorBase(inscripcion.getDisciplina().getValorCuota());
+        // Se asigna la bonificación actual de la inscripción
         mensualidad.setBonificacion(inscripcion.getBonificacion());
-        // No se aplica recargo en la generación a demanda
+        // No se aplica recargo en la generación a demanda (o puedes aplicar la lógica que necesites)
         mensualidad.setRecargo(null);
-        // Estado inicial de la cuota: PENDIENTE (se asume que el enum tiene, por ejemplo, PENDIENTE y PAGADO)
+        // Estado inicial de la cuota: PENDIENTE
         mensualidad.setEstado(EstadoMensualidad.PENDIENTE);
-        // Calcular el total a pagar
+        // Calcular el total a pagar (este método se encarga de sumar recargo y restar bonificación)
         mensualidad.calcularTotal();
 
         // 4. Persistir la cuota
