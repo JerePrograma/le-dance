@@ -1,25 +1,43 @@
-import type React from "react";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { ErrorMessage, Field, Form, Formik } from "formik";
 import { usuarioEsquema } from "../../validaciones/usuarioEsquema";
-import api from "../../api/axiosConfig";
+import usuariosApi from "../../api/usuariosApi";
+import api from "../../api/axiosConfig"; // Se utiliza para cargar roles
 import { toast } from "react-toastify";
 import Boton from "../../componentes/comunes/Boton";
+
+// Definimos la interfaz local para el formulario, donde 'activo' es obligatorio
+interface UsuarioFormValues {
+  nombreUsuario: string;
+  contrasena: string;
+  rol: string;
+  activo: boolean;
+}
 
 interface Rol {
   id: number;
   descripcion: string;
 }
 
-const initialUserValues = {
+const initialUserValues: UsuarioFormValues = {
   nombreUsuario: "",
   contrasena: "",
   rol: "",
+  activo: true,
 };
 
 const UsuariosFormulario: React.FC = () => {
   const [roles, setRoles] = useState<Rol[]>([]);
+  const [initialValues, setInitialValues] = useState<UsuarioFormValues>(initialUserValues);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [loading, setLoading] = useState(false);
 
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const userId = searchParams.get("id");
+
+  // Cargar roles (puedes refactorizar a un módulo rolesApi si lo deseas)
   useEffect(() => {
     const fetchRoles = async () => {
       try {
@@ -32,27 +50,65 @@ const UsuariosFormulario: React.FC = () => {
     fetchRoles();
   }, []);
 
-  const handleRegistro = async (values: typeof initialUserValues) => {
-    console.log("handleRegistro llamado con:", values);
-    try {
-      const response = await api.post("/usuarios/registro", values);
-      console.log("Respuesta del backend:", response);
-      toast.success("Usuario registrado correctamente.");
-      window.location.href = "/login";
-    } catch (error: any) {
-      console.error("Error en registro:", error);
-      toast.error("Error al registrar el usuario. Verifica los datos.");
+  // Si se recibe un id, cargar los datos del usuario para editar
+  useEffect(() => {
+    if (userId) {
+      const fetchUsuario = async () => {
+        try {
+          setLoading(true);
+          const response = await usuariosApi.obtenerUsuarioPorId(Number(userId));
+          setInitialValues({
+            nombreUsuario: response.nombreUsuario,
+            contrasena: "", // Se deja vacía por seguridad
+            rol: response.rol,
+            activo: response.activo, // Campo obligatorio
+          });
+          setIsEditMode(true);
+        } catch (err) {
+          toast.error("Error al cargar los datos del usuario.");
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchUsuario();
+    }
+  }, [userId]);
+
+  const handleSubmit = async (values: UsuarioFormValues) => {
+    if (isEditMode && userId) {
+      // Modo edición: se actualiza el usuario, enviando el objeto completo
+      try {
+        await usuariosApi.actualizarUsuario(Number(userId), values);
+        toast.success("Usuario actualizado correctamente.");
+        navigate("/usuarios");
+      } catch (error: any) {
+        console.error("Error al actualizar usuario:", error);
+        toast.error("Error al actualizar el usuario. Verifica los datos.");
+      }
+    } else {
+      // Modo registro: extraemos solo los campos necesarios (activo se ignora en el registro)
+      try {
+        const { activo, ...registroValues } = values;
+        await usuariosApi.registrarUsuario(registroValues);
+        toast.success("Usuario registrado correctamente.");
+        navigate("/login");
+      } catch (error: any) {
+        console.error("Error en registro:", error);
+        toast.error("Error al registrar el usuario. Verifica los datos.");
+      }
     }
   };
 
+  if (loading) return <div className="text-center py-4">Cargando datos...</div>;
 
   return (
     <div className="page-container">
-      <h1 className="page-title">Registro de Usuario</h1>
+      <h1 className="page-title">{isEditMode ? "Editar Usuario" : "Registro de Usuario"}</h1>
       <Formik
-        initialValues={initialUserValues}
+        enableReinitialize
+        initialValues={initialValues}
         validationSchema={usuarioEsquema}
-        onSubmit={handleRegistro}
+        onSubmit={handleSubmit}
       >
         {({ isSubmitting }) => (
           <Form className="formulario max-w-4xl mx-auto">
@@ -67,15 +123,13 @@ const UsuariosFormulario: React.FC = () => {
                   id="nombreUsuario"
                   className="form-input"
                 />
-                <ErrorMessage
-                  name="nombreUsuario"
-                  component="div"
-                  className="auth-error"
-                />
+                <ErrorMessage name="nombreUsuario" component="div" className="auth-error" />
               </div>
               <div className="mb-4">
                 <label htmlFor="contrasena" className="auth-label">
-                  Contraseña:
+                  {isEditMode
+                    ? "Nueva Contraseña (dejar en blanco para mantener la actual)"
+                    : "Contraseña:"}
                 </label>
                 <Field
                   type="password"
@@ -83,13 +137,8 @@ const UsuariosFormulario: React.FC = () => {
                   id="contrasena"
                   className="form-input"
                 />
-                <ErrorMessage
-                  name="contrasena"
-                  component="div"
-                  className="auth-error"
-                />
+                <ErrorMessage name="contrasena" component="div" className="auth-error" />
               </div>
-
               <div className="mb-4">
                 <label htmlFor="rol" className="auth-label">
                   Rol:
@@ -102,21 +151,12 @@ const UsuariosFormulario: React.FC = () => {
                     </option>
                   ))}
                 </Field>
-                <ErrorMessage
-                  name="rol"
-                  component="div"
-                  className="auth-error"
-                />
+                <ErrorMessage name="rol" component="div" className="auth-error" />
               </div>
             </div>
-
             <div className="form-acciones">
-              <Boton
-                type="submit"
-                disabled={isSubmitting}
-                className="page-button"
-              >
-                Registrarse
+              <Boton type="submit" disabled={isSubmitting} className="page-button">
+                {isEditMode ? "Actualizar Usuario" : "Registrarse"}
               </Boton>
               <Boton type="reset" className="page-button-secondary">
                 Limpiar
@@ -127,7 +167,7 @@ const UsuariosFormulario: React.FC = () => {
       </Formik>
       <div className="text-center mt-4">
         <a href="/login" className="auth-link">
-          ¿Ya tienes cuenta? Inicia sesion aqui
+          ¿Ya tienes cuenta? Inicia sesión aquí
         </a>
       </div>
     </div>

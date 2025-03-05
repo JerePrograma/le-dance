@@ -1,12 +1,12 @@
 package ledance.dto.usuario.request;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-
 /**
  * DTO para modificar un usuario existente.
+ * La contraseña se podrá actualizar (o dejar en blanco para mantener la actual).
  */
 public record UsuarioModificacionRequest(
-        @NotBlank String nombreUsuario,
-        @NotNull Boolean activo // ✅ Permite activar o desactivar el usuario
+        String nombreUsuario,
+        String contrasena, // Opcional; si es nulo o vacío, se mantiene la contraseña actual
+        String rol,
+        Boolean activo
 ) {}

@@ -1,20 +1,14 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Tabla from "../../componentes/comunes/Tabla";
-import api from "../../api/axiosConfig";
 import ReactPaginate from "react-paginate";
 import Boton from "../../componentes/comunes/Boton";
 import { PlusCircle, Pencil, Trash2 } from "lucide-react";
-
-interface Usuario {
-  id: number;
-  nombreUsuario: string;
-  rolDescripcion: string;
-  activo: string;
-}
+import type { UsuarioResponse } from "../../types/types";
+import usuariosApi from "../../api/usuariosApi";
 
 const UsuariosPagina = () => {
-  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const [usuarios, setUsuarios] = useState<UsuarioResponse[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,10 +19,10 @@ const UsuariosPagina = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await api.get<Usuario[]>("/usuarios");
-      setUsuarios(response.data);
-    } catch (error) {
-      console.error("Error al cargar usuarios:", error);
+      const usuariosData = await usuariosApi.listarUsuarios();
+      setUsuarios(usuariosData);
+    } catch (err) {
+      console.error("Error al cargar usuarios:", err);
       setError("Error al cargar usuarios.");
     } finally {
       setLoading(false);
@@ -39,16 +33,9 @@ const UsuariosPagina = () => {
     fetchUsuarios();
   }, [fetchUsuarios]);
 
-  const pageCount = useMemo(
-    () => Math.ceil(usuarios.length / itemsPerPage),
-    [usuarios.length]
-  );
+  const pageCount = useMemo(() => Math.ceil(usuarios.length / itemsPerPage), [usuarios.length]);
   const currentItems = useMemo(
-    () =>
-      usuarios.slice(
-        currentPage * itemsPerPage,
-        (currentPage + 1) * itemsPerPage
-      ),
+    () => usuarios.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage),
     [usuarios, currentPage]
   );
 
@@ -64,17 +51,16 @@ const UsuariosPagina = () => {
   const handleEliminarUsuario = useCallback(async (id: number) => {
     if (window.confirm("¿Seguro que deseas eliminar este usuario?")) {
       try {
-        await api.delete(`/usuarios/${id}`);
+        await usuariosApi.eliminarUsuario(id);
         setUsuarios((prev) => prev.filter((u) => u.id !== id));
-      } catch (error) {
-        console.error("Error al eliminar usuario:", error);
+      } catch (err) {
+        console.error("Error al eliminar usuario:", err);
       }
     }
   }, []);
 
   if (loading) return <div className="text-center py-4">Cargando...</div>;
-  if (error)
-    return <div className="text-center py-4 text-destructive">{error}</div>;
+  if (error) return <div className="text-center py-4 text-destructive">{error}</div>;
 
   return (
     <div className="page-container">
@@ -93,7 +79,7 @@ const UsuariosPagina = () => {
         <Tabla
           encabezados={["ID", "Nombre", "Rol", "Activo", "Acciones"]}
           datos={currentItems}
-          acciones={(fila) => (
+          acciones={(fila: UsuarioResponse) => (
             <div className="flex gap-2">
               <Boton
                 onClick={() => navigate(`/usuarios/formulario?id=${fila.id}`)}
@@ -113,7 +99,12 @@ const UsuariosPagina = () => {
               </Boton>
             </div>
           )}
-          extraRender={(fila) => [fila.id, fila.nombreUsuario, fila.rolDescripcion, fila.activo]}
+          extraRender={(fila: UsuarioResponse) => [
+            fila.id,
+            fila.nombreUsuario,
+            fila.rol,
+            fila.activo ? "Activo" : "Inactivo",
+          ]}
         />
       </div>
       {pageCount > 1 && (

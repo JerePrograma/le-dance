@@ -689,6 +689,8 @@ export interface TipoStockResponse {
 // ==========================================
 // USUARIO Y ROLES
 // ==========================================
+// types.ts
+
 export interface UsuarioRegistroRequest {
   nombreUsuario: string;
   contrasena: string;
@@ -697,6 +699,16 @@ export interface UsuarioRegistroRequest {
 
 export interface UsuarioModificacionRequest {
   nombreUsuario: string;
+  // La contraseña se hace opcional, para permitir actualizarla o dejarla sin cambios
+  contrasena?: string;
+  rol: string;
+  activo: boolean;
+}
+
+export interface UsuarioResponse {
+  id: number;
+  nombreUsuario: string;
+  rol: string;
   activo: boolean;
 }
 
@@ -705,6 +717,12 @@ export interface RolRegistroRequest {
 }
 
 export interface RolModificacionRequest {
+  descripcion: string;
+  activo: boolean;
+}
+
+export interface RolResponse {
+  id: number;
   descripcion: string;
   activo: boolean;
 }

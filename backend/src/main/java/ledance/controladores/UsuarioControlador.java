@@ -1,7 +1,7 @@
 package ledance.controladores;
 
-import ledance.dto.usuario.request.UsuarioModificacionRequest;
 import ledance.dto.usuario.request.UsuarioRegistroRequest;
+import ledance.dto.usuario.request.UsuarioModificacionRequest;
 import ledance.dto.usuario.response.UsuarioResponse;
 import ledance.entidades.Usuario;
 import ledance.servicios.usuario.UsuarioServicio;
@@ -30,34 +30,16 @@ public class UsuarioControlador {
         return ResponseEntity.ok(mensaje);
     }
 
-    @GetMapping("/perfil")
-    public ResponseEntity<UsuarioResponse> obtenerPerfil(@AuthenticationPrincipal Usuario usuario) {
-        if (usuario == null) {
-            return ResponseEntity.status(401).build();
-        }
-        return ResponseEntity.ok(usuarioService.convertirAUsuarioResponse(usuario));
+    @PutMapping("/{id}")
+    public ResponseEntity<String> editarUsuario(@PathVariable Long id,
+                                                @RequestBody @Validated UsuarioModificacionRequest modificacionRequest) {
+        usuarioService.editarUsuario(id, modificacionRequest);
+        return ResponseEntity.ok("Usuario actualizado correctamente.");
     }
 
-    @PatchMapping("/perfil")
-    public ResponseEntity<String> actualizarNombreUsuario(@AuthenticationPrincipal Usuario usuario,
-                                                          @RequestBody @Validated UsuarioModificacionRequest datos) {
-        if (usuario == null) {
-            return ResponseEntity.status(401).body("Usuario no autenticado");
-        }
-        usuarioService.actualizarNombreDeUsuario(usuario.getId(), datos.nombreUsuario());
-        return ResponseEntity.ok("Nombre de usuario actualizado a: " + datos.nombreUsuario());
-    }
-
-    @PatchMapping("/{id}/rol")
-    public ResponseEntity<String> actualizarRol(@PathVariable Long id, @RequestParam String nuevoRol) {
-        usuarioService.actualizarRolPorDescripcion(id, nuevoRol.toUpperCase());
-        return ResponseEntity.ok("Rol actualizado a: " + nuevoRol);
-    }
-
-    @PatchMapping("/{id}/desactivar")
-    public ResponseEntity<String> desactivarUsuario(@PathVariable Long id) {
-        usuarioService.desactivarUsuario(id);
-        return ResponseEntity.ok("Usuario desactivado.");
+    @GetMapping("/{id}")
+    public ResponseEntity<UsuarioResponse> obtenerUsuario(@PathVariable Long id) {
+        return ResponseEntity.ok(usuarioService.obtenerUsuario(id));
     }
 
     @GetMapping
@@ -69,4 +51,11 @@ public class UsuarioControlador {
                 .collect(Collectors.toList());
         return ResponseEntity.ok(usuarios);
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> eliminarUsuario(@PathVariable Long id) {
+        usuarioService.eliminarUsuario(id);
+        return ResponseEntity.ok("Usuario eliminado.");
+    }
+
 }

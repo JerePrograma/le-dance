@@ -7,7 +7,6 @@ import ledance.dto.disciplina.request.DisciplinaHorarioModificacionRequest;
 import ledance.dto.profesor.ProfesorMapper;
 import ledance.dto.disciplina.request.DisciplinaModificacionRequest;
 import ledance.dto.disciplina.request.DisciplinaRegistroRequest;
-import ledance.dto.disciplina.request.DisciplinaHorarioRequest;
 import ledance.dto.alumno.response.AlumnoListadoResponse;
 import ledance.dto.disciplina.response.DisciplinaDetalleResponse;
 import ledance.dto.disciplina.response.DisciplinaListadoResponse;

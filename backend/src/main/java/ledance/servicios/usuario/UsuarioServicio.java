@@ -1,6 +1,7 @@
 package ledance.servicios.usuario;
 
 import ledance.dto.usuario.request.UsuarioRegistroRequest;
+import ledance.dto.usuario.request.UsuarioModificacionRequest;
 import ledance.dto.usuario.response.UsuarioResponse;
 import ledance.dto.usuario.UsuarioMapper;
 import ledance.entidades.Usuario;
@@ -40,10 +41,10 @@ public class UsuarioServicio implements IUsuarioServicio {
     public String registrarUsuario(UsuarioRegistroRequest datosRegistro) {
         log.info("Registrando usuario con nombre de usuario: {}", datosRegistro.nombreUsuario());
         if (usuarioRepositorio.findByNombreUsuario(datosRegistro.nombreUsuario()).isPresent()) {
-            throw new IllegalArgumentException("El nombre de usuario ya esta en uso.");
+            throw new IllegalArgumentException("El nombre de usuario ya está en uso.");
         }
         Rol rol = rolRepositorio.findByDescripcion(datosRegistro.rol().toUpperCase())
-                .orElseThrow(() -> new IllegalArgumentException("Rol no valido: " + datosRegistro.rol()));
+                .orElseThrow(() -> new IllegalArgumentException("Rol no válido: " + datosRegistro.rol()));
         Usuario usuario = usuarioMapper.toEntity(datosRegistro);
         usuario.setContrasena(passwordEncoder.encode(datosRegistro.contrasena()));
         usuario.setRol(rol);
@@ -51,38 +52,34 @@ public class UsuarioServicio implements IUsuarioServicio {
         return "Usuario creado exitosamente.";
     }
 
-    @Override
-    @Transactional
-    public void actualizarNombreDeUsuario(Long idUsuario, String nuevoNombre) {
+    public UsuarioResponse obtenerUsuario(Long idUsuario) {
         Usuario usuario = usuarioRepositorio.findById(idUsuario)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
-        usuario.setNombreUsuario(nuevoNombre);
-        usuarioRepositorio.save(usuario);
+        return convertirAUsuarioResponse(usuario);
     }
 
-    @Override
     @Transactional
-    public void actualizarRol(Long idUsuario, Rol nuevoRol) {
+    public void editarUsuario(Long idUsuario, UsuarioModificacionRequest modificacionRequest) {
         Usuario usuario = usuarioRepositorio.findById(idUsuario)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
-        usuario.setRol(nuevoRol);
-        usuarioRepositorio.save(usuario);
-    }
-
-    @Override
-    @Transactional
-    public void actualizarRolPorDescripcion(Long idUsuario, String descripcionRol) {
-        Rol rol = rolRepositorio.findByDescripcion(descripcionRol)
-                .orElseThrow(() -> new IllegalArgumentException("Rol no valido: " + descripcionRol));
-        actualizarRol(idUsuario, rol);
-    }
-
-    @Override
-    @Transactional
-    public void desactivarUsuario(Long idUsuario) {
-        Usuario usuario = usuarioRepositorio.findById(idUsuario)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
-        usuario.setActivo(false);
+        // Actualizar nombre si se envía y no es vacío
+        if (modificacionRequest.nombreUsuario() != null && !modificacionRequest.nombreUsuario().isBlank()) {
+            usuario.setNombreUsuario(modificacionRequest.nombreUsuario());
+        }
+        // Actualizar contraseña (se codifica) si se envía y no es vacío
+        if (modificacionRequest.contrasena() != null && !modificacionRequest.contrasena().isBlank()) {
+            usuario.setContrasena(passwordEncoder.encode(modificacionRequest.contrasena()));
+        }
+        // Actualizar rol si se envía y no es vacío
+        if (modificacionRequest.rol() != null && !modificacionRequest.rol().isBlank()) {
+            Rol rol = rolRepositorio.findByDescripcion(modificacionRequest.rol().toUpperCase())
+                    .orElseThrow(() -> new IllegalArgumentException("Rol no válido: " + modificacionRequest.rol()));
+            usuario.setRol(rol);
+        }
+        // Actualizar el estado activo si se envía (para alta o baja)
+        if (modificacionRequest.activo() != null) {
+            usuario.setActivo(modificacionRequest.activo());
+        }
         usuarioRepositorio.save(usuario);
     }
 
@@ -90,11 +87,11 @@ public class UsuarioServicio implements IUsuarioServicio {
     public List<Usuario> listarUsuarios(String rolDescripcion, Boolean activo) {
         if (rolDescripcion != null && activo != null) {
             Rol rol = rolRepositorio.findByDescripcion(rolDescripcion)
-                    .orElseThrow(() -> new IllegalArgumentException("Rol no valido: " + rolDescripcion));
+                    .orElseThrow(() -> new IllegalArgumentException("Rol no válido: " + rolDescripcion));
             return usuarioRepositorio.findByRolAndActivo(rol, activo);
         } else if (rolDescripcion != null) {
             Rol rol = rolRepositorio.findByDescripcion(rolDescripcion)
-                    .orElseThrow(() -> new IllegalArgumentException("Rol no valido: " + rolDescripcion));
+                    .orElseThrow(() -> new IllegalArgumentException("Rol no válido: " + rolDescripcion));
             return usuarioRepositorio.findByRol(rol);
         } else if (activo != null) {
             return usuarioRepositorio.findByActivo(activo);
@@ -107,4 +104,12 @@ public class UsuarioServicio implements IUsuarioServicio {
     public UsuarioResponse convertirAUsuarioResponse(Usuario usuario) {
         return usuarioMapper.toDTO(usuario);
     }
+
+    @Transactional
+    public void eliminarUsuario(Long idUsuario) {
+        Usuario usuario = usuarioRepositorio.findById(idUsuario)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
+        usuarioRepositorio.delete(usuario);
+    }
+
 }
