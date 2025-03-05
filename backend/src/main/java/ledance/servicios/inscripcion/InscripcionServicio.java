@@ -25,6 +25,7 @@ import jakarta.transaction.Transactional;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -208,12 +209,28 @@ public class InscripcionServicio implements IInscripcionServicio {
 
     @Transactional
     public void crearAsistenciaMensualParaInscripcionesActivas(int mes, int anio) {
+        // Obtener todas las inscripciones activas
         List<Inscripcion> inscripcionesActivas = inscripcionRepositorio.findByEstado(EstadoInscripcion.ACTIVA);
-        for (Inscripcion inscripcion : inscripcionesActivas) {
-            AsistenciaMensual asistenciaMensual = new AsistenciaMensual();
-            asistenciaMensual.setMes(mes);
-            asistenciaMensual.setAnio(anio);
-            asistenciaMensualRepositorio.save(asistenciaMensual);
+
+        // Agrupar las inscripciones activas por disciplina
+        Map<Disciplina, List<Inscripcion>> inscripcionesPorDisciplina =
+                inscripcionesActivas.stream()
+                        .collect(Collectors.groupingBy(Inscripcion::getDisciplina));
+
+        // Para cada disciplina que tenga inscripciones activas, crear la planilla si no existe
+        for (Map.Entry<Disciplina, List<Inscripcion>> entry : inscripcionesPorDisciplina.entrySet()) {
+            Disciplina disciplina = entry.getKey();
+            // Verificar si ya existe la planilla para esta disciplina, mes y año
+            Optional<AsistenciaMensual> planillaOpt = asistenciaMensualRepositorio.findByDisciplina_IdAndMesAndAnio(
+                    disciplina.getId(), mes, anio);
+            if (planillaOpt.isEmpty()) {
+                AsistenciaMensual planilla = new AsistenciaMensual();
+                planilla.setMes(mes);
+                planilla.setAnio(anio);
+                planilla.setDisciplina(disciplina);
+                asistenciaMensualRepositorio.save(planilla);
+            }
         }
     }
+
 }

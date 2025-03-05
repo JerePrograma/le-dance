@@ -7,13 +7,14 @@ import {
     Field,
     FieldArray,
     FormikHelpers,
+    useFormikContext,
     FieldProps,
+    FormikErrors,
 } from "formik";
 import * as Yup from "yup";
 import { toast } from "react-toastify";
 import pagosApi from "../../api/pagosApi";
 import matriculasApi from "../../api/matriculasApi";
-import { MatriculaAutoAdd } from "../../hooks/context/useFormikContext";
 import { useCobranzasData } from "../../hooks/useCobranzasData";
 import { useAlumnoDeudas } from "../../hooks/useAlumnoDeudas";
 import { useUltimoPago } from "../../hooks/useUltimoPago";
@@ -28,7 +29,7 @@ import type {
     MetodoPagoResponse,
     ReporteMensualidadDTO,
 } from "../../types/types";
-import { MensualidadesAutoAdd } from "../../hooks/context/useMensualidades";
+import { AutoAddDetalles } from "../../hooks/context/AutoAddDetalles";
 
 // Función para obtener el periodo vigente (mes y año) en formato "NombreMes Año"
 const getMesVigente = () =>
@@ -55,11 +56,25 @@ const defaultValues: CobranzasFormValues = {
     periodoMensual: getMesVigente(),
 };
 
-// Validación del formulario
+// Esquema de validación
 const validationSchema = Yup.object().shape({
     alumno: Yup.string().required("El alumno es obligatorio"),
     fecha: Yup.string().required("La fecha es obligatoria"),
 });
+
+// Componente para actualizar los valores de Formik sin reinicializar el formulario
+const FormValuesUpdater: React.FC<{ newValues: Partial<CobranzasFormValues> }> = ({
+    newValues,
+}) => {
+    const { values, setValues } = useFormikContext<CobranzasFormValues>();
+
+    useEffect(() => {
+        // Actualiza solo las propiedades que han cambiado
+        setValues({ ...values, ...newValues });
+    }, [newValues, setValues]);
+
+    return null;
+};
 
 const CobranzasForm: React.FC = () => {
     const [initialValues, setInitialValues] =
@@ -72,61 +87,61 @@ const CobranzasForm: React.FC = () => {
     const { loadDeudasForAlumno } = useAlumnoDeudas();
     const [selectedAlumnoId, setSelectedAlumnoId] = useState<number | null>(null);
     const ultimoPago = useUltimoPago(selectedAlumnoId);
-    const [inscripciones, setInscripciones] = useState<any[]>([]);
-
-    // Importar el hook actualizado para cargar mensualidades y matrícula
+    const [inscripciones] = useState<any[]>([]);
     const { loadMensualidadesAlumno } = useCargaMensualidades(alumnos);
 
-    // Función para cargar la matrícula del alumno
     const loadMatricula = async (alumnoId: number) => {
+        console.log("Cargando matrícula para alumno", alumnoId);
         const response = await matriculasApi.obtenerMatricula(alumnoId);
+        console.log("Matrícula recibida:", response);
         setMatricula(response);
         return response;
     };
 
-    // Función para cargar inscripciones activas
+    // Actualizamos la firma para que coincida con la de Formik
     const loadInscripciones = async (
         alumnoId: number,
-        setFieldValue: (field: string, value: any) => void
+        setFieldValue: (
+            field: string,
+            value: any,
+            shouldValidate?: boolean
+        ) => Promise<void | FormikErrors<CobranzasFormValues>>
     ) => {
+        console.log("Cargando inscripciones para alumno", alumnoId);
         const inscripcionesApi = await import("../../api/inscripcionesApi");
         const inscripcionesActivas =
             await inscripcionesApi.default.obtenerInscripcionesActivas(alumnoId);
-        setInscripciones(inscripcionesActivas);
-        setFieldValue(
+        console.log("Inscripciones activas:", inscripcionesActivas);
+        await setFieldValue(
             "inscripcionId",
             inscripcionesActivas.length > 0 ? inscripcionesActivas[0].id : ""
         );
         return inscripcionesActivas;
     };
 
-    // Maneja el cambio de alumno: carga inscripciones, matrícula, mensualidades y deudas.
+    // Actualizamos la firma de handleAlumnoChange igualmente
     const handleAlumnoChange = useCallback(
         async (
             alumnoId: string,
-            values: CobranzasFormValues,
-            setFieldValue: (field: string, value: any) => void
+            _currentValues: CobranzasFormValues,
+            setFieldValue: (
+                field: string,
+                value: any,
+                shouldValidate?: boolean
+            ) => Promise<void | FormikErrors<CobranzasFormValues>>
         ) => {
+            console.log("Alumno cambiado:", alumnoId);
             const numAlumnoId = Number(alumnoId);
-            setFieldValue("alumno", alumnoId);
+            await setFieldValue("alumno", alumnoId);
             setSelectedAlumnoId(numAlumnoId);
-            setFieldValue("matriculaRemoved", false);
+            await setFieldValue("matriculaRemoved", false);
 
             try {
                 await loadInscripciones(numAlumnoId, setFieldValue);
                 await loadMatricula(numAlumnoId);
-                // Llamamos al hook para obtener los nuevos detalles
-                const nuevosDetalles = await loadMensualidadesAlumno(numAlumnoId);
-                setMensualidades(nuevosDetalles);
-                // Concatenamos con el valor actual (tomado en este momento)
-                const detallesActuales = values.detallePagos || [];
-                const updatedDetalles = [...detallesActuales, ...nuevosDetalles];
-                setFieldValue("detallePagos", updatedDetalles);
-                const totalCobrado = updatedDetalles.reduce(
-                    (sum, det) => sum + (Number(det.aCobrar) || 0),
-                    0
-                );
-                setFieldValue("totalCobrado", totalCobrado);
+                const mensualidadesRaw = await loadMensualidadesAlumno(numAlumnoId);
+                console.log("Mensualidades recibidas:", mensualidadesRaw);
+                setMensualidades(mensualidadesRaw);
                 loadDeudasForAlumno(numAlumnoId, setFieldValue);
             } catch (err) {
                 console.error("Error al cargar datos del alumno:", err);
@@ -135,10 +150,12 @@ const CobranzasForm: React.FC = () => {
         [loadDeudasForAlumno, loadMensualidadesAlumno]
     );
 
-    // Precarga valores para edición o, en caso de tener último pago, inicializa el formulario
+    // Actualiza los valores del formulario cuando se obtiene el último pago (solo en creación)
     useEffect(() => {
         if (!searchParams.get("id") && selectedAlumnoId && ultimoPago) {
-            setInitialValues({
+            console.log("Estableciendo valores iniciales a partir del último pago:", ultimoPago);
+            setInitialValues((prev) => ({
+                ...prev,
                 id: ultimoPago.id,
                 reciboNro: ultimoPago.id.toString(),
                 alumno: ultimoPago.alumnoId.toString(),
@@ -150,23 +167,20 @@ const CobranzasForm: React.FC = () => {
                     concepto: detalle.concepto,
                     cuota: detalle.cuota,
                     valorBase: detalle.valorBase,
-                    bonificacionId: detalle.bonificacion
-                        ? detalle.bonificacion.toString()
-                        : "",
+                    bonificacionId: detalle.bonificacion ? detalle.bonificacion.toString() : "",
                     recargoId: detalle.recargo ? detalle.recargo.toString() : "",
                     aFavor: detalle.aFavor || 0,
                     importe: detalle.importe,
-                    aCobrar: detalle.aCobrar,
+                    aCobrar: detalle.aCobrar != null ? detalle.aCobrar : detalle.importe,
                     abono: 0,
+                    autoGenerated: false,
                 })),
                 totalCobrado: ultimoPago.detallePagos.reduce(
                     (sum: number, detalle: any) =>
                         sum + (Number(detalle.aCobrar) || Number(detalle.importe) || 0),
                     0
                 ),
-                metodoPagoId: ultimoPago.metodoPago
-                    ? ultimoPago.metodoPago.toString()
-                    : "",
+                metodoPagoId: ultimoPago.metodoPago ? ultimoPago.metodoPago.toString() : "",
                 observaciones: ultimoPago.observaciones || "",
                 conceptoSeleccionado: "",
                 stockSeleccionado: "",
@@ -176,17 +190,21 @@ const CobranzasForm: React.FC = () => {
                 tarifa: "",
                 cantidad: 1,
                 periodoMensual: getMesVigente(),
-            });
+            }));
         }
     }, [selectedAlumnoId, ultimoPago, searchParams]);
 
+    // Actualiza los valores para edición si existe el parámetro "id"
     useEffect(() => {
         const idParam = searchParams.get("id");
         if (idParam) {
+            console.log("Cargando pago para edición con id", idParam);
             pagosApi
                 .obtenerPagoPorId(Number(idParam))
                 .then((pagoData) => {
-                    setInitialValues({
+                    console.log("Pago recibido para edición:", pagoData);
+                    setInitialValues((prev) => ({
+                        ...prev,
                         id: pagoData.id,
                         reciboNro: pagoData.id.toString(),
                         alumno: pagoData.alumnoId ? pagoData.alumnoId.toString() : "",
@@ -198,23 +216,20 @@ const CobranzasForm: React.FC = () => {
                             concepto: detalle.concepto,
                             cuota: detalle.cuota,
                             valorBase: detalle.valorBase,
-                            bonificacionId: detalle.bonificacion
-                                ? detalle.bonificacion.toString()
-                                : "",
+                            bonificacionId: detalle.bonificacion ? detalle.bonificacion.toString() : "",
                             recargoId: detalle.recargo ? detalle.recargo.toString() : "",
                             aFavor: detalle.aFavor || 0,
                             importe: detalle.importe,
                             aCobrar: detalle.aCobrar,
                             abono: 0,
+                            autoGenerated: false,
                         })),
                         totalCobrado: pagoData.detallePagos.reduce(
                             (sum: number, detalle: any) =>
                                 sum + (Number(detalle.aCobrar) || Number(detalle.importe) || 0),
                             0
                         ),
-                        metodoPagoId: pagoData.metodoPago
-                            ? pagoData.metodoPago.toString()
-                            : "",
+                        metodoPagoId: pagoData.metodoPago ? pagoData.metodoPago.toString() : "",
                         observaciones: pagoData.observaciones || "",
                         conceptoSeleccionado: "",
                         stockSeleccionado: "",
@@ -224,7 +239,7 @@ const CobranzasForm: React.FC = () => {
                         tarifa: "",
                         cantidad: 1,
                         periodoMensual: getMesVigente(),
-                    });
+                    }));
                 })
                 .catch((err) => {
                     console.error("Error al cargar el pago para edición:", err);
@@ -233,8 +248,14 @@ const CobranzasForm: React.FC = () => {
         }
     }, [searchParams]);
 
-    const calculateTotalAPagar = (detallePagos: CobranzasFormValues["detallePagos"]) =>
-        detallePagos.reduce((total, item) => total + Number(item.aCobrar || 0), 0);
+    // Función para calcular el total a pagar (utilizando "aCobrar")
+    const calculateTotalAPagar = (
+        detallePagos: CobranzasFormValues["detallePagos"]
+    ) =>
+        detallePagos.reduce(
+            (total, item) => total + Number(item.aCobrar || 0),
+            0
+        );
 
     const actualizarDetalleImporte = (detalle: any) => ({ ...detalle });
 
@@ -247,17 +268,18 @@ const CobranzasForm: React.FC = () => {
             const detallesFiltrados = detallePagosActualizados.filter(
                 (detalle) => Number(detalle.importe) !== 0
             );
+            // Extraer el método de pago seleccionado para obtener el recargo
             const selectedMetodo = metodosPago.find(
                 (mp: MetodoPagoResponse) => mp.id.toString() === values.metodoPagoId
             );
             const isDebit =
-                selectedMetodo &&
-                selectedMetodo.descripcion.toUpperCase() === "DEBITO";
+                selectedMetodo && selectedMetodo.descripcion.toUpperCase() === "DEBITO";
             const baseTotal = detallesFiltrados.reduce(
                 (total, item) => total + Number(item.importe || 0),
                 0
             );
-            const montoTotal = baseTotal + (isDebit ? 5000 : 0);
+            const recargoValue = isDebit ? Number(selectedMetodo?.recargo) : 0;
+            const montoTotal = baseTotal + recargoValue;
             const totalCobrado = detallesFiltrados.reduce(
                 (sum, detalle) => sum + (Number(detalle.aCobrar) || 0),
                 0
@@ -319,24 +341,31 @@ const CobranzasForm: React.FC = () => {
                 </div>
             )}
             <Formik
-                enableReinitialize
                 initialValues={initialValues}
                 validationSchema={validationSchema}
                 onSubmit={onSubmit}
             >
                 {({ values, setFieldValue }) => {
+                    // Dentro del render de Formik se calcula el total a pagar basado en "aCobrar"
+                    const baseTotal = calculateTotalAPagar(values.detallePagos);
+                    // Se busca el método de pago seleccionado (según values.metodoPagoId)
                     const selectedMetodo = metodosPago.find(
                         (mp: MetodoPagoResponse) => mp.id.toString() === values.metodoPagoId
                     );
                     const isDebit =
-                        selectedMetodo &&
-                        selectedMetodo.descripcion.toUpperCase() === "DEBITO";
-                    const baseTotal = calculateTotalAPagar(values.detallePagos);
-                    const montoTotal = baseTotal + (isDebit ? 5000 : 0);
+                        selectedMetodo && selectedMetodo.descripcion.toUpperCase() === "DEBITO";
+                    const recargoValue = isDebit ? Number(selectedMetodo?.recargo) : 0;
+                    const montoTotal = baseTotal + recargoValue;
+
                     return (
                         <Form className="max-w-5xl mx-auto">
-                            <MatriculaAutoAdd matricula={matricula} conceptos={conceptos} />
-                            <MensualidadesAutoAdd mensualidades={mensualidades} />
+                            {/* Actualización de valores sin reinicializar el formulario */}
+                            <FormValuesUpdater newValues={initialValues} />
+                            <AutoAddDetalles
+                                matricula={matricula}
+                                mensualidades={mensualidades}
+                                conceptos={conceptos}
+                            />
                             {/* Datos de Cobranza */}
                             <div className="border p-4 mb-4">
                                 <h2 className="font-bold mb-2">Datos de Cobranza</h2>
@@ -469,8 +498,9 @@ const CobranzasForm: React.FC = () => {
                                     type="button"
                                     className="bg-green-500 text-white p-2 rounded mt-4"
                                     onClick={() => {
+                                        console.log("Agregando detalle manual...");
                                         const newDetails = [...values.detallePagos];
-                                        // Agregar detalle por concepto seleccionado (manual)
+                                        // Agregar detalle manual por concepto seleccionado
                                         if (values.conceptoSeleccionado) {
                                             const selectedConcept = conceptos.find(
                                                 (c: ConceptoResponse) =>
@@ -479,7 +509,7 @@ const CobranzasForm: React.FC = () => {
                                             if (selectedConcept) {
                                                 newDetails.push({
                                                     id: null,
-                                                    codigoConcepto: selectedConcept.id,
+                                                    codigoConcepto: Number(selectedConcept.id),
                                                     concepto: selectedConcept.descripcion,
                                                     cuota: "1",
                                                     valorBase: selectedConcept.precio,
@@ -489,10 +519,12 @@ const CobranzasForm: React.FC = () => {
                                                     importe: selectedConcept.precio,
                                                     aCobrar: selectedConcept.precio,
                                                     abono: 0,
+                                                    autoGenerated: false,
                                                 });
+                                                console.log("Detalle manual agregado:", newDetails[newDetails.length - 1]);
                                             }
                                         }
-                                        // Agregar detalle basado en disciplina y tarifa
+                                        // Agregar detalle manual por disciplina y tarifa
                                         if (values.disciplina && values.tarifa) {
                                             const inscripcionSeleccionada = inscripciones.find(
                                                 (insc) =>
@@ -525,10 +557,12 @@ const CobranzasForm: React.FC = () => {
                                                     importe: total,
                                                     aCobrar: total,
                                                     abono: 0,
+                                                    autoGenerated: false,
                                                 });
+                                                console.log("Detalle por disciplina agregado:", newDetails[newDetails.length - 1]);
                                             }
                                         }
-                                        // Agregar detalle por Stock seleccionado
+                                        // Agregar detalle manual por stock seleccionado
                                         if (values.stockSeleccionado) {
                                             const selectedStock = stocks.find(
                                                 (s: StockResponse) =>
@@ -549,7 +583,9 @@ const CobranzasForm: React.FC = () => {
                                                     importe: total,
                                                     aCobrar: total,
                                                     abono: 0,
+                                                    autoGenerated: false,
                                                 });
+                                                console.log("Detalle por stock agregado:", newDetails[newDetails.length - 1]);
                                             }
                                         }
                                         if (newDetails.length > values.detallePagos.length) {
@@ -589,9 +625,7 @@ const CobranzasForm: React.FC = () => {
                                                     <th className="border p-2">Recargo</th>
                                                     <th className="border p-2">Importe</th>
                                                     <th className="border p-2">A Cobrar</th>
-                                                    <th className="border p-2" style={{ display: "none" }}>
-                                                        Abono
-                                                    </th>
+                                                    <th className="border p-2" style={{ display: "none" }}>Abono</th>
                                                     <th className="border p-2">Acciones</th>
                                                 </tr>
                                             </thead>
@@ -652,7 +686,6 @@ const CobranzasForm: React.FC = () => {
                                                                     name={`detallePagos.${index}.importe`}
                                                                     type="number"
                                                                     className="w-full"
-                                                                    readOnly
                                                                 />
                                                             </td>
                                                             <td className="border p-2">
@@ -664,18 +697,11 @@ const CobranzasForm: React.FC = () => {
                                                                             className="w-full"
                                                                             onChange={(e) => {
                                                                                 const inputValue = e.target.value;
-                                                                                const importe =
-                                                                                    Number(values.detallePagos[index].importe) || 0;
+                                                                                const importe = Number(values.detallePagos[index].importe) || 0;
                                                                                 const newACobrar =
                                                                                     inputValue === "" ? importe : Number(inputValue);
-                                                                                form.setFieldValue(
-                                                                                    `detallePagos.${index}.aCobrar`,
-                                                                                    newACobrar
-                                                                                );
-                                                                                form.setFieldValue(
-                                                                                    `detallePagos.${index}.abono`,
-                                                                                    importe - newACobrar
-                                                                                );
+                                                                                form.setFieldValue(`detallePagos.${index}.aCobrar`, newACobrar);
+                                                                                form.setFieldValue(`detallePagos.${index}.abono`, importe - newACobrar);
                                                                                 const updatedTotal = values.detallePagos.reduce(
                                                                                     (sum, d, idx) =>
                                                                                         sum + (idx === index ? newACobrar : Number(d.aCobrar) || 0),
@@ -698,7 +724,10 @@ const CobranzasForm: React.FC = () => {
                                                                 <button
                                                                     type="button"
                                                                     className="bg-red-500 text-white p-1 rounded"
-                                                                    onClick={() => remove(index)}
+                                                                    onClick={() => {
+                                                                        console.log("Eliminando detalle en el índice:", index);
+                                                                        remove(index);
+                                                                    }}
                                                                 >
                                                                     Eliminar
                                                                 </button>
@@ -731,7 +760,7 @@ const CobranzasForm: React.FC = () => {
                                         />
                                         {isDebit && (
                                             <p className="text-sm text-info">
-                                                Se ha agregado recargo de $5000 por DEBITO.
+                                                Se ha agregado recargo de ${recargoValue} por DEBITO.
                                             </p>
                                         )}
                                     </div>

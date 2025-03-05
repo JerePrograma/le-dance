@@ -42,14 +42,19 @@ const InscripcionesPagina = () => {
 
   const handleGenerarAsistencias = async () => {
     try {
-      mensualidadesApi.crearAsistenciasParaInscripcionesActivas()
-      toast.success("Asistencias generadas exitosamente para inscripciones activas")
-      fetchInscripciones()
+      const hoy = new Date();
+      const mes = hoy.getMonth() + 1; // getMonth() devuelve 0 para enero, por eso se suma 1
+      const anio = hoy.getFullYear();
+      // Asegúrate de que la función en inscripcionesApi acepte mes y anio
+      await inscripcionesApi.crearAsistenciasParaInscripcionesActivas(mes, anio);
+      toast.success("Asistencias generadas exitosamente para inscripciones activas");
+      fetchInscripciones();
     } catch (error) {
-      console.error("Error al generar asistencias:", error)
-      toast.error("Error al generar asistencias para inscripciones activas")
+      console.error("Error al generar asistencias:", error);
+      toast.error("Error al generar asistencias para inscripciones activas");
     }
-  }
+  };
+
 
   const handleGenerarCuotas = async () => {
     try {

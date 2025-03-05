@@ -96,7 +96,7 @@ public class InscripcionControlador {
         }
     }
 
-    @PostMapping("/crear-asistencias-mensuales")
+    @PostMapping("/crear-asistencias-activos")
     public ResponseEntity<?> crearAsistenciasMensuales(@RequestParam int mes, @RequestParam int anio) {
         inscripcionServicio.crearAsistenciaMensualParaInscripcionesActivas(mes, anio);
         return ResponseEntity.ok("Asistencias mensuales creadas exitosamente.");
