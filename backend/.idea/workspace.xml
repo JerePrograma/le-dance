@@ -5,69 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="ccb8f120-972c-4a18-b18b-4ae7da723dfa" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/AsistenciaDiariaControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/AsistenciaDiariaControlador.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/AsistenciaDiariaMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/AsistenciaDiariaMapper.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/AsistenciaMensualMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/AsistenciaMensualMapper.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/request/AsistenciaDiariaRegistroRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/request/AsistenciaDiariaRegistroRequest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/request/AsistenciaMensualModificacionRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/request/AsistenciaMensualModificacionRequest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/response/AsistenciaDiariaResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/response/AsistenciaDiariaDetalleResponse.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/response/AsistenciaMensualDetalleResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/response/AsistenciaMensualDetalleResponse.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/response/AsistenciaMensualListadoResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/response/AsistenciaMensualListadoResponse.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/entidades/AsistenciaDiaria.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/entidades/AsistenciaDiaria.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/entidades/AsistenciaMensual.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/entidades/AsistenciaMensual.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/repositorios/AsistenciaDiariaRepositorio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/repositorios/AsistenciaDiariaRepositorio.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/asistencia/AsistenciaDiariaServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/asistencia/AsistenciaDiariaServicio.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/asistencia/AsistenciaMensualServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/asistencia/AsistenciaMensualServicio.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/inscripcion/InscripcionServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/inscripcion/InscripcionServicio.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/api/asistenciasApi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/api/asistenciasApi.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/componentes/Header.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/componentes/Header.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/componentes/Layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/componentes/Layout.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/componentes/Sidebar.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/componentes/Sidebar.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/componentes/layout/MainLayout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/componentes/layout/MainLayout.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/componentes/select.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/componentes/select.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/componentes/theme-toggle.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/componentes/theme-toggle.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/componentes/ui/Pagination.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/componentes/ui/accordion.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/componentes/ui/accordion.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/componentes/ui/avatar.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/componentes/ui/avatar.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/componentes/ui/button.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/componentes/ui/button.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/componentes/ui/card.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/componentes/ui/card.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/componentes/ui/collapsible.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/componentes/ui/collapsible.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/componentes/ui/dropdown-menu.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/componentes/ui/dropdown-menu.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/componentes/ui/input.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/componentes/ui/input.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/componentes/ui/scroll-area.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/componentes/ui/scroll-area.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/componentes/ui/sheet.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/componentes/ui/sheet.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/componentes/ui/table.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/componentes/ui/table.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/config/navigation.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/config/navigation.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/alumnos/AlumnosFormulario.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/alumnos/AlumnosFormulario.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/alumnos/AlumnosPagina.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/alumnos/AlumnosPagina.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/asistencias-diarias/AsistenciaDiariaFormulario.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/asistencias-diarias/AsistenciaDiariaFormulario.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/asistencias-diarias/AsistenciasDiariasListado.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/asistencias-diarias/AsistenciasDiariasListado.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/asistencias-mensuales/AsistenciaMensualDetalle.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/asistencias-mensuales/AsistenciaMensualDetalle.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/asistencias-mensuales/AsistenciaMensualGrid.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/asistencias-mensuales/AsistenciasMensualesFormulario.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/asistencias-mensuales/AsistenciasMensualesListado.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/asistencias-mensuales/AsistenciasMensualesListado.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/asistencias-mensuales/AsistenciasMensualesPagina.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/asistencias-mensuales/AsistenciasMensualesPagina.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/asistencias/AsistenciasPagina.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/asistencias/AsistenciasSeleccion.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/bonificaciones/BonificacionesPagina.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/bonificaciones/BonificacionesPagina.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/caja/CajaPagina.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/caja/CajaPagina.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/conceptos/ConceptosPagina.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/conceptos/ConceptosPagina.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/disciplinas/DisciplinasPagina.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/disciplinas/DisciplinasPagina.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/inscripciones/InscripcionesPagina.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/inscripciones/InscripcionesPagina.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/metodos-pago/MetodosPagoPagina.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/metodos-pago/MetodosPagoPagina.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/pagos/PagosPagina.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/pagos/PagosPagina.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/profesores/ProfesoresPagina.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/profesores/ProfesoresPagina.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/reportes/ReporteDetallePago.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/reportes/ReporteDetallePago.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/roles/RolesPagina.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/roles/RolesPagina.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/salones/SalonesPagina.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/salones/SalonesPagina.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/stock/StocksPagina.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/stock/StocksPagina.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/subconceptos/SubConceptosPagina.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/subconceptos/SubConceptosPagina.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/tipoStocks/TipoStocksPagina.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/tipoStocks/TipoStocksPagina.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/usuarios/UsuariosPagina.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/usuarios/UsuariosPagina.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/hooks/context/SideBarContext.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/hooks/context/SideBarContext.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../frontend/src/rutas/AppRouter.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/rutas/AppRouter.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/types/types.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/types/types.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -344,7 +282,7 @@
       <workItem from="1741217659409" duration="1591000" />
       <workItem from="1741257746991" duration="11462000" />
       <workItem from="1741284256180" duration="27000" />
-      <workItem from="1741287019477" duration="6316000" />
+      <workItem from="1741287019477" duration="6917000" />
     </task>
     <servers />
   </component>

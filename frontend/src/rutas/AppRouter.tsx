@@ -8,9 +8,6 @@ const Inicio = lazy(() => import("../paginas/Dashboard"));
 const Reportes = lazy(() => import("../paginas/Reportes"));
 
 // Gestion de asistencias
-const AsistenciasMensualesListado = lazy(() =>
-  import("../funcionalidades/asistencias-mensuales/AsistenciasMensualesListado")
-);
 const AsistenciaMensualDetalle = lazy(() =>
   import("../funcionalidades/asistencias-mensuales/AsistenciaMensualDetalle")
 );
@@ -165,7 +162,6 @@ const AppRouter = () => {
           <Route path="/inscripciones/formulario" element={<FormularioInscripciones />} />
           <Route path="/asistencias/alumnos" element={<AsistenciaDiariaFormulario />} />
           <Route path="/asistencias-mensuales" element={<AsistenciaMensualDetalle />} />
-          <Route path="/asistencias-diarias" element={<AsistenciasMensualesListado />} />
           <Route path="/pagos" element={<Pagos />} />
           <Route path="/pagos/formulario" element={<FormularioPagos />} />
           <Route path="/caja" element={<Caja />} />

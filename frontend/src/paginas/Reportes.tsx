@@ -4,7 +4,7 @@ import Boton from "../componentes/comunes/Boton";
 import api from "../api/axiosConfig";
 import { saveAs } from "file-saver";
 import { Bar } from "react-chartjs-2";
-import Pagination from "../componentes/ui/Pagination";
+import Pagination from "../componentes/comunes/Pagination";
 
 // Interfaces de datos
 interface ReporteData {
