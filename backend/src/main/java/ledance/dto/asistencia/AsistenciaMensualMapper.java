@@ -2,10 +2,7 @@ package ledance.dto.asistencia;
 
 import ledance.dto.asistencia.request.AsistenciaMensualRegistroRequest;
 import ledance.dto.asistencia.request.AsistenciaMensualModificacionRequest;
-import ledance.dto.asistencia.response.AsistenciaMensualDetalleResponse;
-import ledance.dto.asistencia.response.AsistenciaMensualListadoResponse;
-import ledance.dto.asistencia.response.AsistenciaAlumnoMensualDetalleResponse;
-import ledance.dto.asistencia.response.DisciplinaResponse;
+import ledance.dto.asistencia.response.*;
 import ledance.entidades.AsistenciaMensual;
 import ledance.entidades.AsistenciaAlumnoMensual;
 import org.mapstruct.Mapper;
@@ -54,5 +51,18 @@ public interface AsistenciaMensualMapper {
     @Mapping(target = "observacion", source = "observacion")
     @Mapping(target = "asistenciaMensualId", source = "asistenciaMensual.id")
     @Mapping(target = "asistenciasDiarias", source = "asistenciasDiarias")
+    @Mapping(target = "alumno", expression = "java(mapAlumno(alumno))")
     AsistenciaAlumnoMensualDetalleResponse toAlumnoDetalleDTO(AsistenciaAlumnoMensual alumno);
+
+    default AlumnoResponse mapAlumno(AsistenciaAlumnoMensual aam) {
+        if(aam.getInscripcion() != null && aam.getInscripcion().getAlumno() != null) {
+            return new AlumnoResponse(
+                    aam.getInscripcion().getAlumno().getId(),
+                    aam.getInscripcion().getAlumno().getNombre(),
+                    aam.getInscripcion().getAlumno().getApellido()
+            );
+        }
+        return null;
+    }
+
 }

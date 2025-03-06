@@ -18,7 +18,7 @@ public class AsistenciaAlumnoMensual {
     private Long id;
 
     // Relación al alumno (a través de su inscripción)
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "inscripcion_id", nullable = false)
     private Inscripcion inscripcion;
 

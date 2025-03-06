@@ -21,7 +21,8 @@ public interface AsistenciaMensualRepositorio extends JpaRepository<AsistenciaMe
             "JOIN FETCH am.asistenciasAlumnoMensual aam " +
             "JOIN FETCH aam.inscripcion i " +
             "JOIN FETCH i.alumno " +
-            "WHERE am.disciplina.id = :disciplinaId AND am.mes = :mes AND am.anio = :anio")
+            "WHERE am.disciplina.id = :disciplinaId " +
+            "AND am.mes = :mes AND am.anio = :anio")
     Optional<AsistenciaMensual> findByDisciplina_IdAndMesAndAnioFetch(@Param("disciplinaId") Long disciplinaId,
                                                                       @Param("mes") int mes,
                                                                       @Param("anio") int anio);
