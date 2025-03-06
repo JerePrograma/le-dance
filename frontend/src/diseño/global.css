@@ -14,10 +14,10 @@
     --popover: 0 0% 100%;
     --popover-foreground: 20 10% 20%;
 
-    --primary: 152 33% 55%; /* Verde Sage */
+    --primary: 350 70% 73%; /* Rosa EA899A */
     --primary-foreground: 210 40% 98%;
 
-    --secondary: 32 95% 75%; /* Melocoton */
+    --secondary: 32 95% 75%; /* Melocotón */
     --secondary-foreground: 20 10% 20%;
 
     --muted: 20 10% 96%;
@@ -31,7 +31,7 @@
 
     --border: 20 10% 90%;
     --input: 20 10% 90%;
-    --ring: 152 33% 55%;
+    --ring: 350 70% 73%;
 
     /* Radios y espaciado */
     --radius: 0.75rem;
@@ -77,13 +77,13 @@
     --background: 240 10% 10%; /* Negro profundo */
     --foreground: 0 0% 98%;
 
-    --card: 240 10% 13%; /* Negro mas claro para cards */
+    --card: 240 10% 13%; /* Negro más claro para cards */
     --card-foreground: 0 0% 98%;
 
     --popover: 240 10% 13%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 267 100% 65%; /* Purpura brillante */
+    --primary: 267 100% 65%; /* Púrpura brillante */
     --primary-foreground: 0 0% 98%;
 
     --secondary: 240 10% 16%; /* Gris oscuro */
