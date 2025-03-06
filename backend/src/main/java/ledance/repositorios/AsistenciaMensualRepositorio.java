@@ -17,6 +17,15 @@ public interface AsistenciaMensualRepositorio extends JpaRepository<AsistenciaMe
     // Busca la planilla para una disciplina, mes y año dados
     Optional<AsistenciaMensual> findByDisciplina_IdAndMesAndAnio(Long disciplinaId, int mes, int anio);
 
+    @Query("SELECT am FROM AsistenciaMensual am " +
+            "JOIN FETCH am.asistenciasAlumnoMensual aam " +
+            "JOIN FETCH aam.inscripcion i " +
+            "JOIN FETCH i.alumno " +
+            "WHERE am.disciplina.id = :disciplinaId AND am.mes = :mes AND am.anio = :anio")
+    Optional<AsistenciaMensual> findByDisciplina_IdAndMesAndAnioFetch(@Param("disciplinaId") Long disciplinaId,
+                                                                      @Param("mes") int mes,
+                                                                      @Param("anio") int anio);
+
     // Para listar planillas (la misma consulta que en buscarAsistencias)
     @Query("SELECT a FROM AsistenciaMensual a " +
             "WHERE (:profesorId IS NULL OR a.disciplina.profesor.id = :profesorId) " +

@@ -114,7 +114,7 @@ public class AsistenciaMensualServicio {
 
     @Transactional(readOnly = true)
     public AsistenciaMensualDetalleResponse obtenerPlanillaPorDisciplinaYMes(Long disciplinaId, int mes, int anio) {
-        Optional<AsistenciaMensual> planillaOpt = asistenciaMensualRepositorio.findByDisciplina_IdAndMesAndAnio(disciplinaId, mes, anio);
+        Optional<AsistenciaMensual> planillaOpt = asistenciaMensualRepositorio.findByDisciplina_IdAndMesAndAnioFetch(disciplinaId, mes, anio);
         return planillaOpt.map(asistenciaMensualMapper::toDetalleDTO)
                 .orElseThrow(() -> new NoSuchElementException("No se encontró planilla para (Disciplina ID: "
                         + disciplinaId + ", mes: " + mes + ", anio: " + anio + ")"));
