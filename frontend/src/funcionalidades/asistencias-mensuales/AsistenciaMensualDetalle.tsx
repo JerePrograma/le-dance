@@ -33,13 +33,11 @@ import {
 } from "../../types/types";
 import useDebounce from "../../hooks/useDebounce";
 
-// Función para obtener el nombre del alumno. Si la propiedad "alumno" es null,
-// se utiliza el primer registro de asistenciasDiarias para extraer el nombre.
-const getAlumnoDisplayName = (alumnoRecord: AsistenciaAlumnoMensualDetalleResponse): string => {
-  return alumnoRecord.alumno
+// Función para obtener el nombre del alumno (ya que el backend lo mapea correctamente)
+const getAlumnoDisplayName = (alumnoRecord: AsistenciaAlumnoMensualDetalleResponse): string =>
+  alumnoRecord.alumno
     ? `${alumnoRecord.alumno.apellido}, ${alumnoRecord.alumno.nombre}`
     : "Sin alumno";
-};
 
 const AsistenciaMensualDetalle: React.FC = () => {
   const navigate = useNavigate();
@@ -52,7 +50,7 @@ const AsistenciaMensualDetalle: React.FC = () => {
   const [selectedMonth, setSelectedMonth] = useState<number>(currentDate.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState<number>(currentDate.getFullYear());
 
-  // Estado para la asistencia mensual y el manejo de errores/carga
+  // Estado para la asistencia mensual y manejo de errores/carga
   const [asistenciaMensual, setAsistenciaMensual] = useState<AsistenciaMensualDetalleResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -150,7 +148,7 @@ const AsistenciaMensualDetalle: React.FC = () => {
       );
       if (data) {
         setAsistenciaMensual(data);
-        // Construir un mapa de observaciones a partir de cada registro de alumno
+        // Construir mapa de observaciones
         const obsMap: Record<number, string> = {};
         data.alumnos.forEach((alumno) => {
           obsMap[alumno.id] = alumno.observacion || "";
@@ -168,15 +166,46 @@ const AsistenciaMensualDetalle: React.FC = () => {
     }
   }, [selectedDisciplineId, selectedMonth, selectedYear]);
 
-  // Calcula de forma dinámica los días registrados en base a los registros diarios de cada alumno
-  const diasRegistrados = useMemo(() => {
+  // Agrupa los registros duplicados basándose en el ID del alumno
+  const uniqueAlumnos = useMemo(() => {
     if (!asistenciaMensual) return [];
-    const fechasSet = new Set<string>();
+    const alumnosMap = new Map<number, AsistenciaAlumnoMensualDetalleResponse>();
+
     asistenciaMensual.alumnos.forEach((alumno) => {
+      const alumnoId = alumno.alumno?.id;
+      if (alumnoId) {
+        if (!alumnosMap.has(alumnoId)) {
+          alumnosMap.set(alumnoId, { ...alumno });
+        } else {
+          const existing = alumnosMap.get(alumnoId)!;
+          // Fusionar las asistenciasDiarias
+          existing.asistenciasDiarias = [
+            ...existing.asistenciasDiarias,
+            ...alumno.asistenciasDiarias,
+          ];
+          // Fusionar observaciones (por ejemplo, si no tiene observación y el nuevo sí)
+          if (!existing.observacion && alumno.observacion) {
+            existing.observacion = alumno.observacion;
+          }
+        }
+      } else {
+        // Si no se tiene alumno, usar el id propio de registro
+        alumnosMap.set(alumno.id, alumno);
+      }
+    });
+
+    return Array.from(alumnosMap.values());
+  }, [asistenciaMensual]);
+
+  // Calcula de forma dinámica los días registrados en base a los registros diarios de los alumnos únicos
+  const diasRegistrados = useMemo(() => {
+    if (!uniqueAlumnos.length) return [];
+    const fechasSet = new Set<string>();
+    uniqueAlumnos.forEach((alumno) => {
       alumno.asistenciasDiarias.forEach((ad) => fechasSet.add(ad.fecha));
     });
     return Array.from(fechasSet).sort();
-  }, [asistenciaMensual]);
+  }, [uniqueAlumnos]);
 
   // Actualiza la observación de un alumno con debounce
   const debouncedActualizarObservacion = useCallback(
@@ -208,7 +237,7 @@ const AsistenciaMensualDetalle: React.FC = () => {
   // Permite alternar la asistencia diaria de un alumno (presente/ausente)
   const toggleAsistencia = async (alumnoId: number, fecha: string) => {
     if (!asistenciaMensual) return;
-    const alumnoRegistro = asistenciaMensual.alumnos.find((al) => al.id === alumnoId);
+    const alumnoRegistro = uniqueAlumnos.find((al) => al.id === alumnoId);
     if (!alumnoRegistro) {
       toast.error("Registro de alumno no encontrado.");
       return;
@@ -388,7 +417,7 @@ const AsistenciaMensualDetalle: React.FC = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {asistenciaMensual.alumnos.map((alumno) => (
+                {uniqueAlumnos.map((alumno) => (
                   <TableRow key={alumno.id}>
                     <TableCell>{getAlumnoDisplayName(alumno)}</TableCell>
                     {diasRegistrados.map((fecha) => {

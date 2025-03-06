@@ -38,6 +38,7 @@ interface Disciplina {
 const AsistenciaDiariaFormAdaptado: React.FC = () => {
     const navigate = useNavigate();
 
+    // Estados para filtros y datos
     const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
     const [disciplineFilter, setDisciplineFilter] = useState<string>("");
     const [selectedDisciplineId, setSelectedDisciplineId] = useState<number | null>(null);
@@ -51,6 +52,7 @@ const AsistenciaDiariaFormAdaptado: React.FC = () => {
     const [isValidClassDay, setIsValidClassDay] = useState<boolean>(false);
     const [, setDiasClase] = useState<string[]>([]);
 
+    // Cargar lista de disciplinas
     const fetchDisciplinas = useCallback(async () => {
         try {
             const data = await asistenciasApi.listarDisciplinasSimplificadas();
@@ -75,6 +77,7 @@ const AsistenciaDiariaFormAdaptado: React.FC = () => {
         );
     }, [disciplineFilter, disciplinas]);
 
+    // Obtiene los días de clase de la disciplina seleccionada
     const fetchDiasClase = useCallback(async (): Promise<string[]> => {
         if (!selectedDisciplineId) return [];
         try {
@@ -174,29 +177,52 @@ const AsistenciaDiariaFormAdaptado: React.FC = () => {
         }
     }, [selectedDisciplineId]);
 
+    // Deduplicamos los registros de alumnos basándonos en el ID del alumno
+    const uniqueAlumnos = useMemo(() => {
+        if (!monthlyDetail) return [];
+        const alumnosMap = new Map<number, typeof monthlyDetail.alumnos[0]>();
+        monthlyDetail.alumnos.forEach((alumno) => {
+            const alumnoId = alumno.alumno?.id;
+            if (alumnoId) {
+                if (!alumnosMap.has(alumnoId)) {
+                    alumnosMap.set(alumnoId, { ...alumno });
+                } else {
+                    const existing = alumnosMap.get(alumnoId)!;
+                    existing.asistenciasDiarias = [
+                        ...existing.asistenciasDiarias,
+                        ...alumno.asistenciasDiarias,
+                    ];
+                    if (!existing.observacion && alumno.observacion) {
+                        existing.observacion = alumno.observacion;
+                    }
+                }
+            } else {
+                alumnosMap.set(alumno.id, alumno);
+            }
+        });
+        return Array.from(alumnosMap.values());
+    }, [monthlyDetail]);
+
+    // Generamos la lista de registros diarios a partir de los alumnos únicos
     const dailyRecords = useMemo(() => {
         if (!monthlyDetail) return [];
         const selectedIso = selectedDate.toISOString().split("T")[0];
-        return monthlyDetail.alumnos.map((alumno) => {
+        return uniqueAlumnos.map((alumno) => {
+            // Buscamos el registro de asistencia para la fecha seleccionada
             const asistenciaDiaria = alumno.asistenciasDiarias.find(
                 (ad) => ad.fecha === selectedIso
             );
-            const nombre =
-                alumno.alumno?.nombre ||
-                (asistenciaDiaria ? asistenciaDiaria.alumno?.nombre :
-                    alumno.asistenciasDiarias.length > 0 ? alumno.asistenciasDiarias[0].alumno?.nombre : "");
-            const apellido =
-                alumno.alumno?.apellido ||
-                (asistenciaDiaria ? asistenciaDiaria.alumno?.apellido :
-                    alumno.asistenciasDiarias.length > 0 ? alumno.asistenciasDiarias[0].alumno?.apellido : "");
+            // Usamos directamente la información mapeada en "alumno"
+            const alumnoNombre = alumno.alumno?.nombre || "";
+            const alumnoApellido = alumno.alumno?.apellido || "";
             return {
                 alumnoId: alumno.id,
-                alumnoNombre: nombre,
-                alumnoApellido: apellido,
+                alumnoNombre,
+                alumnoApellido,
                 asistenciaDiaria,
             };
         });
-    }, [monthlyDetail, selectedDate]);
+    }, [monthlyDetail, selectedDate, uniqueAlumnos]);
 
     const toggleAsistencia = async (
         alumnoId: number,
@@ -205,7 +231,7 @@ const AsistenciaDiariaFormAdaptado: React.FC = () => {
         if (!selectedDate || !monthlyDetail) return;
         const fechaFormateada = selectedDate.toISOString().split("T")[0];
         if (!currentRecord) {
-            const alumnoRegistro = monthlyDetail.alumnos.find(a => a.id === alumnoId);
+            const alumnoRegistro = uniqueAlumnos.find(a => a.id === alumnoId);
             if (!alumnoRegistro) {
                 toast.error("No se encontró el registro del alumno.");
                 return;
@@ -317,6 +343,7 @@ const AsistenciaDiariaFormAdaptado: React.FC = () => {
                     <CardTitle>Asistencia Diaria</CardTitle>
                 </CardHeader>
                 <CardContent>
+                    {/* Filtros: búsqueda de disciplina y selección de fecha */}
                     <div className="mb-4" ref={searchWrapperRef}>
                         <label htmlFor="searchDiscipline" className="block text-sm font-medium text-gray-700 mb-1">
                             Selecciona la disciplina:
@@ -368,15 +395,7 @@ const AsistenciaDiariaFormAdaptado: React.FC = () => {
                     </div>
 
                     <div className="mb-4">
-                        <Button
-                            onClick={() => {
-                                if (!selectedDate || !selectedDisciplineId) {
-                                    toast.warn("Complete los filtros");
-                                    return;
-                                }
-                                handleBuscarAsistencia();
-                            }}
-                        >
+                        <Button onClick={handleBuscarAsistencia}>
                             Buscar asistencia
                         </Button>
                     </div>
@@ -407,8 +426,7 @@ const AsistenciaDiariaFormAdaptado: React.FC = () => {
                                             <Button
                                                 size="sm"
                                                 variant={
-                                                    record.asistenciaDiaria &&
-                                                        record.asistenciaDiaria.estado === EstadoAsistencia.PRESENTE
+                                                    record.asistenciaDiaria && record.asistenciaDiaria.estado === EstadoAsistencia.PRESENTE
                                                         ? "default"
                                                         : "outline"
                                                 }
@@ -416,8 +434,7 @@ const AsistenciaDiariaFormAdaptado: React.FC = () => {
                                                     toggleAsistencia(record.alumnoId, record.asistenciaDiaria)
                                                 }
                                             >
-                                                {record.asistenciaDiaria &&
-                                                    record.asistenciaDiaria.estado === EstadoAsistencia.PRESENTE ? (
+                                                {record.asistenciaDiaria && record.asistenciaDiaria.estado === EstadoAsistencia.PRESENTE ? (
                                                     <Check className="h-4 w-4" />
                                                 ) : (
                                                     <X className="h-4 w-4" />
@@ -426,11 +443,11 @@ const AsistenciaDiariaFormAdaptado: React.FC = () => {
                                         </TableCell>
                                         <TableCell>
                                             <Input
+                                                placeholder="Escribe observación..."
                                                 value={
                                                     monthlyDetail.alumnos.find(a => a.id === record.alumnoId)?.observacion || ""
                                                 }
                                                 onChange={(e) => handleObservacionChange(record.alumnoId, e.target.value)}
-                                                placeholder="Escribe observación..."
                                             />
                                         </TableCell>
                                     </TableRow>
