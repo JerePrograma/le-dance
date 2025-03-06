@@ -32,23 +32,36 @@ import {
 import type { DisciplinaListadoResponse } from "../../types/types";
 import useDebounce from "../../hooks/useDebounce";
 
-// Funciones helper para obtener nombre y apellido
+// Helper: devuelve el nombre del alumno o un valor por defecto si no se encuentra
 const getAlumnoNombre = (alumnoRecord: any): string => {
-  // Si el registro tiene "nombre" se usa directamente
-  if (alumnoRecord.nombre && alumnoRecord.nombre !== "") return alumnoRecord.nombre;
-  // Si no, se intenta obtener del primer registro de asistencia
-  if (alumnoRecord.asistenciasDiarias && alumnoRecord.asistenciasDiarias.length > 0) {
-    return alumnoRecord.asistenciasDiarias[0].alumno?.nombre || "";
+  // Si el objeto tiene la propiedad "alumno" y dentro de ella "nombre", se usa esa info
+  if (alumnoRecord.alumno && alumnoRecord.alumno.nombre && alumnoRecord.alumno.nombre.trim() !== "") {
+    return alumnoRecord.alumno.nombre;
   }
-  return "";
+  // Si hay registros de asistencias y en el primero se encuentra el objeto alumno
+  if (alumnoRecord.asistenciasDiarias &&
+    alumnoRecord.asistenciasDiarias.length > 0 &&
+    alumnoRecord.asistenciasDiarias[0].alumno &&
+    alumnoRecord.asistenciasDiarias[0].alumno.nombre &&
+    alumnoRecord.asistenciasDiarias[0].alumno.nombre.trim() !== "") {
+    return alumnoRecord.asistenciasDiarias[0].alumno.nombre;
+  }
+  return "Sin nombre";
 };
 
+// Helper: devuelve el apellido del alumno o un valor por defecto
 const getAlumnoApellido = (alumnoRecord: any): string => {
-  if (alumnoRecord.apellido && alumnoRecord.apellido !== "") return alumnoRecord.apellido;
-  if (alumnoRecord.asistenciasDiarias && alumnoRecord.asistenciasDiarias.length > 0) {
-    return alumnoRecord.asistenciasDiarias[0].alumno?.apellido || "";
+  if (alumnoRecord.alumno && alumnoRecord.alumno.apellido && alumnoRecord.alumno.apellido.trim() !== "") {
+    return alumnoRecord.alumno.apellido;
   }
-  return "";
+  if (alumnoRecord.asistenciasDiarias &&
+    alumnoRecord.asistenciasDiarias.length > 0 &&
+    alumnoRecord.asistenciasDiarias[0].alumno &&
+    alumnoRecord.asistenciasDiarias[0].alumno.apellido &&
+    alumnoRecord.asistenciasDiarias[0].alumno.apellido.trim() !== "") {
+    return alumnoRecord.asistenciasDiarias[0].alumno.apellido;
+  }
+  return "Sin apellido";
 };
 
 const AsistenciaMensualDetalle: React.FC = () => {
@@ -149,7 +162,7 @@ const AsistenciaMensualDetalle: React.FC = () => {
     };
   }, []);
 
-  // Consultar el detalle mensual (planilla) según disciplina, mes y año
+  // Consultar el detalle mensual según disciplina, mes y año
   const cargarAsistenciaDinamica = useCallback(async () => {
     if (!selectedDisciplineId || !selectedMonth || !selectedYear) {
       toast.warn("Complete todos los filtros antes de consultar.");
@@ -183,7 +196,7 @@ const AsistenciaMensualDetalle: React.FC = () => {
     }
   }, [selectedDisciplineId, selectedMonth, selectedYear]);
 
-  // Calculamos los días registrados a partir de todos los registros diarios
+  // Calculamos los días registrados a partir de los registros diarios
   const diasRegistrados = useMemo(() => {
     if (!asistenciaMensual) return [];
     const fechasSet = new Set<string>();
@@ -200,7 +213,7 @@ const AsistenciaMensualDetalle: React.FC = () => {
         ([id, observacion]) => ({
           id: Number(id),
           observacion,
-          asistenciasDiarias: [] // Se envía vacío si no se actualizan las asistencias diarias
+          asistenciasDiarias: [] // Se envía vacío si no se actualizan
         })
       );
       asistenciasApi
