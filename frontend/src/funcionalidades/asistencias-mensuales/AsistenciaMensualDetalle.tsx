@@ -35,14 +35,10 @@ import useDebounce from "../../hooks/useDebounce";
 
 // Función para obtener el nombre del alumno. Si la propiedad "alumno" es null,
 // se utiliza el primer registro de asistenciasDiarias para extraer el nombre.
-const getAlumnoDisplayName = (
-  alumnoRecord: AsistenciaAlumnoMensualDetalleResponse
-): string => {
-  const alumno = alumnoRecord.alumno || alumnoRecord.asistenciasDiarias?.[0]?.alumno;
-  if (alumno && alumno.nombre && alumno.apellido) {
-    return `${alumno.apellido}, ${alumno.nombre}`;
-  }
-  return "Sin alumno";
+const getAlumnoDisplayName = (alumnoRecord: AsistenciaAlumnoMensualDetalleResponse): string => {
+  return alumnoRecord.alumno
+    ? `${alumnoRecord.alumno.apellido}, ${alumnoRecord.alumno.nombre}`
+    : "Sin alumno";
 };
 
 const AsistenciaMensualDetalle: React.FC = () => {
