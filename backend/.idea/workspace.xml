@@ -4,13 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="ccb8f120-972c-4a18-b18b-4ae7da723dfa" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/AsistenciaMensualMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/AsistenciaMensualMapper.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/response/AsistenciaAlumnoMensualDetalleResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/response/AsistenciaAlumnoMensualDetalleResponse.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/asistencias-mensuales/AsistenciaMensualDetalle.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/asistencias-mensuales/AsistenciaMensualDetalle.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/types/types.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/types/types.ts" afterDir="false" />
-    </list>
+    <list default="true" id="ccb8f120-972c-4a18-b18b-4ae7da723dfa" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -286,7 +280,7 @@
       <workItem from="1741217659409" duration="1591000" />
       <workItem from="1741257746991" duration="11462000" />
       <workItem from="1741284256180" duration="27000" />
-      <workItem from="1741287019477" duration="9388000" />
+      <workItem from="1741287019477" duration="10031000" />
     </task>
     <servers />
   </component>

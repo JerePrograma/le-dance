@@ -33,26 +33,14 @@ import {
 } from "../../types/types";
 import useDebounce from "../../hooks/useDebounce";
 
-// Helper: Obtiene el nombre y apellido del alumno.
-// Si la propiedad "alumno" es null, se extrae desde el primer registro de "asistenciasDiarias".
+// Función para obtener el nombre del alumno. Si la propiedad "alumno" es null,
+// se utiliza el primer registro de asistenciasDiarias para extraer el nombre.
 const getAlumnoDisplayName = (
   alumnoRecord: AsistenciaAlumnoMensualDetalleResponse
 ): string => {
-  if (
-    alumnoRecord.alumno &&
-    alumnoRecord.alumno.nombre &&
-    alumnoRecord.alumno.apellido
-  ) {
-    return `${alumnoRecord.alumno.apellido}, ${alumnoRecord.alumno.nombre}`;
-  }
-  if (
-    alumnoRecord.asistenciasDiarias &&
-    alumnoRecord.asistenciasDiarias.length > 0 &&
-    alumnoRecord.asistenciasDiarias[0].alumno &&
-    alumnoRecord.asistenciasDiarias[0].alumno.nombre &&
-    alumnoRecord.asistenciasDiarias[0].alumno.apellido
-  ) {
-    return `${alumnoRecord.asistenciasDiarias[0].alumno.apellido}, ${alumnoRecord.asistenciasDiarias[0].alumno.nombre}`;
+  const alumno = alumnoRecord.alumno || alumnoRecord.asistenciasDiarias?.[0]?.alumno;
+  if (alumno && alumno.nombre && alumno.apellido) {
+    return `${alumno.apellido}, ${alumno.nombre}`;
   }
   return "Sin alumno";
 };
@@ -60,7 +48,7 @@ const getAlumnoDisplayName = (
 const AsistenciaMensualDetalle: React.FC = () => {
   const navigate = useNavigate();
 
-  // Estados para filtros
+  // Estados de filtros y datos
   const [disciplinas, setDisciplinas] = useState<DisciplinaListadoResponse[]>([]);
   const [disciplineFilter, setDisciplineFilter] = useState<string>("");
   const [selectedDisciplineId, setSelectedDisciplineId] = useState<number | null>(null);
@@ -68,11 +56,10 @@ const AsistenciaMensualDetalle: React.FC = () => {
   const [selectedMonth, setSelectedMonth] = useState<number>(currentDate.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState<number>(currentDate.getFullYear());
 
-  // Estado para el detalle de asistencia mensual
+  // Estado para la asistencia mensual y el manejo de errores/carga
   const [asistenciaMensual, setAsistenciaMensual] = useState<AsistenciaMensualDetalleResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  // Mapa de observaciones por alumno
   const [observaciones, setObservaciones] = useState<Record<number, string>>({});
 
   // Estados para el sistema de búsqueda (select con sugerencias)
@@ -80,7 +67,7 @@ const AsistenciaMensualDetalle: React.FC = () => {
   const [activeDisciplineSuggestionIndex, setActiveDisciplineSuggestionIndex] = useState<number>(-1);
   const searchWrapperRef = useRef<HTMLDivElement>(null);
 
-  // Cargar disciplinas
+  // Cargar lista de disciplinas
   const fetchDisciplinas = useCallback(async () => {
     try {
       const data = await asistenciasApi.listarDisciplinasSimplificadas();
@@ -95,9 +82,8 @@ const AsistenciaMensualDetalle: React.FC = () => {
     fetchDisciplinas();
   }, [fetchDisciplinas]);
 
-  // Debounce para el filtro de disciplinas
+  // Filtrado con debounce para el input de búsqueda de disciplina
   const debouncedDisciplineFilter = useDebounce(disciplineFilter, 300);
-
   const filteredDisciplinas = useMemo(() => {
     if (!debouncedDisciplineFilter.trim()) return disciplinas;
     return disciplinas.filter((d) =>
@@ -136,7 +122,6 @@ const AsistenciaMensualDetalle: React.FC = () => {
     }
   };
 
-  // Función para limpiar la disciplina buscada
   const limpiarDisciplina = () => {
     setDisciplineFilter("");
     setSelectedDisciplineId(null);
@@ -150,12 +135,10 @@ const AsistenciaMensualDetalle: React.FC = () => {
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Consultar el detalle mensual según disciplina, mes y año
+  // Función que consulta la asistencia mensual de acuerdo a los filtros seleccionados
   const cargarAsistenciaDinamica = useCallback(async () => {
     if (!selectedDisciplineId || !selectedMonth || !selectedYear) {
       toast.warn("Complete todos los filtros antes de consultar.");
@@ -171,7 +154,7 @@ const AsistenciaMensualDetalle: React.FC = () => {
       );
       if (data) {
         setAsistenciaMensual(data);
-        // Construir mapa de observaciones a partir de cada registro de alumno
+        // Construir un mapa de observaciones a partir de cada registro de alumno
         const obsMap: Record<number, string> = {};
         data.alumnos.forEach((alumno) => {
           obsMap[alumno.id] = alumno.observacion || "";
@@ -189,7 +172,7 @@ const AsistenciaMensualDetalle: React.FC = () => {
     }
   }, [selectedDisciplineId, selectedMonth, selectedYear]);
 
-  // Calculamos los días registrados a partir de los registros diarios
+  // Calcula de forma dinámica los días registrados en base a los registros diarios de cada alumno
   const diasRegistrados = useMemo(() => {
     if (!asistenciaMensual) return [];
     const fechasSet = new Set<string>();
@@ -199,16 +182,17 @@ const AsistenciaMensualDetalle: React.FC = () => {
     return Array.from(fechasSet).sort();
   }, [asistenciaMensual]);
 
-  // Debounce para actualizar observaciones
+  // Actualiza la observación de un alumno con debounce
   const debouncedActualizarObservacion = useCallback(
     (alumnoId: number, obs: string) => {
-      const asistenciasAlumnoMensualArray = Object.entries({ ...observaciones, [alumnoId]: obs }).map(
-        ([id, observacion]) => ({
-          id: Number(id),
-          observacion,
-          asistenciasDiarias: [] // Se envía vacío si no se actualizan
-        })
-      );
+      const asistenciasAlumnoMensualArray = Object.entries({
+        ...observaciones,
+        [alumnoId]: obs,
+      }).map(([id, observacion]) => ({
+        id: Number(id),
+        observacion,
+        asistenciasDiarias: [] // Se envía vacío si no se actualizan
+      }));
       asistenciasApi
         .actualizarAsistenciaMensual(asistenciaMensual!.id, { asistenciasAlumnoMensual: asistenciasAlumnoMensualArray })
         .then(() => toast.success("Observación actualizada"))
@@ -225,7 +209,7 @@ const AsistenciaMensualDetalle: React.FC = () => {
     debouncedActualizarObservacion(alumnoId, obs);
   };
 
-  // Alternar la asistencia diaria de un alumno en una fecha determinada
+  // Permite alternar la asistencia diaria de un alumno (presente/ausente)
   const toggleAsistencia = async (alumnoId: number, fecha: string) => {
     if (!asistenciaMensual) return;
     const alumnoRegistro = asistenciaMensual.alumnos.find((al) => al.id === alumnoId);
@@ -240,18 +224,20 @@ const AsistenciaMensualDetalle: React.FC = () => {
     }
     try {
       const nuevoEstado =
-        registro.estado === EstadoAsistencia.PRESENTE ? EstadoAsistencia.AUSENTE : EstadoAsistencia.PRESENTE;
+        registro.estado === EstadoAsistencia.PRESENTE
+          ? EstadoAsistencia.AUSENTE
+          : EstadoAsistencia.PRESENTE;
 
       const request = {
         id: registro.id,
-        fecha, // Formato ISO (YYYY-MM-DD)
+        fecha,
         estado: nuevoEstado,
         asistenciaAlumnoMensualId: registro.asistenciaAlumnoMensualId,
       };
 
       const updated = await asistenciasApi.registrarAsistenciaDiaria(request);
 
-      // Actualizamos el estado local según la respuesta del API
+      // Actualizamos el estado local con la respuesta del API
       setAsistenciaMensual((prev) => {
         if (!prev) return prev;
         return {
@@ -286,9 +272,9 @@ const AsistenciaMensualDetalle: React.FC = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {/* Filtros: búsqueda de disciplina y selección de mes/año */}
+          {/* Sección de filtros: búsqueda de disciplina y selección de mes/año */}
           <div className="mb-4 space-y-2">
-            <div ref={searchWrapperRef} className="flex items-center space-x-2">
+            <div ref={searchWrapperRef} className="flex items-center space-x-2 relative">
               <div className="flex-1">
                 <label htmlFor="searchDiscipline" className="block text-sm font-medium text-gray-700 mb-1">
                   Buscar disciplina:
@@ -332,7 +318,7 @@ const AsistenciaMensualDetalle: React.FC = () => {
                 <select
                   id="monthSelect"
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-                  value={selectedMonth || ""}
+                  value={selectedMonth}
                   onChange={(e) => setSelectedMonth(Number(e.target.value))}
                 >
                   <option value="">-- Seleccione --</option>
@@ -363,7 +349,7 @@ const AsistenciaMensualDetalle: React.FC = () => {
                 <select
                   id="yearSelect"
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-                  value={selectedYear || ""}
+                  value={selectedYear}
                   onChange={(e) => setSelectedYear(Number(e.target.value))}
                 >
                   <option value="">-- Seleccione --</option>
@@ -408,9 +394,7 @@ const AsistenciaMensualDetalle: React.FC = () => {
               <TableBody>
                 {asistenciaMensual.alumnos.map((alumno) => (
                   <TableRow key={alumno.id}>
-                    <TableCell>
-                      {getAlumnoDisplayName(alumno)}
-                    </TableCell>
+                    <TableCell>{getAlumnoDisplayName(alumno)}</TableCell>
                     {diasRegistrados.map((fecha) => {
                       const registro = alumno.asistenciasDiarias.find((ad) => ad.fecha === fecha);
                       return (
