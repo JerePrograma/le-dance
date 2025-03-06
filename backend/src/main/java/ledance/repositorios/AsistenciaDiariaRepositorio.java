@@ -16,15 +16,17 @@ import java.util.Optional;
 @Repository
 public interface AsistenciaDiariaRepositorio extends JpaRepository<AsistenciaDiaria, Long> {
 
-    // Recupera las asistencias diarias filtradas por disciplina a través de la planilla
-    Page<AsistenciaDiaria> findByAsistenciaMensual_Disciplina_IdAndFecha(Long disciplinaId, LocalDate fecha, Pageable pageable);
+    // Recupera las asistencias diarias filtradas por disciplina (a través de la planilla)
+    Page<AsistenciaDiaria> findByAsistenciaAlumnoMensual_AsistenciaMensual_Disciplina_IdAndFecha(Long disciplinaId, LocalDate fecha, Pageable pageable);
 
-    Optional<AsistenciaDiaria> findByIdAndAlumnoIdAndFecha(Long id, Long alumnoId, LocalDate fecha);
+    // Busca una asistencia por id, alumno (a través del registro) y fecha
+    Optional<AsistenciaDiaria> findByIdAndAsistenciaAlumnoMensual_Inscripcion_Alumno_IdAndFecha(Long id, Long alumnoId, LocalDate fecha);
 
-    @Query("SELECT a.alumno.id, COUNT(a) FROM AsistenciaDiaria a " +
-            "WHERE a.asistenciaMensual.disciplina.id = :disciplinaId " +
+    @Query("SELECT a.asistenciaAlumnoMensual.inscripcion.alumno.id, COUNT(a) " +
+            "FROM AsistenciaDiaria a " +
+            "WHERE a.asistenciaAlumnoMensual.asistenciaMensual.disciplina.id = :disciplinaId " +
             "AND a.fecha BETWEEN :fechaInicio AND :fechaFin " +
-            "GROUP BY a.alumno.id")
+            "GROUP BY a.asistenciaAlumnoMensual.inscripcion.alumno.id")
     List<Object[]> contarAsistenciasPorAlumnoRaw(@Param("disciplinaId") Long disciplinaId,
                                                  @Param("fechaInicio") LocalDate fechaInicio,
                                                  @Param("fechaFin") LocalDate fechaFin);
@@ -41,16 +43,28 @@ public interface AsistenciaDiariaRepositorio extends JpaRepository<AsistenciaDia
     }
 
     // Verifica si ya existe una asistencia para un alumno en una fecha
-    boolean existsByAlumnoIdAndFecha(Long alumnoId, LocalDate fecha);
+    boolean existsByAsistenciaAlumnoMensual_Inscripcion_Alumno_IdAndFecha(Long alumnoId, LocalDate fecha);
 
-    Optional<AsistenciaDiaria> findByAlumnoIdAndFecha(Long alumnoId, LocalDate fecha);
+    // Busca una asistencia para un alumno en una fecha
+    Optional<AsistenciaDiaria> findByAsistenciaAlumnoMensual_Inscripcion_Alumno_IdAndFecha(Long alumnoId, LocalDate fecha);
 
-    // Recupera todas las asistencias asociadas a una planilla de asistencia
-    List<AsistenciaDiaria> findByAsistenciaMensualId(Long asistenciaMensualId);
+    // Recupera todas las asistencias asociadas a una planilla (a través de AsistenciaAlumnoMensual)
+    List<AsistenciaDiaria> findByAsistenciaAlumnoMensual_AsistenciaMensual_Id(Long asistenciaMensualId);
 
     // Elimina asistencias diarias de una planilla cuya fecha sea mayor o igual a la indicada
-    void deleteByAsistenciaMensualIdAndFechaGreaterThanEqual(Long asistenciaMensualId, LocalDate fecha);
+    void deleteByAsistenciaAlumnoMensual_AsistenciaMensual_IdAndFechaGreaterThanEqual(Long asistenciaMensualId, LocalDate fecha);
 
     // Verifica si ya existen registros para un alumno en una planilla
-    boolean existsByAlumnoIdAndAsistenciaMensualId(Long alumnoId, Long planillaId);
+    boolean existsByAsistenciaAlumnoMensual_Inscripcion_Alumno_IdAndAsistenciaAlumnoMensual_AsistenciaMensual_Id(Long alumnoId, Long planillaId);
+
+    // Elimina las asistencias diarias asociadas a un registro de alumno (AsistenciaAlumnoMensual) cuya fecha sea mayor o igual a la indicada
+    void deleteByAsistenciaAlumnoMensual_IdAndFechaGreaterThanEqual(Long asistenciaAlumnoMensualId, LocalDate fechaCambio);
+
+    boolean existsByAsistenciaAlumnoMensualId(Long id);
+
+    void deleteByAsistenciaAlumnoMensualIdAndFechaGreaterThanEqual(Long id, LocalDate fechaCambio);
+
+    boolean existsByAsistenciaAlumnoMensualIdAndFecha(Long id, LocalDate fecha);
+
+    Optional<AsistenciaDiaria> findByAsistenciaAlumnoMensualIdAndFecha(Long id, LocalDate fecha);
 }

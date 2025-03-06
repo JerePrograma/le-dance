@@ -2,7 +2,7 @@ package ledance.controladores;
 
 import ledance.dto.asistencia.request.AsistenciaDiariaRegistroRequest;
 import ledance.dto.asistencia.request.AsistenciaDiariaModificacionRequest;
-import ledance.dto.asistencia.response.AsistenciaDiariaResponse;
+import ledance.dto.asistencia.response.AsistenciaDiariaDetalleResponse;
 import ledance.servicios.asistencia.AsistenciaDiariaServicio;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -26,22 +26,37 @@ public class AsistenciaDiariaControlador {
         this.asistenciaDiariaServicio = asistenciaDiariaServicio;
     }
 
-    @PostMapping
-    public ResponseEntity<AsistenciaDiariaResponse> registrarAsistencia(
+    @PutMapping("/registrar")
+    public ResponseEntity<AsistenciaDiariaDetalleResponse> registrarAsistencia(
             @Valid @RequestBody AsistenciaDiariaRegistroRequest request) {
-        log.info("Registrando asistencia para alumnoId={} en fecha={}", request.alumnoId(), request.fecha());
+        System.out.println("---------------------------------------------------------------");
+        System.out.println(request);
+        System.out.println(request);
+        System.out.println(request);
+        System.out.println(request);
+        System.out.println(request);
+        System.out.println(request);
+        System.out.println(request);
+        System.out.println(request);
+        System.out.println(request);
+        System.out.println(request);
+        System.out.println(request);
+        System.out.println(request);
+        System.out.println(request);
+        System.out.println("---------------------------------------------------------------");
+        log.info("Registrando asistencia para alumnoId={} en fecha={}", request.id(), request.fecha());
         return ResponseEntity.ok(asistenciaDiariaServicio.registrarOActualizarAsistencia(request));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<AsistenciaDiariaResponse> modificarAsistencia(
+    public ResponseEntity<AsistenciaDiariaDetalleResponse> modificarAsistencia(
             @PathVariable Long id, @Valid @RequestBody AsistenciaDiariaModificacionRequest request) {
         log.info("Modificando asistencia con id={} para fecha={}", id, request.fecha());
         return ResponseEntity.ok(asistenciaDiariaServicio.actualizarAsistencia(id, request));
     }
 
     @GetMapping("/por-asistencia-mensual/{asistenciaMensualId}")
-    public ResponseEntity<List<AsistenciaDiariaResponse>> obtenerAsistenciasPorAsistenciaMensual(
+    public ResponseEntity<List<AsistenciaDiariaDetalleResponse>> obtenerAsistenciasPorAsistenciaMensual(
             @PathVariable Long asistenciaMensualId) {
         log.info("Obteniendo asistencias diarias para asistenciaMensualId={}", asistenciaMensualId);
         return ResponseEntity.ok(asistenciaDiariaServicio.obtenerAsistenciasPorAsistenciaMensual(asistenciaMensualId));
@@ -55,7 +70,7 @@ public class AsistenciaDiariaControlador {
     }
 
     @GetMapping("/por-disciplina-y-fecha")
-    public ResponseEntity<Page<AsistenciaDiariaResponse>> obtenerAsistenciasPorDisciplinaYFecha(
+    public ResponseEntity<Page<AsistenciaDiariaDetalleResponse>> obtenerAsistenciasPorDisciplinaYFecha(
             @RequestParam Long disciplinaId, @RequestParam String fecha, Pageable pageable) {
         LocalDate fechaParsed = LocalDate.parse(fecha);
         log.info("Obteniendo asistencias para disciplinaId={} en fecha={}", disciplinaId, fechaParsed);

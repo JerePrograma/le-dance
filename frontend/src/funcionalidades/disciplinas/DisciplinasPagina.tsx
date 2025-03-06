@@ -6,7 +6,7 @@ import Tabla from "../../componentes/comunes/Tabla";
 import api from "../../api/axiosConfig";
 import Boton from "../../componentes/comunes/Boton";
 import { PlusCircle, Pencil, Trash2 } from "lucide-react";
-import Pagination from "../../componentes/ui/Pagination";
+import Pagination from "../../componentes/comunes/Pagination";
 import disciplinasApi from "../../api/disciplinasApi";
 
 interface Disciplina {

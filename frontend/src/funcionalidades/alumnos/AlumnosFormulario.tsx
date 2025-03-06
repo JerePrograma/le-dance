@@ -1,5 +1,5 @@
 // src/funcionalidades/alumnos/AlumnosFormulario.tsx
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Formik, Form, Field, ErrorMessage, type FormikHelpers } from "formik";
 import { alumnoEsquema } from "../../validaciones/alumnoEsquema";
@@ -54,9 +54,33 @@ const AlumnosFormulario: React.FC = () => {
   const [idBusqueda, setIdBusqueda] = useState("");
   const [nombreBusqueda, setNombreBusqueda] = useState("");
   const [sugerenciasAlumnos, setSugerenciasAlumnos] = useState<AlumnoListadoResponse[]>([]);
-  const [formValues, setFormValues] = useState<AlumnoRegistroRequest & Partial<AlumnoModificacionRequest>>(initialAlumnoValues);
+  // Estado para el índice de sugerencia activa
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
+  // Estado para controlar la visibilidad de las sugerencias
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  const [formValues, setFormValues] = useState<
+    AlumnoRegistroRequest & Partial<AlumnoModificacionRequest>
+  >(initialAlumnoValues);
+
+  // Utilizamos un ref para detectar clicks fuera del bloque de búsqueda
+  const searchWrapperRef = useRef<HTMLDivElement>(null);
 
   const debouncedNombreBusqueda = useDebounce(nombreBusqueda, 300);
+
+  // Función para eliminar inscripción y recargar el listado dinámicamente
+  const handleEliminarInscripcion = async (id: number) => {
+    try {
+      await inscripcionesApi.eliminar(id);
+      toast.success("Inscripción eliminada correctamente.");
+      if (alumnoId) {
+        await cargarInscripciones(alumnoId);
+      }
+    } catch (error) {
+      console.error("Error al eliminar inscripción:", error);
+      toast.error("Error al eliminar inscripción.");
+    }
+  };
 
   // Función para calcular la edad a partir de la fecha de nacimiento
   const calcularEdad = (fecha: string) => {
@@ -77,7 +101,8 @@ const AlumnosFormulario: React.FC = () => {
     setInscripciones([]);
     setIdBusqueda("");
     setNombreBusqueda("");
-    // Limpiar los parámetros de la URL
+    setSugerenciasAlumnos([]);
+    setShowSuggestions(false);
     setSearchParams({});
   };
 
@@ -91,41 +116,48 @@ const AlumnosFormulario: React.FC = () => {
     }
   }, []);
 
-  const handleBuscar = useCallback(async (id: string) => {
-    try {
-      if (id) {
-        const alumno = await alumnosApi.obtenerPorId(Number(id));
-        const convertedAlumno = { ...convertToAlumnoRegistroRequest(alumno), activo: alumno.activo ?? true };
-        setFormValues(convertedAlumno);
-        setAlumnoId(alumno.id);
-        // Actualizamos el campo "Número de Alumno:" con el ID del alumno encontrado
-        setIdBusqueda(String(alumno.id));
-        cargarInscripciones(alumno.id);
-        setMensaje("");
-      } else {
-        setMensaje("Por favor, ingrese un ID de alumno.");
+  const handleBuscar = useCallback(
+    async (id: string) => {
+      try {
+        if (id) {
+          const alumno = await alumnosApi.obtenerPorId(Number(id));
+          const convertedAlumno = {
+            ...convertToAlumnoRegistroRequest(alumno),
+            activo: alumno.activo ?? true,
+          };
+          setFormValues(convertedAlumno);
+          setAlumnoId(alumno.id);
+          setIdBusqueda(String(alumno.id));
+          cargarInscripciones(alumno.id);
+          setMensaje("");
+        } else {
+          setMensaje("Por favor, ingrese un ID de alumno.");
+          resetearFormulario();
+        }
+      } catch (error) {
+        setMensaje("Alumno no encontrado.");
         resetearFormulario();
       }
-    } catch (error) {
-      setMensaje("Alumno no encontrado.");
-      resetearFormulario();
-    }
-  }, [cargarInscripciones]);
+    },
+    [cargarInscripciones]
+  );
 
   const handleSeleccionarAlumno = async (id: number, nombreCompleto: string) => {
     try {
-      // Reiniciamos el formulario para borrar datos pre cargados
       resetearFormulario();
-      // Actualizamos el campo "Número de Alumno:" con el ID seleccionado
       setIdBusqueda(String(id));
-
       const alumno = await alumnosApi.obtenerPorId(id);
-      const convertedAlumno = { ...convertToAlumnoRegistroRequest(alumno), activo: alumno.activo ?? true };
+      const convertedAlumno = {
+        ...convertToAlumnoRegistroRequest(alumno),
+        activo: alumno.activo ?? true,
+      };
       setFormValues(convertedAlumno);
       setAlumnoId(alumno.id);
       setNombreBusqueda(nombreCompleto);
       cargarInscripciones(alumno.id);
       setMensaje("");
+      // Ocultar sugerencias al seleccionar un alumno
+      setShowSuggestions(false);
     } catch (error) {
       setMensaje("Alumno no encontrado.");
       resetearFormulario();
@@ -137,7 +169,6 @@ const AlumnosFormulario: React.FC = () => {
     { setSubmitting }: FormikHelpers<AlumnoRegistroRequest & Partial<AlumnoModificacionRequest>>
   ) => {
     try {
-      // Evitamos la duplicación de alumnos (nombre y apellido exactos) al registrar uno nuevo
       if (!alumnoId) {
         const alumnoDuplicado = sugerenciasAlumnos.find(
           (a) =>
@@ -163,7 +194,6 @@ const AlumnosFormulario: React.FC = () => {
       } else {
         const nuevoAlumno = await alumnosApi.registrar(values as AlumnoRegistroRequest);
         setAlumnoId(nuevoAlumno.id);
-        // Actualizamos el campo "Número de Alumno:" con el ID del alumno recién creado
         setIdBusqueda(String(nuevoAlumno.id));
         successMsg = "Alumno creado correctamente";
       }
@@ -189,39 +219,61 @@ const AlumnosFormulario: React.FC = () => {
 
   useEffect(() => {
     const buscarSugerencias = async () => {
-      if (debouncedNombreBusqueda) {
+      // Si no hay texto en el input, traemos la totalidad de alumnos
+      if (debouncedNombreBusqueda.trim() === "") {
+        const sugerencias = await alumnosApi.buscarPorNombre("");
+        setSugerenciasAlumnos(sugerencias);
+        setActiveSuggestionIndex(-1);
+      } else {
         const sugerencias = await alumnosApi.buscarPorNombre(debouncedNombreBusqueda);
         setSugerenciasAlumnos(sugerencias);
-      } else {
-        setSugerenciasAlumnos([]);
+        setActiveSuggestionIndex(-1);
       }
     };
     buscarSugerencias();
   }, [debouncedNombreBusqueda]);
 
-  const handleEliminarInscripcion = async (id: number) => {
-    try {
-      await inscripcionesApi.eliminar(id);
-      cargarInscripciones(alumnoId);
-      toast.success("Inscripción eliminada correctamente");
-    } catch (error) {
-      toast.error("Error al eliminar la inscripción");
+  // Manejo de navegación por teclado en el input de búsqueda
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (sugerenciasAlumnos.length > 0) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setActiveSuggestionIndex((prev) =>
+          prev < sugerenciasAlumnos.length - 1 ? prev + 1 : 0
+        );
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setActiveSuggestionIndex((prev) =>
+          prev > 0 ? prev - 1 : sugerenciasAlumnos.length - 1
+        );
+      } else if (e.key === "Enter" || e.key === "Tab") {
+        if (activeSuggestionIndex >= 0 && activeSuggestionIndex < sugerenciasAlumnos.length) {
+          e.preventDefault();
+          const alumnoSeleccionado = sugerenciasAlumnos[activeSuggestionIndex];
+          handleSeleccionarAlumno(
+            alumnoSeleccionado.id,
+            `${alumnoSeleccionado.nombre} ${alumnoSeleccionado.apellido}`
+          );
+          setSugerenciasAlumnos([]);
+          setActiveSuggestionIndex(-1);
+          setShowSuggestions(false);
+        }
+      }
     }
   };
 
-  // Función para calcular los valores de cada inscripción
-  const calcularValores = (ins: InscripcionResponse) => {
-    const cuota = ins.disciplina?.valorCuota || 0;
-    const bonifPct = ins.bonificacion?.porcentajeDescuento || 0;
-    const bonifMonto = ins.bonificacion?.valorFijo || 0;
-    const total = cuota - bonifMonto - (cuota * bonifPct) / 100;
-    return { cuota, bonifPct, bonifMonto, total };
-  };
-
-  // Arreglo extendido que incluye la fila de totales
-  const datosExtendidos = useMemo(() => {
-    return [...inscripciones, { _totals: true } as any];
-  }, [inscripciones]);
+  // Detectar click fuera del contenedor de búsqueda para ocultar sugerencias
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchWrapperRef.current && !searchWrapperRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   return (
     <div className="page-container">
@@ -246,7 +298,6 @@ const AlumnosFormulario: React.FC = () => {
                     id="idBusqueda"
                     value={idBusqueda}
                     onChange={(e) => {
-                      // Permitir cambio manual solo si no hay alumno seleccionado
                       if (!alumnoId) {
                         setIdBusqueda(e.target.value);
                       }
@@ -261,41 +312,51 @@ const AlumnosFormulario: React.FC = () => {
                 </div>
               </div>
 
-              {/* Búsqueda por Nombre con sugerencias */}
+              {/* Búsqueda por Nombre con sugerencias y navegación por teclado */}
               <div className="col-span-full mb-4">
                 <label htmlFor="nombreBusqueda" className="auth-label">
                   Buscar por Nombre:
                 </label>
-                <div className="relative">
+                <div className="relative" ref={searchWrapperRef}>
                   <input
                     type="text"
                     id="nombreBusqueda"
                     value={nombreBusqueda}
-                    onChange={(e) => setNombreBusqueda(e.target.value)}
+                    onChange={(e) => {
+                      setNombreBusqueda(e.target.value);
+                      setShowSuggestions(true);
+                    }}
+                    onFocus={() => setShowSuggestions(true)}
+                    onKeyDown={handleKeyDown}
                     className="form-input w-full"
                   />
                   {nombreBusqueda && (
                     <Button
                       type="button"
                       onClick={() => {
-                        resetForm(); // Resetea el estado interno de Formik
+                        resetForm();
                         resetearFormulario();
                       }}
-                      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-200 hover:text-gray-800"
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
                     >
                       Limpiar
                       <X className="w-5 h-5" />
                     </Button>
                   )}
-                  {sugerenciasAlumnos.length > 0 && (
-                    <ul className="sugerencias-lista">
-                      {sugerenciasAlumnos.map((alumno) => (
+                  {showSuggestions && sugerenciasAlumnos.length > 0 && (
+                    <ul className="sugerencias-lista absolute w-full bg-[hsl(var(--popover))] border border-[hsl(var(--border))] z-10">
+                      {sugerenciasAlumnos.map((alumno, index) => (
                         <li
                           key={alumno.id}
                           onClick={() =>
-                            handleSeleccionarAlumno(alumno.id, `${alumno.nombre} ${alumno.apellido}`)
+                            handleSeleccionarAlumno(
+                              alumno.id,
+                              `${alumno.nombre} ${alumno.apellido}`
+                            )
                           }
-                          className="sugerencia-item"
+                          onMouseEnter={() => setActiveSuggestionIndex(index)}
+                          className={`sugerencia-item p-2 cursor-pointer ${index === activeSuggestionIndex ? "bg-[hsl(var(--muted))]" : ""
+                            }`}
                         >
                           <strong>{alumno.nombre}</strong> {alumno.apellido}
                         </li>
@@ -309,7 +370,7 @@ const AlumnosFormulario: React.FC = () => {
               {[
                 { name: "nombre", label: "Nombre" },
                 { name: "apellido", label: "Apellido" },
-              ].map(({ name, label = "text" }) => (
+              ].map(({ name, label }) => (
                 <div key={name} className="mb-4">
                   <label htmlFor={name} className="auth-label">
                     {label}:
@@ -402,20 +463,22 @@ const AlumnosFormulario: React.FC = () => {
               <Button
                 type="button"
                 onClick={() => {
-                  resetForm(); // Resetea el estado interno de Formik
+                  resetForm();
                   resetearFormulario();
                 }}
               >
                 Limpiar
                 <X className="w-5 h-5" />
               </Button>
-              <Button type="button" onClick={() => navigate("/alumnos")} >
+              <Button type="button" onClick={() => navigate("/alumnos")}>
                 Volver al Listado
               </Button>
             </div>
 
             {mensaje && (
-              <p className={`form-mensaje ${mensaje.includes("correctamente") ? "form-mensaje-success" : "form-mensaje-error"}`}>
+              <p
+                className={`form-mensaje ${mensaje.includes("correctamente") ? "form-mensaje-success" : "form-mensaje-error"}`}
+              >
                 {mensaje}
               </p>
             )}
@@ -446,23 +509,38 @@ const AlumnosFormulario: React.FC = () => {
                         "Total",
                         "Acciones",
                       ]}
-                      datos={datosExtendidos}
+                      datos={[...inscripciones, { _totals: true } as any]}
                       extraRender={(fila) => {
                         if (fila._totals) {
                           return [
-                            <span key="totales" className="font-bold text-center">Totales</span>,
+                            <span key="totales" className="font-bold text-center">
+                              Totales
+                            </span>,
                             "",
-                            inscripciones.reduce((sum, ins) => sum + (ins.disciplina?.valorCuota || 0), 0).toFixed(2),
-                            inscripciones.reduce((sum, ins) => sum + (ins.bonificacion?.porcentajeDescuento || 0), 0).toFixed(2),
-                            inscripciones.reduce((sum, ins) => sum + (ins.bonificacion?.valorFijo || 0), 0).toFixed(2),
-                            inscripciones.reduce((sum, ins) => {
-                              const { cuota, bonifPct, bonifMonto } = calcularValores(ins);
-                              return sum + (cuota - bonifMonto - (cuota * bonifPct) / 100);
-                            }, 0).toFixed(2),
+                            inscripciones
+                              .reduce((sum, ins) => sum + (ins.disciplina?.valorCuota || 0), 0)
+                              .toFixed(2),
+                            inscripciones
+                              .reduce((sum, ins) => sum + (ins.bonificacion?.porcentajeDescuento || 0), 0)
+                              .toFixed(2),
+                            inscripciones
+                              .reduce((sum, ins) => sum + (ins.bonificacion?.valorFijo || 0), 0)
+                              .toFixed(2),
+                            inscripciones
+                              .reduce((sum, ins) => {
+                                const cuota = ins.disciplina?.valorCuota || 0;
+                                const bonifPct = ins.bonificacion?.porcentajeDescuento || 0;
+                                const bonifMonto = ins.bonificacion?.valorFijo || 0;
+                                return sum + (cuota - bonifMonto - (cuota * bonifPct) / 100);
+                              }, 0)
+                              .toFixed(2),
                             "",
                           ];
                         } else {
-                          const { cuota, bonifPct, bonifMonto, total } = calcularValores(fila);
+                          const cuota = fila.disciplina?.valorCuota || 0;
+                          const bonifPct = fila.bonificacion?.porcentajeDescuento || 0;
+                          const bonifMonto = fila.bonificacion?.valorFijo || 0;
+                          const total = cuota - bonifMonto - (cuota * bonifPct) / 100;
                           return [
                             fila.id,
                             fila.disciplina?.nombre ?? "Sin Disciplina",

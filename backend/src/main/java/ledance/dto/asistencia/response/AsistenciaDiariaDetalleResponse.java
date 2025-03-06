@@ -3,13 +3,14 @@ package ledance.dto.asistencia.response;
 import ledance.entidades.EstadoAsistencia;
 import java.time.LocalDate;
 
-public record AsistenciaDiariaResponse(
+public record AsistenciaDiariaDetalleResponse(
         Long id,
         LocalDate fecha,
         EstadoAsistencia estado,
-        Long alumnoId,
-        String alumnoNombre,
-        String alumnoApellido,
+        AlumnoResponse alumno,
         Long asistenciaMensualId,
-        Long disciplinaId // Ahora obtenido directamente desde asistenciaMensual.disciplina.id
-) {}
+        Long disciplinaId,
+        Long asistenciaAlumnoMensualId  // Campo agregado
+) { }
+
+

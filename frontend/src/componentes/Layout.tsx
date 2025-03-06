@@ -10,7 +10,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       enableSystem
       disableTransitionOnChange
     >
-      <div className="min-h-screen bg-background text-foreground">
+      <div className="min-h-screen bg-[hsl(var(--background))] text-[hsl(var(--foreground))]">
         <Encabezado />
         <main className="container mx-auto px-4 py-8 mt-16">{children}</main>
       </div>

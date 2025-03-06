@@ -1,17 +1,18 @@
-"use client";
-
 import { createContext, useContext, useState, type ReactNode } from "react";
 
 interface SidebarContextType {
     isExpanded: boolean;
     toggleSidebar: () => void;
     closeSidebar: () => void;
+    mobileSidebarOpen: boolean;
+    setMobileSidebarOpen: (open: boolean) => void;
 }
 
 const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
 
 export function SidebarProvider({ children }: { children: ReactNode }) {
     const [isExpanded, setIsExpanded] = useState(true);
+    const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
     const toggleSidebar = () => {
         setIsExpanded((prev) => !prev);
@@ -22,7 +23,9 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
     };
 
     return (
-        <SidebarContext.Provider value={{ isExpanded, toggleSidebar, closeSidebar }}>
+        <SidebarContext.Provider
+            value={{ isExpanded, toggleSidebar, closeSidebar, mobileSidebarOpen, setMobileSidebarOpen }}
+        >
             {children}
         </SidebarContext.Provider>
     );

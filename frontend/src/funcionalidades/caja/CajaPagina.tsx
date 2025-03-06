@@ -3,7 +3,7 @@
 import type React from "react"
 import { useEffect, useState, useCallback, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
-import ReactPaginate from "react-paginate"
+import Pagination from "../../componentes/comunes/Pagination" // Importamos el nuevo componente de paginación
 import api from "../../api/axiosConfig"
 import type { CajaResponse, PageResponse } from "../../types/types"
 
@@ -40,10 +40,10 @@ const CajaPagina: React.FC = () => {
         [cajas, currentPage],
     )
 
-    const handlePageClick = useCallback(
-        ({ selected }: { selected: number }) => {
-            if (selected < pageCount) {
-                setCurrentPage(selected)
+    const handlePageChange = useCallback(
+        (newPage: number) => {
+            if (newPage >= 0 && newPage < pageCount) {
+                setCurrentPage(newPage)
             }
         },
         [pageCount],
@@ -134,20 +134,11 @@ const CajaPagina: React.FC = () => {
 
             {pageCount > 1 && (
                 <div className="mt-4 flex justify-center">
-                    <ReactPaginate
-                        previousLabel={"← Anterior"}
-                        nextLabel={"Siguiente →"}
-                        breakLabel={"..."}
-                        pageCount={pageCount}
-                        onPageChange={handlePageClick}
-                        containerClassName={"flex gap-2 items-center"}
-                        pageClassName={"inline-flex items-center justify-center w-8 h-8 rounded-md border text-sm"}
-                        pageLinkClassName={"w-full h-full flex items-center justify-center"}
-                        previousClassName={"inline-flex items-center px-3 py-1 rounded-md border text-sm"}
-                        nextClassName={"inline-flex items-center px-3 py-1 rounded-md border text-sm"}
-                        breakClassName={"inline-flex items-center justify-center w-8 h-8"}
-                        activeClassName={"!bg-blue-600 !text-white !border-blue-600"}
-                        disabledClassName={"opacity-50 cursor-not-allowed"}
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={pageCount}
+                        onPageChange={handlePageChange}
+                        className="mt-4"
                     />
                 </div>
             )}

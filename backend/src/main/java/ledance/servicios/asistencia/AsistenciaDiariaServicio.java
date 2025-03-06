@@ -2,11 +2,17 @@ package ledance.servicios.asistencia;
 
 import ledance.dto.asistencia.request.AsistenciaDiariaRegistroRequest;
 import ledance.dto.asistencia.request.AsistenciaDiariaModificacionRequest;
-import ledance.dto.asistencia.response.AsistenciaDiariaResponse;
+import ledance.dto.asistencia.response.AsistenciaDiariaDetalleResponse;
 import ledance.dto.asistencia.AsistenciaDiariaMapper;
-import ledance.entidades.*;
+import ledance.entidades.Alumno;
+import ledance.entidades.AsistenciaAlumnoMensual;
+import ledance.entidades.AsistenciaDiaria;
+import ledance.entidades.AsistenciaMensual;
+import ledance.entidades.EstadoAsistencia;
+import ledance.entidades.Inscripcion;
 import ledance.repositorios.AsistenciaDiariaRepositorio;
 import ledance.repositorios.AsistenciaMensualRepositorio;
+import ledance.repositorios.AsistenciaAlumnoMensualRepositorio;
 import ledance.repositorios.InscripcionRepositorio;
 import ledance.servicios.disciplina.DisciplinaServicio;
 import org.slf4j.Logger;
@@ -15,6 +21,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +38,7 @@ public class AsistenciaDiariaServicio {
     private final AsistenciaDiariaMapper asistenciaDiariaMapper;
     private final InscripcionRepositorio inscripcionRepositorio;
     private final AsistenciaMensualRepositorio asistenciaMensualRepositorio;
+    private final AsistenciaAlumnoMensualRepositorio asistenciaAlumnoMensualRepositorio;
     private final DisciplinaServicio disciplinaServicio;
 
     public AsistenciaDiariaServicio(
@@ -38,31 +46,40 @@ public class AsistenciaDiariaServicio {
             AsistenciaDiariaMapper asistenciaDiariaMapper,
             InscripcionRepositorio inscripcionRepositorio,
             AsistenciaMensualRepositorio asistenciaMensualRepositorio,
+            AsistenciaAlumnoMensualRepositorio asistenciaAlumnoMensualRepositorio,
             DisciplinaServicio disciplinaServicio) {
         this.asistenciaDiariaRepositorio = asistenciaDiariaRepositorio;
         this.asistenciaDiariaMapper = asistenciaDiariaMapper;
         this.inscripcionRepositorio = inscripcionRepositorio;
         this.asistenciaMensualRepositorio = asistenciaMensualRepositorio;
+        this.asistenciaAlumnoMensualRepositorio = asistenciaAlumnoMensualRepositorio;
         this.disciplinaServicio = disciplinaServicio;
     }
 
     /**
      * Genera las asistencias diarias para un nuevo alumno (según su inscripción)
-     * asociándolas a la planilla de asistencia mensual indicada.
+     * asociándolas al registro de asistencia mensual del alumno (AsistenciaAlumnoMensual).
      * Si ya existen registros para ese alumno en la planilla, se omite la generación.
      */
     @Transactional
     public void registrarAsistenciasParaNuevoAlumno(Long inscripcionId, Long planillaId) {
+        // Buscar inscripción
         Inscripcion inscripcion = inscripcionRepositorio.findById(inscripcionId)
                 .orElseThrow(() -> new IllegalArgumentException("Inscripción no encontrada"));
+
+        // Buscar la planilla mensual
         AsistenciaMensual planilla = asistenciaMensualRepositorio.findById(planillaId)
                 .orElseThrow(() -> new IllegalArgumentException("Planilla de asistencia no encontrada"));
 
-        // Evitar duplicados: si el alumno ya tiene asistencias en esta planilla, no se crea nada
-        boolean existe = asistenciaDiariaRepositorio.existsByAlumnoIdAndAsistenciaMensualId(
-                inscripcion.getAlumno().getId(), planillaId);
+        // Buscar el registro de asistencia del alumno en la planilla
+        AsistenciaAlumnoMensual registroAlumno = asistenciaAlumnoMensualRepositorio
+                .findByInscripcionIdAndAsistenciaMensualId(inscripcionId, planillaId)
+                .orElseThrow(() -> new IllegalArgumentException("Registro de asistencia del alumno no encontrado"));
+
+        // Evitar duplicados: si ya existen asistencias para este registro, se omite la generación
+        boolean existe = asistenciaDiariaRepositorio.existsByAsistenciaAlumnoMensualId(registroAlumno.getId());
         if (existe) {
-            log.info("El alumno ya posee asistencias registradas en la planilla id: {}", planillaId);
+            log.info("El alumno ya posee asistencias registradas en el registro id: {}", registroAlumno.getId());
             return;
         }
 
@@ -74,35 +91,40 @@ public class AsistenciaDiariaServicio {
         );
 
         List<AsistenciaDiaria> nuevasAsistencias = fechasClase.stream()
-                .map(fecha -> new AsistenciaDiaria(null, fecha, EstadoAsistencia.AUSENTE,
-                        inscripcion.getAlumno(), planilla))
+                .map(fecha -> new AsistenciaDiaria(null, fecha, EstadoAsistencia.AUSENTE, registroAlumno))
                 .collect(Collectors.toList());
         asistenciaDiariaRepositorio.saveAll(nuevasAsistencias);
     }
 
+    /**
+     * Registra una nueva asistencia diaria para un registro de alumno.
+     * Se valida que la fecha no sea futura y que no exista ya una asistencia para esa fecha.
+     * Se asume que el request contiene el identificador del registro de asistencia del alumno.
+     */
     @Transactional
-    public AsistenciaDiariaResponse registrarAsistencia(AsistenciaDiariaRegistroRequest request) {
+    public AsistenciaDiariaDetalleResponse registrarAsistencia(AsistenciaDiariaRegistroRequest request) {
         validarFecha(request.fecha());
-        AsistenciaMensual planilla = asistenciaMensualRepositorio.findById(request.asistenciaMensualId())
-                .orElseThrow(() -> new IllegalArgumentException("No se encontró la planilla de asistencia"));
-        if (asistenciaDiariaRepositorio.existsByAlumnoIdAndFecha(request.alumnoId(), request.fecha())) {
+
+        AsistenciaAlumnoMensual registroAlumno = asistenciaAlumnoMensualRepositorio.findById(request.asistenciaAlumnoMensualId())
+                .orElseThrow(() -> new IllegalArgumentException("No se encontró el registro de asistencia del alumno"));
+
+        if (asistenciaDiariaRepositorio.existsByAsistenciaAlumnoMensualIdAndFecha(registroAlumno.getId(), request.fecha())) {
             throw new IllegalStateException("Ya existe una asistencia registrada para este alumno en esta fecha.");
         }
-        // Se asume que para registrar asistencia se busca el alumno a través de la inscripción
-        Alumno alumno = inscripcionRepositorio.findById(request.alumnoId())
-                .orElseThrow(() -> new IllegalArgumentException("Inscripción no encontrada"))
-                .getAlumno();
+
         AsistenciaDiaria asistencia = new AsistenciaDiaria();
         asistencia.setFecha(request.fecha());
         asistencia.setEstado(request.estado());
-        asistencia.setAlumno(alumno);
-        asistencia.setAsistenciaMensual(planilla);
+        asistencia.setAsistenciaAlumnoMensual(registroAlumno);
         asistencia = asistenciaDiariaRepositorio.save(asistencia);
         return asistenciaDiariaMapper.toDTO(asistencia);
     }
 
+    /**
+     * Actualiza una asistencia diaria existente.
+     */
     @Transactional
-    public AsistenciaDiariaResponse actualizarAsistencia(Long id, AsistenciaDiariaModificacionRequest request) {
+    public AsistenciaDiariaDetalleResponse actualizarAsistencia(Long id, AsistenciaDiariaModificacionRequest request) {
         AsistenciaDiaria asistencia = asistenciaDiariaRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Asistencia diaria no encontrada"));
         asistencia.setFecha(request.fecha());
@@ -116,45 +138,54 @@ public class AsistenciaDiariaServicio {
         }
     }
 
+    /**
+     * Obtiene una página de asistencias diarias para una disciplina y una fecha específica.
+     * Se recorre la relación: AsistenciaDiaria → asistenciaAlumnoMensual → asistenciaMensual → disciplina.
+     */
     @Transactional(readOnly = true)
-    public Page<AsistenciaDiariaResponse> obtenerAsistenciasPorDisciplinaYFecha(Long disciplinaId, LocalDate fecha, Pageable pageable) {
+    public Page<AsistenciaDiariaDetalleResponse> obtenerAsistenciasPorDisciplinaYFecha(Long disciplinaId, LocalDate fecha, Pageable pageable) {
         return asistenciaDiariaRepositorio
-                .findByAsistenciaMensual_Disciplina_IdAndFecha(disciplinaId, fecha, pageable)
+                .findByAsistenciaAlumnoMensual_AsistenciaMensual_Disciplina_IdAndFecha(disciplinaId, fecha, pageable)
                 .map(asistenciaDiariaMapper::toDTO);
     }
 
+    /**
+     * Obtiene las asistencias diarias asociadas a una planilla (AsistenciaMensual).
+     */
     @Transactional(readOnly = true)
-    public List<AsistenciaDiariaResponse> obtenerAsistenciasPorPlanilla(Long planillaId) {
-        return asistenciaDiariaRepositorio.findByAsistenciaMensualId(planillaId)
+    public List<AsistenciaDiariaDetalleResponse> obtenerAsistenciasPorPlanilla(Long planillaId) {
+        return asistenciaDiariaRepositorio.findByAsistenciaAlumnoMensual_AsistenciaMensual_Id(planillaId)
                 .stream()
                 .map(asistenciaDiariaMapper::toDTO)
                 .collect(Collectors.toList());
     }
 
     /**
-     * Registrar o actualizar asistencia: si ya existe para la fecha y alumno, se actualiza; si no, se crea.
+     * Registrar o actualizar asistencia: si ya existe para la fecha en el registro del alumno, se actualiza;
+     * si no, se crea una nueva.
      */
     @Transactional
-    public AsistenciaDiariaResponse registrarOActualizarAsistencia(AsistenciaDiariaRegistroRequest request) {
+    public AsistenciaDiariaDetalleResponse registrarOActualizarAsistencia(AsistenciaDiariaRegistroRequest request) {
+        AsistenciaAlumnoMensual registroAlumno = asistenciaAlumnoMensualRepositorio.findById(request.asistenciaAlumnoMensualId())
+                .orElseThrow(() -> new IllegalArgumentException("Registro de asistencia del alumno no encontrado"));
+
         Optional<AsistenciaDiaria> asistenciaExistente = asistenciaDiariaRepositorio
-                .findByAlumnoIdAndFecha(request.alumnoId(), request.fecha());
+                .findByAsistenciaAlumnoMensualIdAndFecha(registroAlumno.getId(), request.fecha());
         AsistenciaDiaria asistencia = asistenciaExistente.orElseGet(AsistenciaDiaria::new);
         asistencia.setFecha(request.fecha());
         asistencia.setEstado(request.estado());
-        AsistenciaMensual planilla = asistenciaMensualRepositorio.findById(request.asistenciaMensualId())
-                .orElseThrow(() -> new IllegalArgumentException("No se encontró la planilla de asistencia"));
-        Alumno alumno = inscripcionRepositorio.findById(request.alumnoId())
-                .orElseThrow(() -> new IllegalArgumentException("Alumno no encontrado"))
-                .getAlumno();
-        asistencia.setAlumno(alumno);
-        asistencia.setAsistenciaMensual(planilla);
+        asistencia.setAsistenciaAlumnoMensual(registroAlumno);
         asistencia = asistenciaDiariaRepositorio.save(asistencia);
         return asistenciaDiariaMapper.toDTO(asistencia);
     }
 
+    /**
+     * Obtiene las asistencias diarias de una planilla (basado en el id de AsistenciaMensual)
+     * a través de la relación con AsistenciaAlumnoMensual.
+     */
     @Transactional(readOnly = true)
-    public List<AsistenciaDiariaResponse> obtenerAsistenciasPorAsistenciaMensual(Long asistenciaMensualId) {
-        return asistenciaDiariaRepositorio.findByAsistenciaMensualId(asistenciaMensualId)
+    public List<AsistenciaDiariaDetalleResponse> obtenerAsistenciasPorAsistenciaMensual(Long asistenciaMensualId) {
+        return asistenciaDiariaRepositorio.findByAsistenciaAlumnoMensual_AsistenciaMensual_Id(asistenciaMensualId)
                 .stream()
                 .map(asistenciaDiariaMapper::toDTO)
                 .collect(Collectors.toList());
@@ -164,6 +195,10 @@ public class AsistenciaDiariaServicio {
         asistenciaDiariaRepositorio.deleteById(id);
     }
 
+    /**
+     * Obtiene un resumen (conteo) de asistencias por alumno para una disciplina entre dos fechas.
+     * Se asume que el repositorio implementa la consulta necesaria haciendo join con AsistenciaAlumnoMensual.
+     */
     @Transactional(readOnly = true)
     public Map<Long, Integer> obtenerResumenAsistenciasPorAlumno(Long disciplinaId, LocalDate fechaInicio, LocalDate fechaFin) {
         return asistenciaDiariaRepositorio.contarAsistenciasPorAlumno(disciplinaId, fechaInicio, fechaFin);

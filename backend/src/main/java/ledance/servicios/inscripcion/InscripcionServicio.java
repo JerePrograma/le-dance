@@ -21,7 +21,6 @@ import jakarta.transaction.Transactional;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -36,6 +35,7 @@ public class InscripcionServicio implements IInscripcionServicio {
     private final InscripcionMapper inscripcionMapper;
     private final AsistenciaMensualServicio asistenciaMensualServicio;
     private final MensualidadServicio mensualidadServicio;
+    private final AsistenciaAlumnoMensualRepositorio asistenciaAlumnoMensualRepositorio;
 
     public InscripcionServicio(InscripcionRepositorio inscripcionRepositorio,
                                AlumnoRepositorio alumnoRepositorio,
@@ -44,7 +44,7 @@ public class InscripcionServicio implements IInscripcionServicio {
                                InscripcionMapper inscripcionMapper,
                                AsistenciaMensualRepositorio asistenciaMensualRepositorio,
                                AsistenciaMensualServicio asistenciaMensualServicio,
-                               MensualidadServicio mensualidadServicio, AsistenciaMensualMapper asistenciaMensualMapper) {
+                               MensualidadServicio mensualidadServicio, AsistenciaMensualMapper asistenciaMensualMapper, AsistenciaAlumnoMensualRepositorio asistenciaAlumnoMensualRepositorio) {
         this.inscripcionRepositorio = inscripcionRepositorio;
         this.alumnoRepositorio = alumnoRepositorio;
         this.disciplinaRepositorio = disciplinaRepositorio;
@@ -52,6 +52,7 @@ public class InscripcionServicio implements IInscripcionServicio {
         this.inscripcionMapper = inscripcionMapper;
         this.asistenciaMensualServicio = asistenciaMensualServicio;
         this.mensualidadServicio = mensualidadServicio;
+        this.asistenciaAlumnoMensualRepositorio = asistenciaAlumnoMensualRepositorio;
     }
 
     /**
@@ -146,11 +147,21 @@ public class InscripcionServicio implements IInscripcionServicio {
                 .collect(Collectors.toList());
     }
 
-    @Override
     @Transactional
     public void eliminarInscripcion(Long id) {
+        // Buscar la inscripción
         Inscripcion inscripcion = inscripcionRepositorio.findById(id)
                 .orElseThrow(() -> new TratadorDeErrores.RecursoNoEncontradoException("Inscripción no encontrada."));
+
+        // Buscar los registros de asistencia del alumno asociados a esta inscripción
+        List<AsistenciaAlumnoMensual> registros = asistenciaAlumnoMensualRepositorio.findByInscripcionId(inscripcion.getId());
+
+        // Eliminar todos los registros de asistencia del alumno
+        if (!registros.isEmpty()) {
+            asistenciaAlumnoMensualRepositorio.deleteAll(registros);
+        }
+
+        // Ahora se puede eliminar la inscripción sin violar la llave foránea
         inscripcionRepositorio.delete(inscripcion);
     }
 

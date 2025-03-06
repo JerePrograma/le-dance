@@ -1,19 +1,55 @@
-// src/funcionalidades/asistencias-mensuales/AsistenciaMensualDetalle.tsx
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, {
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { Check, X } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "../../componentes/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../../componentes/ui/card";
 import { Button } from "../../componentes/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../componentes/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../../componentes/ui/table";
 import { Input } from "../../componentes/ui/input";
 import asistenciasApi from "../../api/asistenciasApi";
 import {
   AsistenciaMensualDetalleResponse,
   EstadoAsistencia,
-  AsistenciaDiariaRegistroRequest,
 } from "../../types/types";
 import type { DisciplinaListadoResponse } from "../../types/types";
+import useDebounce from "../../hooks/useDebounce";
+
+// Funciones helper para obtener nombre y apellido
+const getAlumnoNombre = (alumnoRecord: any): string => {
+  // Si el registro tiene "nombre" se usa directamente
+  if (alumnoRecord.nombre && alumnoRecord.nombre !== "") return alumnoRecord.nombre;
+  // Si no, se intenta obtener del primer registro de asistencia
+  if (alumnoRecord.asistenciasDiarias && alumnoRecord.asistenciasDiarias.length > 0) {
+    return alumnoRecord.asistenciasDiarias[0].alumno?.nombre || "";
+  }
+  return "";
+};
+
+const getAlumnoApellido = (alumnoRecord: any): string => {
+  if (alumnoRecord.apellido && alumnoRecord.apellido !== "") return alumnoRecord.apellido;
+  if (alumnoRecord.asistenciasDiarias && alumnoRecord.asistenciasDiarias.length > 0) {
+    return alumnoRecord.asistenciasDiarias[0].alumno?.apellido || "";
+  }
+  return "";
+};
 
 const AsistenciaMensualDetalle: React.FC = () => {
   const navigate = useNavigate();
@@ -22,61 +58,106 @@ const AsistenciaMensualDetalle: React.FC = () => {
   const [disciplinas, setDisciplinas] = useState<DisciplinaListadoResponse[]>([]);
   const [disciplineFilter, setDisciplineFilter] = useState<string>("");
   const [selectedDisciplineId, setSelectedDisciplineId] = useState<number | null>(null);
-  const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
-  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  const currentDate = new Date();
+  const [selectedMonth, setSelectedMonth] = useState<number>(currentDate.getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState<number>(currentDate.getFullYear());
 
   // Estado para el detalle de asistencia mensual
   const [asistenciaMensual, setAsistenciaMensual] = useState<AsistenciaMensualDetalleResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  // Mapa de observaciones por alumno
   const [observaciones, setObservaciones] = useState<Record<number, string>>({});
 
-  // Funcion debounce (sin librerias externas)
-  const debounce = (func: (...args: any[]) => void, delay: number) => {
-    let timer: NodeJS.Timeout;
-    return (...args: any[]) => {
-      if (timer) clearTimeout(timer);
-      timer = setTimeout(() => func(...args), delay);
-    };
-  };
+  // Estados para el sistema de búsqueda (select con sugerencias)
+  const [showSuggestions, setShowSuggestions] = useState<boolean>(false);
+  const [activeDisciplineSuggestionIndex, setActiveDisciplineSuggestionIndex] = useState<number>(-1);
+  const searchWrapperRef = useRef<HTMLDivElement>(null);
 
-  // Cargar la lista de disciplinas (desde el endpoint de listado)
+  // Cargar disciplinas
   const fetchDisciplinas = useCallback(async () => {
     try {
       const data = await asistenciasApi.listarDisciplinasSimplificadas();
       setDisciplinas(data);
-      // Opcional: Si no hay disciplina seleccionada, se puede preseleccionar la primera
-      if (data.length > 0 && !selectedDisciplineId) {
-        setSelectedDisciplineId(data[0].id);
-      }
     } catch (err) {
       console.error("Error al cargar disciplinas", err);
       toast.error("Error al cargar la lista de disciplinas.");
     }
-  }, [selectedDisciplineId]);
+  }, []);
 
   useEffect(() => {
     fetchDisciplinas();
   }, [fetchDisciplinas]);
 
-  // Filtrar disciplinas segun el input de busqueda
-  const filteredDisciplinas = useMemo(() => {
-    if (!disciplineFilter.trim()) return disciplinas;
-    return disciplinas.filter((d) =>
-      d.nombre.toLowerCase().includes(disciplineFilter.toLowerCase())
-    );
-  }, [disciplineFilter, disciplinas]);
+  // Debounce para el filtro de disciplinas
+  const debouncedDisciplineFilter = useDebounce(disciplineFilter, 300);
 
-  // Funcion para consultar la asistencia mensual usando los filtros (GET)
+  const filteredDisciplinas = useMemo(() => {
+    if (!debouncedDisciplineFilter.trim()) return disciplinas;
+    return disciplinas.filter((d) =>
+      d.nombre.toLowerCase().includes(debouncedDisciplineFilter.toLowerCase())
+    );
+  }, [debouncedDisciplineFilter, disciplinas]);
+
+  const handleSeleccionarDisciplina = (disciplina: DisciplinaListadoResponse) => {
+    setSelectedDisciplineId(disciplina.id);
+    setDisciplineFilter(disciplina.nombre);
+    setActiveDisciplineSuggestionIndex(-1);
+    setShowSuggestions(false);
+  };
+
+  const handleDisciplineKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (filteredDisciplinas.length > 0) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setActiveDisciplineSuggestionIndex((prev) =>
+          prev < filteredDisciplinas.length - 1 ? prev + 1 : 0
+        );
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setActiveDisciplineSuggestionIndex((prev) =>
+          prev > 0 ? prev - 1 : filteredDisciplinas.length - 1
+        );
+      } else if (e.key === "Enter" || e.key === "Tab") {
+        if (
+          activeDisciplineSuggestionIndex >= 0 &&
+          activeDisciplineSuggestionIndex < filteredDisciplinas.length
+        ) {
+          e.preventDefault();
+          handleSeleccionarDisciplina(filteredDisciplinas[activeDisciplineSuggestionIndex]);
+        }
+      }
+    }
+  };
+
+  // Función para limpiar la disciplina buscada
+  const limpiarDisciplina = () => {
+    setDisciplineFilter("");
+    setSelectedDisciplineId(null);
+    setShowSuggestions(false);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchWrapperRef.current && !searchWrapperRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // Consultar el detalle mensual (planilla) según disciplina, mes y año
   const cargarAsistenciaDinamica = useCallback(async () => {
     if (!selectedDisciplineId || !selectedMonth || !selectedYear) {
-      toast.warn("Por favor, complete todos los filtros antes de consultar.");
+      toast.warn("Complete todos los filtros antes de consultar.");
       return;
     }
     setLoading(true);
     setError(null);
     try {
-      // Llamamos al endpoint GET que obtiene la asistencia mensual por parametros
       const data = await asistenciasApi.obtenerAsistenciaMensualDetallePorParametros(
         selectedDisciplineId,
         selectedMonth,
@@ -84,78 +165,100 @@ const AsistenciaMensualDetalle: React.FC = () => {
       );
       if (data) {
         setAsistenciaMensual(data);
-        const obs = data.observaciones.reduce((acc, o) => {
-          acc[o.alumnoId] = o.observacion;
-          return acc;
-        }, {} as Record<number, string>);
-        setObservaciones(obs);
+        // Construir mapa de observaciones a partir de cada registro de alumno
+        const obsMap: Record<number, string> = {};
+        data.alumnos.forEach((alumno) => {
+          obsMap[alumno.id] = alumno.observacion || "";
+        });
+        setObservaciones(obsMap);
       } else {
         setAsistenciaMensual(null);
-        toast.info("No se encontro asistencia mensual para estos parametros.");
+        toast.info("No se encontró asistencia mensual para estos parámetros.");
       }
     } catch (err) {
       console.error("Error al cargar la asistencia mensual", err);
-      setError("Error al cargar la asistencia mensual.");
       toast.error("No se pudo cargar la asistencia mensual.");
     } finally {
       setLoading(false);
     }
   }, [selectedDisciplineId, selectedMonth, selectedYear]);
 
-  // Actualizar observaciones con debounce
+  // Calculamos los días registrados a partir de todos los registros diarios
+  const diasRegistrados = useMemo(() => {
+    if (!asistenciaMensual) return [];
+    const fechasSet = new Set<string>();
+    asistenciaMensual.alumnos.forEach((alumno) => {
+      alumno.asistenciasDiarias.forEach((ad) => fechasSet.add(ad.fecha));
+    });
+    return Array.from(fechasSet).sort();
+  }, [asistenciaMensual]);
+
+  // Debounce para actualizar observaciones
   const debouncedActualizarObservacion = useCallback(
-    debounce(async (alumnoId: number, obs: string) => {
-      if (!asistenciaMensual) return;
-      try {
-        await asistenciasApi.actualizarAsistenciaMensual(asistenciaMensual.id, {
-          observaciones: Object.entries({ ...observaciones, [alumnoId]: obs }).map(
-            ([id, observacion]) => ({
-              alumnoId: Number(id),
-              observacion,
-            })
-          ),
+    (alumnoId: number, obs: string) => {
+      const asistenciasAlumnoMensualArray = Object.entries({ ...observaciones, [alumnoId]: obs }).map(
+        ([id, observacion]) => ({
+          id: Number(id),
+          observacion,
+          asistenciasDiarias: [] // Se envía vacío si no se actualizan las asistencias diarias
+        })
+      );
+      asistenciasApi
+        .actualizarAsistenciaMensual(asistenciaMensual!.id, { asistenciasAlumnoMensual: asistenciasAlumnoMensualArray })
+        .then(() => toast.success("Observación actualizada"))
+        .catch((err) => {
+          console.error("Error al actualizar observación", err);
+          toast.error("Error al actualizar la observación.");
         });
-        toast.success("Observacion actualizada");
-      } catch (err) {
-        console.error("Error al actualizar observacion", err);
-        toast.error("Error al actualizar la observacion.");
-      }
-    }, 500),
+    },
     [asistenciaMensual, observaciones]
   );
 
   const handleObservacionChange = (alumnoId: number, obs: string) => {
-    setObservaciones(prev => ({ ...prev, [alumnoId]: obs }));
+    setObservaciones((prev) => ({ ...prev, [alumnoId]: obs }));
     debouncedActualizarObservacion(alumnoId, obs);
   };
 
-  // Funcion para alternar la asistencia diaria de un alumno
+  // Alternar la asistencia diaria de un alumno en una fecha determinada
   const toggleAsistencia = async (alumnoId: number, fecha: string) => {
     if (!asistenciaMensual) return;
-    const registro = asistenciaMensual.asistenciasDiarias.find(
-      ad => ad.alumnoId === alumnoId && ad.fecha === fecha
-    );
+    const alumnoRegistro = asistenciaMensual.alumnos.find((al) => al.id === alumnoId);
+    if (!alumnoRegistro) {
+      toast.error("Registro de alumno no encontrado.");
+      return;
+    }
+    const registro = alumnoRegistro.asistenciasDiarias.find((ad) => ad.fecha === fecha);
     if (!registro) {
-      toast.error("No se encontro registro de asistencia para este alumno en esta fecha.");
+      toast.error("No se encontró registro de asistencia para este alumno en esta fecha.");
       return;
     }
     try {
       const nuevoEstado =
         registro.estado === EstadoAsistencia.PRESENTE ? EstadoAsistencia.AUSENTE : EstadoAsistencia.PRESENTE;
-      const req: AsistenciaDiariaRegistroRequest = {
+
+      const request = {
         id: registro.id,
-        asistenciaMensualId: asistenciaMensual.id,
-        alumnoId,
-        fecha,
+        fecha, // Formato ISO (YYYY-MM-DD)
         estado: nuevoEstado,
+        asistenciaAlumnoMensualId: registro.asistenciaAlumnoMensualId,
       };
-      await asistenciasApi.registrarAsistenciaDiaria(req);
-      setAsistenciaMensual(prev => {
-        if (!prev) return null;
+
+      const updated = await asistenciasApi.registrarAsistenciaDiaria(request);
+
+      // Actualizamos el estado local según la respuesta del API
+      setAsistenciaMensual((prev) => {
+        if (!prev) return prev;
         return {
           ...prev,
-          asistenciasDiarias: prev.asistenciasDiarias.map(ad =>
-            ad.id === registro.id ? { ...ad, estado: nuevoEstado } : ad
+          alumnos: prev.alumnos.map((al) =>
+            al.id === alumnoId
+              ? {
+                ...al,
+                asistenciasDiarias: al.asistenciasDiarias.map((ad) =>
+                  ad.id === registro.id ? updated : ad
+                ),
+              }
+              : al
           ),
         };
       });
@@ -166,70 +269,54 @@ const AsistenciaMensualDetalle: React.FC = () => {
     }
   };
 
-  // Opciones para mes y año
-  const meses = [
-    { value: 1, label: "Enero" },
-    { value: 2, label: "Febrero" },
-    { value: 3, label: "Marzo" },
-    { value: 4, label: "Abril" },
-    { value: 5, label: "Mayo" },
-    { value: 6, label: "Junio" },
-    { value: 7, label: "Julio" },
-    { value: 8, label: "Agosto" },
-    { value: 9, label: "Septiembre" },
-    { value: 10, label: "Octubre" },
-    { value: 11, label: "Noviembre" },
-    { value: 12, label: "Diciembre" },
-  ];
-  const años = Array.from({ length: 8 }, (_, i) => 2023 + i);
-
-  // Calcular dias unicos de registros diarios para la tabla
-  const diasRegistrados = useMemo(() => {
-    if (!asistenciaMensual) return [];
-    return Array.from(new Set(asistenciaMensual.asistenciasDiarias.map(a => a.fecha))).sort();
-  }, [asistenciaMensual]);
-
   return (
     <div className="container mx-auto py-6">
       <Card>
         <CardHeader>
           <CardTitle>
             {asistenciaMensual && asistenciaMensual.disciplina
-              ? `Detalle de Asistencia Mensual - ${asistenciaMensual.disciplina}`
+              ? `Detalle de Asistencia Mensual - ${asistenciaMensual.disciplina.nombre}`
               : "Consultar Asistencia Mensual"}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {/* Se muestran los filtros siempre (para poder modificar la consulta) */}
+          {/* Filtros: búsqueda de disciplina y selección de mes/año */}
           <div className="mb-4 space-y-2">
-            <div>
-              <label htmlFor="searchDiscipline" className="block text-sm font-medium text-gray-700">
-                Buscar disciplina:
-              </label>
-              <Input
-                id="searchDiscipline"
-                placeholder="Escribe el nombre..."
-                value={disciplineFilter}
-                onChange={(e) => setDisciplineFilter(e.target.value)}
-              />
-            </div>
-            <div>
-              <label htmlFor="disciplineSelect" className="block text-sm font-medium text-gray-700">
-                Selecciona la disciplina:
-              </label>
-              <select
-                id="disciplineSelect"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-                value={selectedDisciplineId ?? ""}
-                onChange={(e) => setSelectedDisciplineId(Number(e.target.value))}
-              >
-                <option value="">-- Seleccione --</option>
-                {filteredDisciplinas.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.nombre}
-                  </option>
-                ))}
-              </select>
+            <div ref={searchWrapperRef} className="flex items-center space-x-2">
+              <div className="flex-1">
+                <label htmlFor="searchDiscipline" className="block text-sm font-medium text-gray-700 mb-1">
+                  Buscar disciplina:
+                </label>
+                <Input
+                  id="searchDiscipline"
+                  placeholder="Escribe el nombre..."
+                  value={disciplineFilter}
+                  onChange={(e) => {
+                    setDisciplineFilter(e.target.value);
+                    setShowSuggestions(true);
+                  }}
+                  onFocus={() => setShowSuggestions(true)}
+                  onKeyDown={handleDisciplineKeyDown}
+                  className="form-input w-full"
+                />
+                {showSuggestions && filteredDisciplinas.length > 0 && (
+                  <ul className="sugerencias-lista absolute z-10 w-full bg-white text-black border">
+                    {filteredDisciplinas.map((disciplina, index) => (
+                      <li
+                        key={disciplina.id}
+                        onClick={() => handleSeleccionarDisciplina(disciplina)}
+                        onMouseEnter={() => setActiveDisciplineSuggestionIndex(index)}
+                        className={`p-2 cursor-pointer ${index === activeDisciplineSuggestionIndex ? "bg-gray-200" : ""}`}
+                      >
+                        {disciplina.nombre}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <Button onClick={limpiarDisciplina} variant="outline" size="sm">
+                Limpiar
+              </Button>
             </div>
             <div className="flex space-x-2">
               <div className="flex-1">
@@ -239,11 +326,24 @@ const AsistenciaMensualDetalle: React.FC = () => {
                 <select
                   id="monthSelect"
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-                  value={selectedMonth ?? ""}
+                  value={selectedMonth || ""}
                   onChange={(e) => setSelectedMonth(Number(e.target.value))}
                 >
                   <option value="">-- Seleccione --</option>
-                  {meses.map(m => (
+                  {[
+                    { value: 1, label: "Enero" },
+                    { value: 2, label: "Febrero" },
+                    { value: 3, label: "Marzo" },
+                    { value: 4, label: "Abril" },
+                    { value: 5, label: "Mayo" },
+                    { value: 6, label: "Junio" },
+                    { value: 7, label: "Julio" },
+                    { value: 8, label: "Agosto" },
+                    { value: 9, label: "Septiembre" },
+                    { value: 10, label: "Octubre" },
+                    { value: 11, label: "Noviembre" },
+                    { value: 12, label: "Diciembre" },
+                  ].map((m) => (
                     <option key={m.value} value={m.value}>
                       {m.label}
                     </option>
@@ -257,11 +357,11 @@ const AsistenciaMensualDetalle: React.FC = () => {
                 <select
                   id="yearSelect"
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-                  value={selectedYear ?? ""}
+                  value={selectedYear || ""}
                   onChange={(e) => setSelectedYear(Number(e.target.value))}
                 >
                   <option value="">-- Seleccione --</option>
-                  {años.map(año => (
+                  {Array.from({ length: 8 }, (_, i) => currentDate.getFullYear() + i).map((año) => (
                     <option key={año} value={año}>
                       {año}
                     </option>
@@ -288,30 +388,37 @@ const AsistenciaMensualDetalle: React.FC = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Alumno</TableHead>
-                  {diasRegistrados.map(fecha => (
+                  {diasRegistrados.map((fecha) => (
                     <TableHead key={fecha} className="text-center">
-                      {new Date(fecha + "T00:00:00").toLocaleDateString("es-ES", { day: "numeric", weekday: "short" })}
+                      {new Date(fecha + "T00:00:00").toLocaleDateString("es-ES", {
+                        day: "numeric",
+                        weekday: "short",
+                      })}
                     </TableHead>
                   ))}
-                  <TableHead>Observaciones</TableHead>
+                  <TableHead>Observación</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {asistenciaMensual.alumnos.map(alumno => (
+                {asistenciaMensual.alumnos.map((alumno) => (
                   <TableRow key={alumno.id}>
-                    <TableCell>{`${alumno.apellido}, ${alumno.nombre}`}</TableCell>
-                    {diasRegistrados.map(fecha => {
-                      const registro = asistenciaMensual.asistenciasDiarias.find(
-                        ad => ad.alumnoId === alumno.id && ad.fecha === fecha
-                      );
+                    <TableCell>
+                      {`${getAlumnoApellido(alumno)}, ${getAlumnoNombre(alumno)}`}
+                    </TableCell>
+                    {diasRegistrados.map((fecha) => {
+                      const registro = alumno.asistenciasDiarias.find((ad) => ad.fecha === fecha);
                       return (
                         <TableCell key={fecha} className="text-center">
                           <Button
                             size="sm"
                             variant={registro?.estado === EstadoAsistencia.PRESENTE ? "default" : "outline"}
-                            onClick={() => toggleAsistencia(alumno.id, fecha)}
+                            onClick={() => registro && toggleAsistencia(alumno.id, fecha)}
                           >
-                            {registro?.estado === EstadoAsistencia.PRESENTE ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
+                            {registro?.estado === EstadoAsistencia.PRESENTE ? (
+                              <Check className="h-4 w-4" />
+                            ) : (
+                              <X className="h-4 w-4" />
+                            )}
                           </Button>
                         </TableCell>
                       );

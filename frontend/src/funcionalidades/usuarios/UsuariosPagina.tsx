@@ -1,66 +1,68 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
-import Tabla from "../../componentes/comunes/Tabla";
-import ReactPaginate from "react-paginate";
-import Boton from "../../componentes/comunes/Boton";
-import { PlusCircle, Pencil, Trash2 } from "lucide-react";
-import type { UsuarioResponse } from "../../types/types";
-import usuariosApi from "../../api/usuariosApi";
+"use client"
+
+import { useEffect, useState, useCallback, useMemo } from "react"
+import { useNavigate } from "react-router-dom"
+import Tabla from "../../componentes/comunes/Tabla"
+import Boton from "../../componentes/comunes/Boton"
+import { PlusCircle, Pencil, Trash2 } from "lucide-react"
+import type { UsuarioResponse } from "../../types/types"
+import usuariosApi from "../../api/usuariosApi"
+import Pagination from "../../componentes/comunes/Pagination"
 
 const UsuariosPagina = () => {
-  const [usuarios, setUsuarios] = useState<UsuarioResponse[]>([]);
-  const [currentPage, setCurrentPage] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const itemsPerPage = 5;
-  const navigate = useNavigate();
+  const [usuarios, setUsuarios] = useState<UsuarioResponse[]>([])
+  const [currentPage, setCurrentPage] = useState(0)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const itemsPerPage = 5
+  const navigate = useNavigate()
 
   const fetchUsuarios = useCallback(async () => {
     try {
-      setLoading(true);
-      setError(null);
-      const usuariosData = await usuariosApi.listarUsuarios();
-      setUsuarios(usuariosData);
+      setLoading(true)
+      setError(null)
+      const usuariosData = await usuariosApi.listarUsuarios()
+      setUsuarios(usuariosData)
     } catch (err) {
-      console.error("Error al cargar usuarios:", err);
-      setError("Error al cargar usuarios.");
+      console.error("Error al cargar usuarios:", err)
+      setError("Error al cargar usuarios.")
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  }, []);
+  }, [])
 
   useEffect(() => {
-    fetchUsuarios();
-  }, [fetchUsuarios]);
+    fetchUsuarios()
+  }, [fetchUsuarios])
 
-  const pageCount = useMemo(() => Math.ceil(usuarios.length / itemsPerPage), [usuarios.length]);
+  const pageCount = useMemo(() => Math.ceil(usuarios.length / itemsPerPage), [usuarios.length])
   const currentItems = useMemo(
     () => usuarios.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage),
-    [usuarios, currentPage]
-  );
+    [usuarios, currentPage],
+  )
 
-  const handlePageClick = useCallback(
-    ({ selected }: { selected: number }) => {
-      if (selected < pageCount) {
-        setCurrentPage(selected);
+  const handlePageChange = useCallback(
+    (newPage: number) => {
+      if (newPage >= 0 && newPage < pageCount) {
+        setCurrentPage(newPage)
       }
     },
-    [pageCount]
-  );
+    [pageCount],
+  )
 
   const handleEliminarUsuario = useCallback(async (id: number) => {
     if (window.confirm("¿Seguro que deseas eliminar este usuario?")) {
       try {
-        await usuariosApi.eliminarUsuario(id);
-        setUsuarios((prev) => prev.filter((u) => u.id !== id));
+        await usuariosApi.eliminarUsuario(id)
+        setUsuarios((prev) => prev.filter((u) => u.id !== id))
       } catch (err) {
-        console.error("Error al eliminar usuario:", err);
+        console.error("Error al eliminar usuario:", err)
       }
     }
-  }, []);
+  }, [])
 
-  if (loading) return <div className="text-center py-4">Cargando...</div>;
-  if (error) return <div className="text-center py-4 text-destructive">{error}</div>;
+  if (loading) return <div className="text-center py-4">Cargando...</div>
+  if (error) return <div className="text-center py-4 text-destructive">{error}</div>
 
   return (
     <div className="page-container">
@@ -79,11 +81,7 @@ const UsuariosPagina = () => {
         <Tabla
           encabezados={["ID", "Nombre", "Rol"]}
           datos={currentItems}
-          extraRender={(fila: UsuarioResponse) => [
-            fila.id,
-            fila.nombreUsuario,
-            fila.rol,
-          ]}
+          extraRender={(fila: UsuarioResponse) => [fila.id, fila.nombreUsuario, fila.rol]}
           acciones={(fila: UsuarioResponse) => (
             <div className="flex gap-2">
               <Boton
@@ -107,19 +105,11 @@ const UsuariosPagina = () => {
         />
       </div>
       {pageCount > 1 && (
-        <ReactPaginate
-          previousLabel={"← Anterior"}
-          nextLabel={"Siguiente →"}
-          breakLabel={"..."}
-          pageCount={pageCount}
-          onPageChange={handlePageClick}
-          containerClassName={"pagination"}
-          activeClassName={"active"}
-          disabledClassName={"disabled"}
-        />
+        <Pagination currentPage={currentPage} totalPages={pageCount} onPageChange={handlePageChange} className="mt-4" />
       )}
     </div>
-  );
-};
+  )
+}
 
-export default UsuariosPagina;
+export default UsuariosPagina
+

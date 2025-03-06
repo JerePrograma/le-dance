@@ -1,160 +1,90 @@
-import React from "react";
-import { Link, useLocation } from "react-router-dom";
-import { useSidebar } from "../hooks/context/SideBarContext";
-import { ChevronRight, ChevronLeft, ChevronDown } from "lucide-react";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible";
-import { cn } from "./lib/utils";
-import { navigationItems, NavigationItem } from "../config/navigation";
-import { useAuth } from "../hooks/context/authContext";
+"use client"
 
-interface NavItemProps {
-    icon?: React.ElementType;
-    label: string;
-    href?: string;
-    isActive?: boolean;
-    isExpanded: boolean;
-    onClick?: () => void;
-    className?: string;
-    children?: React.ReactNode;
-}
-
-const NavItem = ({
-    icon: Icon,
-    label,
-    href,
-    isActive = false,
-    isExpanded,
-    onClick,
-    className,
-    children,
-}: NavItemProps) => {
-    const content = (
-        <>
-            <div className="flex items-center gap-3 min-w-0">
-                {Icon && <Icon className="w-5 h-5 shrink-0" />}
-                {isExpanded && <span className="truncate">{label}</span>}
-            </div>
-            {children}
-        </>
-    );
-
-    return href ? (
-        <Link
-            to={href}
-            className={cn(
-                "flex items-center justify-start w-full gap-3 px-3 py-2 rounded-md transition-all duration-200",
-                isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                className
-            )}
-            onClick={onClick}
-        >
-            {content}
-        </Link>
-    ) : (
-        <button
-            className={cn(
-                "flex items-center justify-start w-full gap-3 px-3 py-2 rounded-md transition-all duration-200",
-                "text-muted-foreground hover:bg-muted hover:text-foreground",
-                className
-            )}
-            onClick={onClick}
-        >
-            {content}
-        </button>
-    );
-};
-
-interface NavGroupProps {
-    item: NavigationItem;
-    isExpanded: boolean;
-}
-
-const NavGroup = ({ item, isExpanded }: NavGroupProps) => {
-    const location = useLocation();
-    const isActive = item.href ? location.pathname.startsWith(item.href) : false;
-
-    if (!item.items) {
-        return (
-            <NavItem icon={item.icon} label={item.label} href={item.href} isActive={isActive} isExpanded={isExpanded} />
-        );
-    }
-
-    return (
-        <Collapsible className="w-full">
-            <CollapsibleTrigger className="w-full">
-                <NavItem icon={item.icon} label={item.label} isExpanded={isExpanded} className="w-full">
-                    {isExpanded && <ChevronDown className="w-4 h-4 shrink-0 transition-transform duration-200 ml-auto" />}
-                </NavItem>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="pl-4">
-                {item.items.map((subItem) => (
-                    <NavItem
-                        key={subItem.id}
-                        icon={subItem.icon}
-                        label={subItem.label}
-                        href={subItem.href}
-                        isActive={location.pathname.startsWith(subItem.href || "")}
-                        isExpanded={isExpanded}
-                    />
-                ))}
-            </CollapsibleContent>
-        </Collapsible>
-    );
-};
+import { Link } from "react-router-dom"
+import { useSidebar } from "../hooks/context/SideBarContext"
+import { ChevronLeft, ChevronRight } from "lucide-react"
+import { cn } from "../componentes/lib/utils"
+import { useAuth } from "../hooks/context/authContext"
+import { navigationItems } from "../config/navigation"
+import NavGroup from "./NavGroup" // Se puede extraer la lógica de NavGroup
 
 export default function Sidebar() {
-    const { isExpanded, toggleSidebar } = useSidebar();
-    const { hasRole } = useAuth();
+    const { isExpanded, toggleSidebar, mobileSidebarOpen, setMobileSidebarOpen } = useSidebar()
+    const { hasRole } = useAuth()
 
-    // Filtrar items según el rol requerido
+    // Filtrar navegación según rol
     const filteredNavigation = navigationItems.filter((item) => {
-        // Si el item requiere un rol, lo mostramos solo si se cumple
-        if (item.requiredRole && !hasRole(item.requiredRole)) {
-            return false;
-        }
-        // Si el item tiene sub-items, filtrarlos también
+        if (item.requiredRole && !hasRole(item.requiredRole)) return false
         if (item.items) {
-            item.items = item.items.filter((subItem) => {
-                if (subItem.requiredRole && !hasRole(subItem.requiredRole)) {
-                    return false;
-                }
-                return true;
-            });
+            item.items = item.items.filter((subItem) =>
+                subItem.requiredRole ? hasRole(subItem.requiredRole) : true
+            )
         }
-        return true;
-    });
+        return true
+    })
 
     return (
-        <aside
-            className={cn(
-                "fixed inset-y-0 left-0 z-40 flex flex-col bg-background border-r transition-all duration-300",
-                isExpanded ? "w-[var(--sidebar-width)]" : "w-[4.5rem]"
-            )}
-        >
-            <div className="flex items-center h-[var(--header-height)] px-4 border-b">
-                {isExpanded ? (
-                    <Link to="/" className="text-xl font-bold text-primary">
-                        LE DANCE
-                    </Link>
-                ) : (
-                    <Link to="/" className="text-xl font-bold text-primary">
-                        LD
-                    </Link>
+        <>
+            {/* Sidebar de escritorio */}
+            <aside
+                className={cn(
+                    "hidden md:flex fixed inset-y-0 left-0 z-40 flex-col bg-[hsl(var(--background))] border-r border-[hsl(var(--border))] transition-all duration-300",
+                    isExpanded ? "w-[var(--sidebar-width)]" : "w-[4.5rem]"
                 )}
-                <button onClick={toggleSidebar} className="p-1 rounded-md hover:bg-muted ml-auto" aria-label={isExpanded ? "Colapsar menu" : "Expandir menu"}>
-                    {isExpanded ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
-                </button>
-            </div>
-
-            <nav className="flex-1 overflow-y-auto py-4 px-3">
-                <div className="space-y-4">
+            >
+                <div className="flex items-center h-[var(--header-height)] px-4 border-b border-[hsl(var(--border))]">
+                    {isExpanded ? (
+                        <Link to="/" className="text-xl font-bold text-[hsl(var(--primary))]">
+                            LE DANCE
+                        </Link>
+                    ) : (
+                        <Link to="/" className="text-xl font-bold text-[hsl(var(--primary))]">
+                            LD
+                        </Link>
+                    )}
+                    <button
+                        onClick={toggleSidebar}
+                        className="p-1 rounded-md hover:bg-[hsl(var(--muted))] ml-auto"
+                        aria-label={isExpanded ? "Colapsar menú" : "Expandir menú"}
+                    >
+                        {isExpanded ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+                    </button>
+                </div>
+                <nav className="flex-1 overflow-y-auto py-4 px-3">
                     {filteredNavigation.map((item) => (
                         <NavGroup key={item.id} item={item} isExpanded={isExpanded} />
                     ))}
+                </nav>
+            </aside>
+
+            {/* Sidebar móvil (overlay) */}
+            {mobileSidebarOpen && (
+                <div className="md:hidden fixed inset-0 z-40 flex">
+                    <div
+                        className="fixed inset-0 bg-black/50"
+                        onClick={() => setMobileSidebarOpen(false)}
+                    />
+                    <aside className="relative w-3/4 max-w-sm bg-[hsl(var(--background))] border-r border-[hsl(var(--border))]">
+                        <div className="flex items-center h-[var(--header-height)] px-4 border-b border-[hsl(var(--border))]">
+                            <Link to="/" className="text-xl font-bold text-[hsl(var(--primary))]">
+                                LE DANCE
+                            </Link>
+                            <button
+                                onClick={() => setMobileSidebarOpen(false)}
+                                className="p-1 rounded-md hover:bg-[hsl(var(--muted))] ml-auto"
+                                aria-label="Cerrar menú"
+                            >
+                                <ChevronLeft className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <nav className="flex-1 overflow-y-auto py-4 px-3">
+                            {filteredNavigation.map((item) => (
+                                <NavGroup key={item.id} item={item} isExpanded={true} />
+                            ))}
+                        </nav>
+                    </aside>
                 </div>
-            </nav>
-        </aside>
-    );
+            )}
+        </>
+    )
 }

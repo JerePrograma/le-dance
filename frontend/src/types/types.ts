@@ -20,11 +20,6 @@ export enum EstadoInscripcion {
   FINALIZADA = "FINALIZADA",
 }
 
-export enum EstadoAsistencia {
-  PRESENTE = "PRESENTE",
-  AUSENTE = "AUSENTE",
-}
-
 // types.ts
 export interface Page<T> {
   content: T[];
@@ -35,6 +30,7 @@ export interface Page<T> {
 }
 
 export interface PageResponse<T> {
+  observacion: string;
   content: T[];
   totalElements: number;
   totalPages: number;
@@ -275,85 +271,109 @@ export interface DisciplinaDetalleResponse {
 // ==========================================
 // ASISTENCIA
 // ==========================================
-export interface AsistenciaDiaria {
-  id: number;
-  fecha: string;
-  estado: EstadoAsistencia;
-  alumnoId: number;
-  asistenciaMensualId: number;
-  observacion?: string;
+// types/types.ts
+export enum EstadoAsistencia {
+  PRESENTE = "PRESENTE",
+  AUSENTE = "AUSENTE",
 }
 
+// Para crear o actualizar una asistencia diaria (igual que antes)
 export interface AsistenciaDiariaRegistroRequest {
-  id?: number;
-  fecha: string;
+  id?: number; // Opcional en creación
+  fecha: string; // Formato ISO (YYYY-MM-DD)
   estado: EstadoAsistencia;
-  alumnoId: number;
-  asistenciaMensualId: number;
+  asistenciaAlumnoMensualId: number;
   observacion?: string;
 }
 
+// Representación del alumno (extraído de la inscripción)
+export interface AlumnoResponse {
+  id: number;
+  nombre: string;
+  apellido: string;
+}
+
+// Response de una asistencia diaria, ahora con un objeto "alumno"
 export interface AsistenciaDiariaResponse {
   id: number;
   fecha: string;
   estado: EstadoAsistencia;
-  alumnoId: number;
+  asistenciaAlumnoMensualId: number;
+  alumno: AlumnoResponse;
   asistenciaMensualId: number;
+  disciplinaId: number;
   observacion?: string;
-  alumnoNombre: string;   // <-- Agregado
-  alumnoApellido: string; // <-- Agregado
 }
 
-export interface AsistenciaMensualDetalleRequest {
-  id: number;
-  disciplina: string;
+// Para crear una asistencia mensual (planilla)
+export interface AsistenciaMensualRegistroRequest {
   mes: number;
   anio: number;
-  alumnos: Alumno[];
-  asistenciasDiarias: AsistenciaDiaria[];
-}
-
-export type AsistenciaMensualRegistroRequest = {
-  mes: number;
-  anio: number;
-  inscripcionId?: number; // Opcional si puede no tener alumnos
+  disciplinaId: number;
   asistenciasDiarias?: AsistenciaDiariaRegistroRequest[];
-};
+}
 
+// Para modificar la asistencia mensual (actualizando observaciones y, opcionalmente, asistencias diarias)
 export interface AsistenciaMensualModificacionRequest {
-  observaciones: {
-    alumnoId: number;
+  asistenciasAlumnoMensual: {
+    id: number; // id del registro AsistenciaAlumnoMensual
     observacion: string;
+    asistenciasDiarias?: AsistenciaDiariaRegistroRequest[];
   }[];
 }
 
+// Respuesta de cada registro de asistencia mensual de un alumno,
+// ahora con el alumno anidado en lugar de campos sueltos
+export interface AsistenciaAlumnoMensualDetalleResponse {
+  id: number;
+  asistenciaMensualId: number;
+  inscripcionId: number;
+  alumno: AlumnoResponse;
+  observacion: string;
+  asistenciasDiarias: AsistenciaDiariaResponse[];
+}
+
+// Representación de la disciplina, de forma anidada
+export interface DisciplinaResponse {
+  id: number;
+  nombre: string;
+}
+
+// Respuesta detallada de la asistencia mensual (planilla)
+// Incluye la disciplina como objeto anidado y el listado de registros de alumno
 export interface AsistenciaMensualDetalleResponse {
   id: number;
   mes: number;
   anio: number;
-  disciplina: string;
+  disciplina: DisciplinaResponse;
   profesor: string;
-  asistenciasDiarias: AsistenciaDiariaResponse[];
-  observaciones: {
-    alumnoId: number;
-    observacion: string;
-  }[];
-  disciplinaId: number;
-  inscripcionId: number;
-  alumnos: {
-    id: number;
-    nombre: string;
-    apellido: string;
-  }[];
+  alumnos: AsistenciaAlumnoMensualDetalleResponse[];
 }
 
+// Respuesta para listado de planillas mensuales
 export interface AsistenciaMensualListadoResponse {
   id: number;
   mes: number;
   anio: number;
-  disciplina: string;
+  disciplina: DisciplinaResponse;
   profesor: string;
   cantidadAlumnos: number;
+}
+
+// Para manejo de paginación (por ejemplo, en consultas de asistencias diarias)
+export interface PageResponse<T> {
+  content: T[];
+  totalPages: number;
+  totalElements: number;
+  size: number;
+  number: number;
+}
+
+// Resumen simplificado de una disciplina (para listados)
+export interface DisciplinaListadoResponse {
+  id: number;
+  nombre: string;
+  // Otros campos opcionales
 }
 
 // ==========================================

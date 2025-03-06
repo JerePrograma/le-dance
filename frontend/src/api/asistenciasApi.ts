@@ -1,3 +1,5 @@
+// src/asistenciasApi.ts
+
 import api from "./axiosConfig";
 import { toast } from "react-toastify";
 import type {
@@ -11,62 +13,43 @@ import type {
   DisciplinaListadoResponse,
 } from "../types/types";
 
-// Cache implementation
 const asistenciaCache = new Map<number, AsistenciaMensualDetalleResponse>();
 
 const asistenciasApi = {
-  // Metodo para obtener el detalle de la asistencia mensual (solo obtener, sin crear)
-  // En asistenciasApi.ts
-
+  // Obtiene el detalle de la asistencia mensual según parámetros (disciplina, mes, anio)
   obtenerAsistenciaMensualDetallePorParametros: async (
     disciplinaId: number,
     mes: number,
     anio: number
   ): Promise<AsistenciaMensualDetalleResponse | null> => {
     try {
-      const response = await api.get(
-        "/asistencias-mensuales/por-disciplina/detalle",
-        {
-          params: { disciplinaId, mes, anio },
-        }
-      );
+      const response = await api.get("/asistencias-mensuales/por-disciplina/detalle", {
+        params: { disciplinaId, mes, anio },
+      });
       return response.data;
     } catch (error: any) {
-      console.error(
-        "Error al obtener asistencia mensual por parametros:",
-        error
-      );
-      toast.error(
-        "Error al obtener la asistencia mensual. Intente nuevamente."
-      );
+      console.error("Error al obtener asistencia mensual por parámetros:", error);
+      toast.error("Error al obtener la asistencia mensual. Intente nuevamente.");
       return null;
     }
   },
 
-  // Metodo para crear la asistencia mensual (solo crear, sin buscar)
+  // Crea una asistencia mensual (planilla) para una disciplina
+  // Se adapta al endpoint POST "/asistencias-mensuales"
   crearAsistenciaMensualPorDisciplina: async (
-    disciplinaId: number,
-    mes: number,
-    anio: number
+    request: AsistenciaMensualRegistroRequest
   ): Promise<AsistenciaMensualDetalleResponse> => {
     try {
-      const response = await api.post(
-        "/asistencias-mensuales/por-disciplina/crear",
-        {
-          disciplinaId,
-          mes,
-          anio,
-        }
-      );
+      const response = await api.post("/asistencias-mensuales", request);
       return response.data;
     } catch (error: any) {
-      console.error("Error al crear asistencia mensual por disciplina:", error);
+      console.error("Error al crear asistencia mensual:", error);
       toast.error("Error al crear la asistencia mensual. Intente nuevamente.");
       throw error;
     }
   },
 
-  // Los metodos existentes permanecen sin cambios (listar, actualizar, etc.)
+  // Lista las planillas mensuales según criterios (opcional: profesor, disciplina, mes, anio)
   listarAsistenciasMensuales: async (
     profesorId?: number,
     disciplinaId?: number,
@@ -79,67 +62,23 @@ const asistenciasApi = {
       });
       return response.data;
     } catch (error: any) {
-      console.error(
-        "Error al obtener listado de asistencias mensuales:",
-        error
-      );
+      console.error("Error al obtener listado de asistencias mensuales:", error);
       if (error.response?.status === 404) {
-        toast.warn(
-          "No se encontraron asistencias para los criterios seleccionados."
-        );
+        toast.warn("No se encontraron asistencias para los criterios seleccionados.");
         return [];
       }
-      toast.error(
-        "Error al obtener listado de asistencias. Intente nuevamente."
-      );
+      toast.error("Error al obtener listado de asistencias. Intente nuevamente.");
       throw error;
     }
   },
 
-  obtenerAsistenciasDiarias: async (
-    asistenciaMensualId: number
-  ): Promise<AsistenciaDiariaResponse[]> => {
-    try {
-      const response = await api.get(
-        `/asistencias-diarias/por-asistencia-mensual/${asistenciaMensualId}`
-      );
-      return response.data;
-    } catch (error: any) {
-      console.error("Error al obtener asistencias diarias:", error);
-      toast.error("Error al obtener asistencias. Intente nuevamente.");
-      throw error;
-    }
-  },
-
-  obtenerAsistenciaMensualDetalle: async (
-    id: number
-  ): Promise<AsistenciaMensualDetalleResponse | null> => {
-    try {
-      const response = await api.get(`/asistencias-mensuales/${id}/detalle`);
-      return response.data;
-    } catch (error: any) {
-      console.error("Error al obtener detalle de asistencia mensual:", error);
-      if (error.response?.status === 404) {
-        toast.warn("No se encontro la asistencia mensual.");
-      } else {
-        toast.error(
-          "Error al obtener la asistencia mensual. Intente nuevamente."
-        );
-      }
-      return null;
-    }
-  },
-
+  // Actualiza la asistencia mensual (por ejemplo, observaciones de cada alumno)
   actualizarAsistenciaMensual: async (
     id: number,
     asistencia: AsistenciaMensualModificacionRequest
   ): Promise<AsistenciaMensualDetalleResponse> => {
     try {
-      const response = await api.put(
-        `/asistencias-mensuales/${id}`,
-        asistencia
-      );
-      // Update cache
+      const response = await api.put(`/asistencias-mensuales/${id}`, asistencia);
       asistenciaCache.set(id, response.data);
       return response.data;
     } catch (error: any) {
@@ -149,6 +88,7 @@ const asistenciasApi = {
     }
   },
 
+  // Obtiene una página de asistencias diarias filtradas por disciplina y fecha
   obtenerAsistenciasPorDisciplinaYFecha: async (
     disciplinaId: number,
     fecha: string,
@@ -156,23 +96,62 @@ const asistenciasApi = {
     size = 10
   ): Promise<PageResponse<AsistenciaDiariaResponse>> => {
     try {
-      const response = await api.get(
-        "/asistencias-diarias/por-disciplina-y-fecha",
-        {
-          params: { disciplinaId, fecha, page, size },
-        }
-      );
+      const response = await api.get("/asistencias-diarias/por-disciplina-y-fecha", {
+        params: { disciplinaId, fecha, page, size },
+      });
       return response.data;
     } catch (error: any) {
-      console.error(
-        "Error al obtener asistencias por disciplina y fecha:",
-        error
-      );
+      console.error("Error al obtener asistencias por disciplina y fecha:", error);
       toast.error("Error al obtener asistencias. Intente nuevamente.");
       throw error;
     }
   },
 
+  // Obtiene las asistencias diarias para una planilla (por el id de la planilla)
+  obtenerAsistenciasDiarias: async (
+    asistenciaMensualId: number
+  ): Promise<AsistenciaDiariaResponse[]> => {
+    try {
+      const response = await api.get(`/asistencias-diarias/por-asistencia-mensual/${asistenciaMensualId}`);
+      return response.data;
+    } catch (error: any) {
+      console.error("Error al obtener asistencias diarias:", error);
+      toast.error("Error al obtener asistencias. Intente nuevamente.");
+      throw error;
+    }
+  },
+
+  // Registra (o actualiza) una asistencia diaria
+  // Se utiliza PUT a la ruta "/asistencias-diarias" para ambas operaciones
+  registrarAsistenciaDiaria: async (
+    request: AsistenciaDiariaRegistroRequest
+  ): Promise<AsistenciaDiariaResponse> => {
+    try {
+      const response = await api.put("/asistencias-diarias/registrar", request);
+      return response.data;
+    } catch (error: any) {
+      console.error("Error al registrar asistencia diaria:", error);
+      toast.error("No se pudo registrar la asistencia. Verifica los datos.");
+      throw error;
+    }
+  },
+
+  // Modifica una asistencia diaria existente
+  modificarAsistenciaDiaria: async (
+    id: number,
+    request: AsistenciaDiariaRegistroRequest
+  ): Promise<AsistenciaDiariaResponse> => {
+    try {
+      const response = await api.put(`/asistencias-diarias/${id}`, request);
+      return response.data;
+    } catch (error: any) {
+      console.error("Error al modificar asistencia diaria:", error);
+      toast.error("No se pudo modificar la asistencia. Intente nuevamente.");
+      throw error;
+    }
+  },
+
+  // Elimina una asistencia diaria por su id
   eliminarAsistenciaDiaria: async (id: number): Promise<void> => {
     try {
       await api.delete(`/asistencias-diarias/${id}`);
@@ -184,49 +163,20 @@ const asistenciasApi = {
     }
   },
 
-  registrarAsistenciaDiaria: async (
-    request: AsistenciaDiariaRegistroRequest
-  ): Promise<AsistenciaDiariaResponse> => {
+  // Crea las asistencias para inscripciones activas (creación masiva)
+  crearAsistenciasParaInscripcionesActivas: async (): Promise<any> => {
     try {
-      if (!request.id) {
-        throw new Error("El ID de asistencia es obligatorio.");
-      }
-
-      const response = await api.put(
-        `/asistencias-diarias/${request.id}`, // ✅ Ahora usa el ID real
-        request
-      );
+      const response = await api.post("/asistencias-mensuales/crear-asistencias-activos-detallado");
       return response.data;
     } catch (error: any) {
-      console.error("Error al registrar asistencia diaria:", error);
-      toast.error("No se pudo registrar la asistencia. Verifica los datos.");
+      console.error("Error al crear asistencias para inscripciones activas:", error);
+      toast.error("Error al crear las asistencias. Intente nuevamente.");
       throw error;
     }
   },
 
-  obtenerOCrearAsistenciaPorDisciplina: async (
-    disciplinaId: number,
-    mes: number,
-    anio: number
-  ): Promise<AsistenciaMensualDetalleResponse> => {
-    try {
-      const response = await api.get("/asistencias-mensuales/por-disciplina", {
-        params: { disciplinaId, mes, anio },
-      });
-      if (!response.data) {
-        throw new Error("No se encontro asistencia para esta disciplina.");
-      }
-      return response.data;
-    } catch (error: any) {
-      console.error("Error al obtener asistencia:", error);
-      toast.error("Error al obtener asistencia. Intente nuevamente.");
-      throw error;
-    }
-  },
-
-  listarDisciplinasSimplificadas: async (): Promise<
-    DisciplinaListadoResponse[]
-  > => {
+  // Lista las disciplinas simplificadas
+  listarDisciplinasSimplificadas: async (): Promise<DisciplinaListadoResponse[]> => {
     try {
       const response = await api.get("/disciplinas/listado");
       return response.data;
@@ -236,47 +186,6 @@ const asistenciasApi = {
       throw error;
     }
   },
-
-  registrarAsistenciaMensual: async (
-    request: AsistenciaMensualRegistroRequest
-  ): Promise<AsistenciaMensualDetalleResponse> => {
-    try {
-      const response = await api.post("/asistencias-mensuales", request);
-      return response.data;
-    } catch (error: any) {
-      console.error("Error al registrar asistencia mensual:", error);
-      toast.error("Error al registrar asistencia mensual. Intente nuevamente.");
-      throw error;
-    }
-  },
-  listarAsistenciasDiarias: async (): Promise<AsistenciaDiariaResponse[]> => {
-    try {
-      const response = await api.get("/asistencias-diarias");
-      return response.data;
-    } catch (error: any) {
-      console.error("Error al obtener asistencias diarias:", error);
-      toast.error("Error al obtener asistencias diarias. Intente nuevamente.");
-      throw error;
-    }
-  },
-
-
-  crearAsistenciasParaInscripcionesActivas: async () => {
-    return api.post(`/asistencias-mensuales/crear-asistencias-activos-detallado`);
-  },
-
-  // En tu archivo de API (por ejemplo, asistenciasApi.ts o similar)
-  actualizarObservacion: async (payload: { observaciones: { alumnoId: number; observacion: string }[] }) => {
-    try {
-      const response = await api.post("/asistencias-diarias/observaciones", payload);
-      return response.data;
-    } catch (error: any) {
-      console.error("Error al actualizar observacion:", error);
-      toast.error("Error al actualizar la observacion. Intente nuevamente.");
-      throw error;
-    }
-  },
-
 };
 
 export default asistenciasApi;

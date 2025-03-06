@@ -1,82 +1,64 @@
 package ledance.dto.asistencia;
 
-import ledance.dto.alumno.response.AlumnoResumenResponse;
 import ledance.dto.asistencia.request.AsistenciaMensualRegistroRequest;
 import ledance.dto.asistencia.request.AsistenciaMensualModificacionRequest;
 import ledance.dto.asistencia.response.AsistenciaMensualDetalleResponse;
 import ledance.dto.asistencia.response.AsistenciaMensualListadoResponse;
+import ledance.dto.asistencia.response.AsistenciaAlumnoMensualDetalleResponse;
+import ledance.dto.asistencia.response.DisciplinaResponse;
 import ledance.entidades.AsistenciaMensual;
-import ledance.entidades.Disciplina;
-import ledance.entidades.Inscripcion;
-import org.mapstruct.*;
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
+import ledance.entidades.AsistenciaAlumnoMensual;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
 
 @Mapper(componentModel = "spring", uses = {AsistenciaDiariaMapper.class})
 public interface AsistenciaMensualMapper {
 
-    /**
-     * Mapea una entidad AsistenciaMensual a su detalle de respuesta.
-     * Se obtienen los datos de la disciplina y profesor directamente.
-     */
-    @Mapping(target = "disciplina", source = "disciplina.nombre")
+    // Mapea la entidad AsistenciaMensual a su respuesta detallada, anidando la información de disciplina y alumnos.
+    @Mapping(target = "disciplina", source = "disciplina")
     @Mapping(target = "profesor", source = "disciplina.profesor.nombre")
-    @Mapping(target = "disciplinaId", source = "disciplina.id")
-    @Mapping(target = "alumnos", expression = "java(mapAlumnosToResumen(asistenciaMensual.getDisciplina().getInscripciones()))")
+    @Mapping(target = "alumnos", source = "asistenciasAlumnoMensual")
     AsistenciaMensualDetalleResponse toDetalleDTO(AsistenciaMensual asistenciaMensual);
 
-    /**
-     * Mapea la entidad a la versión de listado.
-     */
-    @Mapping(target = "disciplinaId", source = "disciplina.id")
-    @Mapping(target = "disciplina", source = "disciplina.nombre")
+    // Mapea para listado; en este caso se utiliza un objeto anidado para la disciplina.
+    @Mapping(target = "disciplina", source = "disciplina")
     @Mapping(target = "profesor", source = "disciplina.profesor.nombre")
     @Mapping(target = "mes", source = "mes")
     @Mapping(target = "anio", source = "anio")
     AsistenciaMensualListadoResponse toListadoDTO(AsistenciaMensual asistenciaMensual);
 
-    /**
-     * Convierte un request de registro a la entidad.
-     * Nota: La creación de la planilla se manejará en el servicio, por lo que algunos campos se asignan allí.
-     */
+    // Para crear una nueva planilla (se ignora la relación de alumnos, que se establecerá posteriormente)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "disciplina", ignore = true)
-    @Mapping(target = "asistenciasDiarias", ignore = true)
-    @Mapping(target = "observacion", ignore = true)
+    @Mapping(target = "asistenciasAlumnoMensual", ignore = true)
     AsistenciaMensual toEntity(AsistenciaMensualRegistroRequest request);
 
     /**
-     * Actualiza una entidad existente con datos del request de modificación.
-     * Se ignoran campos críticos como mes, anio y disciplina.
+     * Actualiza la planilla mensual sin modificar disciplina, mes ni año.
+     * La actualización de los registros de alumno se hace por separado.
      */
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "disciplina", ignore = true)
-    @Mapping(target = "asistenciasDiarias", ignore = true)
     @Mapping(target = "mes", ignore = true)
     @Mapping(target = "anio", ignore = true)
+    @Mapping(target = "asistenciasAlumnoMensual", ignore = true)
     void updateEntityFromRequest(AsistenciaMensualModificacionRequest request, @MappingTarget AsistenciaMensual asistenciaMensual);
 
-    /**
-     * Método auxiliar para mapear la lista de inscripciones de la disciplina a una lista de resumen de alumnos.
-     * Se asume que la entidad Disciplina tiene una relación con Inscripcion.
-     */
-    default List<AlumnoResumenResponse> mapAlumnosToResumen(List<Inscripcion> inscripciones) {
-        if (inscripciones == null) {
+    // Mapea cada registro de alumno a su respuesta detallada.
+    @Mapping(target = "inscripcionId", source = "inscripcion.id")
+    @Mapping(target = "observacion", source = "observacion")
+    @Mapping(target = "asistenciasDiarias", source = "asistenciasDiarias")
+    AsistenciaAlumnoMensualDetalleResponse toAlumnoDetalleDTO(AsistenciaAlumnoMensual alumno);
+
+    // Método para mapear la entidad Disciplina a un objeto DisciplinaResponse anidado.
+    default DisciplinaResponse toDisciplinaResponse(ledance.entidades.Disciplina disciplina) {
+        if (disciplina == null) {
             return null;
         }
-        return inscripciones.stream()
-                .map(inscripcion -> {
-                    if (inscripcion == null || inscripcion.getAlumno() == null) {
-                        return null;
-                    }
-                    return new AlumnoResumenResponse(
-                            inscripcion.getAlumno().getId(),
-                            inscripcion.getAlumno().getNombre(),
-                            inscripcion.getAlumno().getApellido()
-                    );
-                })
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+        return new DisciplinaResponse(
+                disciplina.getId(),
+                disciplina.getNombre()
+        );
     }
 }

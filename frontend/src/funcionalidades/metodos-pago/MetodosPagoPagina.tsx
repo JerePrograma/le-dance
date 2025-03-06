@@ -1,66 +1,68 @@
-// src/funcionalidades/metodos-pago/MetodosPagoPagina.tsx
-import { useEffect, useState, useCallback, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
-import Tabla from "../../componentes/comunes/Tabla";
-import metodosPagoApi from "../../api/metodosPagoApi";
-import ReactPaginate from "react-paginate";
-import Boton from "../../componentes/comunes/Boton";
-import { PlusCircle, Pencil, Trash2 } from "lucide-react";
-import { toast } from "react-toastify";
-import type { MetodoPagoResponse } from "../../types/types";
+"use client"
 
-const itemsPerPage = 5;
+// src/funcionalidades/metodos-pago/MetodosPagoPagina.tsx
+import { useEffect, useState, useCallback, useMemo } from "react"
+import { useNavigate } from "react-router-dom"
+import Tabla from "../../componentes/comunes/Tabla"
+import metodosPagoApi from "../../api/metodosPagoApi"
+import Boton from "../../componentes/comunes/Boton"
+import { PlusCircle, Pencil, Trash2 } from "lucide-react"
+import { toast } from "react-toastify"
+import type { MetodoPagoResponse } from "../../types/types"
+import Pagination from "../../componentes/comunes/Pagination"
+
+const itemsPerPage = 5
 
 const MetodosPagoPagina = () => {
-  const [metodos, setMetodos] = useState<MetodoPagoResponse[]>([]);
-  const [currentPage, setCurrentPage] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const navigate = useNavigate();
+  const [metodos, setMetodos] = useState<MetodoPagoResponse[]>([])
+  const [currentPage, setCurrentPage] = useState(0)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const navigate = useNavigate()
 
   const fetchMetodos = useCallback(async () => {
     try {
-      setLoading(true);
-      setError(null);
-      const response = await metodosPagoApi.listarMetodosPago();
-      setMetodos(response);
+      setLoading(true)
+      setError(null)
+      const response = await metodosPagoApi.listarMetodosPago()
+      setMetodos(response)
     } catch (error) {
-      console.error("Error al cargar metodos de pago:", error);
-      setError("Error al cargar metodos de pago.");
+      console.error("Error al cargar metodos de pago:", error)
+      setError("Error al cargar metodos de pago.")
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  }, []);
+  }, [])
 
   useEffect(() => {
-    fetchMetodos();
-  }, [fetchMetodos]);
+    fetchMetodos()
+  }, [fetchMetodos])
 
-  const pageCount = useMemo(() => Math.ceil(metodos.length / itemsPerPage), [metodos.length]);
+  const pageCount = useMemo(() => Math.ceil(metodos.length / itemsPerPage), [metodos.length])
   const currentItems = useMemo(
     () => metodos.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage),
-    [metodos, currentPage]
-  );
+    [metodos, currentPage],
+  )
 
-  const handlePageClick = useCallback(
-    ({ selected }: { selected: number }) => {
-      if (selected < pageCount) setCurrentPage(selected);
+  const handlePageChange = useCallback(
+    (newPage: number) => {
+      if (newPage >= 0 && newPage < pageCount) setCurrentPage(newPage)
     },
-    [pageCount]
-  );
+    [pageCount],
+  )
 
   const handleEliminarMetodo = async (id: number) => {
     try {
-      await metodosPagoApi.eliminarMetodoPago(id);
-      toast.success("Metodo de pago eliminado correctamente.");
-      fetchMetodos();
+      await metodosPagoApi.eliminarMetodoPago(id)
+      toast.success("Metodo de pago eliminado correctamente.")
+      fetchMetodos()
     } catch (error) {
-      toast.error("Error al eliminar el metodo de pago.");
+      toast.error("Error al eliminar el metodo de pago.")
     }
-  };
+  }
 
-  if (loading) return <div className="text-center py-4">Cargando...</div>;
-  if (error) return <div className="text-center py-4 text-destructive">{error}</div>;
+  if (loading) return <div className="text-center py-4">Cargando...</div>
+  if (error) return <div className="text-center py-4 text-destructive">{error}</div>
 
   return (
     <div className="page-container">
@@ -103,19 +105,11 @@ const MetodosPagoPagina = () => {
         />
       </div>
       {pageCount > 1 && (
-        <ReactPaginate
-          previousLabel={"← Anterior"}
-          nextLabel={"Siguiente →"}
-          breakLabel={"..."}
-          pageCount={pageCount}
-          onPageChange={handlePageClick}
-          containerClassName={"pagination"}
-          activeClassName={"active"}
-          disabledClassName={"disabled"}
-        />
+        <Pagination currentPage={currentPage} totalPages={pageCount} onPageChange={handlePageChange} className="mt-4" />
       )}
     </div>
-  );
-};
+  )
+}
 
-export default MetodosPagoPagina;
+export default MetodosPagoPagina
+

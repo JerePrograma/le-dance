@@ -5,13 +5,12 @@ import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
 import java.time.LocalDate;
 
-@Entity
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Entity
 @Table(name = "asistencias_diarias")
 public class AsistenciaDiaria {
     @Id
@@ -21,15 +20,12 @@ public class AsistenciaDiaria {
     @NotNull
     private LocalDate fecha;
 
-    @Enumerated(EnumType.STRING)
     @NotNull
-    private EstadoAsistencia estado = EstadoAsistencia.AUSENTE;
+    @Enumerated(EnumType.STRING)
+    private EstadoAsistencia estado;
 
+    // Se relaciona con el registro mensual de asistencia del alumno
     @ManyToOne
-    @JoinColumn(name = "alumno_id", nullable = false)
-    private Alumno alumno;
-
-    @ManyToOne
-    @JoinColumn(name = "asistencia_mensual_id", nullable = false)
-    private AsistenciaMensual asistenciaMensual;
+    @JoinColumn(name = "asistencia_alumno_mensual_id", nullable = false)
+    private AsistenciaAlumnoMensual asistenciaAlumnoMensual;
 }

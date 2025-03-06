@@ -8,6 +8,5 @@ public record AsistenciaDiariaRegistroRequest(
         Long id, // Para creación o actualización
         @NotNull LocalDate fecha,
         @NotNull EstadoAsistencia estado,
-        @NotNull Long alumnoId,
-        @NotNull Long asistenciaMensualId
+        Long asistenciaAlumnoMensualId
 ) {}

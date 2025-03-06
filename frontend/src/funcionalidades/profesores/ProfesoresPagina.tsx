@@ -8,7 +8,7 @@ import Boton from "../../componentes/comunes/Boton"
 import { PlusCircle, Pencil, Trash2 } from "lucide-react"
 import type { ProfesorListadoResponse } from "../../types/types"
 import { toast } from "react-toastify"
-import Pagination from "../../componentes/ui/Pagination"
+import Pagination from "../../componentes/comunes/Pagination"
 
 const itemsPerPage = 5
 

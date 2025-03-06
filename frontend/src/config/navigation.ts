@@ -17,7 +17,6 @@ import {
   DoorOpen,
   UserCheck,
   Mic2,
-  SchoolIcon as StudentIcon,
   ClipboardCheck,
   CalendarCheck,
   ActivityIcon as AttendanceIcon,
@@ -26,6 +25,7 @@ import {
   UserCog,
   Shield,
   type LucideIcon,
+  User,
 } from "lucide-react";
 
 export interface NavigationItem {
@@ -160,7 +160,7 @@ export const navigationItems: NavigationItem[] = [
       },
       {
         id: "alumnos",
-        icon: StudentIcon,
+        icon: User,
         label: "Alumnos",
         href: "/alumnos/formulario",
       },
@@ -193,9 +193,9 @@ export const navigationItems: NavigationItem[] = [
   {
     id: "inscripciones",
     icon: ClipboardList,
-    label: "Activos",
+    label: "Inscripciones",
     href: "/inscripciones",
-    description: "Gestión de Activos",
+    description: "Gestión de Inscripciones",
   },
   {
     id: "reportes",
@@ -219,5 +219,11 @@ export const navigationItems: NavigationItem[] = [
     href: "/roles",
     description: "Gestión de permisos y roles",
     requiredRole: "ADMINISTRADOR",
+  },
+  {
+    id: "alumnos",
+    icon: User,
+    label: "Alumnos",
+    href: "/alumnos/formulario",
   },
 ];

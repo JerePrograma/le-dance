@@ -234,33 +234,38 @@ const ReporteDetallePago: React.FC = () => {
             </form>
             {error && <div className="text-red-500 mb-4">{error}</div>}
             <div className="overflow-x-auto">
-                <Tabla
-                    encabezados={[
-                        "Codigo Mensualidad",
-                        "Alumno",
-                        "Cuota",
-                        "Importe",
-                        "Bonificacion (%)",
-                        "Bonificacion (monto)",
-                        "Total",
-                        "Recargo",
-                        "Estado",
-                        "Disciplina"
-                    ]}
-                    datos={resultados}
-                    extraRender={(item) => [
-                        item.mensualidadId,
-                        item.alumno.nombre,
-                        item.cuota,
-                        item.importe,
-                        item.bonificacion.porcentajeDescuento,
-                        item.bonificacion.valorFijo,
-                        item.total,
-                        item.recargo,
-                        item.estado,
-                        item.disciplina.nombre
-                    ]}
-                />
+                {resultados.length === 0 ? (
+                    <div className="text-center py-4">No se encontraron resultados</div>
+                ) : (
+                    <Tabla
+                        encabezados={[
+                            "Codigo Mensualidad",
+                            "Alumno",
+                            "Cuota",
+                            "Importe",
+                            "Bonificacion (%)",
+                            "Bonificacion (monto)",
+                            "Total",
+                            "Recargo",
+                            "Estado",
+                            "Disciplina"
+                        ]}
+                        datos={resultados}
+                        extraRender={(item) => [
+                            item.mensualidadId,
+                            item.alumno.nombre,
+                            item.cuota,
+                            item.importe,
+                            item.bonificacion.porcentajeDescuento,
+                            item.bonificacion.valorFijo,
+                            item.total,
+                            item.recargo,
+                            item.estado,
+                            item.disciplina.nombre
+                        ]}
+                    />
+                )}
+
             </div>
         </div>
     );

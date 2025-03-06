@@ -1,16 +1,33 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { Check, X } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "../../componentes/ui/card";
+import {
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
+} from "../../componentes/ui/card";
 import { Button } from "../../componentes/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../componentes/ui/table";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "../../componentes/ui/table";
 import { Input } from "../../componentes/ui/input";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import asistenciasApi from "../../api/asistenciasApi";
-import { AsistenciaDiariaRegistroRequest, AsistenciaDiariaResponse, EstadoAsistencia } from "../../types/types";
 import api from "../../api/axiosConfig";
+import {
+    AsistenciaDiariaRegistroRequest,
+    AsistenciaDiariaResponse,
+    AsistenciaMensualDetalleResponse,
+    EstadoAsistencia,
+} from "../../types/types";
 
 interface Disciplina {
     id: number;
@@ -18,19 +35,233 @@ interface Disciplina {
     diasSemana: string[];
 }
 
-const AsistenciaDiariaForm: React.FC = () => {
+const AsistenciaDiariaFormAdaptado: React.FC = () => {
     const navigate = useNavigate();
 
-    // Estados para filtros y datos
     const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
+    const [disciplineFilter, setDisciplineFilter] = useState<string>("");
     const [selectedDisciplineId, setSelectedDisciplineId] = useState<number | null>(null);
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-    const [asistencias, setAsistencias] = useState<AsistenciaDiariaResponse[]>([]);
+    const [monthlyDetail, setMonthlyDetail] = useState<AsistenciaMensualDetalleResponse | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
-    const [, setErrorMessage] = useState<string | null>(null); // Estado para mensaje de error visual
-    const [observaciones, setObservaciones] = useState<Record<number, string>>({});
-    const [diasClase, setDiasClase] = useState<string[]>([]);
+    const [showSuggestions, setShowSuggestions] = useState<boolean>(false);
+    const [activeSuggestionIndex, setActiveSuggestionIndex] = useState<number>(-1);
+    const searchWrapperRef = useRef<HTMLDivElement>(null);
+    const [isValidClassDay, setIsValidClassDay] = useState<boolean>(false);
+    const [, setDiasClase] = useState<string[]>([]);
+
+    const fetchDisciplinas = useCallback(async () => {
+        try {
+            const data = await asistenciasApi.listarDisciplinasSimplificadas();
+            const disciplinasConDias = data.map((d: any) => ({
+                ...d,
+                diasSemana: d.diasSemana || [],
+            }));
+            setDisciplinas(disciplinasConDias);
+        } catch (err) {
+            toast.error("Error al cargar la lista de disciplinas.");
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchDisciplinas();
+    }, [fetchDisciplinas]);
+
+    const filteredDisciplinas = useMemo(() => {
+        if (!disciplineFilter.trim()) return disciplinas;
+        return disciplinas.filter((d) =>
+            d.nombre.toLowerCase().includes(disciplineFilter.toLowerCase())
+        );
+    }, [disciplineFilter, disciplinas]);
+
+    const fetchDiasClase = useCallback(async (): Promise<string[]> => {
+        if (!selectedDisciplineId) return [];
+        try {
+            const response = await api.get(`/disciplinas/${selectedDisciplineId}`);
+            const horarios = response.data?.horarios || [];
+            const dias = horarios.map((h: any) => h.diaSemana);
+            setDiasClase(dias);
+            return dias;
+        } catch (error) {
+            toast.error("Error al cargar la información de la disciplina.");
+            return [];
+        }
+    }, [selectedDisciplineId]);
+
+    const handleSeleccionarDisciplina = (disciplina: Disciplina) => {
+        setSelectedDisciplineId(disciplina.id);
+        setDisciplineFilter(disciplina.nombre);
+        setActiveSuggestionIndex(-1);
+        setShowSuggestions(false);
+        fetchDiasClase();
+    };
+
+    const handleDisciplineKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (filteredDisciplinas.length > 0) {
+            if (e.key === "ArrowDown") {
+                e.preventDefault();
+                setActiveSuggestionIndex((prev) =>
+                    prev < filteredDisciplinas.length - 1 ? prev + 1 : 0
+                );
+            } else if (e.key === "ArrowUp") {
+                e.preventDefault();
+                setActiveSuggestionIndex((prev) =>
+                    prev > 0 ? prev - 1 : filteredDisciplinas.length - 1
+                );
+            } else if (e.key === "Enter" || e.key === "Tab") {
+                if (activeSuggestionIndex >= 0 && activeSuggestionIndex < filteredDisciplinas.length) {
+                    e.preventDefault();
+                    handleSeleccionarDisciplina(filteredDisciplinas[activeSuggestionIndex]);
+                }
+            }
+        }
+    };
+
+    const limpiarDisciplina = () => {
+        setDisciplineFilter("");
+        setSelectedDisciplineId(null);
+        setShowSuggestions(false);
+    };
+
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (searchWrapperRef.current && !searchWrapperRef.current.contains(e.target as Node)) {
+                setShowSuggestions(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const handleBuscarAsistencia = async () => {
+        if (!selectedDate || !selectedDisciplineId) {
+            toast.warn("Complete los filtros");
+            return;
+        }
+        const dias = await fetchDiasClase();
+        const diasAbreviados = dias.map(d => d.substring(0, 3).toUpperCase());
+        const diasReferencia = ["DOM", "LUN", "MAR", "MIE", "JUE", "VIE", "SAB"];
+        const dayStr = diasReferencia[selectedDate.getDay()];
+        if (!diasAbreviados.includes(dayStr)) {
+            setIsValidClassDay(false);
+            setMonthlyDetail(null);
+            toast.error("No hay clases este día");
+            return;
+        }
+        setIsValidClassDay(true);
+        cargarAsistencias(selectedDate);
+    };
+
+    const cargarAsistencias = useCallback(async (fecha: Date) => {
+        if (!selectedDisciplineId) return;
+        setLoading(true);
+        setError(null);
+        try {
+            const mes = fecha.getMonth() + 1;
+            const anio = fecha.getFullYear();
+            const detail = await asistenciasApi.obtenerAsistenciaMensualDetallePorParametros(
+                selectedDisciplineId,
+                mes,
+                anio
+            );
+            setMonthlyDetail(detail);
+        } catch (err) {
+            setError("Error al cargar la asistencia del día.");
+            toast.error("No se pudo cargar la asistencia del día.");
+        } finally {
+            setLoading(false);
+        }
+    }, [selectedDisciplineId]);
+
+    const dailyRecords = useMemo(() => {
+        if (!monthlyDetail) return [];
+        const selectedIso = selectedDate.toISOString().split("T")[0];
+        return monthlyDetail.alumnos.map((alumno) => {
+            const asistenciaDiaria = alumno.asistenciasDiarias.find(
+                (ad) => ad.fecha === selectedIso
+            );
+            const nombre =
+                alumno.alumno?.nombre ||
+                (asistenciaDiaria ? asistenciaDiaria.alumno?.nombre :
+                    alumno.asistenciasDiarias.length > 0 ? alumno.asistenciasDiarias[0].alumno?.nombre : "");
+            const apellido =
+                alumno.alumno?.apellido ||
+                (asistenciaDiaria ? asistenciaDiaria.alumno?.apellido :
+                    alumno.asistenciasDiarias.length > 0 ? alumno.asistenciasDiarias[0].alumno?.apellido : "");
+            return {
+                alumnoId: alumno.id,
+                alumnoNombre: nombre,
+                alumnoApellido: apellido,
+                asistenciaDiaria,
+            };
+        });
+    }, [monthlyDetail, selectedDate]);
+
+    const toggleAsistencia = async (
+        alumnoId: number,
+        currentRecord: AsistenciaDiariaResponse | undefined
+    ) => {
+        if (!selectedDate || !monthlyDetail) return;
+        const fechaFormateada = selectedDate.toISOString().split("T")[0];
+        if (!currentRecord) {
+            const alumnoRegistro = monthlyDetail.alumnos.find(a => a.id === alumnoId);
+            if (!alumnoRegistro) {
+                toast.error("No se encontró el registro del alumno.");
+                return;
+            }
+            const newRecord: AsistenciaDiariaRegistroRequest = {
+                fecha: fechaFormateada,
+                estado: EstadoAsistencia.PRESENTE,
+                asistenciaAlumnoMensualId: alumnoRegistro.id,
+            };
+            try {
+                const created = await asistenciasApi.registrarAsistenciaDiaria(newRecord);
+                const updatedAlumnos = monthlyDetail.alumnos.map((alumno) => {
+                    if (alumno.id === alumnoId) {
+                        return {
+                            ...alumno,
+                            asistenciasDiarias: [...alumno.asistenciasDiarias, created],
+                        };
+                    }
+                    return alumno;
+                });
+                setMonthlyDetail({ ...monthlyDetail, alumnos: updatedAlumnos });
+                toast.success("Asistencia creada y marcada como PRESENTE");
+            } catch (err) {
+                toast.error("Error al crear la asistencia.");
+            }
+            return;
+        }
+        try {
+            const nuevoEstado =
+                currentRecord.estado === EstadoAsistencia.PRESENTE
+                    ? EstadoAsistencia.AUSENTE
+                    : EstadoAsistencia.PRESENTE;
+            const request: AsistenciaDiariaRegistroRequest = {
+                id: currentRecord.id,
+                fecha: fechaFormateada,
+                estado: nuevoEstado,
+                asistenciaAlumnoMensualId: currentRecord.asistenciaAlumnoMensualId,
+            };
+            const updated = await asistenciasApi.registrarAsistenciaDiaria(request);
+            const updatedAlumnos = monthlyDetail.alumnos.map((alumno) => {
+                if (alumno.id === alumnoId) {
+                    return {
+                        ...alumno,
+                        asistenciasDiarias: alumno.asistenciasDiarias.map((ad) =>
+                            ad.fecha === fechaFormateada ? updated : ad
+                        ),
+                    };
+                }
+                return alumno;
+            });
+            setMonthlyDetail({ ...monthlyDetail, alumnos: updatedAlumnos });
+            toast.success("Asistencia actualizada");
+        } catch (err) {
+            toast.error("Error al actualizar la asistencia.");
+        }
+    };
 
     const debounce = (func: (...args: any[]) => void, delay: number) => {
         let timer: NodeJS.Timeout;
@@ -40,158 +271,43 @@ const AsistenciaDiariaForm: React.FC = () => {
         };
     };
 
-    const fetchDisciplinas = useCallback(async () => {
-        try {
-            const data = await asistenciasApi.listarDisciplinasSimplificadas();
-            // Mapea cada elemento agregando diasSemana (por defecto, vacio o con otro valor que necesites)
-            const disciplinasConDias = data.map((d: any) => ({
-                ...d,
-                diasSemana: [], // o un array con valores por defecto si aplica
-            }));
-            setDisciplinas(disciplinasConDias);
-            if (data.length > 0 && !selectedDisciplineId) {
-                setSelectedDisciplineId(data[0].id);
-            }
-        } catch (err) {
-            console.error("Error al cargar disciplinas", err);
-            toast.error("Error al cargar la lista de disciplinas.");
-        }
-    }, [selectedDisciplineId]);
-
-    useEffect(() => {
-        fetchDisciplinas();
-    }, [fetchDisciplinas]);
-
-    const fetchDiasClase = useCallback(async () => {
-        if (!selectedDisciplineId) return;
-        try {
-            const response = await api.get(`/disciplinas/${selectedDisciplineId}`);
-            console.log("Detalle de disciplina:", response.data);
-            setDiasClase(response.data?.diasSemana || []);
-        } catch (error) {
-            console.error("Error al cargar dias de clase:", error);
-            toast.error("Error al cargar la informacion de la disciplina.");
-        }
-    }, [selectedDisciplineId]);
-
-    useEffect(() => {
-        fetchDiasClase();
-    }, [fetchDiasClase]);
-
-    const cargarAsistencias = useCallback(async (fecha: Date) => {
-        if (!selectedDisciplineId) return;
-        setLoading(true);
-        setError(null);
-        try {
-            const isoDate = fecha.toISOString().split("T")[0];
-            const pageResponse = await asistenciasApi.obtenerAsistenciasPorDisciplinaYFecha(
-                selectedDisciplineId,
-                isoDate,
-                0,
-                100
-            );
-            setAsistencias(pageResponse.content);
-            const obs: Record<number, string> = {};
-            pageResponse.content.forEach((record: AsistenciaDiariaResponse) => {
-                obs[record.alumnoId] = record.observacion || "";
-            });
-            setObservaciones(obs);
-            // Si no hay registros y se espera clase, establecemos el mensaje de error
-            if (pageResponse.content.length === 0) {
-                setErrorMessage("No hay clases este dia");
-            } else {
-                setErrorMessage(null);
-            }
-        } catch (err) {
-            console.error("Error al cargar asistencias", err);
-            setError("Error al cargar la asistencia del dia.");
-            toast.error("No se pudo cargar la asistencia del dia.");
-        } finally {
-            setLoading(false);
-        }
-    }, [selectedDisciplineId]);
-
-    // Funcion para parsear la fecha en zona local
-    const parseLocalDate = (dateStr: string): Date => {
-        const [year, month, day] = dateStr.split("-").map(Number);
-        return new Date(year, month - 1, day);
-    };
-
-    const isValidClassDay = useMemo(() => {
-        if (!selectedDate) return false;
-        if (diasClase.length === 0) return false;
-        const localDate = parseLocalDate(selectedDate.toISOString().split("T")[0]);
-        const dias = ["DOMINGO", "LUNES", "MARTES", "MIERCOLES", "JUEVES", "VIERNES", "SABADO"];
-        const dayStr = dias[localDate.getDay()];
-        return diasClase.includes(dayStr);
-    }, [selectedDate, diasClase]);
-
-    useEffect(() => {
-        console.log("Fecha seleccionada:", selectedDate);
-    }, [selectedDate]);
-
-    useEffect(() => {
-        console.log("useEffect: selectedDate cambio a:", selectedDate);
-        if (selectedDate && isValidClassDay) {
-            cargarAsistencias(selectedDate);
-        } else {
-            setAsistencias([]);
-        }
-    }, [selectedDate, isValidClassDay, cargarAsistencias]);
-
-    const handleDisciplinaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const id = parseInt(e.target.value, 10);
-        setSelectedDisciplineId(id);
-        if (selectedDate) {
-            cargarAsistencias(selectedDate);
-        }
-    };
-
-    const toggleAsistencia = async (alumnoId: number) => {
-        if (!selectedDate) return;
-        const registro = asistencias.find(a => a.alumnoId === alumnoId);
-        if (!registro) {
-            toast.error("No se encontro registro de asistencia para este alumno.");
-            return;
-        }
-        try {
-            const nuevoEstado =
-                registro.estado === EstadoAsistencia.PRESENTE ? EstadoAsistencia.AUSENTE : EstadoAsistencia.PRESENTE;
-            const request: AsistenciaDiariaRegistroRequest = {
-                id: registro.id,
-                alumnoId: registro.alumnoId,
-                fecha: selectedDate.toISOString().split("T")[0],
-                estado: nuevoEstado,
-                asistenciaMensualId: 0
-            };
-            const updated = await asistenciasApi.registrarAsistenciaDiaria(request);
-            setAsistencias(prev => prev.map(a => (a.id === updated.id ? updated : a)));
-            toast.success("Asistencia actualizada");
-        } catch (err) {
-            console.error("Error al actualizar asistencia", err);
-            toast.error("Error al actualizar la asistencia.");
-        }
-    };
-
     const debouncedActualizarObservacion = useCallback(
         debounce(async (alumnoId: number, obs: string) => {
-            if (!selectedDate) return;
+            if (!monthlyDetail) return;
+            const alumno = monthlyDetail.alumnos.find(a => a.id === alumnoId);
+            if (!alumno) return;
+            const payload = {
+                asistenciasAlumnoMensual: [
+                    { id: alumno.id, observacion: obs, asistenciasDiarias: [] }
+                ]
+            };
             try {
-                await asistenciasApi.actualizarObservacion({
-                    observaciones: [{ alumnoId, observacion: obs }],
-                });
-                toast.success("Observacion actualizada");
+                await asistenciasApi.actualizarAsistenciaMensual(monthlyDetail.id, payload);
+                toast.success("Observación actualizada");
             } catch (err) {
-                console.error("Error al actualizar observacion", err);
-                toast.error("Error al actualizar la observacion.");
+                toast.error("Error al actualizar la observación.");
             }
         }, 500),
-        [selectedDate]
+        [monthlyDetail]
     );
 
-    const handleObservacionChange = (alumnoId: number, obs: string) => {
-        setObservaciones(prev => ({ ...prev, [alumnoId]: obs }));
-        debouncedActualizarObservacion(alumnoId, obs);
+    const handleObservacionChange = (alumnoId: number, newObs: string) => {
+        if (monthlyDetail) {
+            const updatedAlumnos = monthlyDetail.alumnos.map((alumno) => {
+                if (alumno.id === alumnoId) {
+                    return { ...alumno, observacion: newObs };
+                }
+                return alumno;
+            });
+            setMonthlyDetail({ ...monthlyDetail, alumnos: updatedAlumnos });
+        }
+        debouncedActualizarObservacion(alumnoId, newObs);
+    };
+
+    const formatHeaderDate = (date: Date): string => {
+        const weekday = date.toLocaleDateString("es-ES", { weekday: "short" }).replace(".", "");
+        const day = date.toLocaleDateString("es-ES", { day: "numeric" });
+        return `${weekday} ${day}`;
     };
 
     return (
@@ -201,26 +317,43 @@ const AsistenciaDiariaForm: React.FC = () => {
                     <CardTitle>Asistencia Diaria</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    {/* Selector de disciplina */}
-                    <div className="mb-4">
-                        <label htmlFor="disciplinaSelect" className="block text-sm font-medium text-gray-700">
+                    <div className="mb-4" ref={searchWrapperRef}>
+                        <label htmlFor="searchDiscipline" className="block text-sm font-medium text-gray-700 mb-1">
                             Selecciona la disciplina:
                         </label>
-                        <select
-                            id="disciplinaSelect"
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-                            value={selectedDisciplineId || ""}
-                            onChange={handleDisciplinaChange}
-                        >
-                            {disciplinas.map(disciplina => (
-                                <option key={disciplina.id} value={disciplina.id}>
-                                    {disciplina.nombre}
-                                </option>
-                            ))}
-                        </select>
+                        <div className="relative">
+                            <Input
+                                id="searchDiscipline"
+                                placeholder="Escribe el nombre..."
+                                value={disciplineFilter}
+                                onChange={(e) => {
+                                    setDisciplineFilter(e.target.value);
+                                    setShowSuggestions(true);
+                                }}
+                                onFocus={() => setShowSuggestions(true)}
+                                onKeyDown={handleDisciplineKeyDown}
+                                className="form-input w-full"
+                            />
+                            {showSuggestions && filteredDisciplinas.length > 0 && (
+                                <ul className="sugerencias-lista absolute z-10 w-full bg-white text-black border">
+                                    {filteredDisciplinas.map((disciplina, index) => (
+                                        <li
+                                            key={disciplina.id}
+                                            onClick={() => handleSeleccionarDisciplina(disciplina)}
+                                            onMouseEnter={() => setActiveSuggestionIndex(index)}
+                                            className={`p-2 cursor-pointer ${index === activeSuggestionIndex ? "bg-gray-200" : ""}`}
+                                        >
+                                            {disciplina.nombre}
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
+                        <Button onClick={limpiarDisciplina} variant="outline" size="sm" className="mt-2">
+                            Limpiar
+                        </Button>
                     </div>
 
-                    {/* DatePicker para la fecha */}
                     <div className="mb-4">
                         <label htmlFor="datePicker" className="block text-sm font-medium text-gray-700">
                             Selecciona la fecha:
@@ -234,7 +367,6 @@ const AsistenciaDiariaForm: React.FC = () => {
                         />
                     </div>
 
-                    {/* Boton para buscar asistencia */}
                     <div className="mb-4">
                         <Button
                             onClick={() => {
@@ -242,41 +374,50 @@ const AsistenciaDiariaForm: React.FC = () => {
                                     toast.warn("Complete los filtros");
                                     return;
                                 }
-                                cargarAsistencias(selectedDate);
+                                handleBuscarAsistencia();
                             }}
                         >
                             Buscar asistencia
                         </Button>
                     </div>
 
-                    {/* Mostrar mensaje de error si no hay clases */}
-                    {!loading && selectedDate && asistencias.length === 0 && (
-                        <div className="text-center text-red-500 mb-4">No hay clases este dia</div>
+                    {!loading && selectedDate && !isValidClassDay && (
+                        <div className="text-center text-red-500 mb-4">No hay clases este día</div>
                     )}
 
                     {loading && <div className="text-center py-4">Cargando asistencia...</div>}
                     {error && <div className="text-center py-4 text-red-500">{error}</div>}
 
-                    {asistencias.length > 0 && (
+                    {monthlyDetail && (
                         <Table key={selectedDate.toISOString()}>
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Alumno</TableHead>
-                                    <TableHead>Accion</TableHead>
-                                    <TableHead>Observacion</TableHead>
+                                    <TableHead className="text-center">
+                                        {selectedDate ? formatHeaderDate(selectedDate) : "Acción"}
+                                    </TableHead>
+                                    <TableHead>Observación</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {asistencias.map(record => (
-                                    <TableRow key={record.id}>
+                                {dailyRecords.map((record) => (
+                                    <TableRow key={record.alumnoId}>
                                         <TableCell>{`${record.alumnoApellido}, ${record.alumnoNombre}`}</TableCell>
                                         <TableCell className="text-center">
                                             <Button
                                                 size="sm"
-                                                variant={record.estado === EstadoAsistencia.PRESENTE ? "default" : "outline"}
-                                                onClick={() => toggleAsistencia(record.alumnoId)}
+                                                variant={
+                                                    record.asistenciaDiaria &&
+                                                        record.asistenciaDiaria.estado === EstadoAsistencia.PRESENTE
+                                                        ? "default"
+                                                        : "outline"
+                                                }
+                                                onClick={() =>
+                                                    toggleAsistencia(record.alumnoId, record.asistenciaDiaria)
+                                                }
                                             >
-                                                {record.estado === EstadoAsistencia.PRESENTE ? (
+                                                {record.asistenciaDiaria &&
+                                                    record.asistenciaDiaria.estado === EstadoAsistencia.PRESENTE ? (
                                                     <Check className="h-4 w-4" />
                                                 ) : (
                                                     <X className="h-4 w-4" />
@@ -285,9 +426,11 @@ const AsistenciaDiariaForm: React.FC = () => {
                                         </TableCell>
                                         <TableCell>
                                             <Input
-                                                placeholder="Observaciones..."
-                                                value={observaciones[record.alumnoId] || ""}
+                                                value={
+                                                    monthlyDetail.alumnos.find(a => a.id === record.alumnoId)?.observacion || ""
+                                                }
                                                 onChange={(e) => handleObservacionChange(record.alumnoId, e.target.value)}
+                                                placeholder="Escribe observación..."
                                             />
                                         </TableCell>
                                     </TableRow>
@@ -295,6 +438,7 @@ const AsistenciaDiariaForm: React.FC = () => {
                             </TableBody>
                         </Table>
                     )}
+
                     <div className="mt-6 flex justify-end space-x-4">
                         <Button onClick={() => navigate("/asistencias-mensuales")}>Volver</Button>
                     </div>
@@ -304,4 +448,4 @@ const AsistenciaDiariaForm: React.FC = () => {
     );
 };
 
-export default AsistenciaDiariaForm;
+export default AsistenciaDiariaFormAdaptado;

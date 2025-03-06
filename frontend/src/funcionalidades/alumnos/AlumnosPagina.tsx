@@ -6,7 +6,7 @@ import Tabla from "../../componentes/comunes/Tabla"
 import alumnosApi from "../../api/alumnosApi"
 import Boton from "../../componentes/comunes/Boton"
 import { PlusCircle, Pencil, CreditCard, Trash2 } from "lucide-react"
-import Pagination from "../../componentes/ui/Pagination"
+import Pagination from "../../componentes/comunes/Pagination"
 import { toast } from "react-toastify"
 
 interface AlumnoListado {

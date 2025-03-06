@@ -8,7 +8,7 @@ import mensualidadesApi from "../../api/mensualidadesApi"
 import type { InscripcionResponse } from "../../types/types"
 import Boton from "../../componentes/comunes/Boton"
 import { Pencil } from "lucide-react"
-import Pagination from "../../componentes/ui/Pagination"
+import Pagination from "../../componentes/comunes/Pagination"
 import { toast } from "react-toastify"
 import asistenciasApi from "../../api/asistenciasApi"
 

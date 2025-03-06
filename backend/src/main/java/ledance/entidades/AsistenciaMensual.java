@@ -5,7 +5,6 @@ import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -25,15 +24,11 @@ public class AsistenciaMensual {
     @NotNull
     private Integer anio;
 
-    // Nueva relación: se asocia a la disciplina
     @ManyToOne
     @JoinColumn(name = "disciplina_id", nullable = false)
     private Disciplina disciplina;
 
-    // La lista de asistencias diarias se mantiene
+    // Nueva relación: cada planilla tendrá registros por alumno
     @OneToMany(mappedBy = "asistenciaMensual", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<AsistenciaDiaria> asistenciasDiarias = new ArrayList<>();
-
-    // Opcional: campo de observación
-    private String observacion;
+    private List<AsistenciaAlumnoMensual> asistenciasAlumnoMensual = new ArrayList<>();
 }

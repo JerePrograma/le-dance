@@ -14,12 +14,6 @@ const AsistenciasMensualesListado = lazy(() =>
 const AsistenciaMensualDetalle = lazy(() =>
   import("../funcionalidades/asistencias-mensuales/AsistenciaMensualDetalle")
 );
-const AsistenciasMensualesFormulario = lazy(() =>
-  import("../funcionalidades/asistencias-mensuales/AsistenciasMensualesFormulario")
-);
-const AsistenciasSeleccion = lazy(() =>
-  import("../funcionalidades/asistencias/AsistenciasSeleccion")
-);
 const AsistenciaDiariaFormulario = lazy(() =>
   import("../funcionalidades/asistencias-diarias/AsistenciaDiariaFormulario")
 );
@@ -169,8 +163,6 @@ const AppRouter = () => {
           <Route path="/bonificaciones/formulario" element={<FormularioBonificaciones />} />
           <Route path="/inscripciones" element={<Inscripciones />} />
           <Route path="/inscripciones/formulario" element={<FormularioInscripciones />} />
-          <Route path="/asistencias" element={<AsistenciasSeleccion />} />
-          <Route path="/asistencias-mensuales/formulario" element={<AsistenciasMensualesFormulario />} />
           <Route path="/asistencias/alumnos" element={<AsistenciaDiariaFormulario />} />
           <Route path="/asistencias-mensuales" element={<AsistenciaMensualDetalle />} />
           <Route path="/asistencias-diarias" element={<AsistenciasMensualesListado />} />

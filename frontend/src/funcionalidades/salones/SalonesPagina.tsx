@@ -1,11 +1,13 @@
-import { useEffect, useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
-import Tabla from "../../componentes/comunes/Tabla";
-import salonesApi from "../../api/salonesApi";
-import ReactPaginate from "react-paginate";
-import Boton from "../../componentes/comunes/Boton";
-import { PlusCircle, Pencil } from "lucide-react";
-import type { SalonResponse, Page } from "../../types/types";
+"use client"
+
+import { useEffect, useState, useCallback } from "react"
+import { useNavigate } from "react-router-dom"
+import Tabla from "../../componentes/comunes/Tabla"
+import salonesApi from "../../api/salonesApi"
+import Pagination from "../../componentes/comunes/Pagination" // Importamos el nuevo componente de paginación
+import Boton from "../../componentes/comunes/Boton"
+import { PlusCircle, Pencil } from "lucide-react"
+import type { SalonResponse, Page } from "../../types/types"
 
 const Salones = () => {
   const [salones, setSalones] = useState<Page<SalonResponse>>({
@@ -14,50 +16,45 @@ const Salones = () => {
     totalElements: 0,
     size: 10,
     number: 0,
-  });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const navigate = useNavigate();
+  })
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const navigate = useNavigate()
 
   const fetchSalones = useCallback(async (page = 0) => {
     try {
-      setLoading(true);
-      setError(null);
-      const response = await salonesApi.listarSalones(page);
-      setSalones(response);
+      setLoading(true)
+      setError(null)
+      const response = await salonesApi.listarSalones(page)
+      setSalones(response)
     } catch (error) {
-      console.error("Error al cargar salones:", error);
-      setError("Error al cargar salones.");
+      console.error("Error al cargar salones:", error)
+      setError("Error al cargar salones.")
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  }, []);
+  }, [])
 
   useEffect(() => {
-    fetchSalones();
-  }, [fetchSalones]);
+    fetchSalones()
+  }, [fetchSalones])
 
-  const handlePageClick = useCallback(
-    ({ selected }: { selected: number }) => {
-      fetchSalones(selected);
+  const handlePageChange = useCallback(
+    (newPage: number) => {
+      fetchSalones(newPage)
     },
-    [fetchSalones]
-  );
+    [fetchSalones],
+  )
 
-  if (loading) return <div className="text-center py-4">Cargando...</div>;
-  if (error)
-    return <div className="text-center py-4 text-destructive">{error}</div>;
+  if (loading) return <div className="text-center py-4">Cargando...</div>
+  if (error) return <div className="text-center py-4 text-destructive">{error}</div>
 
   return (
     <div className="page-container">
       <h1 className="page-title">Salones</h1>
 
       <div className="page-button-group flex justify-end mb-4">
-        <Boton
-          onClick={() => navigate("/salones/formulario")}
-          className="page-button"
-          aria-label="Ficha de Salones"
-        >
+        <Boton onClick={() => navigate("/salones/formulario")} className="page-button" aria-label="Ficha de Salones">
           <PlusCircle className="w-5 h-5 mr-2" />
           Ficha de Salones
         </Boton>
@@ -77,28 +74,21 @@ const Salones = () => {
               Editar
             </Boton>
           )}
-          extraRender={(fila) => [
-            fila.id,
-            fila.nombre,
-            fila.descripcion || "-",
-          ]}
+          extraRender={(fila) => [fila.id, fila.nombre, fila.descripcion || "-"]}
         />
       </div>
 
       {salones.totalPages > 1 && (
-        <ReactPaginate
-          previousLabel={"← Anterior"}
-          nextLabel={"Siguiente →"}
-          breakLabel={"..."}
-          pageCount={salones.totalPages}
-          onPageChange={handlePageClick}
-          containerClassName={"pagination"}
-          activeClassName={"active"}
-          disabledClassName={"disabled"}
+        <Pagination
+          currentPage={salones.number}
+          totalPages={salones.totalPages}
+          onPageChange={handlePageChange}
+          className="mt-4"
         />
       )}
     </div>
-  );
-};
+  )
+}
 
-export default Salones;
+export default Salones
+
