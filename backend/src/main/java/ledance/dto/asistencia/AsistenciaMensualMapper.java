@@ -12,6 +12,8 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 
+import java.util.List;
+
 @Mapper(componentModel = "spring", uses = {AsistenciaDiariaMapper.class})
 public interface AsistenciaMensualMapper {
 
@@ -43,22 +45,14 @@ public interface AsistenciaMensualMapper {
     @Mapping(target = "mes", ignore = true)
     @Mapping(target = "anio", ignore = true)
     @Mapping(target = "asistenciasAlumnoMensual", ignore = true)
-    void updateEntityFromRequest(AsistenciaMensualModificacionRequest request, @MappingTarget AsistenciaMensual asistenciaMensual);
+    void updateEntityFromRequest(AsistenciaMensualModificacionRequest request,
+                                 @MappingTarget AsistenciaMensual asistenciaMensual);
 
-    // Mapea cada registro de alumno a su respuesta detallada.
+    List<AsistenciaAlumnoMensualDetalleResponse> toAlumnoDetalleDTOList(List<AsistenciaAlumnoMensual> alumnos);
+
     @Mapping(target = "inscripcionId", source = "inscripcion.id")
     @Mapping(target = "observacion", source = "observacion")
+    @Mapping(target = "asistenciaMensualId", source = "asistenciaMensual.id")
     @Mapping(target = "asistenciasDiarias", source = "asistenciasDiarias")
     AsistenciaAlumnoMensualDetalleResponse toAlumnoDetalleDTO(AsistenciaAlumnoMensual alumno);
-
-    // Método para mapear la entidad Disciplina a un objeto DisciplinaResponse anidado.
-    default DisciplinaResponse toDisciplinaResponse(ledance.entidades.Disciplina disciplina) {
-        if (disciplina == null) {
-            return null;
-        }
-        return new DisciplinaResponse(
-                disciplina.getId(),
-                disciplina.getNombre()
-        );
-    }
 }

@@ -78,7 +78,7 @@ export interface AlumnoModificacionRequest {
   disciplinas: InscripcionDisciplinaRequest[];
 }
 
-export interface AlumnoResponse {
+export interface AlumnoDetalleResponse {
   id: number;
   nombre: string;
   apellido: string;
@@ -104,30 +104,6 @@ export interface AlumnoListadoResponse {
   nombre: string;
   apellido: string;
   activo?: boolean;
-}
-
-export interface AlumnoDetalleResponse {
-  activo: boolean;
-  id: number;
-  nombre: string;
-  apellido: string;
-  fechaNacimiento: string;
-  edad: number;
-  celular1?: string;
-  celular2?: string;
-  telefono?: string;
-  email1?: string;
-  email2?: string;
-  documento?: string;
-  cuit?: string;
-  fechaIncorporacion: string;
-  fechaDeBaja?: string;
-  deudaPendiente: boolean;
-  nombrePadres?: string;
-  autorizadoParaSalirSolo: boolean;
-  otrasNotas?: string;
-  cuotaTotal?: number;
-  inscripciones: InscripcionResponse[];
 }
 
 export interface Alumno {
