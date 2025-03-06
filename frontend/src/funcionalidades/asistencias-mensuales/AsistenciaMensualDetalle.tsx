@@ -28,40 +28,33 @@ import asistenciasApi from "../../api/asistenciasApi";
 import {
   AsistenciaMensualDetalleResponse,
   EstadoAsistencia,
+  AsistenciaAlumnoMensualDetalleResponse,
+  DisciplinaListadoResponse,
 } from "../../types/types";
-import type { DisciplinaListadoResponse } from "../../types/types";
 import useDebounce from "../../hooks/useDebounce";
 
-// Helper: devuelve el nombre del alumno o un valor por defecto si no se encuentra
-const getAlumnoNombre = (alumnoRecord: any): string => {
-  // Si el objeto tiene la propiedad "alumno" y dentro de ella "nombre", se usa esa info
-  if (alumnoRecord.alumno && alumnoRecord.alumno.nombre && alumnoRecord.alumno.nombre.trim() !== "") {
-    return alumnoRecord.alumno.nombre;
+// Helper: Obtiene el nombre y apellido del alumno.
+// Si la propiedad "alumno" es null, se extrae desde el primer registro de "asistenciasDiarias".
+const getAlumnoDisplayName = (
+  alumnoRecord: AsistenciaAlumnoMensualDetalleResponse
+): string => {
+  if (
+    alumnoRecord.alumno &&
+    alumnoRecord.alumno.nombre &&
+    alumnoRecord.alumno.apellido
+  ) {
+    return `${alumnoRecord.alumno.apellido}, ${alumnoRecord.alumno.nombre}`;
   }
-  // Si hay registros de asistencias y en el primero se encuentra el objeto alumno
-  if (alumnoRecord.asistenciasDiarias &&
+  if (
+    alumnoRecord.asistenciasDiarias &&
     alumnoRecord.asistenciasDiarias.length > 0 &&
     alumnoRecord.asistenciasDiarias[0].alumno &&
     alumnoRecord.asistenciasDiarias[0].alumno.nombre &&
-    alumnoRecord.asistenciasDiarias[0].alumno.nombre.trim() !== "") {
-    return alumnoRecord.asistenciasDiarias[0].alumno.nombre;
+    alumnoRecord.asistenciasDiarias[0].alumno.apellido
+  ) {
+    return `${alumnoRecord.asistenciasDiarias[0].alumno.apellido}, ${alumnoRecord.asistenciasDiarias[0].alumno.nombre}`;
   }
-  return "Sin nombre";
-};
-
-// Helper: devuelve el apellido del alumno o un valor por defecto
-const getAlumnoApellido = (alumnoRecord: any): string => {
-  if (alumnoRecord.alumno && alumnoRecord.alumno.apellido && alumnoRecord.alumno.apellido.trim() !== "") {
-    return alumnoRecord.alumno.apellido;
-  }
-  if (alumnoRecord.asistenciasDiarias &&
-    alumnoRecord.asistenciasDiarias.length > 0 &&
-    alumnoRecord.asistenciasDiarias[0].alumno &&
-    alumnoRecord.asistenciasDiarias[0].alumno.apellido &&
-    alumnoRecord.asistenciasDiarias[0].alumno.apellido.trim() !== "") {
-    return alumnoRecord.asistenciasDiarias[0].alumno.apellido;
-  }
-  return "Sin apellido";
+  return "Sin alumno";
 };
 
 const AsistenciaMensualDetalle: React.FC = () => {
@@ -416,7 +409,7 @@ const AsistenciaMensualDetalle: React.FC = () => {
                 {asistenciaMensual.alumnos.map((alumno) => (
                   <TableRow key={alumno.id}>
                     <TableCell>
-                      {`${getAlumnoApellido(alumno)}, ${getAlumnoNombre(alumno)}`}
+                      {getAlumnoDisplayName(alumno)}
                     </TableCell>
                     {diasRegistrados.map((fecha) => {
                       const registro = alumno.asistenciasDiarias.find((ad) => ad.fecha === fecha);
