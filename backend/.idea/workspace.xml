@@ -6,17 +6,6 @@
   <component name="ChangeListManager">
     <list default="true" id="ccb8f120-972c-4a18-b18b-4ae7da723dfa" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/ReporteMensualidadControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/ReporteMensualidadControlador.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/reporte/ReporteMensualidadDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/reporte/ReporteMensualidadDTO.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/entidades/Mensualidad.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/entidades/Mensualidad.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/mensualidad/MensualidadServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/mensualidad/MensualidadServicio.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/componentes/Layout.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/componentes/layout/MainLayout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/componentes/layout/MainLayout.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/diseño/global.css" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/diseño/global.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/pagos/PagosFormulario.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/pagos/PagosFormulario.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/hooks/context/AutoAddDetalles.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/hooks/context/AutoAddDetalles.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/paginas/Dashboard.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/paginas/Dashboard.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/types/types.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/types/types.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -296,6 +285,7 @@
       <workItem from="1741287019477" duration="13813000" />
       <workItem from="1741307743398" duration="2862000" />
       <workItem from="1741339278621" duration="6172000" />
+      <workItem from="1741384938441" duration="1536000" />
     </task>
     <servers />
   </component>
