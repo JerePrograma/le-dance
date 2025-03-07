@@ -8,6 +8,7 @@ import Pagination from "../../componentes/comunes/Pagination" // Importamos el n
 import Boton from "../../componentes/comunes/Boton"
 import { PlusCircle, Pencil } from "lucide-react"
 import type { SalonResponse, Page } from "../../types/types"
+import { toast } from "react-toastify"
 
 const Salones = () => {
   const [salones, setSalones] = useState<Page<SalonResponse>>({
@@ -28,7 +29,7 @@ const Salones = () => {
       const response = await salonesApi.listarSalones(page)
       setSalones(response)
     } catch (error) {
-      toast.error("Error al cargar salones:", error)
+      toast.error("Error al cargar salones:")
       setError("Error al cargar salones.")
     } finally {
       setLoading(false)
