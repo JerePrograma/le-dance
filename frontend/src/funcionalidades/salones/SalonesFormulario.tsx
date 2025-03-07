@@ -56,7 +56,7 @@ const SalonesFormulario: React.FC = () => {
       setSalonId(salon.id);
       setMensaje("Salon encontrado.");
     } catch (error) {
-      console.error("Error al buscar el salon:", error);
+      toast.error("Error al buscar el salon:");
       setMensaje("Salon no encontrado.");
       resetearFormulario();
     }
@@ -99,7 +99,6 @@ const SalonesFormulario: React.FC = () => {
         }
         setMensaje("Salon guardado exitosamente.");
       } catch (error) {
-        console.error("Error al guardar el salon:", error);
         toast.error("Error al guardar el salon.");
         setMensaje("Error al guardar el salon.");
       }

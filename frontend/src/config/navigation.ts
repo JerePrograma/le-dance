@@ -41,6 +41,31 @@ export interface NavigationItem {
 
 export const navigationItems: NavigationItem[] = [
   // CATEGORIA "Administracion"
+  // Items sueltos
+  {
+    id: "alumnos",
+    icon: User,
+    label: "Alumnos",
+    href: "/alumnos/formulario",
+  },
+  {
+    id: "asistencias-alumnos",
+    label: "Asist. Alumnos",
+    href: "/asistencias/alumnos",
+    icon: AttendanceIcon,
+  },
+  {
+    id: "cobranza",
+    label: "Cobranza",
+    href: "/pagos/formulario",
+    icon: DollarSign,
+  },
+  {
+    id: "caja-del-dia",
+    label: "Caja del Día",
+    href: "/caja/diaria",
+    icon: Wallet,
+  },
   {
     id: "administracion",
     label: "Administracion",
@@ -188,42 +213,42 @@ export const navigationItems: NavigationItem[] = [
       },
     ],
   },
-
-  // Items sueltos
   {
-    id: "inscripciones",
-    icon: ClipboardList,
-    label: "Inscripciones",
-    href: "/inscripciones",
-    description: "Gestión de Inscripciones",
-  },
-  {
-    id: "reportes",
-    icon: BarChart3,
-    label: "Reportes",
-    href: "/reportes",
-    description: "Informes y estadísticas",
-  },
-  {
-    id: "usuarios",
-    icon: UserCog,
-    label: "Usuarios",
-    href: "/usuarios",
-    description: "Administración de usuarios",
-    requiredRole: "ADMINISTRADOR", // Solo se muestra a administradores
-  },
-  {
-    id: "roles",
-    icon: Shield,
-    label: "Roles",
-    href: "/roles",
-    description: "Gestión de permisos y roles",
-    requiredRole: "ADMINISTRADOR",
-  },
-  {
-    id: "alumnos",
-    icon: User,
-    label: "Alumnos",
-    href: "/alumnos/formulario",
+    id: "gestion",
+    label: "Gestión",
+    icon: CalendarCheck,
+    description: "Gestión general",
+    items: [
+      {
+        id: "reportes",
+        icon: BarChart3,
+        label: "Reportes",
+        href: "/reportes",
+        description: "Informes y estadísticas",
+      },
+      {
+        id: "usuarios",
+        icon: UserCog,
+        label: "Usuarios",
+        href: "/usuarios",
+        description: "Administración de usuarios",
+        requiredRole: "ADMINISTRADOR", // Solo se muestra a administradores
+      },
+      {
+        id: "roles",
+        icon: Shield,
+        label: "Roles",
+        href: "/roles",
+        description: "Gestión de permisos y roles",
+        requiredRole: "ADMINISTRADOR",
+      },
+      {
+        id: "Alumnos activos",
+        icon: ClipboardList,
+        label: "Inscripciones",
+        href: "/inscripciones",
+        description: "Gestión de Inscripciones",
+      },
+    ],
   },
 ];

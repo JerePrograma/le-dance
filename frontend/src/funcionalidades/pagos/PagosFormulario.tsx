@@ -1,4 +1,3 @@
-// CobranzasForm.tsx
 import React, { useState, useCallback, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import {
@@ -15,6 +14,7 @@ import * as Yup from "yup";
 import { toast } from "react-toastify";
 import pagosApi from "../../api/pagosApi";
 import matriculasApi from "../../api/matriculasApi";
+import disciplinasApi from "../../api/disciplinasApi";
 import { useCobranzasData } from "../../hooks/useCobranzasData";
 import { useAlumnoDeudas } from "../../hooks/useAlumnoDeudas";
 import { useUltimoPago } from "../../hooks/useUltimoPago";
@@ -28,14 +28,21 @@ import type {
     CobranzasFormValues,
     MetodoPagoResponse,
     ReporteMensualidadDTO,
+    DisciplinaDetalleResponse,
 } from "../../types/types";
 import { AutoAddDetalles } from "../../hooks/context/AutoAddDetalles";
+import ResponsiveContainer from "../../componentes/comunes/ResponsiveContainer";
 
-// Función para obtener el periodo vigente (mes y año) en formato "NombreMes Año"
+// Función para obtener el periodo vigente (mes y año) en formato "NOMBREMES AÑO"
 const getMesVigente = () =>
-    new Date().toLocaleString("default", { month: "long", year: "numeric" });
+    new Date()
+        .toLocaleString("default", {
+            month: "long",
+            year: "numeric",
+            timeZone: "America/Argentina/Buenos_Aires",
+        })
+        .toUpperCase();
 
-// Valores iniciales del formulario
 const defaultValues: CobranzasFormValues = {
     id: 0,
     reciboNro: "AUTO-001",
@@ -49,6 +56,7 @@ const defaultValues: CobranzasFormValues = {
     stockSeleccionado: "",
     cantidad: 1,
     totalCobrado: 0,
+    totalACobrar: 0,
     metodoPagoId: "",
     observaciones: "",
     matriculaRemoved: false,
@@ -56,7 +64,6 @@ const defaultValues: CobranzasFormValues = {
     periodoMensual: getMesVigente(),
 };
 
-// Esquema de validación
 const validationSchema = Yup.object().shape({
     alumno: Yup.string().required("El alumno es obligatorio"),
     fecha: Yup.string().required("La fecha es obligatoria"),
@@ -67,38 +74,90 @@ const FormValuesUpdater: React.FC<{ newValues: Partial<CobranzasFormValues> }> =
     newValues,
 }) => {
     const { values, setValues } = useFormikContext<CobranzasFormValues>();
-
     useEffect(() => {
-        // Actualiza solo las propiedades que han cambiado
         setValues({ ...values, ...newValues });
     }, [newValues, setValues]);
+    return null;
+};
+
+// Función para calcular el importe cuando existe bonificación
+const actualizarDetalleImporte = (detalle: any) => {
+    if (
+        detalle.bonificacion &&
+        detalle.bonificacion.porcentajeDescuento != null &&
+        detalle.bonificacion.valorFijo != null
+    ) {
+        // Calculamos el descuento: (valorBase * porcentajeDescuento / 100) + valorFijo
+        const discount =
+            (Number(detalle.valorBase) * Number(detalle.bonificacion.porcentajeDescuento)) /
+            100 +
+            Number(detalle.bonificacion.valorFijo);
+        const newValue = Number(detalle.valorBase) - discount;
+        return {
+            ...detalle,
+            importe: newValue,
+            aCobrar: newValue,
+            montoBonificacion: discount // Agregamos el monto del descuento
+        };
+    }
+    return detalle;
+};
+
+interface TotalsUpdaterProps {
+    metodosPago: MetodoPagoResponse[];
+}
+
+const TotalsUpdater: React.FC<TotalsUpdaterProps> = ({ metodosPago }) => {
+    const { values, setFieldValue } = useFormikContext<CobranzasFormValues>();
+
+    useEffect(() => {
+        const baseTotal = values.detallePagos.reduce(
+            (total, item) => total + Number(item.importe || 0),
+            0
+        );
+
+        let recargoValue = 0;
+        if (values.metodoPagoId) {
+            const selectedMetodo = metodosPago.find(
+                (mp: MetodoPagoResponse) => mp.id.toString() === values.metodoPagoId
+            );
+            if (selectedMetodo && selectedMetodo.descripcion.toUpperCase() === "DEBITO") {
+                recargoValue = Number(selectedMetodo.recargo) || 0;
+            }
+        }
+        const newTotalACobrar = baseTotal + recargoValue;
+        const newTotalCobrado = values.detallePagos.reduce(
+            (total, item) => total + Number(item.aCobrar || 0),
+            0
+        );
+        setFieldValue("totalACobrar", newTotalACobrar);
+        setFieldValue("totalCobrado", newTotalCobrado);
+    }, [values.detallePagos, values.metodoPagoId, metodosPago, setFieldValue]);
 
     return null;
 };
 
 const CobranzasForm: React.FC = () => {
-    const [initialValues, setInitialValues] =
-        useState<CobranzasFormValues>(defaultValues);
+    const [initialValues, setInitialValues] = useState<CobranzasFormValues>(defaultValues);
     const [matricula, setMatricula] = useState<MatriculaResponse | null>(null);
     const [mensualidades, setMensualidades] = useState<ReporteMensualidadDTO[]>([]);
+    const [inscripciones, setInscripciones] = useState<any[]>([]);
+    const [allDisciplinas, setAllDisciplinas] = useState<DisciplinaDetalleResponse[]>([]);
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const { alumnos, stocks, metodosPago, conceptos } = useCobranzasData();
     const { loadDeudasForAlumno } = useAlumnoDeudas();
     const [selectedAlumnoId, setSelectedAlumnoId] = useState<number | null>(null);
     const ultimoPago = useUltimoPago(selectedAlumnoId);
-    const [inscripciones] = useState<any[]>([]);
     const { loadMensualidadesAlumno } = useCargaMensualidades(alumnos);
 
     const loadMatricula = async (alumnoId: number) => {
-        console.log("Cargando matrícula para alumno", alumnoId);
         const response = await matriculasApi.obtenerMatricula(alumnoId);
-        console.log("Matrícula recibida:", response);
         setMatricula(response);
         return response;
     };
 
-    // Actualizamos la firma para que coincida con la de Formik
+    // Cargar inscripciones del alumno
     const loadInscripciones = async (
         alumnoId: number,
         setFieldValue: (
@@ -107,19 +166,23 @@ const CobranzasForm: React.FC = () => {
             shouldValidate?: boolean
         ) => Promise<void | FormikErrors<CobranzasFormValues>>
     ) => {
-        console.log("Cargando inscripciones para alumno", alumnoId);
         const inscripcionesApi = await import("../../api/inscripcionesApi");
-        const inscripcionesActivas =
-            await inscripcionesApi.default.obtenerInscripcionesActivas(alumnoId);
-        console.log("Inscripciones activas:", inscripcionesActivas);
+        let inscripcionesActivas: any[] = [];
+        try {
+            inscripcionesActivas = await inscripcionesApi.default.obtenerInscripcionesActivas(alumnoId);
+        } catch (error) {
+            toast.error("Error al cargar inscripciones:");
+            inscripcionesActivas = [];
+        }
+        setInscripciones(inscripcionesActivas);
         await setFieldValue(
             "inscripcionId",
-            inscripcionesActivas.length > 0 ? inscripcionesActivas[0].id : ""
+            inscripcionesActivas && inscripcionesActivas.length > 0 ? inscripcionesActivas[0].id : ""
         );
         return inscripcionesActivas;
     };
 
-    // Actualizamos la firma de handleAlumnoChange igualmente
+    // Manejo del cambio de alumno
     const handleAlumnoChange = useCallback(
         async (
             alumnoId: string,
@@ -130,30 +193,46 @@ const CobranzasForm: React.FC = () => {
                 shouldValidate?: boolean
             ) => Promise<void | FormikErrors<CobranzasFormValues>>
         ) => {
-            console.log("Alumno cambiado:", alumnoId);
             const numAlumnoId = Number(alumnoId);
+            setInscripciones([]);
+            setAllDisciplinas([]);
             await setFieldValue("alumno", alumnoId);
             setSelectedAlumnoId(numAlumnoId);
             await setFieldValue("matriculaRemoved", false);
-
             try {
-                await loadInscripciones(numAlumnoId, setFieldValue);
+                const inscripcionesActivas = await loadInscripciones(numAlumnoId, setFieldValue);
+                if (inscripcionesActivas.length === 0) {
+                    const disciplinas = await disciplinasApi.listarDisciplinas();
+                    setAllDisciplinas(disciplinas);
+                }
                 await loadMatricula(numAlumnoId);
                 const mensualidadesRaw = await loadMensualidadesAlumno(numAlumnoId);
-                console.log("Mensualidades recibidas:", mensualidadesRaw);
                 setMensualidades(mensualidadesRaw);
                 loadDeudasForAlumno(numAlumnoId, setFieldValue);
             } catch (err) {
-                console.error("Error al cargar datos del alumno:", err);
+                toast.error("Error al cargar datos del alumno:");
             }
         },
         [loadDeudasForAlumno, loadMensualidadesAlumno]
     );
 
-    // Actualiza los valores del formulario cuando se obtiene el último pago (solo en creación)
+    const generatePeriodos = (numMeses = 12) => {
+        const periodos = [];
+        const currentDate = new Date(
+            new Date().toLocaleString("en-US", { timeZone: "America/Argentina/Buenos_Aires" })
+        );
+        for (let i = 0; i < numMeses; i++) {
+            const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - 2 + i, 1);
+            const periodo = date
+                .toLocaleString("default", { month: "long", year: "numeric" })
+                .toUpperCase();
+            periodos.push(periodo);
+        }
+        return periodos;
+    };
+
     useEffect(() => {
         if (!searchParams.get("id") && selectedAlumnoId && ultimoPago) {
-            console.log("Estableciendo valores iniciales a partir del último pago:", ultimoPago);
             setInitialValues((prev) => ({
                 ...prev,
                 id: ultimoPago.id,
@@ -167,17 +246,22 @@ const CobranzasForm: React.FC = () => {
                     concepto: detalle.concepto,
                     cuota: detalle.cuota,
                     valorBase: detalle.valorBase,
-                    bonificacionId: detalle.bonificacion ? detalle.bonificacion.toString() : "",
+                    bonificacionId: detalle.bonificacion ? detalle.bonificacion.id.toString() : "",
+                    bonificacion: detalle.bonificacion,
                     recargoId: detalle.recargo ? detalle.recargo.toString() : "",
                     aFavor: detalle.aFavor || 0,
                     importe: detalle.importe,
                     aCobrar: detalle.aCobrar != null ? detalle.aCobrar : detalle.importe,
                     abono: 0,
-                    autoGenerated: false,
+                    autoGenerated: true, // Marcamos como auto generado para permitir el recalculo
                 })),
                 totalCobrado: ultimoPago.detallePagos.reduce(
                     (sum: number, detalle: any) =>
                         sum + (Number(detalle.aCobrar) || Number(detalle.importe) || 0),
+                    0
+                ),
+                totalACobrar: ultimoPago.detallePagos.reduce(
+                    (sum: number, detalle: any) => sum + (Number(detalle.importe) || 0),
                     0
                 ),
                 metodoPagoId: ultimoPago.metodoPago ? ultimoPago.metodoPago.toString() : "",
@@ -194,15 +278,12 @@ const CobranzasForm: React.FC = () => {
         }
     }, [selectedAlumnoId, ultimoPago, searchParams]);
 
-    // Actualiza los valores para edición si existe el parámetro "id"
     useEffect(() => {
         const idParam = searchParams.get("id");
         if (idParam) {
-            console.log("Cargando pago para edición con id", idParam);
             pagosApi
                 .obtenerPagoPorId(Number(idParam))
                 .then((pagoData) => {
-                    console.log("Pago recibido para edición:", pagoData);
                     setInitialValues((prev) => ({
                         ...prev,
                         id: pagoData.id,
@@ -216,17 +297,22 @@ const CobranzasForm: React.FC = () => {
                             concepto: detalle.concepto,
                             cuota: detalle.cuota,
                             valorBase: detalle.valorBase,
-                            bonificacionId: detalle.bonificacion ? detalle.bonificacion.toString() : "",
+                            bonificacionId: detalle.bonificacion ? detalle.bonificacion.id.toString() : "",
+                            bonificacion: detalle.bonificacion,
                             recargoId: detalle.recargo ? detalle.recargo.toString() : "",
                             aFavor: detalle.aFavor || 0,
                             importe: detalle.importe,
                             aCobrar: detalle.aCobrar,
                             abono: 0,
-                            autoGenerated: false,
+                            autoGenerated: true,
                         })),
                         totalCobrado: pagoData.detallePagos.reduce(
                             (sum: number, detalle: any) =>
                                 sum + (Number(detalle.aCobrar) || Number(detalle.importe) || 0),
+                            0
+                        ),
+                        totalACobrar: pagoData.detallePagos.reduce(
+                            (sum: number, detalle: any) => sum + (Number(detalle.importe) || 0),
                             0
                         ),
                         metodoPagoId: pagoData.metodoPago ? pagoData.metodoPago.toString() : "",
@@ -242,38 +328,27 @@ const CobranzasForm: React.FC = () => {
                     }));
                 })
                 .catch((err) => {
-                    console.error("Error al cargar el pago para edición:", err);
-                    toast.error("Error al cargar los datos del pago.");
+                    toast.error("Error al cargar los datos del pago.", err);
                 });
         }
     }, [searchParams]);
-
-    // Función para calcular el total a pagar (utilizando "aCobrar")
-    const calculateTotalAPagar = (
-        detallePagos: CobranzasFormValues["detallePagos"]
-    ) =>
-        detallePagos.reduce(
-            (total, item) => total + Number(item.aCobrar || 0),
-            0
-        );
-
-    const actualizarDetalleImporte = (detalle: any) => ({ ...detalle });
 
     const onSubmit = async (
         values: CobranzasFormValues,
         actions: FormikHelpers<CobranzasFormValues>
     ) => {
         try {
+            // Aplicamos el cálculo en cada detalle antes de enviar
             const detallePagosActualizados = values.detallePagos.map(actualizarDetalleImporte);
             const detallesFiltrados = detallePagosActualizados.filter(
                 (detalle) => Number(detalle.importe) !== 0
             );
-            // Extraer el método de pago seleccionado para obtener el recargo
             const selectedMetodo = metodosPago.find(
                 (mp: MetodoPagoResponse) => mp.id.toString() === values.metodoPagoId
             );
             const isDebit =
-                selectedMetodo && selectedMetodo.descripcion.toUpperCase() === "DEBITO";
+                selectedMetodo &&
+                selectedMetodo.descripcion.toUpperCase() === "DEBITO";
             const baseTotal = detallesFiltrados.reduce(
                 (total, item) => total + Number(item.importe || 0),
                 0
@@ -324,13 +399,12 @@ const CobranzasForm: React.FC = () => {
             actions.resetForm();
             navigate("/pagos");
         } catch (error) {
-            console.error("Error al registrar/actualizar la cobranza:", error);
             toast.error("Error al registrar/actualizar la cobranza");
         }
     };
 
     return (
-        <div className="page-container p-4">
+        <ResponsiveContainer className="py-4">
             <h1 className="page-title text-2xl font-bold mb-4">Gestión de Cobranzas</h1>
             {ultimoPago && (
                 <div className="mb-4 p-2 border">
@@ -346,21 +420,32 @@ const CobranzasForm: React.FC = () => {
                 onSubmit={onSubmit}
             >
                 {({ values, setFieldValue }) => {
-                    // Dentro del render de Formik se calcula el total a pagar basado en "aCobrar"
-                    const baseTotal = calculateTotalAPagar(values.detallePagos);
-                    // Se busca el método de pago seleccionado (según values.metodoPagoId)
-                    const selectedMetodo = metodosPago.find(
-                        (mp: MetodoPagoResponse) => mp.id.toString() === values.metodoPagoId
-                    );
-                    const isDebit =
-                        selectedMetodo && selectedMetodo.descripcion.toUpperCase() === "DEBITO";
-                    const recargoValue = isDebit ? Number(selectedMetodo?.recargo) : 0;
-                    const montoTotal = baseTotal + recargoValue;
+                    // Efecto para recalcular "importe" y "aCobrar" en cada detalle que esté marcado como autoGenerated
+                    useEffect(() => {
+                        values.detallePagos.forEach((detalle, index) => {
+                            const det = detalle as any;
+                            if (
+                                det.bonificacion &&
+                                det.bonificacion.porcentajeDescuento != null &&
+                                det.bonificacion.valorFijo != null &&
+                                det.autoGenerated // Solo recalcule si no fue modificado manualmente
+                            ) {
+                                const discount =
+                                    (Number(det.valorBase) * Number(det.bonificacion.porcentajeDescuento)) / 100 +
+                                    Number(det.bonificacion.valorFijo);
+                                const newValue = Number(det.valorBase) - discount;
+                                if (newValue !== det.importe) {
+                                    setFieldValue(`detallePagos.${index}.importe`, newValue);
+                                    setFieldValue(`detallePagos.${index}.aCobrar`, newValue);
+                                }
+                            }
+                        });
+                    }, [values.detallePagos, setFieldValue]);
 
                     return (
-                        <Form className="max-w-5xl mx-auto">
-                            {/* Actualización de valores sin reinicializar el formulario */}
+                        <Form className="w-full">
                             <FormValuesUpdater newValues={initialValues} />
+                            <TotalsUpdater metodosPago={metodosPago} />
                             <AutoAddDetalles
                                 matricula={matricula}
                                 mensualidades={mensualidades}
@@ -369,7 +454,7 @@ const CobranzasForm: React.FC = () => {
                             {/* Datos de Cobranza */}
                             <div className="border p-4 mb-4">
                                 <h2 className="font-bold mb-2">Datos de Cobranza</h2>
-                                <div className="grid grid-cols-3 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                     <div>
                                         <label className="block font-medium">Recibo Nro:</label>
                                         <Field name="reciboNro" readOnly className="border p-2 w-full" />
@@ -398,11 +483,11 @@ const CobranzasForm: React.FC = () => {
                                     </div>
                                 </div>
                             </div>
-                            {/* Sección de Disciplina y Conceptos */}
+                            {/* Datos de Disciplina y Conceptos */}
                             <div className="border p-4 mb-4">
                                 <h2 className="font-bold mb-2">Datos de Disciplina y Conceptos</h2>
-                                <div className="grid grid-cols-4 gap-4 items-end">
-                                    <div className="col-span-2">
+                                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">
+                                    <div className="sm:col-span-2">
                                         <label className="block font-medium">Disciplina:</label>
                                         <Field
                                             as="select"
@@ -414,11 +499,17 @@ const CobranzasForm: React.FC = () => {
                                             }}
                                         >
                                             <option value="">Seleccione una disciplina</option>
-                                            {inscripciones.map((insc) => (
-                                                <option key={insc.id} value={insc.disciplina.id}>
-                                                    {insc.disciplina.nombre}
-                                                </option>
-                                            ))}
+                                            {inscripciones.length > 0
+                                                ? inscripciones.map((insc) => (
+                                                    <option key={insc.id} value={insc.disciplina.id}>
+                                                        {insc.disciplina.nombre}
+                                                    </option>
+                                                ))
+                                                : allDisciplinas.map((disc: DisciplinaDetalleResponse) => (
+                                                    <option key={disc.id} value={disc.id}>
+                                                        {disc.nombre}
+                                                    </option>
+                                                ))}
                                         </Field>
                                     </div>
                                     <div>
@@ -433,21 +524,17 @@ const CobranzasForm: React.FC = () => {
                                     {values.tarifa === "CUOTA" && (
                                         <div>
                                             <label className="block font-medium">Periodo Mensual:</label>
-                                            <Field
-                                                as="select"
-                                                name="periodoMensual"
-                                                className="border p-2 w-full"
-                                            >
+                                            <Field as="select" name="periodoMensual" className="border p-2 w-full">
                                                 <option value="">Seleccione el mes/periodo</option>
-                                                <option value="Enero 2025">Enero 2025</option>
-                                                <option value="Febrero 2025">Febrero 2025</option>
-                                                <option value="Marzo 2025">Marzo 2025</option>
-                                                <option value="Abril 2025">Abril 2025</option>
-                                                <option value="Mayo 2025">Mayo 2025</option>
+                                                {generatePeriodos(12).map((periodo, index) => (
+                                                    <option key={index} value={periodo}>
+                                                        {periodo}
+                                                    </option>
+                                                ))}
                                             </Field>
                                         </div>
                                     )}
-                                    <div className="col-span-2">
+                                    <div className="sm:col-span-2">
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
                                                 <label className="block font-medium">Concepto:</label>
@@ -493,38 +580,46 @@ const CobranzasForm: React.FC = () => {
                                 </div>
                             </div>
                             {/* Botón para agregar detalle manual */}
-                            <div className="col-span-4 mb-4">
+                            <div className="mb-4">
                                 <button
                                     type="button"
                                     className="bg-green-500 text-white p-2 rounded mt-4"
                                     onClick={() => {
-                                        console.log("Agregando detalle manual...");
                                         const newDetails = [...values.detallePagos];
-                                        // Agregar detalle manual por concepto seleccionado
+                                        let added = false;
+
+                                        const isDuplicate = (concept: string) =>
+                                            newDetails.some((detalle) => detalle.concepto === concept);
+
                                         if (values.conceptoSeleccionado) {
                                             const selectedConcept = conceptos.find(
                                                 (c: ConceptoResponse) =>
                                                     c.id.toString() === values.conceptoSeleccionado
                                             );
                                             if (selectedConcept) {
-                                                newDetails.push({
-                                                    id: null,
-                                                    codigoConcepto: Number(selectedConcept.id),
-                                                    concepto: selectedConcept.descripcion,
-                                                    cuota: "1",
-                                                    valorBase: selectedConcept.precio,
-                                                    bonificacionId: "",
-                                                    recargoId: "",
-                                                    aFavor: 0,
-                                                    importe: selectedConcept.precio,
-                                                    aCobrar: selectedConcept.precio,
-                                                    abono: 0,
-                                                    autoGenerated: false,
-                                                });
-                                                console.log("Detalle manual agregado:", newDetails[newDetails.length - 1]);
+                                                if (isDuplicate(selectedConcept.descripcion)) {
+                                                    toast.error("Concepto ya se encuentra agregado");
+                                                } else {
+                                                    newDetails.push({
+                                                        id: null,
+                                                        codigoConcepto: Number(selectedConcept.id),
+                                                        concepto: selectedConcept.descripcion,
+                                                        cuota: "1",
+                                                        valorBase: selectedConcept.precio,
+                                                        bonificacionId: "",
+                                                        bonificacion: null,
+                                                        recargoId: "",
+                                                        aFavor: 0,
+                                                        importe: selectedConcept.precio,
+                                                        aCobrar: selectedConcept.precio,
+                                                        abono: 0,
+                                                        autoGenerated: true,
+                                                    } as any);
+                                                    added = true;
+                                                }
                                             }
                                         }
-                                        // Agregar detalle manual por disciplina y tarifa
+
                                         if (values.disciplina && values.tarifa) {
                                             const inscripcionSeleccionada = inscripciones.find(
                                                 (insc) =>
@@ -545,24 +640,31 @@ const CobranzasForm: React.FC = () => {
                                                 }
                                                 const cantidad = Number(values.cantidad) || 1;
                                                 const total = precio * cantidad;
-                                                newDetails.push({
-                                                    id: null,
-                                                    codigoConcepto: inscripcionSeleccionada.disciplina.id,
-                                                    concepto: `${inscripcionSeleccionada.disciplina.nombre.toUpperCase()} - ${tarifaLabel} - ${values.periodoMensual}`,
-                                                    cuota: cantidad.toString(),
-                                                    valorBase: total,
-                                                    bonificacionId: "",
-                                                    recargoId: "",
-                                                    aFavor: 0,
-                                                    importe: total,
-                                                    aCobrar: total,
-                                                    abono: 0,
-                                                    autoGenerated: false,
-                                                });
-                                                console.log("Detalle por disciplina agregado:", newDetails[newDetails.length - 1]);
+                                                const conceptoDetalle = `${inscripcionSeleccionada.disciplina.nombre} - ${tarifaLabel} - ${values.periodoMensual}`;
+
+                                                if (isDuplicate(conceptoDetalle)) {
+                                                    toast.error("Concepto ya se encuentra agregado");
+                                                } else {
+                                                    newDetails.push({
+                                                        id: null,
+                                                        codigoConcepto: inscripcionSeleccionada.disciplina.id,
+                                                        concepto: conceptoDetalle,
+                                                        cuota: cantidad.toString(),
+                                                        valorBase: total,
+                                                        bonificacionId: "",
+                                                        bonificacion: null,
+                                                        recargoId: "",
+                                                        aFavor: 0,
+                                                        importe: total,
+                                                        aCobrar: total,
+                                                        abono: 0,
+                                                        autoGenerated: true,
+                                                    } as any);
+                                                    added = true;
+                                                }
                                             }
                                         }
-                                        // Agregar detalle manual por stock seleccionado
+
                                         if (values.stockSeleccionado) {
                                             const selectedStock = stocks.find(
                                                 (s: StockResponse) =>
@@ -571,24 +673,31 @@ const CobranzasForm: React.FC = () => {
                                             if (selectedStock) {
                                                 const cantidad = Number(values.cantidad) || 1;
                                                 const total = selectedStock.precio * cantidad;
-                                                newDetails.push({
-                                                    id: null,
-                                                    codigoConcepto: selectedStock.id,
-                                                    concepto: selectedStock.nombre,
-                                                    cuota: cantidad.toString(),
-                                                    valorBase: total,
-                                                    bonificacionId: "",
-                                                    recargoId: "",
-                                                    aFavor: 0,
-                                                    importe: total,
-                                                    aCobrar: total,
-                                                    abono: 0,
-                                                    autoGenerated: false,
-                                                });
-                                                console.log("Detalle por stock agregado:", newDetails[newDetails.length - 1]);
+                                                const conceptoStock = selectedStock.nombre;
+                                                if (isDuplicate(conceptoStock)) {
+                                                    toast.error("Concepto ya se encuentra agregado");
+                                                } else {
+                                                    newDetails.push({
+                                                        id: null,
+                                                        codigoConcepto: selectedStock.id,
+                                                        concepto: conceptoStock,
+                                                        cuota: cantidad.toString(),
+                                                        valorBase: total,
+                                                        bonificacionId: "",
+                                                        bonificacion: null,
+                                                        recargoId: "",
+                                                        aFavor: 0,
+                                                        importe: total,
+                                                        aCobrar: total,
+                                                        abono: 0,
+                                                        autoGenerated: true,
+                                                    } as any);
+                                                    added = true;
+                                                }
                                             }
                                         }
-                                        if (newDetails.length > values.detallePagos.length) {
+
+                                        if (added) {
                                             setFieldValue("id", null);
                                             setFieldValue("detallePagos", newDetails);
                                             const nuevoTotalCobrado = newDetails.reduce(
@@ -601,7 +710,11 @@ const CobranzasForm: React.FC = () => {
                                             setFieldValue("conceptoSeleccionado", "");
                                             setFieldValue("stockSeleccionado", "");
                                             setFieldValue("cantidad", 1);
-                                        } else {
+                                        } else if (
+                                            !values.conceptoSeleccionado &&
+                                            !values.disciplina &&
+                                            !values.stockSeleccionado
+                                        ) {
                                             toast.error("Seleccione al menos un conjunto de campos para agregar");
                                         }
                                     }}
@@ -610,124 +723,144 @@ const CobranzasForm: React.FC = () => {
                                 </button>
                             </div>
                             {/* Detalle de Facturación */}
-                            <div className="border p-4 mb-4">
-                                <h2 className="font-bold mb-2">Detalles de Facturación</h2>
-                                <FieldArray name="detallePagos">
-                                    {({ remove }) => (
-                                        <table className="min-w-full border mb-4">
-                                            <thead>
+                            <FieldArray name="detallePagos">
+                                {({ remove }) => (
+                                    <div className="overflow-x-auto">
+                                        <table className="border mb-4 w-auto table-layout-auto">
+                                            <thead className="bg-gray-50">
                                                 <tr>
-                                                    <th className="border p-2">Código (ID)</th>
-                                                    <th className="border p-2">Concepto</th>
-                                                    <th className="border p-2">Cuota/Cantidad</th>
-                                                    <th className="border p-2">Valor Base</th>
-                                                    <th className="border p-2">Bonificación</th>
-                                                    <th className="border p-2">Recargo</th>
-                                                    <th className="border p-2">Importe</th>
-                                                    <th className="border p-2">A Cobrar</th>
-                                                    <th className="border p-2" style={{ display: "none" }}>Abono</th>
-                                                    <th className="border p-2">Acciones</th>
+                                                    <th className="border p-2 whitespace-nowrap text-center text-sm font-medium text-gray-700 min-w-[80px]">
+                                                        Código
+                                                    </th>
+                                                    <th className="border p-2 whitespace-nowrap text-center text-sm font-medium text-gray-700 min-w-[120px]">
+                                                        Concepto
+                                                    </th>
+                                                    <th className="border p-2 whitespace-nowrap text-center text-sm font-medium text-gray-700 min-w-[80px]">
+                                                        Cantidad
+                                                    </th>
+                                                    <th className="border p-2 whitespace-nowrap text-center text-sm font-medium text-gray-700 min-w-[100px]">
+                                                        Valor Base
+                                                    </th>
+                                                    <th className="border p-2 whitespace-nowrap text-center text-sm font-medium text-gray-700 min-w-[100px]">
+                                                        Bonificación
+                                                    </th>
+                                                    <th className="border p-2 whitespace-nowrap text-center text-sm font-medium text-gray-700 min-w-[80px]">
+                                                        Recargo
+                                                    </th>
+                                                    <th className="border p-2 whitespace-nowrap text-center text-sm font-medium text-gray-700 min-w-[80px]">
+                                                        Importe
+                                                    </th>
+                                                    <th className="border p-2 whitespace-nowrap text-center text-sm font-medium text-gray-700 min-w-[80px]">
+                                                        A Cobrar
+                                                    </th>
+                                                    <th className="border p-2 whitespace-nowrap text-center text-sm font-medium text-gray-700" style={{ display: "none" }}>
+                                                        Abono
+                                                    </th>
+                                                    <th className="border p-2 whitespace-nowrap text-center text-sm font-medium text-gray-700 min-w-[100px]">
+                                                        Acciones
+                                                    </th>
                                                 </tr>
                                             </thead>
-                                            <tbody>
+                                            <tbody className="bg-white divide-y divide-gray-200">
                                                 {values.detallePagos && values.detallePagos.length > 0 ? (
                                                     values.detallePagos.map((_detalle, index) => (
-                                                        <tr key={index}>
-                                                            <td className="border p-2">
+                                                        <tr key={index} className="hover:bg-gray-50">
+                                                            <td className="border p-2 text-center text-sm">
                                                                 <Field
                                                                     name={`detallePagos.${index}.codigoConcepto`}
                                                                     type="text"
-                                                                    className="w-full"
+                                                                    className="w-full px-2 py-1 border rounded whitespace-nowrap text-center"
                                                                     readOnly
                                                                 />
                                                             </td>
-                                                            <td className="border p-2">
+                                                            <td className="border p-2 text-center text-sm">
                                                                 <Field
                                                                     name={`detallePagos.${index}.concepto`}
                                                                     type="text"
-                                                                    className="w-full"
+                                                                    className="w-full px-2 py-1 border rounded whitespace-nowrap text-center"
                                                                     readOnly
                                                                 />
                                                             </td>
-                                                            <td className="border p-2">
+                                                            <td className="border p-2 text-center text-sm">
                                                                 <Field
                                                                     name={`detallePagos.${index}.cuota`}
                                                                     type="text"
-                                                                    className="w-full"
+                                                                    className="w-full px-2 py-1 border rounded whitespace-nowrap text-center"
                                                                     readOnly
                                                                 />
                                                             </td>
-                                                            <td className="border p-2">
+                                                            <td className="border p-2 text-center text-sm">
                                                                 <Field
                                                                     name={`detallePagos.${index}.valorBase`}
                                                                     type="number"
-                                                                    className="w-full"
+                                                                    className="w-full px-2 py-1 border rounded whitespace-nowrap text-center"
                                                                     readOnly
                                                                 />
                                                             </td>
-                                                            <td className="border p-2">
+                                                            <td className="border p-2 text-center text-sm">
                                                                 <Field
-                                                                    name={`detallePagos.${index}.bonificacionId`}
+                                                                    name={`detallePagos.${index}.montoBonificacion`}
                                                                     type="number"
-                                                                    className="w-full"
+                                                                    className="w-full px-2 py-1 border rounded whitespace-nowrap text-center"
                                                                     readOnly
                                                                 />
                                                             </td>
-                                                            <td className="border p-2">
+                                                            <td className="border p-2 text-center text-sm">
                                                                 <Field
                                                                     name={`detallePagos.${index}.recargoId`}
                                                                     type="number"
-                                                                    className="w-full"
+                                                                    className="w-full px-2 py-1 border rounded whitespace-nowrap text-center"
                                                                     readOnly
                                                                 />
                                                             </td>
-                                                            <td className="border p-2">
-                                                                <Field
-                                                                    name={`detallePagos.${index}.importe`}
-                                                                    type="number"
-                                                                    className="w-full"
-                                                                />
-                                                            </td>
-                                                            <td className="border p-2">
-                                                                <Field name={`detallePagos.${index}.aCobrar`}>
+                                                            {/* Campo editable para Importe */}
+                                                            <td className="border p-2 text-center text-sm">
+                                                                <Field name={`detallePagos.${index}.importe`}>
                                                                     {({ field, form }: FieldProps) => (
                                                                         <input
                                                                             type="number"
                                                                             {...field}
-                                                                            className="w-full"
+                                                                            className="w-full px-2 py-1 border rounded text-center"
                                                                             onChange={(e) => {
-                                                                                const inputValue = e.target.value;
-                                                                                const importe = Number(values.detallePagos[index].importe) || 0;
-                                                                                const newACobrar =
-                                                                                    inputValue === "" ? importe : Number(inputValue);
-                                                                                form.setFieldValue(`detallePagos.${index}.aCobrar`, newACobrar);
-                                                                                form.setFieldValue(`detallePagos.${index}.abono`, importe - newACobrar);
-                                                                                const updatedTotal = values.detallePagos.reduce(
-                                                                                    (sum, d, idx) =>
-                                                                                        sum + (idx === index ? newACobrar : Number(d.aCobrar) || 0),
-                                                                                    0
-                                                                                );
-                                                                                form.setFieldValue("totalCobrado", updatedTotal);
+                                                                                const newImporte = Number(e.target.value);
+                                                                                form.setFieldValue(`detallePagos.${index}.importe`, newImporte);
+                                                                                form.setFieldValue(`detallePagos.${index}.aCobrar`, newImporte);
+                                                                                // Marcar el detalle como modificado para que no se recalcule automáticamente
+                                                                                form.setFieldValue(`detallePagos.${index}.autoGenerated`, false);
                                                                             }}
                                                                         />
                                                                     )}
                                                                 </Field>
                                                             </td>
-                                                            <td className="border p-2" style={{ display: "none" }}>
+                                                            {/* Campo editable para A Cobrar */}
+                                                            <td className="border p-2 text-center text-sm">
+                                                                <Field name={`detallePagos.${index}.aCobrar`}>
+                                                                    {({ field, form }: FieldProps) => (
+                                                                        <input
+                                                                            type="number"
+                                                                            {...field}
+                                                                            className="w-full px-2 py-1 border rounded text-center"
+                                                                            onChange={(e) => {
+                                                                                const newACobrar = Number(e.target.value);
+                                                                                form.setFieldValue(`detallePagos.${index}.aCobrar`, newACobrar);
+                                                                                form.setFieldValue(`detallePagos.${index}.autoGenerated`, false);
+                                                                            }}
+                                                                        />
+                                                                    )}
+                                                                </Field>
+                                                            </td>
+                                                            <td className="border p-2 text-center text-sm" style={{ display: "none" }}>
                                                                 <Field
                                                                     name={`detallePagos.${index}.abono`}
                                                                     type="number"
-                                                                    className="w-full"
+                                                                    className="w-full px-2 py-1 border rounded text-center"
                                                                 />
                                                             </td>
-                                                            <td className="border p-2 text-center">
+                                                            <td className="border p-2 text-center text-sm">
                                                                 <button
                                                                     type="button"
-                                                                    className="bg-red-500 text-white p-1 rounded"
-                                                                    onClick={() => {
-                                                                        console.log("Eliminando detalle en el índice:", index);
-                                                                        remove(index);
-                                                                    }}
+                                                                    className="bg-red-500 hover:bg-red-600 text-white p-1 rounded text-xs transition-colors mx-auto block"
+                                                                    onClick={() => remove(index)}
                                                                 >
                                                                     Eliminar
                                                                 </button>
@@ -736,33 +869,45 @@ const CobranzasForm: React.FC = () => {
                                                     ))
                                                 ) : (
                                                     <tr>
-                                                        <td colSpan={9} className="text-center p-2">
-                                                            No hay conceptos agregados
+                                                        <td colSpan={10} className="text-center text-sm p-2">
+                                                            No hay datos
                                                         </td>
                                                     </tr>
                                                 )}
                                             </tbody>
                                         </table>
-                                    )}
-                                </FieldArray>
-                            </div>
+                                    </div>
+                                )}
+                            </FieldArray>
                             {/* Totales y Pago */}
                             <div className="border p-4 mb-4">
                                 <h2 className="font-bold mb-2">Totales y Pago</h2>
-                                <div className="grid grid-cols-3 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                     <div>
-                                        <label className="block font-medium">Total a Pagar:</label>
+                                        <label className="block font-medium">Total a Cobrar:</label>
                                         <input
                                             type="number"
                                             readOnly
                                             className="border p-2 w-full"
-                                            value={montoTotal}
+                                            value={values.totalACobrar}
                                         />
-                                        {isDebit && (
-                                            <p className="text-sm text-info">
-                                                Se ha agregado recargo de ${recargoValue} por DEBITO.
-                                            </p>
-                                        )}
+                                        {values.metodoPagoId &&
+                                            (() => {
+                                                const selectedMetodo = metodosPago.find(
+                                                    (mp: MetodoPagoResponse) =>
+                                                        mp.id.toString() === values.metodoPagoId
+                                                );
+                                                const isDebit =
+                                                    selectedMetodo &&
+                                                    selectedMetodo.descripcion.toUpperCase() === "DEBITO";
+                                                return (
+                                                    isDebit && (
+                                                        <p className="text-sm text-info">
+                                                            Se ha agregado recargo de ${selectedMetodo.recargo} por DEBITO.
+                                                        </p>
+                                                    )
+                                                );
+                                            })()}
                                     </div>
                                     <div>
                                         <label className="block font-medium">Total Cobrado:</label>
@@ -776,7 +921,7 @@ const CobranzasForm: React.FC = () => {
                                             }}
                                         />
                                         <small className="text-gray-500">
-                                            Se autocompleta sumando el total a pagar de cada concepto, pero puedes modificarlo.
+                                            Se autocompleta sumando el total a cobrar de cada concepto, pero puedes modificarlo.
                                         </small>
                                     </div>
                                     <div>
@@ -795,7 +940,12 @@ const CobranzasForm: React.FC = () => {
                             {/* Observaciones */}
                             <div className="border p-4 mb-4">
                                 <label className="block font-medium">Observaciones:</label>
-                                <Field as="textarea" name="observaciones" className="border p-2 w-full" rows="3" />
+                                <Field
+                                    as="textarea"
+                                    name="observaciones"
+                                    className="border p-2 w-full"
+                                    rows="3"
+                                />
                             </div>
                             {/* Botones de Acción */}
                             <div className="flex justify-end gap-4">
@@ -810,7 +960,7 @@ const CobranzasForm: React.FC = () => {
                     );
                 }}
             </Formik>
-        </div>
+        </ResponsiveContainer>
     );
 };
 

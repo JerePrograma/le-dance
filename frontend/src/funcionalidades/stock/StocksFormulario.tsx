@@ -62,7 +62,7 @@ const StocksFormulario: React.FC = () => {
             setStockId(stock.id);
             setMensaje("Stock encontrado.");
         } catch (error) {
-            console.error("Error al buscar el stock:", error);
+            toast.error("Error al buscar el stock:");
             setMensaje("Stock no encontrado.");
             resetearFormulario();
         }
@@ -122,7 +122,6 @@ const StocksFormulario: React.FC = () => {
                 }
                 setMensaje("Stock guardado exitosamente.");
             } catch (error) {
-                console.error("Error al guardar el stock:", error);
                 toast.error("Error al guardar el stock.");
                 setMensaje("Error al guardar el stock.");
             } finally {

@@ -5,6 +5,7 @@ import { ThemeProvider } from "./hooks/context/ThemeContext";
 import { SidebarProvider } from "./hooks/context/SideBarContext";
 import MainLayout from "./componentes/layout/MainLayout";
 import "./index.css"; // Importa el archivo de entrada con Tailwind y tus estilos personalizados
+import { ToastContainer } from "react-toastify";
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
           <SidebarProvider>
             <MainLayout>
               <AppRouter />
+              <ToastContainer />
             </MainLayout>
           </SidebarProvider>
         </AuthProvider>

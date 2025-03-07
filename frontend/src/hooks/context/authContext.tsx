@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../api/axiosConfig";
+import { toast } from "react-toastify";
 
 interface AuthContextProps {
   isAuth: boolean;
@@ -48,7 +49,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setRol(response.data.rol);
         })
         .catch((error) => {
-          console.error("Error al obtener el perfil:", error);
+          toast.error("Error al obtener el perfil:", error);
         });
     }
     setLoading(false);
@@ -76,7 +77,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const profileResponse = await api.get("/usuarios/perfil");
       setRol(profileResponse.data.rol);
     } catch (error) {
-      console.error("Error al obtener el perfil:", error);
+      toast.error("Error al obtener el perfil:");
     }
   };
 

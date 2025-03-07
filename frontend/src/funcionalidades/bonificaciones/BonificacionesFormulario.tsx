@@ -66,7 +66,7 @@ const BonificacionesFormulario: React.FC = () => {
       setBonificacionId(bonificacion.id);
       setMensaje("Bonificacion encontrada.");
     } catch (error) {
-      console.error("Error al buscar la bonificacion:", error);
+      toast.error("Error al buscar la bonificacion:");
       setMensaje("Bonificacion no encontrada.");
       resetearFormulario();
     }
@@ -111,7 +111,6 @@ const BonificacionesFormulario: React.FC = () => {
         }
         setMensaje("Bonificacion guardada exitosamente.");
       } catch (error) {
-        console.error("Error al guardar la bonificacion:", error);
         toast.error("Error al guardar la bonificacion.");
         setMensaje("Error al guardar la bonificacion.");
       } finally {

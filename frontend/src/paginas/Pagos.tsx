@@ -20,7 +20,7 @@ const Pagos = () => {
         const response = await api.get("/pagos"); // Endpoint para obtener pagos
         setPagos(response.data);
       } catch (error) {
-        console.error("Error al cargar los pagos:", error);
+        toast.error("Error al cargar los pagos:", error);
       }
     };
 
@@ -32,8 +32,8 @@ const Pagos = () => {
       <h1 className="titulo-principal">Gestion de Pagos</h1>
       <button className="boton">Registrar Nuevo Pago</Boton>
       <Tabla
-        encabezados={encabezados}
-        datos={pagos.map((pago) => ({
+        headers={encabezados}
+        data={pagos.map((pago) => ({
           id: pago.id,
           alumno: pago.alumno,
           fecha: pago.fecha,

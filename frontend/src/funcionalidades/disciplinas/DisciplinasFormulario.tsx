@@ -73,7 +73,6 @@ const DisciplinasFormulario: React.FC = () => {
       const response = await salonesApi.listarSalones();
       setSalones(response.content);
     } catch (error) {
-      console.error("Error al cargar salones:", error);
       toast.error("Error al cargar salones");
     }
   }, []);
@@ -83,7 +82,6 @@ const DisciplinasFormulario: React.FC = () => {
       const response = await profesoresApi.listarProfesoresActivos();
       setProfesores(response);
     } catch (error) {
-      console.error("Error al cargar profesores:", error);
       toast.error("Error al cargar profesores");
     }
   }, []);
@@ -105,7 +103,7 @@ const DisciplinasFormulario: React.FC = () => {
         setMatricula(0);
       }
     } catch (error) {
-      console.error("Error al obtener el concepto 'MATRICULA':", error);
+      toast.error("Error al obtener el concepto 'MATRICULA':");
     }
   }, []);
 
@@ -141,7 +139,7 @@ const DisciplinasFormulario: React.FC = () => {
           setIdBusqueda(String(detalle.id));
           setMensaje("Disciplina encontrada.");
         } catch (error) {
-          console.error("Error al buscar la disciplina:", error);
+          toast.error("Error al buscar la disciplina:");
           setMensaje("Disciplina no encontrada.");
           setFormValues(initialDisciplinaValues);
           setDisciplinaId(null);
@@ -174,7 +172,6 @@ const DisciplinasFormulario: React.FC = () => {
         setMensaje("Disciplina guardada exitosamente.");
         navigate("/disciplinas");
       } catch (error) {
-        console.error("Error al guardar la disciplina:", error);
         toast.error("Error al guardar la disciplina.");
         setMensaje("Error al guardar la disciplina.");
       }

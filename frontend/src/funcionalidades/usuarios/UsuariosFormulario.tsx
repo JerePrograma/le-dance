@@ -82,7 +82,6 @@ const UsuariosFormulario: React.FC = () => {
         toast.success("Usuario actualizado correctamente.");
         navigate("/usuarios");
       } catch (error: any) {
-        console.error("Error al actualizar usuario:", error);
         toast.error("Error al actualizar el usuario. Verifica los datos.");
       }
     } else {
@@ -93,7 +92,6 @@ const UsuariosFormulario: React.FC = () => {
         toast.success("Usuario registrado correctamente.");
         navigate("/login");
       } catch (error: any) {
-        console.error("Error en registro:", error);
         toast.error("Error al registrar el usuario. Verifica los datos.");
       }
     }

@@ -4,6 +4,7 @@ import Tabla from "../../componentes/comunes/Tabla";
 import Boton from "../../componentes/comunes/Boton";
 import recargosApi from "../../api/recargosApi";
 import { PlusCircle, Pencil, Trash2 } from "lucide-react";
+import { toast } from "react-toastify";
 
 interface Recargo {
     id: number;
@@ -21,7 +22,7 @@ const Recargos = () => {
             const response = await recargosApi.listarRecargos();
             setRecargos(response);
         } catch (error) {
-            console.error("Error al cargar los recargos:", error);
+            toast.error("Error al cargar los recargos:");
         } finally {
             setLoading(false);
         }
@@ -44,9 +45,9 @@ const Recargos = () => {
             </div>
             <div className="page-card">
                 <Tabla
-                    encabezados={["ID", "Descripcion", "Acciones"]}
-                    datos={recargos}
-                    acciones={(fila) => (
+                    headers={["ID", "Descripcion", "Acciones"]}
+                    data={recargos}
+                    actions={(fila) => (
                         <div className="flex gap-2">
                             <Boton
                                 onClick={() => navigate(`/recargos/formulario?id=${fila.id}`)}
@@ -61,7 +62,7 @@ const Recargos = () => {
                             </Boton>
                         </div>
                     )}
-                    extraRender={(fila) => [fila.id, fila.descripcion]}
+                    customRender={(fila) => [fila.id, fila.descripcion]}
                 />
             </div>
         </div>

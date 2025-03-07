@@ -8,6 +8,7 @@ import profesoresApi from "../../api/profesoresApi";
 import type { ReporteMensualidadDTO } from "../../types/types";
 import reporteMensualidadApi from "../../api/reporteMensualidadApi";
 import Tabla from "../../componentes/comunes/Tabla";
+import { toast } from "react-toastify";
 
 interface FiltrosBusqueda {
     // Usaremos inputs tipo "month" que devuelven "YYYY-MM"
@@ -81,7 +82,7 @@ const ReporteDetallePago: React.FC = () => {
                 console.log("Respuesta recibida:", response);
                 setResultados(response);
             } catch (err: any) {
-                console.error("Error al obtener el reporte:", err);
+                toast.error("Error al obtener el reporte:", err);
                 setError("Error al cargar los datos del reporte");
             } finally {
                 setLoading(false);
@@ -98,7 +99,7 @@ const ReporteDetallePago: React.FC = () => {
                     console.log("Sugerencias de disciplinas:", sugerencias);
                     setSugerenciasDisciplinas(sugerencias);
                 } catch (err) {
-                    console.error("Error al buscar sugerencias de disciplinas:", err);
+                    toast.error("Error al buscar sugerencias de disciplinas:");
                     setSugerenciasDisciplinas([]);
                 }
             } else {
@@ -117,7 +118,7 @@ const ReporteDetallePago: React.FC = () => {
                     console.log("Sugerencias de profesores:", sugerencias);
                     setSugerenciasProfesores(sugerencias);
                 } catch (err) {
-                    console.error("Error al buscar sugerencias de profesores:", err);
+                    toast.error("Error al buscar sugerencias de profesores:");
                     setSugerenciasProfesores([]);
                 }
             } else {
@@ -238,7 +239,7 @@ const ReporteDetallePago: React.FC = () => {
                     <div className="text-center py-4">No se encontraron resultados</div>
                 ) : (
                     <Tabla
-                        encabezados={[
+                        headers={[
                             "Codigo Mensualidad",
                             "Alumno",
                             "Cuota",
@@ -250,8 +251,8 @@ const ReporteDetallePago: React.FC = () => {
                             "Estado",
                             "Disciplina"
                         ]}
-                        datos={resultados}
-                        extraRender={(item) => [
+                        data={resultados}
+                        customRender={(item) => [
                             item.mensualidadId,
                             item.alumno.nombre,
                             item.cuota,

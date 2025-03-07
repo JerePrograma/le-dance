@@ -1,68 +1,75 @@
-"use client"
+// UsuariosPagina.tsx
+"use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react"
-import { useNavigate } from "react-router-dom"
-import Tabla from "../../componentes/comunes/Tabla"
-import Boton from "../../componentes/comunes/Boton"
-import { PlusCircle, Pencil, Trash2 } from "lucide-react"
-import type { UsuarioResponse } from "../../types/types"
-import usuariosApi from "../../api/usuariosApi"
-import Pagination from "../../componentes/comunes/Pagination"
+import { useEffect, useState, useCallback, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import Tabla from "../../componentes/comunes/Tabla";
+import Boton from "../../componentes/comunes/Boton";
+import { PlusCircle, Pencil, Trash2 } from "lucide-react";
+import type { UsuarioResponse } from "../../types/types";
+import usuariosApi from "../../api/usuariosApi";
+import Pagination from "../../componentes/comunes/Pagination";
+import { toast } from "react-toastify";
 
 const UsuariosPagina = () => {
-  const [usuarios, setUsuarios] = useState<UsuarioResponse[]>([])
-  const [currentPage, setCurrentPage] = useState(0)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const itemsPerPage = 5
-  const navigate = useNavigate()
+  const [usuarios, setUsuarios] = useState<UsuarioResponse[]>([]);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const itemsPerPage = 5;
+  const navigate = useNavigate();
 
   const fetchUsuarios = useCallback(async () => {
     try {
-      setLoading(true)
-      setError(null)
-      const usuariosData = await usuariosApi.listarUsuarios()
-      setUsuarios(usuariosData)
+      setLoading(true);
+      setError(null);
+      const usuariosData = await usuariosApi.listarUsuarios();
+      setUsuarios(usuariosData);
     } catch (err) {
-      console.error("Error al cargar usuarios:", err)
-      setError("Error al cargar usuarios.")
+      toast.error("Error al cargar usuarios:");
+      setError("Error al cargar usuarios.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
-    fetchUsuarios()
-  }, [fetchUsuarios])
+    fetchUsuarios();
+  }, [fetchUsuarios]);
 
-  const pageCount = useMemo(() => Math.ceil(usuarios.length / itemsPerPage), [usuarios.length])
+  const pageCount = useMemo(
+    () => Math.ceil(usuarios.length / itemsPerPage),
+    [usuarios.length]
+  );
   const currentItems = useMemo(
-    () => usuarios.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage),
-    [usuarios, currentPage],
-  )
+    () =>
+      usuarios.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage),
+    [usuarios, currentPage]
+  );
 
   const handlePageChange = useCallback(
     (newPage: number) => {
       if (newPage >= 0 && newPage < pageCount) {
-        setCurrentPage(newPage)
+        setCurrentPage(newPage);
       }
     },
-    [pageCount],
-  )
+    [pageCount]
+  );
 
   const handleEliminarUsuario = useCallback(async (id: number) => {
     if (window.confirm("¿Seguro que deseas eliminar este usuario?")) {
       try {
-        await usuariosApi.eliminarUsuario(id)
-        setUsuarios((prev) => prev.filter((u) => u.id !== id))
+        await usuariosApi.eliminarUsuario(id);
+        setUsuarios((prev) => prev.filter((u) => u.id !== id));
       } catch (err) {
-        console.error("Error al eliminar usuario:", err)
+        toast.error("Error al eliminar usuario:");
       }
     }
-  }, [])
+  }, []);
 
-  if (loading) return <div className="text-center py-4">Cargando...</div>
-  if (error) return <div className="text-center py-4 text-destructive">{error}</div>
+  if (loading) return <div className="text-center py-4">Cargando...</div>;
+  if (error)
+    return <div className="text-center py-4 text-destructive">{error}</div>;
 
   return (
     <div className="page-container">
@@ -79,10 +86,14 @@ const UsuariosPagina = () => {
       </div>
       <div className="page-card">
         <Tabla
-          encabezados={["ID", "Nombre", "Rol"]}
-          datos={currentItems}
-          extraRender={(fila: UsuarioResponse) => [fila.id, fila.nombreUsuario, fila.rol]}
-          acciones={(fila: UsuarioResponse) => (
+          headers={["ID", "Nombre", "Rol"]}
+          data={currentItems}
+          customRender={(fila: UsuarioResponse) => [
+            fila.id,
+            fila.nombreUsuario,
+            fila.rol,
+          ]}
+          actions={(fila: UsuarioResponse) => (
             <div className="flex gap-2">
               <Boton
                 onClick={() => navigate(`/usuarios/formulario?id=${fila.id}`)}
@@ -105,11 +116,15 @@ const UsuariosPagina = () => {
         />
       </div>
       {pageCount > 1 && (
-        <Pagination currentPage={currentPage} totalPages={pageCount} onPageChange={handlePageChange} className="mt-4" />
+        <Pagination
+          currentPage={currentPage}
+          totalPages={pageCount}
+          onPageChange={handlePageChange}
+          className="mt-4"
+        />
       )}
     </div>
-  )
-}
+  );
+};
 
-export default UsuariosPagina
-
+export default UsuariosPagina;

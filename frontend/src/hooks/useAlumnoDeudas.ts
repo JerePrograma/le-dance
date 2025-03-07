@@ -1,6 +1,7 @@
 // useAlumnoDeudas.ts
 import { useCallback } from "react";
 import pagosApi from "../api/pagosApi";
+import { toast } from "react-toastify";
 
 export const useAlumnoDeudas = () => {
   const loadDeudasForAlumno = useCallback(
@@ -27,7 +28,7 @@ export const useAlumnoDeudas = () => {
             setFieldValue("detallePagos", []);
           }
         })
-        .catch(console.error);
+        .catch(toast.error);
     },
     []
   );

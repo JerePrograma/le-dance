@@ -27,7 +27,7 @@ const MetodosPagoPagina = () => {
       const response = await metodosPagoApi.listarMetodosPago()
       setMetodos(response)
     } catch (error) {
-      console.error("Error al cargar metodos de pago:", error)
+      toast.error("Error al cargar metodos de pago:")
       setError("Error al cargar metodos de pago.")
     } finally {
       setLoading(false)
@@ -79,9 +79,9 @@ const MetodosPagoPagina = () => {
       </div>
       <div className="page-card">
         <Tabla
-          encabezados={["ID", "Descripcion", "Recargo", "Acciones"]}
-          datos={currentItems}
-          acciones={(fila: MetodoPagoResponse) => (
+          headers={["ID", "Descripcion", "Recargo", "Acciones"]}
+          data={currentItems}
+          actions={(fila: MetodoPagoResponse) => (
             <div className="flex gap-2">
               <Boton
                 onClick={() => navigate(`/metodos-pago/formulario?id=${fila.id}`)}
@@ -101,7 +101,7 @@ const MetodosPagoPagina = () => {
               </Boton>
             </div>
           )}
-          extraRender={(fila: MetodoPagoResponse) => [fila.id, fila.descripcion, fila.recargo]}
+          customRender={(fila: MetodoPagoResponse) => [fila.id, fila.descripcion, fila.recargo]}
         />
       </div>
       {pageCount > 1 && (

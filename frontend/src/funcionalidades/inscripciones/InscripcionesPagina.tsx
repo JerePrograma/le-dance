@@ -30,7 +30,7 @@ const InscripcionesPagina = () => {
       const data = await inscripcionesApi.listar()
       setInscripciones(data)
     } catch (error) {
-      console.error("Error al cargar inscripciones:", error)
+      toast.error("Error al cargar inscripciones:")
       setError("Error al cargar inscripciones.")
     } finally {
       setLoading(false)
@@ -48,7 +48,6 @@ const InscripcionesPagina = () => {
       toast.success("Asistencias generadas exitosamente para inscripciones activas");
       fetchInscripciones();
     } catch (error) {
-      console.error("Error al generar asistencias:", error);
       toast.error("Error al generar asistencias para inscripciones activas");
     }
   };
@@ -60,7 +59,6 @@ const InscripcionesPagina = () => {
       toast.success(`Se generaron/actualizaron ${respuestas.length} cuota(s) para el mes vigente.`)
       fetchInscripciones()
     } catch (error) {
-      console.error("Error al generar cuotas:", error)
       toast.error("Error al generar cuotas del mes.")
     }
   }
@@ -190,14 +188,14 @@ const InscripcionesPagina = () => {
       ) : (
         <div className="overflow-x-auto">
           <Tabla
-            encabezados={["ID Alumno", "Nombre Alumno", "Costo Total", "Acciones"]}
-            datos={currentItems}
-            extraRender={(grupo) => [
+            headers={["ID Alumno", "Nombre Alumno", "Costo Total", "Acciones"]}
+            data={currentItems}
+            customRender={(grupo) => [
               grupo.alumno.id,
               `${grupo.alumno.nombre} ${grupo.alumno.apellido}`,
               grupo.costoTotal.toFixed(2)
             ]}
-            acciones={(grupo) => (
+            actions={(grupo) => (
               <div className="flex gap-2">
                 <Boton
                   onClick={() => navigate(`/inscripciones/formulario?alumnoId=${grupo.alumno.id}`)}

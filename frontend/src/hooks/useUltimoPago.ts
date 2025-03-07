@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import pagosApi from "../api/pagosApi";
 import type { PagoResponse } from "../types/types";
+import { toast } from "react-toastify";
 
 export const useUltimoPago = (alumnoId: number | null) => {
   const [ultimoPago, setUltimoPago] = useState<PagoResponse | null>(null);
@@ -12,7 +13,7 @@ export const useUltimoPago = (alumnoId: number | null) => {
         .obtenerUltimoPagoPorAlumno(alumnoId)
         .then(setUltimoPago)
         .catch((err) => {
-          console.error("Error al cargar ultimo pago:", err);
+          toast.error("Error al cargar ultimo pago:", err);
           setUltimoPago(null);
         });
     }

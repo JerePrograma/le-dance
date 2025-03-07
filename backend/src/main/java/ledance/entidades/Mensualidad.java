@@ -20,7 +20,7 @@ public class Mensualidad {
     private Long id;
 
     @NotNull
-    private LocalDate fechaGeneracion; // Fecha del vencimiento de la mensualidad
+    private LocalDate fechaGeneracion; // Fecha de generación de la mensualidad
 
     @NotNull
     private LocalDate fechaCuota; // Fecha del vencimiento de la mensualidad
@@ -30,15 +30,15 @@ public class Mensualidad {
     private Double valorBase;
 
     @ManyToOne
-    @JoinColumn(name = "recargo_id", nullable = true) // ✅ Puede ser null si no se aplica
+    @JoinColumn(name = "recargo_id", nullable = true)
     private Recargo recargo;
 
     @ManyToOne
-    @JoinColumn(name = "bonificacion_id", nullable = true) // ✅ Puede ser null si no se aplica
+    @JoinColumn(name = "bonificacion_id", nullable = true)
     private Bonificacion bonificacion;
 
     @NotNull
-    private Double totalPagar; // ✅ Calculado dinámicamente antes de guardar
+    private Double totalPagar; // Calculado dinámicamente
 
     @NotNull
     @Enumerated(EnumType.STRING)
@@ -48,28 +48,6 @@ public class Mensualidad {
     @JoinColumn(name = "inscripcion_id", nullable = false)
     private Inscripcion inscripcion;
 
-    @PrePersist
-    @PreUpdate
-    public void calcularTotal() {
-        double descuento = 0.0;
-        double recargoValor = 0.0;
-
-        // Si hay bonificación, aplicarla
-        if (bonificacion != null) {
-            double descuentoFijo = (bonificacion.getValorFijo() != null ? bonificacion.getValorFijo() : 0.0);
-            double descuentoPorcentaje = (bonificacion.getPorcentajeDescuento() != null ?
-                    (bonificacion.getPorcentajeDescuento() / 100.0 * valorBase) : 0.0);
-            descuento = descuentoFijo + descuentoPorcentaje;
-        }
-
-        // Si hay recargo, aplicarlo
-        if (recargo != null) {
-            double recargoFijo = (recargo.getValorFijo() != null ? recargo.getValorFijo() : 0.0);
-            double recargoPorcentaje = (recargo.getPorcentaje() != null ?
-                    (recargo.getPorcentaje() / 100.0 * valorBase) : 0.0);
-            recargoValor = recargoFijo + recargoPorcentaje;
-        }
-
-        this.totalPagar = (valorBase + recargoValor) - descuento;
-    }
+    // Campo "descripcion" que se asignará desde el servicio
+    private String descripcion;
 }

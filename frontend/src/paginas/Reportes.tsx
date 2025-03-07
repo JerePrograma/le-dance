@@ -5,6 +5,7 @@ import api from "../api/axiosConfig";
 import { saveAs } from "file-saver";
 import { Bar } from "react-chartjs-2";
 import Pagination from "../componentes/comunes/Pagination";
+import { toast } from "react-toastify";
 
 // Interfaces de datos
 interface ReporteData {
@@ -53,7 +54,7 @@ const Reportes = () => {
         const response = await api.get<Disciplina[]>("/disciplinas");
         setDisciplinas(response.data);
       } catch (error) {
-        console.error("Error al cargar disciplinas:", error);
+        toast.error("Error al cargar disciplinas:");
       }
     };
 
@@ -62,7 +63,7 @@ const Reportes = () => {
         const response = await api.get<Alumno[]>("/alumnos");
         setAlumnos(response.data);
       } catch (error) {
-        console.error("Error al cargar alumnos:", error);
+        toast.error("Error al cargar alumnos:");
       }
     };
 
@@ -107,7 +108,7 @@ const Reportes = () => {
         }
         break;
       default:
-        console.error("Tipo de reporte no valido");
+        toast.error("Tipo de reporte no valido");
         setLoading(false);
         return;
     }
@@ -118,7 +119,7 @@ const Reportes = () => {
       setTotalPaginas(response.data.totalPages);
       setPaginaActual(pagina);
     } catch (error) {
-      console.error("Error al obtener el reporte:", error);
+      toast.error("Error al obtener el reporte:");
       setErrorMsg("Ocurrio un error al obtener el reporte. Por favor, intenta de nuevo.");
     } finally {
       setLoading(false);
@@ -133,7 +134,7 @@ const Reportes = () => {
       });
       saveAs(response.data, "reportes.xlsx");
     } catch (error) {
-      console.error("Error exportando a Excel:", error);
+      toast.error("Error exportando a Excel:");
     }
   };
 
@@ -262,9 +263,9 @@ const Reportes = () => {
         <>
           <div className="page-table-container">
             <Tabla
-              encabezados={["ID", "Nombre", "Disciplina", "Cantidad", "Monto Total", "Fecha"]}
-              datos={datosFiltrados}
-              extraRender={(fila) => [
+              headers={["ID", "Nombre", "Disciplina", "Cantidad", "Monto Total", "Fecha"]}
+              data={datosFiltrados}
+              customRender={(fila) => [
                 fila.id,
                 fila.nombre || "-",
                 fila.disciplina || "-",

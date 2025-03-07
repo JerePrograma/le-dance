@@ -67,7 +67,6 @@ const AsistenciaMensualDetalle: React.FC = () => {
       const data = await asistenciasApi.listarDisciplinasSimplificadas();
       setDisciplinas(data);
     } catch (err) {
-      console.error("Error al cargar disciplinas", err);
       toast.error("Error al cargar la lista de disciplinas.");
     }
   }, []);
@@ -159,7 +158,6 @@ const AsistenciaMensualDetalle: React.FC = () => {
         toast.info("No se encontró asistencia mensual para estos parámetros.");
       }
     } catch (err) {
-      console.error("Error al cargar la asistencia mensual", err);
       toast.error("No se pudo cargar la asistencia mensual.");
     } finally {
       setLoading(false);
@@ -222,7 +220,7 @@ const AsistenciaMensualDetalle: React.FC = () => {
         .actualizarAsistenciaMensual(asistenciaMensual!.id, { asistenciasAlumnoMensual: asistenciasAlumnoMensualArray })
         .then(() => toast.success("Observación actualizada"))
         .catch((err) => {
-          console.error("Error al actualizar observación", err);
+          toast.error("Error al actualizar observación", err);
           toast.error("Error al actualizar la observación.");
         });
     },
@@ -281,7 +279,6 @@ const AsistenciaMensualDetalle: React.FC = () => {
       });
       toast.success("Asistencia actualizada");
     } catch (err) {
-      console.error("Error al actualizar asistencia", err);
       toast.error("Error al actualizar la asistencia.");
     }
   };

@@ -14,16 +14,18 @@ export default function MainLayout({ children }: MainLayoutProps) {
   const { isExpanded } = useSidebar()
 
   return (
-    <div className="min-h-screen bg-[hsl(var(--background))] pt-[var(--header-height)]">
+    <div className="min-h-[100dvh] bg-[hsl(var(--background))] pt-[var(--header-height)]">
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
         <Header />
-        <div className="flex">
+        <div className="flex w-full">
           <Sidebar />
           <main
-            className={`flex-1 p-4 transition-all duration-300 ${isExpanded ? "md:ml-[var(--sidebar-width)]" : "md:ml-[4.5rem]"
-              }`}
+            className={`flex-1 w-full transition-all duration-300 px-[var(--container-padding)] py-[clamp(1rem,2vh,2rem)] ${isExpanded ? "md:ml-[var(--sidebar-width)]" : "md:ml-[var(--sidebar-width-collapsed)]"}`}
           >
-            {children}
+            {/* Contenedor principal sin restricción de ancho máximo */}
+            <div className="mx-auto w-full">
+              {children}
+            </div>
           </main>
         </div>
       </ThemeProvider>

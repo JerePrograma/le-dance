@@ -21,6 +21,7 @@ import {
   convertToAlumnoRegistroRequest,
   convertToAlumnoModificacionRequest,
 } from "../../utilidades/alumnoUtils";
+import ResponsiveContainer from "../../componentes/comunes/ResponsiveContainer";
 
 // Pre-cargamos la fecha de incorporación con la fecha actual (formato "yyyy-MM-dd")
 const today = new Date().toISOString().split("T")[0];
@@ -55,7 +56,7 @@ const AlumnosFormulario: React.FC = () => {
   const [nombreBusqueda, setNombreBusqueda] = useState("");
   const [sugerenciasAlumnos, setSugerenciasAlumnos] = useState<AlumnoListadoResponse[]>([]);
   // Estado para el índice de sugerencia activa
-  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState<number>(-1);
   // Estado para controlar la visibilidad de las sugerencias
   const [showSuggestions, setShowSuggestions] = useState(false);
 
@@ -63,12 +64,12 @@ const AlumnosFormulario: React.FC = () => {
     AlumnoRegistroRequest & Partial<AlumnoModificacionRequest>
   >(initialAlumnoValues);
 
-  // Utilizamos un ref para detectar clicks fuera del bloque de búsqueda
+  // Ref para detectar clicks fuera del bloque de búsqueda
   const searchWrapperRef = useRef<HTMLDivElement>(null);
 
   const debouncedNombreBusqueda = useDebounce(nombreBusqueda, 300);
 
-  // Función para eliminar inscripción y recargar el listado dinámicamente
+  // Función para eliminar inscripción y recargar el listado
   const handleEliminarInscripcion = async (id: number) => {
     try {
       await inscripcionesApi.eliminar(id);
@@ -77,7 +78,6 @@ const AlumnosFormulario: React.FC = () => {
         await cargarInscripciones(alumnoId);
       }
     } catch (error) {
-      console.error("Error al eliminar inscripción:", error);
       toast.error("Error al eliminar inscripción.");
     }
   };
@@ -94,7 +94,7 @@ const AlumnosFormulario: React.FC = () => {
     return edad;
   };
 
-  // Función para resetear el formulario y los estados relacionados, además de limpiar el query de la URL
+  // Función para resetear formulario y estados relacionados
   const resetearFormulario = () => {
     setFormValues(initialAlumnoValues);
     setAlumnoId(null);
@@ -106,7 +106,7 @@ const AlumnosFormulario: React.FC = () => {
     setSearchParams({});
   };
 
-  // Función para cargar inscripciones del alumno
+  // Cargar inscripciones del alumno
   const cargarInscripciones = useCallback(async (alumnoId: number | null) => {
     if (alumnoId) {
       const inscripcionesDelAlumno = await inscripcionesApi.listar(alumnoId);
@@ -116,6 +116,7 @@ const AlumnosFormulario: React.FC = () => {
     }
   }, []);
 
+  // Manejar cambio de alumno (buscado por ID)
   const handleBuscar = useCallback(
     async (id: string) => {
       try {
@@ -142,6 +143,7 @@ const AlumnosFormulario: React.FC = () => {
     [cargarInscripciones]
   );
 
+  // Manejar selección de alumno desde las sugerencias
   const handleSeleccionarAlumno = async (id: number, nombreCompleto: string) => {
     try {
       resetearFormulario();
@@ -156,7 +158,6 @@ const AlumnosFormulario: React.FC = () => {
       setNombreBusqueda(nombreCompleto);
       cargarInscripciones(alumno.id);
       setMensaje("");
-      // Ocultar sugerencias al seleccionar un alumno
       setShowSuggestions(false);
     } catch (error) {
       setMensaje("Alumno no encontrado.");
@@ -219,7 +220,6 @@ const AlumnosFormulario: React.FC = () => {
 
   useEffect(() => {
     const buscarSugerencias = async () => {
-      // Si no hay texto en el input, traemos la totalidad de alumnos
       if (debouncedNombreBusqueda.trim() === "") {
         const sugerencias = await alumnosApi.buscarPorNombre("");
         setSugerenciasAlumnos(sugerencias);
@@ -233,7 +233,6 @@ const AlumnosFormulario: React.FC = () => {
     buscarSugerencias();
   }, [debouncedNombreBusqueda]);
 
-  // Manejo de navegación por teclado en el input de búsqueda
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (sugerenciasAlumnos.length > 0) {
       if (e.key === "ArrowDown") {
@@ -262,7 +261,6 @@ const AlumnosFormulario: React.FC = () => {
     }
   };
 
-  // Detectar click fuera del contenedor de búsqueda para ocultar sugerencias
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (searchWrapperRef.current && !searchWrapperRef.current.contains(e.target as Node)) {
@@ -276,313 +274,316 @@ const AlumnosFormulario: React.FC = () => {
   }, []);
 
   return (
-    <div className="page-container">
-      <h1 className="page-title">Ficha de Alumno</h1>
-      <Formik
-        initialValues={formValues}
-        validationSchema={alumnoEsquema}
-        onSubmit={handleGuardarAlumno}
-        enableReinitialize
-      >
-        {({ isSubmitting, setFieldValue, resetForm }) => (
-          <Form className="formulario max-w-4xl mx-auto">
-            <div className="form-grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* Búsqueda por ID */}
-              <div className="col-span-full mb-4">
-                <label htmlFor="idBusqueda" className="auth-label">
-                  Número de Alumno:
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    id="idBusqueda"
-                    value={idBusqueda}
-                    onChange={(e) => {
-                      if (!alumnoId) {
-                        setIdBusqueda(e.target.value);
-                      }
-                    }}
-                    className="form-input flex-grow"
-                    readOnly={alumnoId !== null}
-                  />
-                  <Boton onClick={() => handleBuscar(idBusqueda)} className="page-button">
-                    <Search className="w-5 h-5 mr-2" />
-                    Buscar
-                  </Boton>
-                </div>
-              </div>
-
-              {/* Búsqueda por Nombre con sugerencias y navegación por teclado */}
-              <div className="col-span-full mb-4">
-                <label htmlFor="nombreBusqueda" className="auth-label">
-                  Buscar por Nombre:
-                </label>
-                <div className="relative" ref={searchWrapperRef}>
-                  <input
-                    type="text"
-                    id="nombreBusqueda"
-                    value={nombreBusqueda}
-                    onChange={(e) => {
-                      setNombreBusqueda(e.target.value);
-                      setShowSuggestions(true);
-                    }}
-                    onFocus={() => setShowSuggestions(true)}
-                    onKeyDown={handleKeyDown}
-                    className="form-input w-full"
-                  />
-                  {nombreBusqueda && (
-                    <Button
-                      type="button"
-                      onClick={() => {
-                        resetForm();
-                        resetearFormulario();
-                      }}
-                      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
-                    >
-                      Limpiar
-                      <X className="w-5 h-5" />
-                    </Button>
-                  )}
-                  {showSuggestions && sugerenciasAlumnos.length > 0 && (
-                    <ul className="sugerencias-lista absolute w-full bg-[hsl(var(--popover))] border border-[hsl(var(--border))] z-10">
-                      {sugerenciasAlumnos.map((alumno, index) => (
-                        <li
-                          key={alumno.id}
-                          onClick={() =>
-                            handleSeleccionarAlumno(
-                              alumno.id,
-                              `${alumno.nombre} ${alumno.apellido}`
-                            )
-                          }
-                          onMouseEnter={() => setActiveSuggestionIndex(index)}
-                          className={`sugerencia-item p-2 cursor-pointer ${index === activeSuggestionIndex ? "bg-[hsl(var(--muted))]" : ""
-                            }`}
-                        >
-                          <strong>{alumno.nombre}</strong> {alumno.apellido}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </div>
-
-              {/* Datos Personales */}
-              {[
-                { name: "nombre", label: "Nombre" },
-                { name: "apellido", label: "Apellido" },
-              ].map(({ name, label }) => (
-                <div key={name} className="mb-4">
-                  <label htmlFor={name} className="auth-label">
-                    {label}:
+    <ResponsiveContainer className="py-4">
+      <div className="page-container">
+        <h1 className="page-title">Ficha de Alumno</h1>
+        <Formik
+          initialValues={formValues}
+          validationSchema={alumnoEsquema}
+          onSubmit={handleGuardarAlumno}
+          enableReinitialize
+        >
+          {({ isSubmitting, setFieldValue, resetForm }) => (
+            <Form className="formulario max-w-4xl mx-auto">
+              <div className="form-grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Búsqueda por ID */}
+                <div className="col-span-full mb-4">
+                  <label htmlFor="idBusqueda" className="auth-label">
+                    Número de Alumno:
                   </label>
-                  <Field name={name} className="form-input" id={name} />
-                  <ErrorMessage name={name} component="div" className="auth-error" />
-                </div>
-              ))}
-
-              {/* Fecha de Nacimiento y Edad */}
-              <div className="mb-4">
-                <label htmlFor="fechaNacimiento" className="auth-label">
-                  Fecha de Nacimiento:
-                </label>
-                <Field name="fechaNacimiento" type="date" className="form-input" id="fechaNacimiento" />
-                <ErrorMessage name="fechaNacimiento" component="div" className="auth-error" />
-                {formValues.fechaNacimiento && (
-                  <div className="text-sm mt-1">
-                    Edad: {calcularEdad(formValues.fechaNacimiento)} años
-                  </div>
-                )}
-              </div>
-
-              {/* Fecha de Incorporación */}
-              <div className="mb-4">
-                <label htmlFor="fechaIncorporacion" className="auth-label">
-                  Fecha de Incorporación:
-                </label>
-                <Field name="fechaIncorporacion" type="date" className="form-input" id="fechaIncorporacion" />
-                <ErrorMessage name="fechaIncorporacion" component="div" className="auth-error" />
-              </div>
-
-              {[
-                { name: "celular1", label: "Celular 1" },
-                { name: "celular2", label: "Celular 2" },
-                { name: "email1", label: "Email", type: "email" },
-                { name: "documento", label: "Documento" },
-                { name: "nombrePadres", label: "Nombre de Padres" },
-              ].map(({ name, label, type = "text" }) => (
-                <div key={name} className="mb-4">
-                  <label htmlFor={name} className="auth-label">
-                    {label}:
-                  </label>
-                  <Field name={name} type={type} className="form-input" id={name} />
-                  <ErrorMessage name={name} component="div" className="auth-error" />
-                </div>
-              ))}
-
-              {/* Checkbox: Autorizado para salir solo */}
-              <div className="mb-4 col-span-full">
-                <label className="flex items-center space-x-2">
-                  <Field name="autorizadoParaSalirSolo" type="checkbox" className="form-checkbox" />
-                  <span>Autorizado para salir solo</span>
-                </label>
-              </div>
-
-              {/* Checkbox: Activo (solo en edición) */}
-              {alumnoId !== null && (
-                <div className="mb-4 col-span-full">
-                  <label className="flex items-center space-x-2">
-                    <Field name="activo">
-                      {({ field }: any) => (
-                        <input
-                          type="checkbox"
-                          {...field}
-                          checked={field.value === true}
-                          onChange={(e) => setFieldValue(field.name, e.target.checked)}
-                        />
-                      )}
-                    </Field>
-                    <span>Activo</span>
-                  </label>
-                </div>
-              )}
-
-              {/* Otras Notas */}
-              <div className="col-span-full mb-4">
-                <label htmlFor="otrasNotas" className="auth-label">
-                  Otras Notas:
-                </label>
-                <Field as="textarea" name="otrasNotas" id="otrasNotas" className="form-input h-24" />
-                <ErrorMessage name="otrasNotas" component="div" className="auth-error" />
-              </div>
-            </div>
-
-            <div className="form-acciones">
-              <Button type="submit" disabled={isSubmitting} className="page-button">
-                Guardar Alumno
-              </Button>
-              <Button
-                type="button"
-                onClick={() => {
-                  resetForm();
-                  resetearFormulario();
-                }}
-              >
-                Limpiar
-                <X className="w-5 h-5" />
-              </Button>
-              <Button type="button" onClick={() => navigate("/alumnos")}>
-                Volver al Listado
-              </Button>
-            </div>
-
-            {mensaje && (
-              <p
-                className={`form-mensaje ${mensaje.includes("correctamente") ? "form-mensaje-success" : "form-mensaje-error"}`}
-              >
-                {mensaje}
-              </p>
-            )}
-
-            {/* Inscripciones del Alumno */}
-            <fieldset className="form-fieldset mt-8">
-              <legend className="form-legend text-xl font-semibold">
-                Inscripciones del Alumno
-              </legend>
-              {alumnoId ? (
-                <>
-                  <div className="page-button-group flex justify-end mb-4">
-                    <Boton
-                      onClick={() => navigate(`/inscripciones/formulario?alumnoId=${alumnoId}`)}
-                      className="page-button"
-                    >
-                      Agregar Disciplina
-                    </Boton>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <Tabla
-                      encabezados={[
-                        "ID",
-                        "Disciplina",
-                        "Cuota",
-                        "Bonificación (%)",
-                        "Bonificación (monto)",
-                        "Total",
-                        "Acciones",
-                      ]}
-                      datos={[...inscripciones, { _totals: true } as any]}
-                      extraRender={(fila) => {
-                        if (fila._totals) {
-                          return [
-                            <span key="totales" className="font-bold text-center">
-                              Totales
-                            </span>,
-                            "",
-                            inscripciones
-                              .reduce((sum, ins) => sum + (ins.disciplina?.valorCuota || 0), 0)
-                              .toFixed(2),
-                            inscripciones
-                              .reduce((sum, ins) => sum + (ins.bonificacion?.porcentajeDescuento || 0), 0)
-                              .toFixed(2),
-                            inscripciones
-                              .reduce((sum, ins) => sum + (ins.bonificacion?.valorFijo || 0), 0)
-                              .toFixed(2),
-                            inscripciones
-                              .reduce((sum, ins) => {
-                                const cuota = ins.disciplina?.valorCuota || 0;
-                                const bonifPct = ins.bonificacion?.porcentajeDescuento || 0;
-                                const bonifMonto = ins.bonificacion?.valorFijo || 0;
-                                return sum + (cuota - bonifMonto - (cuota * bonifPct) / 100);
-                              }, 0)
-                              .toFixed(2),
-                            "",
-                          ];
-                        } else {
-                          const cuota = fila.disciplina?.valorCuota || 0;
-                          const bonifPct = fila.bonificacion?.porcentajeDescuento || 0;
-                          const bonifMonto = fila.bonificacion?.valorFijo || 0;
-                          const total = cuota - bonifMonto - (cuota * bonifPct) / 100;
-                          return [
-                            fila.id,
-                            fila.disciplina?.nombre ?? "Sin Disciplina",
-                            cuota.toFixed(2),
-                            bonifPct.toFixed(2),
-                            bonifMonto.toFixed(2),
-                            total.toFixed(2),
-                          ];
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      id="idBusqueda"
+                      value={idBusqueda}
+                      onChange={(e) => {
+                        if (!alumnoId) {
+                          setIdBusqueda(e.target.value);
                         }
                       }}
-                      acciones={(fila) => {
-                        if (fila._totals) return null;
-                        return (
-                          <div className="flex gap-2">
-                            <Boton
-                              onClick={() => navigate(`/inscripciones/formulario?id=${fila.id}`)}
-                              className="page-button-group flex justify-end mb-4"
-                            >
-                              Editar
-                            </Boton>
-                            <Boton
-                              onClick={() => handleEliminarInscripcion(fila.id)}
-                              className="bg-accent text-white hover:bg-accent/90"
-                            >
-                              Eliminar
-                            </Boton>
-                          </div>
-                        );
-                      }}
+                      className="form-input flex-grow"
+                      readOnly={alumnoId !== null}
                     />
+                    <Boton onClick={() => handleBuscar(idBusqueda)} className="page-button">
+                      <Search className="w-5 h-5 mr-2" />
+                      Buscar
+                    </Boton>
                   </div>
-                </>
-              ) : (
-                <p className="text-gray-500 text-sm mt-4">
-                  No se pueden gestionar inscripciones hasta que <strong>se guarde</strong> un alumno.
+                </div>
+
+                {/* Búsqueda por Nombre con sugerencias */}
+                <div className="col-span-full mb-4">
+                  <label htmlFor="nombreBusqueda" className="auth-label">
+                    Buscar por Nombre:
+                  </label>
+                  <div className="relative" ref={searchWrapperRef}>
+                    <input
+                      type="text"
+                      id="nombreBusqueda"
+                      value={nombreBusqueda}
+                      onChange={(e) => {
+                        setNombreBusqueda(e.target.value);
+                        setShowSuggestions(true);
+                      }}
+                      onFocus={() => setShowSuggestions(true)}
+                      onKeyDown={handleKeyDown}
+                      className="form-input w-full"
+                    />
+                    {nombreBusqueda && (
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          resetForm();
+                          resetearFormulario();
+                        }}
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
+                      >
+                        Limpiar
+                        <X className="w-5 h-5" />
+                      </Button>
+                    )}
+                    {showSuggestions && sugerenciasAlumnos.length > 0 && (
+                      <ul className="sugerencias-lista absolute w-full bg-[hsl(var(--popover))] border border-[hsl(var(--border))] z-10">
+                        {sugerenciasAlumnos.map((alumno, index) => (
+                          <li
+                            key={alumno.id}
+                            onClick={() =>
+                              handleSeleccionarAlumno(
+                                alumno.id,
+                                `${alumno.nombre} ${alumno.apellido}`
+                              )
+                            }
+                            onMouseEnter={() => setActiveSuggestionIndex(index)}
+                            className={`sugerencia-item p-2 cursor-pointer ${index === activeSuggestionIndex ? "bg-[hsl(var(--muted))]" : ""
+                              }`}
+                          >
+                            <strong>{alumno.nombre}</strong> {alumno.apellido}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+
+                {/* Datos Personales */}
+                {[
+                  { name: "nombre", label: "Nombre" },
+                  { name: "apellido", label: "Apellido" },
+                ].map(({ name, label }) => (
+                  <div key={name} className="mb-4">
+                    <label htmlFor={name} className="auth-label">
+                      {label}:
+                    </label>
+                    <Field name={name} className="form-input" id={name} />
+                    <ErrorMessage name={name} component="div" className="auth-error" />
+                  </div>
+                ))}
+
+                {/* Fecha de Nacimiento y Edad */}
+                <div className="mb-4">
+                  <label htmlFor="fechaNacimiento" className="auth-label">
+                    Fecha de Nacimiento:
+                  </label>
+                  <Field name="fechaNacimiento" type="date" className="form-input" id="fechaNacimiento" />
+                  <ErrorMessage name="fechaNacimiento" component="div" className="auth-error" />
+                  {formValues.fechaNacimiento && (
+                    <div className="text-sm mt-1">
+                      Edad: {calcularEdad(formValues.fechaNacimiento)} años
+                    </div>
+                  )}
+                </div>
+
+                {/* Fecha de Incorporación */}
+                <div className="mb-4">
+                  <label htmlFor="fechaIncorporacion" className="auth-label">
+                    Fecha de Incorporación:
+                  </label>
+                  <Field name="fechaIncorporacion" type="date" className="form-input" id="fechaIncorporacion" />
+                  <ErrorMessage name="fechaIncorporacion" component="div" className="auth-error" />
+                </div>
+
+                {[
+                  { name: "celular1", label: "Celular 1" },
+                  { name: "celular2", label: "Celular 2" },
+                  { name: "email1", label: "Email", type: "email" },
+                  { name: "documento", label: "Documento" },
+                  { name: "nombrePadres", label: "Nombre de Padres" },
+                ].map(({ name, label, type = "text" }) => (
+                  <div key={name} className="mb-4">
+                    <label htmlFor={name} className="auth-label">
+                      {label}:
+                    </label>
+                    <Field name={name} type={type} className="form-input" id={name} />
+                    <ErrorMessage name={name} component="div" className="auth-error" />
+                  </div>
+                ))}
+
+                {/* Checkbox: Autorizado para salir solo */}
+                <div className="mb-4 col-span-full">
+                  <label className="flex items-center space-x-2">
+                    <Field name="autorizadoParaSalirSolo" type="checkbox" className="form-checkbox" />
+                    <span>Autorizado para salir solo</span>
+                  </label>
+                </div>
+
+                {/* Checkbox: Activo (solo en edición) */}
+                {alumnoId !== null && (
+                  <div className="mb-4 col-span-full">
+                    <label className="flex items-center space-x-2">
+                      <Field name="activo">
+                        {({ field }: { field: any }) => (
+                          <input
+                            type="checkbox"
+                            {...field}
+                            checked={field.value === true}
+                            onChange={(e) => setFieldValue(field.name, e.target.checked)}
+                          />
+                        )}
+                      </Field>
+                      <span>Activo</span>
+                    </label>
+                  </div>
+                )}
+
+                {/* Otras Notas */}
+                <div className="col-span-full mb-4">
+                  <label htmlFor="otrasNotas" className="auth-label">
+                    Otras Notas:
+                  </label>
+                  <Field as="textarea" name="otrasNotas" id="otrasNotas" className="form-input h-24" />
+                  <ErrorMessage name="otrasNotas" component="div" className="auth-error" />
+                </div>
+              </div>
+
+              <div className="form-acciones">
+                <Button type="submit" disabled={isSubmitting} className="page-button">
+                  Guardar Alumno
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    resetForm();
+                    resetearFormulario();
+                  }}
+                >
+                  Limpiar
+                  <X className="w-5 h-5" />
+                </Button>
+                <Button type="button" onClick={() => navigate("/alumnos")}>
+                  Volver al Listado
+                </Button>
+              </div>
+
+              {mensaje && (
+                <p
+                  className={`form-mensaje ${mensaje.includes("correctamente") ? "form-mensaje-success" : "form-mensaje-error"
+                    }`}
+                >
+                  {mensaje}
                 </p>
               )}
-            </fieldset>
-          </Form>
-        )}
-      </Formik>
-    </div>
+
+              {/* Inscripciones del Alumno */}
+              <fieldset className="form-fieldset mt-8">
+                <legend className="form-legend text-xl font-semibold">
+                  Inscripciones del Alumno
+                </legend>
+                {alumnoId ? (
+                  <>
+                    <div className="page-button-group flex justify-end mb-4">
+                      <Boton
+                        onClick={() => navigate(`/inscripciones/formulario?alumnoId=${alumnoId}`)}
+                        className="page-button"
+                      >
+                        Agregar Disciplina
+                      </Boton>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <Tabla
+                        headers={[
+                          "ID",
+                          "Disciplina",
+                          "Cuota",
+                          "Bonificación (%)",
+                          "Bonificación (monto)",
+                          "Total",
+                          "Acciones",
+                        ]}
+                        data={[...inscripciones, { _totals: true } as any]}
+                        customRender={(fila: any) => {
+                          if (fila._totals) {
+                            return [
+                              <span key="totales" className="font-bold text-center">
+                                Totales
+                              </span>,
+                              "",
+                              inscripciones
+                                .reduce((sum, ins) => sum + (ins.disciplina?.valorCuota || 0), 0)
+                                .toFixed(2),
+                              inscripciones
+                                .reduce((sum, ins) => sum + (ins.bonificacion?.porcentajeDescuento || 0), 0)
+                                .toFixed(2),
+                              inscripciones
+                                .reduce((sum, ins) => sum + (ins.bonificacion?.valorFijo || 0), 0)
+                                .toFixed(2),
+                              inscripciones
+                                .reduce((sum, ins) => {
+                                  const cuota = ins.disciplina?.valorCuota || 0;
+                                  const bonifPct = ins.bonificacion?.porcentajeDescuento || 0;
+                                  const bonifMonto = ins.bonificacion?.valorFijo || 0;
+                                  return sum + (cuota - bonifMonto - (cuota * bonifPct) / 100);
+                                }, 0)
+                                .toFixed(2),
+                              "",
+                            ];
+                          } else {
+                            const cuota = fila.disciplina?.valorCuota || 0;
+                            const bonifPct = fila.bonificacion?.porcentajeDescuento || 0;
+                            const bonifMonto = fila.bonificacion?.valorFijo || 0;
+                            const total = cuota - bonifMonto - (cuota * bonifPct) / 100;
+                            return [
+                              fila.id,
+                              fila.disciplina?.nombre ?? "Sin Disciplina",
+                              cuota.toFixed(2),
+                              bonifPct.toFixed(2),
+                              bonifMonto.toFixed(2),
+                              total.toFixed(2),
+                            ];
+                          }
+                        }}
+                        actions={(fila: any) => {
+                          if (fila._totals) return null;
+                          return (
+                            <div className="flex gap-2">
+                              <Boton
+                                onClick={() => navigate(`/inscripciones/formulario?id=${fila.id}`)}
+                                className="page-button-group flex justify-end mb-4"
+                              >
+                                Editar
+                              </Boton>
+                              <Boton
+                                onClick={() => handleEliminarInscripcion(fila.id)}
+                                className="bg-accent text-white hover:bg-accent/90"
+                              >
+                                Eliminar
+                              </Boton>
+                            </div>
+                          );
+                        }}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-gray-500 text-sm mt-4">
+                    No se pueden gestionar inscripciones hasta que <strong>se guarde</strong> un alumno.
+                  </p>
+                )}
+              </fieldset>
+            </Form>
+          )}
+        </Formik>
+      </div>
+    </ResponsiveContainer>
   );
 };
 

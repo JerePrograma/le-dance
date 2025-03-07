@@ -25,7 +25,7 @@ const ConceptosPagina = () => {
             const response = await conceptosApi.listarConceptos();
             setConceptos(response);
         } catch (error) {
-            console.error("Error al cargar conceptos:", error);
+            toast.error("Error al cargar conceptos:");
             setError("Error al cargar conceptos.");
         } finally {
             setLoading(false);
@@ -75,9 +75,9 @@ const ConceptosPagina = () => {
             </div>
             <div className="page-card">
                 <Tabla
-                    encabezados={["ID", "Descripcion", "Precio", "SubConcepto", "Acciones"]}
-                    datos={currentItems}
-                    acciones={(fila: ConceptoResponse) => (
+                    headers={["ID", "Descripcion", "Precio", "SubConcepto", "Acciones"]}
+                    data={currentItems}
+                    actions={(fila: ConceptoResponse) => (
                         <div className="flex gap-2">
                             <Boton
                                 onClick={() => navigate(`/conceptos/formulario-concepto?id=${fila.id}`)}
@@ -97,7 +97,7 @@ const ConceptosPagina = () => {
                             </Boton>
                         </div>
                     )}
-                    extraRender={(fila: ConceptoResponse) => [
+                    customRender={(fila: ConceptoResponse) => [
                         fila.id,
                         fila.descripcion,
                         fila.precio,

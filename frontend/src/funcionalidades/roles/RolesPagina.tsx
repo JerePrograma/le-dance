@@ -7,6 +7,7 @@ import api from "../../api/axiosConfig"
 import Pagination from "../../componentes/comunes/Pagination" // Importamos el nuevo componente de paginación
 import Boton from "../../componentes/comunes/Boton"
 import { PlusCircle, Pencil, Trash2 } from "lucide-react"
+import { toast } from "react-toastify"
 
 interface Rol {
   id: number
@@ -28,7 +29,7 @@ const RolesPagina = () => {
       const response = await api.get<Rol[]>("/roles")
       setRoles(response.data)
     } catch (error) {
-      console.error("Error al cargar roles:", error)
+      toast.error("Error al cargar roles:")
       setError("Error al cargar roles.")
     } finally {
       setLoading(false)
@@ -68,9 +69,9 @@ const RolesPagina = () => {
       </div>
       <div className="page-card">
         <Tabla
-          encabezados={["ID", "Descripcion", "Acciones"]}
-          datos={currentItems}
-          acciones={(fila) => (
+          headers={["ID", "Descripcion", "Acciones"]}
+          data={currentItems}
+          actions={(fila) => (
             <div className="flex gap-2">
               <Boton
                 onClick={() => navigate(`/roles/formulario?id=${fila.id}`)}
@@ -86,7 +87,7 @@ const RolesPagina = () => {
               </Boton>
             </div>
           )}
-          extraRender={(fila) => [fila.id, fila.descripcion]}
+          customRender={(fila) => [fila.id, fila.descripcion]}
         />
       </div>
       {pageCount > 1 && (

@@ -824,6 +824,7 @@ export interface MetodoPagoResponse {
 // --- Valores para el formulario de cobranza ---
 // FORMULARIO
 export interface CobranzasFormValues {
+  totalACobrar: string | number | readonly string[] | undefined;
   id: number;
   reciboNro: string;
   alumno: string;
@@ -905,7 +906,7 @@ export interface ReporteMensualidadDTO {
   alumno: {
     id: number;
     nombre: string;
-  }
+  };
   cuota: string;
   importe: number;
   bonificacion: {
@@ -913,7 +914,7 @@ export interface ReporteMensualidadDTO {
     descripcion: string;
     porcentajeDescuento: number;
     valorFijo: number;
-  }
+  };
   total: number;
   recargo: number;
   estado: string;
@@ -921,7 +922,8 @@ export interface ReporteMensualidadDTO {
     id: number;
     nombre: string;
     valorCuota: number;
-  }
+  };
+  descripcion: string; // Nuevo campo agregado
 }
 
 export interface SalonRegistroRequest {

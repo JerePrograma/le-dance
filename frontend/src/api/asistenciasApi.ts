@@ -28,7 +28,7 @@ const asistenciasApi = {
       });
       return response.data;
     } catch (error: any) {
-      console.error("Error al obtener asistencia mensual por parámetros:", error);
+      toast.error("Error al obtener asistencia mensual por parámetros:", error);
       toast.error("Error al obtener la asistencia mensual. Intente nuevamente.");
       return null;
     }
@@ -43,7 +43,7 @@ const asistenciasApi = {
       const response = await api.post("/asistencias-mensuales", request);
       return response.data;
     } catch (error: any) {
-      console.error("Error al crear asistencia mensual:", error);
+      toast.error("Error al crear asistencia mensual:", error);
       toast.error("Error al crear la asistencia mensual. Intente nuevamente.");
       throw error;
     }
@@ -62,7 +62,7 @@ const asistenciasApi = {
       });
       return response.data;
     } catch (error: any) {
-      console.error("Error al obtener listado de asistencias mensuales:", error);
+      toast.error("Error al obtener listado de asistencias mensuales:", error);
       if (error.response?.status === 404) {
         toast.warn("No se encontraron asistencias para los criterios seleccionados.");
         return [];
@@ -82,7 +82,7 @@ const asistenciasApi = {
       asistenciaCache.set(id, response.data);
       return response.data;
     } catch (error: any) {
-      console.error("Error al actualizar asistencia mensual:", error);
+      toast.error("Error al actualizar asistencia mensual:", error);
       toast.error("Error al actualizar asistencia. Intente nuevamente.");
       throw error;
     }
@@ -101,7 +101,7 @@ const asistenciasApi = {
       });
       return response.data;
     } catch (error: any) {
-      console.error("Error al obtener asistencias por disciplina y fecha:", error);
+      toast.error("Error al obtener asistencias por disciplina y fecha:", error);
       toast.error("Error al obtener asistencias. Intente nuevamente.");
       throw error;
     }
@@ -115,7 +115,7 @@ const asistenciasApi = {
       const response = await api.get(`/asistencias-diarias/por-asistencia-mensual/${asistenciaMensualId}`);
       return response.data;
     } catch (error: any) {
-      console.error("Error al obtener asistencias diarias:", error);
+      toast.error("Error al obtener asistencias diarias:", error);
       toast.error("Error al obtener asistencias. Intente nuevamente.");
       throw error;
     }
@@ -130,7 +130,7 @@ const asistenciasApi = {
       const response = await api.put("/asistencias-diarias/registrar", request);
       return response.data;
     } catch (error: any) {
-      console.error("Error al registrar asistencia diaria:", error);
+      toast.error("Error al registrar asistencia diaria:", error);
       toast.error("No se pudo registrar la asistencia. Verifica los datos.");
       throw error;
     }
@@ -145,7 +145,7 @@ const asistenciasApi = {
       const response = await api.put(`/asistencias-diarias/${id}`, request);
       return response.data;
     } catch (error: any) {
-      console.error("Error al modificar asistencia diaria:", error);
+      toast.error("Error al modificar asistencia diaria:", error);
       toast.error("No se pudo modificar la asistencia. Intente nuevamente.");
       throw error;
     }
@@ -157,7 +157,7 @@ const asistenciasApi = {
       await api.delete(`/asistencias-diarias/${id}`);
       toast.success("Asistencia eliminada correctamente.");
     } catch (error: any) {
-      console.error("Error al eliminar asistencia diaria:", error);
+      toast.error("Error al eliminar asistencia diaria:", error);
       toast.error("Error al eliminar asistencia. Intente nuevamente.");
       throw error;
     }
@@ -169,7 +169,7 @@ const asistenciasApi = {
       const response = await api.post("/asistencias-mensuales/crear-asistencias-activos-detallado");
       return response.data;
     } catch (error: any) {
-      console.error("Error al crear asistencias para inscripciones activas:", error);
+      toast.error("Error al crear asistencias para inscripciones activas:", error);
       toast.error("Error al crear las asistencias. Intente nuevamente.");
       throw error;
     }
@@ -181,7 +181,7 @@ const asistenciasApi = {
       const response = await api.get("/disciplinas/listado");
       return response.data;
     } catch (error: any) {
-      console.error("Error al obtener disciplinas:", error);
+      toast.error("Error al obtener disciplinas:", error);
       toast.error("Error al obtener disciplinas. Intente nuevamente.");
       throw error;
     }

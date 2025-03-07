@@ -8,6 +8,7 @@ import Boton from "../../componentes/comunes/Boton";
 import { PlusCircle, Pencil, Trash2 } from "lucide-react";
 import Pagination from "../../componentes/comunes/Pagination";
 import disciplinasApi from "../../api/disciplinasApi";
+import { toast } from "react-toastify";
 
 interface Disciplina {
   id: number;
@@ -32,7 +33,7 @@ const Disciplinas = () => {
       const response = await api.get<Disciplina[]>("/disciplinas");
       setDisciplinas(response.data);
     } catch (error) {
-      console.error("Error al cargar disciplinas:", error);
+      toast.error("Error al cargar disciplinas:");
       setError("Error al cargar disciplinas.");
     } finally {
       setLoading(false);
@@ -80,7 +81,7 @@ const Disciplinas = () => {
         await disciplinasApi.eliminarDisciplina(id);
         setDisciplinas((prev) => prev.filter((d) => d.id !== id));
       } catch (err) {
-        console.error("Error al eliminar disciplina:", err);
+        toast.error("Error al eliminar disciplina:");
       }
     }
   }, []);
@@ -144,10 +145,10 @@ const Disciplinas = () => {
 
       <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
         <Tabla
-          encabezados={["ID", "Nombre", "Horario", "Acciones"]}
-          datos={currentItems}
-          extraRender={(fila) => [fila.id, fila.nombre, fila.horario]}
-          acciones={(fila) => (
+          headers={["ID", "Nombre", "Horario", "Acciones"]}
+          data={currentItems}
+          customRender={(fila) => [fila.id, fila.nombre, fila.horario]}
+          actions={(fila) => (
             <div className="flex gap-2">
               <Boton
                 onClick={() => navigate(`/disciplinas/formulario?id=${fila.id}`)}

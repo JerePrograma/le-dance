@@ -1,4 +1,5 @@
 import React, { Component, ReactNode } from "react";
+import { toast } from "react-toastify";
 
 interface ErrorBoundaryProps {
     children: ReactNode;
@@ -18,8 +19,8 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
         return { hasError: true };
     }
 
-    componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-        console.error("Error capturado en ErrorBoundary:", error, errorInfo);
+    componentDidCatch(_error: Error, _errorInfo: React.ErrorInfo) {
+        toast.error("Error capturado en ErrorBoundary:");
 
         // 🔥 Redireccion manual al Dashboard despues de un pequeño retraso
         setTimeout(() => {

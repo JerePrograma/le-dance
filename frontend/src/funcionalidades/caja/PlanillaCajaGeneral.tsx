@@ -33,7 +33,6 @@ const PlanillaCajaGeneral: React.FC = () => {
             setLista(data);
         } catch (err) {
             toast.error("Error al cargar Planilla de Caja General");
-            console.error(err);
         } finally {
             setLoading(false);
         }
@@ -84,9 +83,9 @@ const PlanillaCajaGeneral: React.FC = () => {
                     <p>Cargando...</p>
                 ) : (
                     <Tabla
-                        encabezados={["Fecha", "R.Desde-Hasta", "Efectivo", "Transferencia", "Total"]}
-                        datos={lista}
-                        extraRender={(item: CajaDiariaDTO) => [
+                        headers={["Fecha", "R.Desde-Hasta", "Efectivo", "Transferencia", "Total"]}
+                        data={lista}
+                        customRender={(item: CajaDiariaDTO) => [
                             // Convertir "AAAA-MM-DD" a "DD/MM/AAAA" si deseas
                             new Date(item.fecha).toLocaleDateString("es-AR"),
                             item.rangoRecibos,

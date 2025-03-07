@@ -38,7 +38,7 @@ const SubConceptosFormulario: React.FC = () => {
             setSubConceptoId(sub.id);
             setMensaje("Subconcepto encontrado.");
         } catch (error) {
-            console.error("Error al buscar el subconcepto:", error);
+            toast.error("Error al buscar el subconcepto:");
             setMensaje("Subconcepto no encontrado.");
             resetearFormulario();
         }
@@ -72,7 +72,6 @@ const SubConceptosFormulario: React.FC = () => {
                 }
                 setMensaje("Subconcepto guardado exitosamente.");
             } catch (error) {
-                console.error("Error al guardar el subconcepto:", error);
                 toast.error("Error al guardar el subconcepto.");
                 setMensaje("Error al guardar el subconcepto.");
             }

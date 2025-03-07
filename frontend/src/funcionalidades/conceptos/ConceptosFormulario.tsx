@@ -62,7 +62,7 @@ const ConceptosFormulario: React.FC = () => {
         setConceptoId(concepto.id);
         setMensaje("Concepto encontrado.");
       } catch (error) {
-        console.error("Error al buscar el concepto:", error);
+        toast.error("Error al buscar el concepto:");
         setMensaje("Concepto no encontrado.");
         setFormValues({
           ...initialConceptoValues,
@@ -85,7 +85,7 @@ const ConceptosFormulario: React.FC = () => {
           const sugerencias = await subConceptosApi.buscarSubConceptos(debouncedSubConceptoBusqueda);
           setSugerenciasSubConceptos(sugerencias);
         } catch (error) {
-          console.error("Error al buscar subconceptos:", error);
+          toast.error("Error al buscar subconceptos:");
           setSugerenciasSubConceptos([]);
         }
       } else {
@@ -133,7 +133,6 @@ const ConceptosFormulario: React.FC = () => {
         setMensaje("Concepto guardado exitosamente.");
         navigate("/conceptos");
       } catch (error) {
-        console.error("Error al guardar el concepto:", error);
         toast.error("Error al guardar el concepto.");
         setMensaje("Error al guardar el concepto.");
       }

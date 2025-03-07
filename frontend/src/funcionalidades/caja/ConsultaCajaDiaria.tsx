@@ -70,7 +70,6 @@ const ConsultaCajaDiaria: React.FC = () => {
             setData(mappedDetalle);
         } catch (err) {
             toast.error("Error al consultar la caja diaria.");
-            console.error(err);
         } finally {
             setLoading(false);
         }
@@ -139,7 +138,6 @@ const ConsultaCajaDiaria: React.FC = () => {
             handleVer();
         } catch (err) {
             toast.error("Error al agregar Egreso.");
-            console.error(err);
         }
     };
 
@@ -170,9 +168,9 @@ const ConsultaCajaDiaria: React.FC = () => {
                     <p>Cargando...</p>
                 ) : (
                     <Tabla
-                        encabezados={["Recibo", "Codigo", "Alumno", "Observaciones", "Importe"]}
-                        datos={pagos}
-                        extraRender={(p: PagoDelDia) => [
+                        headers={["Recibo", "Codigo", "Alumno", "Observaciones", "Importe"]}
+                        data={pagos}
+                        customRender={(p: PagoDelDia) => [
                             p.id, // Recibo
                             p.alumno?.id || "",
                             p.alumno ? `${p.alumno.nombre} ${p.alumno.apellido}` : "",
@@ -187,9 +185,9 @@ const ConsultaCajaDiaria: React.FC = () => {
                 <div className="border p-2 mt-4">
                     <h2 className="font-semibold mb-2">Egresos del dia</h2>
                     <Tabla
-                        encabezados={["ID", "Observaciones", "Monto"]}
-                        datos={egresos}
-                        extraRender={(e: EgresoDelDia) => [
+                        headers={["ID", "Observaciones", "Monto"]}
+                        data={egresos}
+                        customRender={(e: EgresoDelDia) => [
                             e.id,
                             e.observaciones,
                             e.monto.toLocaleString(),

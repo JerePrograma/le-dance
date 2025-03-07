@@ -26,7 +26,7 @@ const TipoStocks = () => {
             const response = await tipoStocksApi.listarTiposStock()
             setTipos(response)
         } catch (error) {
-            console.error("Error al cargar tipos de stock:", error)
+            toast.error("Error al cargar tipos de stock:")
             setError("Error al cargar tipos de stock.")
         } finally {
             setLoading(false)
@@ -80,9 +80,9 @@ const TipoStocks = () => {
             </div>
             <div className="page-card">
                 <Tabla
-                    encabezados={["ID", "Descripcion", "Activo", "Acciones"]}
-                    datos={currentItems}
-                    acciones={(fila) => (
+                    headers={["ID", "Descripcion", "Activo", "Acciones"]}
+                    data={currentItems}
+                    actions={(fila) => (
                         <div className="flex gap-2">
                             <Boton
                                 onClick={() => navigate(`/tipo-stocks/formulario?id=${fila.id}`)}
@@ -102,7 +102,7 @@ const TipoStocks = () => {
                             </Boton>
                         </div>
                     )}
-                    extraRender={(fila) => [fila.id, fila.descripcion, fila.activo ? "Si" : "No"]}
+                    customRender={(fila) => [fila.id, fila.descripcion, fila.activo ? "Si" : "No"]}
                 />
             </div>
             {pageCount > 1 && (

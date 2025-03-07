@@ -26,7 +26,7 @@ const Stocks = () => {
             const response = await stocksApi.listarStocks()
             setStocks(response)
         } catch (error) {
-            console.error("Error al cargar stocks:", error)
+            toast.error("Error al cargar stocks:")
             setError("Error al cargar stocks.")
         } finally {
             setLoading(false)
@@ -81,7 +81,7 @@ const Stocks = () => {
             </div>
             <div className="page-card">
                 <Tabla
-                    encabezados={[
+                    headers={[
                         "ID",
                         "Nombre",
                         "Precio",
@@ -93,8 +93,8 @@ const Stocks = () => {
                         "Activo",
                         "Acciones",
                     ]}
-                    datos={currentItems}
-                    acciones={(fila) => (
+                    data={currentItems}
+                    actions={(fila) => (
                         <div className="flex gap-2">
                             <Boton
                                 onClick={() => navigate(`/stocks/formulario?id=${fila.id}`)}
@@ -114,7 +114,7 @@ const Stocks = () => {
                             </Boton>
                         </div>
                     )}
-                    extraRender={(fila) => [
+                    customRender={(fila) => [
                         fila.id,
                         fila.nombre,
                         fila.precio,

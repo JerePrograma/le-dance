@@ -1,4 +1,3 @@
-// ReporteMensualidadDTO.java
 package ledance.dto.reporte;
 
 import ledance.dto.alumno.response.AlumnoListadoResponse;
@@ -14,5 +13,6 @@ public record ReporteMensualidadDTO(
         Double total,
         Double recargo,
         String estado,
-        DisciplinaListadoResponse disciplina
+        DisciplinaListadoResponse disciplina,
+        String descripcion  // Nuevo campo agregado
 ) {}

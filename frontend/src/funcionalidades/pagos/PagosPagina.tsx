@@ -9,6 +9,7 @@ import api from "../../api/axiosConfig"
 import Pagination from "../../componentes/comunes/Pagination" // Importamos el nuevo componente de paginación
 import Boton from "../../componentes/comunes/Boton"
 import { PlusCircle, Pencil, Trash2 } from "lucide-react"
+import { toast } from "react-toastify"
 
 interface Pago {
     id: number
@@ -38,7 +39,7 @@ const PaymentList: React.FC = () => {
             const response = await api.get<Pago[]>("/pagos")
             setPagos(response.data)
         } catch (error) {
-            console.error("Error al cargar pagos:", error)
+            toast.error("Error al cargar pagos:")
             setError("Error al cargar pagos.")
         } finally {
             setLoading(false)
@@ -70,7 +71,7 @@ const PaymentList: React.FC = () => {
             // Actualizamos la lista despues de "eliminar" (marcar como inactivo)
             fetchPagos()
         } catch (error) {
-            console.error("Error al eliminar pago:", error)
+            toast.error("Error al eliminar pago:")
         }
     }
 
@@ -88,9 +89,9 @@ const PaymentList: React.FC = () => {
             </div>
             <div className="page-card">
                 <Tabla
-                    encabezados={["ID", "Fecha", "Monto", "Metodo de Pago", "Saldo Restante", "Estado", "Acciones"]}
-                    datos={currentItems}
-                    extraRender={(fila) => [
+                    headers={["ID", "Fecha", "Monto", "Metodo de Pago", "Saldo Restante", "Estado", "Acciones"]}
+                    data={currentItems}
+                    customRender={(fila) => [
                         fila.id,
                         fila.fecha,
                         fila.monto,
@@ -98,7 +99,7 @@ const PaymentList: React.FC = () => {
                         fila.saldoRestante,
                         fila.estadoPago,
                     ]}
-                    acciones={(fila) => (
+                    actions={(fila) => (
                         <div className="flex gap-2">
                             <Boton
                                 onClick={() => navigate(`/pagos/formulario?id=${fila.id}`)}

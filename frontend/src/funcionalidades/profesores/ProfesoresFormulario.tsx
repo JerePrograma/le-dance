@@ -56,7 +56,7 @@ const ProfesoresFormulario: React.FC = () => {
       setProfesorId(profesor.id)
       setMensaje("Profesor encontrado.")
     } catch (error) {
-      console.error("Error al buscar el profesor:", error)
+      toast.error("Error al buscar el profesor:")
       setMensaje("Profesor no encontrado.")
       resetearFormulario()
     }
@@ -97,7 +97,6 @@ const ProfesoresFormulario: React.FC = () => {
         }
         setMensaje("Profesor guardado exitosamente.")
       } catch (error) {
-        console.error("Error al guardar el profesor:", error)
         toast.error("Error al guardar el profesor.")
         setMensaje("Error al guardar el profesor.")
       }

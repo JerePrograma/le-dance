@@ -8,6 +8,7 @@ import Boton from "../../componentes/comunes/Boton"
 import { PlusCircle, Pencil, Trash2 } from "lucide-react"
 import type { BonificacionResponse } from "../../types/types"
 import Pagination from "../../componentes/comunes/Pagination"
+import { toast } from "react-toastify"
 
 const Bonificaciones = () => {
   const [bonificaciones, setBonificaciones] = useState<BonificacionResponse[]>([])
@@ -24,7 +25,7 @@ const Bonificaciones = () => {
       const response = await api.get<BonificacionResponse[]>("/bonificaciones")
       setBonificaciones(response.data)
     } catch (error) {
-      console.error("Error al cargar bonificaciones:", error)
+      toast.error("Error al cargar bonificaciones:")
       setError("Error al cargar bonificaciones.")
     } finally {
       setLoading(false)
@@ -68,16 +69,16 @@ const Bonificaciones = () => {
       </div>
       <div className="page-card">
         <Tabla
-          encabezados={["ID", "Descripcion", "Descuento (%)", "Descuento (monto)", "Activo", "Acciones"]}
-          datos={currentItems}
-          extraRender={(fila) => [
+          headers={["ID", "Descripcion", "Descuento (%)", "Descuento (monto)", "Activo", "Acciones"]}
+          data={currentItems}
+          customRender={(fila) => [
             fila.id,
             fila.descripcion,
             fila.porcentajeDescuento, // Columna de descuento en porcentaje
             fila.valorFijo, // Columna de descuento en monto fijo
             fila.activo ? "Si" : "No",
           ]}
-          acciones={(fila) => (
+          actions={(fila) => (
             <div className="flex gap-2">
               <Boton
                 onClick={() => navigate(`/bonificaciones/formulario?id=${fila.id}`)}

@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import reporteMensualidadApi from "../api/reporteMensualidadApi";
 import { AlumnoListadoResponse, ReporteMensualidadDTO } from "../types/types";
+import { toast } from "react-toastify";
 
 const formatearFecha = (d: Date): string =>
     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
@@ -20,11 +21,10 @@ export const useCargaMensualidades = (alumnos: AlumnoListadoResponse[]) => {
 
             const alumnoSeleccionado = alumnos.find((a) => a.id === alumnoId);
             if (!alumnoSeleccionado) {
-                console.error("No se encontró el alumno seleccionado");
+                toast.error("No se encontró el alumno seleccionado");
                 return [];
             }
             const alumnoNombre = `${alumnoSeleccionado.nombre} ${alumnoSeleccionado.apellido}`;
-            console.log("Buscando mensualidades para:", { fechaInicio, alumnoNombre });
 
             const mensualidades: ReporteMensualidadDTO[] =
                 await reporteMensualidadApi.buscarMensualidadesAlumno({

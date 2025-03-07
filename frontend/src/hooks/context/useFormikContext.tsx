@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useFormikContext } from "formik";
 import { CobranzasFormValues, ConceptoResponse, MatriculaResponse } from "../../types/types";
+import { toast } from "react-toastify";
 
 interface MatriculaAutoAddProps {
     matricula: MatriculaResponse | null;
@@ -18,7 +19,7 @@ export const MatriculaAutoAdd: React.FC<MatriculaAutoAddProps> = ({ matricula, c
                     c.descripcion.toLowerCase().includes("matricula")
             );
             if (!conceptoMatricula) {
-                console.error("No se encontro el concepto de matricula en la lista.");
+                toast.error("No se encontro el concepto de matricula en la lista.");
                 return;
             }
             if (values.matriculaRemoved) return;

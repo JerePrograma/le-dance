@@ -26,7 +26,7 @@ const SubConceptos = () => {
             const response = await subConceptosApi.listarSubConceptos()
             setSubConceptos(response)
         } catch (error) {
-            console.error("Error al cargar subconceptos:", error)
+            toast.error("Error al cargar subconceptos:")
             setError("Error al cargar subconceptos.")
         } finally {
             setLoading(false)
@@ -80,9 +80,9 @@ const SubConceptos = () => {
             </div>
             <div className="page-card">
                 <Tabla
-                    encabezados={["ID", "Descripcion", "Acciones"]}
-                    datos={currentItems}
-                    acciones={(fila: SubConceptoResponse) => (
+                    headers={["ID", "Descripcion", "Acciones"]}
+                    data={currentItems}
+                    actions={(fila: SubConceptoResponse) => (
                         <div className="flex gap-2">
                             <Boton
                                 onClick={() => navigate(`/subconceptos/formulario?id=${fila.id}`)}
@@ -102,7 +102,7 @@ const SubConceptos = () => {
                             </Boton>
                         </div>
                     )}
-                    extraRender={(fila: SubConceptoResponse) => [fila.id, fila.descripcion]}
+                    customRender={(fila: SubConceptoResponse) => [fila.id, fila.descripcion]}
                 />
             </div>
             {pageCount > 1 && (

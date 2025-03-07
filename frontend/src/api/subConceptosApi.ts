@@ -4,6 +4,7 @@ import type {
   SubConceptoRegistroRequest,
   SubConceptoModificacionRequest
 } from "../types/types";
+import { toast } from "react-toastify";
 
 // Obtiene la lista de todos los subconceptos.
 const listarSubConceptos = async (): Promise<SubConceptoResponse[]> => {
@@ -11,7 +12,7 @@ const listarSubConceptos = async (): Promise<SubConceptoResponse[]> => {
     const { data } = await api.get<SubConceptoResponse[]>("/sub-conceptos");
     return data;
   } catch (error) {
-    console.error("Error al listar subconceptos:", error);
+    toast.error("Error al listar subconceptos:");
     throw error;
   }
 };
@@ -22,7 +23,7 @@ const obtenerSubConceptoPorId = async (id: number): Promise<SubConceptoResponse>
     const { data } = await api.get<SubConceptoResponse>(`/sub-conceptos/${id}`);
     return data;
   } catch (error) {
-    console.error(`Error al obtener subconcepto con id ${id}:`, error);
+    toast.error(`Error al obtener subconcepto con id ${id}:`);
     throw error;
   }
 };
@@ -37,7 +38,7 @@ const obtenerSubConceptoPorDescripcion = async (
     );
     return data.length > 0 ? data[0] : null;
   } catch (error) {
-    console.error("Error al obtener subconcepto por descripcion:", error);
+    toast.error("Error al obtener subconcepto por descripcion:");
     return null;
   }
 };
@@ -50,7 +51,7 @@ const registrarSubConcepto = async (
     const { data } = await api.post<SubConceptoResponse>("/sub-conceptos", request);
     return data;
   } catch (error) {
-    console.error("Error al registrar subconcepto:", error);
+    toast.error("Error al registrar subconcepto:");
     throw error;
   }
 };
@@ -64,7 +65,7 @@ const buscarSubConceptos = async (nombre: string): Promise<SubConceptoResponse[]
     );
     return data;
   } catch (error) {
-    console.error("Error al buscar subconceptos por nombre:", error);
+    toast.error("Error al buscar subconceptos por nombre:");
     throw error;
   }
 };
@@ -78,7 +79,7 @@ const actualizarSubConcepto = async (
     const { data } = await api.put<SubConceptoResponse>(`/sub-conceptos/${id}`, request);
     return data;
   } catch (error) {
-    console.error(`Error al actualizar subconcepto con id ${id}:`, error);
+    toast.error(`Error al actualizar subconcepto con id ${id}:`);
     throw error;
   }
 };
@@ -88,7 +89,7 @@ const eliminarSubConcepto = async (id: number): Promise<void> => {
   try {
     await api.delete(`/sub-conceptos/${id}`);
   } catch (error) {
-    console.error(`Error al eliminar subconcepto con id ${id}:`, error);
+    toast.error(`Error al eliminar subconcepto con id ${id}:`);
     throw error;
   }
 };

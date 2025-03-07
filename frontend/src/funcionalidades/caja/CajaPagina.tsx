@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom"
 import Pagination from "../../componentes/comunes/Pagination" // Importamos el nuevo componente de paginación
 import api from "../../api/axiosConfig"
 import type { CajaResponse, PageResponse } from "../../types/types"
+import { toast } from "react-toastify"
 
 const CajaPagina: React.FC = () => {
     const [cajas, setCajas] = useState<CajaResponse[]>([])
@@ -22,7 +23,7 @@ const CajaPagina: React.FC = () => {
             const response = await api.get<PageResponse<CajaResponse>>("/cajas")
             setCajas(response.data.content)
         } catch (err) {
-            console.error("Error al cargar los registros de caja:", err)
+            toast.error("Error al cargar los registros de caja:")
             setError("Error al cargar los registros de caja.")
         } finally {
             setLoading(false)

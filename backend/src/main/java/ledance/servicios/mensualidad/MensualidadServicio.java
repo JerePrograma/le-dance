@@ -24,9 +24,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.time.format.TextStyle;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -72,18 +74,52 @@ public class MensualidadServicio implements IMensualidadService {
         mensualidad.setInscripcion(inscripcion);
         mensualidad.setRecargo(recargo);
         mensualidad.setBonificacion(bonificacion);
-        mensualidad.calcularTotal();
-        log.info("Total a pagar calculado: {}", mensualidad.getTotalPagar());
+        // Calcular el total mediante la lógica del servicio
+        calcularTotal(mensualidad);
+        // Asignar la descripción antes de guardar
+        asignarDescripcion(mensualidad);
 
+        log.info("Total a pagar calculado: {}", mensualidad.getTotalPagar());
         mensualidad = mensualidadRepositorio.save(mensualidad);
         log.info("Mensualidad creada con id: {}", mensualidad.getId());
         return mensualidadMapper.toDTO(mensualidad);
     }
 
     /**
-     * Método de generación automática o actualización de mensualidades para el mes vigente.
-     * Para cada inscripción activa de un alumno activo se genera (o actualiza) la mensualidad.
+     * Método auxiliar para asignar la descripción.
+     * La descripción se forma concatenando:
+     * "Disciplina(nombre) + ' Cuota ' + Mes(de fechaGeneracion)"
      */
+    private void asignarDescripcion(Mensualidad mensualidad) {
+        String nombreDisciplina = mensualidad.getInscripcion().getDisciplina().getNombre();
+        String mes = mensualidad.getFechaGeneracion()
+                .getMonth()
+                .getDisplayName(TextStyle.FULL, new Locale("es", "ES"));
+        mensualidad.setDescripcion(nombreDisciplina + " Cuota " + mes);
+    }
+
+    /**
+     * Método privado para calcular el total a pagar.
+     * Suma el valor base y el recargo (si existe) y le resta la bonificación (si existe).
+     */
+    private void calcularTotal(Mensualidad mensualidad) {
+        double descuento = 0.0;
+        double recargoValor = 0.0;
+        if (mensualidad.getBonificacion() != null) {
+            double descuentoFijo = mensualidad.getBonificacion().getValorFijo() != null ? mensualidad.getBonificacion().getValorFijo() : 0.0;
+            double descuentoPorcentaje = mensualidad.getBonificacion().getPorcentajeDescuento() != null ?
+                    (mensualidad.getBonificacion().getPorcentajeDescuento() / 100.0 * mensualidad.getValorBase()) : 0.0;
+            descuento = descuentoFijo + descuentoPorcentaje;
+        }
+        if (mensualidad.getRecargo() != null) {
+            double recargoFijo = mensualidad.getRecargo().getValorFijo() != null ? mensualidad.getRecargo().getValorFijo() : 0.0;
+            double recargoPorcentaje = mensualidad.getRecargo().getPorcentaje() != null ?
+                    (mensualidad.getRecargo().getPorcentaje() / 100.0 * mensualidad.getValorBase()) : 0.0;
+            recargoValor = recargoFijo + recargoPorcentaje;
+        }
+        mensualidad.setTotalPagar((mensualidad.getValorBase() + recargoValor) - descuento);
+    }
+
     public List<MensualidadResponse> generarMensualidadesParaMesVigente() {
         int mes = LocalDate.now().getMonthValue();
         int anio = LocalDate.now().getYear();
@@ -93,11 +129,10 @@ public class MensualidadServicio implements IMensualidadService {
 
         log.info("Generando mensualidades para el periodo: {} - {}", inicioMes, finMes);
 
-        // Obtener todas las inscripciones activas cuyo alumno esté activo
         List<Inscripcion> inscripcionesActivas = inscripcionRepositorio.findByEstado(EstadoInscripcion.ACTIVA)
                 .stream()
                 .filter(ins -> ins.getAlumno() != null && Boolean.TRUE.equals(ins.getAlumno().getActivo()))
-                .collect(Collectors.toList());
+                .toList();
 
         List<MensualidadResponse> respuestas = new ArrayList<>();
 
@@ -105,51 +140,38 @@ public class MensualidadServicio implements IMensualidadService {
             Optional<Mensualidad> optMensualidad = mensualidadRepositorio
                     .findByInscripcionIdAndFechaCuotaBetween(inscripcion.getId(), inicioMes, finMes);
             if (optMensualidad.isPresent()) {
-                // Actualizar la mensualidad existente
                 Mensualidad mensualidadExistente = optMensualidad.get();
-                // Actualiza el valor base según la disciplina
                 Double valorCuota = inscripcion.getDisciplina().getValorCuota();
                 mensualidadExistente.setValorBase(valorCuota);
-                // Se actualiza la bonificación asignada en la inscripción
                 mensualidadExistente.setBonificacion(inscripcion.getBonificacion());
-                // Se determina y actualiza el recargo automáticamente (según la lógica actual)
                 Recargo recargo = determinarRecargoAutomatico(inicioMes.getDayOfMonth());
                 mensualidadExistente.setRecargo(recargo);
-                // Se recalcula el total a pagar
-                mensualidadExistente.calcularTotal();
+                calcularTotal(mensualidadExistente);
+                asignarDescripcion(mensualidadExistente);
                 mensualidadExistente = mensualidadRepositorio.save(mensualidadExistente);
-                log.info("Mensualidad actualizada para inscripción id {}: mensualidad id {}", inscripcion.getId(), mensualidadExistente.getId());
+                log.info("Mensualidad actualizada para inscripción id {}: mensualidad id {}",
+                        inscripcion.getId(), mensualidadExistente.getId());
                 respuestas.add(mensualidadMapper.toDTO(mensualidadExistente));
             } else {
-                // Crear una nueva mensualidad para la inscripción
                 Mensualidad nuevaMensualidad = new Mensualidad();
                 nuevaMensualidad.setInscripcion(inscripcion);
-                // Se asigna la fecha de cuota como el primer día del mes vigente
                 nuevaMensualidad.setFechaCuota(inicioMes);
-                // Valor base tomado de la disciplina
                 nuevaMensualidad.setValorBase(inscripcion.getDisciplina().getValorCuota());
-                // Se asigna la bonificación actual de la inscripción
                 nuevaMensualidad.setBonificacion(inscripcion.getBonificacion());
-                // Se determina el recargo automáticamente (si corresponde)
                 Recargo recargo = determinarRecargoAutomatico(inicioMes.getDayOfMonth());
                 nuevaMensualidad.setRecargo(recargo);
-                // Estado inicial de la cuota: PENDIENTE (suponiendo que ese valor existe en el enum)
                 nuevaMensualidad.setEstado(EstadoMensualidad.PENDIENTE);
-                // Calcular el total a pagar
-                nuevaMensualidad.calcularTotal();
+                calcularTotal(nuevaMensualidad);
+                asignarDescripcion(nuevaMensualidad);
                 nuevaMensualidad = mensualidadRepositorio.save(nuevaMensualidad);
-                log.info("Mensualidad creada para inscripción id {}: mensualidad id {}", inscripcion.getId(), nuevaMensualidad.getId());
+                log.info("Mensualidad creada para inscripción id {}: mensualidad id {}",
+                        inscripcion.getId(), nuevaMensualidad.getId());
                 respuestas.add(mensualidadMapper.toDTO(nuevaMensualidad));
             }
         }
-
         return respuestas;
     }
 
-    /**
-     * Método auxiliar para determinar el recargo de forma automática.
-     * Se utiliza la lógica: si el día de la cuota es mayor a "diaDelMesAplicacion" de algún recargo, se toma el de mayor día.
-     */
     private Recargo determinarRecargoAutomatico(int diaCuota) {
         return recargoRepositorio.findAll().stream()
                 .filter(r -> diaCuota > r.getDiaDelMesAplicacion())
@@ -157,9 +179,6 @@ public class MensualidadServicio implements IMensualidadService {
                 .orElse(null);
     }
 
-    // ... (otros métodos existentes, por ejemplo actualizarMensualidad, listarMensualidades, etc.)
-
-    // El método determinarRecargo que recibe una MensualidadRegistroRequest se mantiene para los casos manuales.
     private Recargo determinarRecargo(MensualidadRegistroRequest request) {
         if (request.recargoId() != null) {
             Recargo recargo = recargoRepositorio.findById(request.recargoId())
@@ -179,45 +198,6 @@ public class MensualidadServicio implements IMensualidadService {
             }
             return recargo;
         }
-    }
-
-    public MensualidadResponse generarCuota(Long inscripcionId, int mes, int anio) {
-        log.info("Generando cuota para inscripción id: {} para {}/{}", inscripcionId, mes, anio);
-
-        // 1. Obtener la inscripción
-        Inscripcion inscripcion = inscripcionRepositorio.findById(inscripcionId)
-                .orElseThrow(() -> new IllegalArgumentException("Inscripción no encontrada"));
-
-        // Usar la fecha de inscripción enviada desde el formulario
-        LocalDate fechaMensualidad = inscripcion.getFechaInscripcion();
-        // Si lo deseas, puedes validar que la fecha de inscripción coincida con los parámetros mes/anio
-        if (fechaMensualidad.getMonthValue() != mes || fechaMensualidad.getYear() != anio) {
-            log.warn("La fecha de inscripción ({}) no coincide con el mes/anio especificados ({}-{}). Se usará la fecha de inscripción.",
-                    fechaMensualidad, mes, anio);
-        }
-
-        // 3. Crear la nueva Mensualidad
-        Mensualidad mensualidad = new Mensualidad();
-        mensualidad.setInscripcion(inscripcion);
-        // Aquí se asignan ambos campos con la fecha enviada
-        mensualidad.setFechaCuota(fechaMensualidad);
-        mensualidad.setFechaGeneracion(fechaMensualidad);
-        // Valor base tomado de la disciplina
-        mensualidad.setValorBase(inscripcion.getDisciplina().getValorCuota());
-        // Se asigna la bonificación actual de la inscripción
-        mensualidad.setBonificacion(inscripcion.getBonificacion());
-        // No se aplica recargo en la generación a demanda (o puedes aplicar la lógica que necesites)
-        mensualidad.setRecargo(null);
-        // Estado inicial de la cuota: PENDIENTE
-        mensualidad.setEstado(EstadoMensualidad.PENDIENTE);
-        // Calcular el total a pagar (este método se encarga de sumar recargo y restar bonificación)
-        mensualidad.calcularTotal();
-
-        // 4. Persistir la cuota
-        mensualidad = mensualidadRepositorio.save(mensualidad);
-        log.info("Cuota generada con id: {} y total a pagar: {}", mensualidad.getId(), mensualidad.getTotalPagar());
-
-        return mensualidadMapper.toDTO(mensualidad);
     }
 
     @Override
@@ -246,9 +226,41 @@ public class MensualidadServicio implements IMensualidadService {
             mensualidad.setBonificacion(null);
         }
 
-        mensualidad.calcularTotal();
+        calcularTotal(mensualidad);
+        asignarDescripcion(mensualidad);
+
         mensualidad = mensualidadRepositorio.save(mensualidad);
         log.info("Mensualidad actualizada: id={}, totalPagar={}", mensualidad.getId(), mensualidad.getTotalPagar());
+        return mensualidadMapper.toDTO(mensualidad);
+    }
+
+    public MensualidadResponse generarCuota(Long inscripcionId, int mes, int anio) {
+        log.info("Generando cuota para inscripción id: {} para {}/{}", inscripcionId, mes, anio);
+
+        Inscripcion inscripcion = inscripcionRepositorio.findById(inscripcionId)
+                .orElseThrow(() -> new IllegalArgumentException("Inscripción no encontrada"));
+
+        LocalDate fechaMensualidad = inscripcion.getFechaInscripcion();
+        if (fechaMensualidad.getMonthValue() != mes || fechaMensualidad.getYear() != anio) {
+            log.warn("La fecha de inscripción ({}) no coincide con el mes/anio especificados ({}-{}). Se usará la fecha de inscripción.",
+                    fechaMensualidad, mes, anio);
+        }
+
+        Mensualidad mensualidad = new Mensualidad();
+        mensualidad.setInscripcion(inscripcion);
+        mensualidad.setFechaCuota(fechaMensualidad);
+        mensualidad.setFechaGeneracion(fechaMensualidad);
+        mensualidad.setValorBase(inscripcion.getDisciplina().getValorCuota());
+        mensualidad.setBonificacion(inscripcion.getBonificacion());
+        mensualidad.setRecargo(null);
+        mensualidad.setEstado(EstadoMensualidad.PENDIENTE);
+
+        calcularTotal(mensualidad);
+        asignarDescripcion(mensualidad);
+
+        mensualidad = mensualidadRepositorio.save(mensualidad);
+        log.info("Cuota generada con id: {} y total a pagar: {}", mensualidad.getId(), mensualidad.getTotalPagar());
+
         return mensualidadMapper.toDTO(mensualidad);
     }
 
@@ -288,14 +300,6 @@ public class MensualidadServicio implements IMensualidadService {
         log.info("Mensualidad eliminada: id={}", id);
     }
 
-    /**
-     * Busca mensualidades según filtros y devuelve un Page de ReporteMensualidadDTO.
-     * Filtros:
-     * - fechaInicio y fechaFin: rango de fechas aplicable a Mensualidad.fechaCuota.
-     * - disciplinaId: opcional, filtra por el ID de la Disciplina (a través de la Inscripción).
-     * - profesorId: opcional, filtra por el ID del Profesor (desde Disciplina en la Inscripción).
-     */
-    // Suponiendo que modificamos el método para recibir también "disciplinaNombre" y "profesorNombre"
     public List<ReporteMensualidadDTO> buscarMensualidades(
             LocalDate fechaInicio,
             LocalDate fechaFin,
@@ -311,7 +315,6 @@ public class MensualidadServicio implements IMensualidadService {
 
         if (disciplinaNombre != null && !disciplinaNombre.isEmpty()) {
             spec = spec.and((root, query, cb) -> {
-                // Join de Mensualidad -> Inscripcion -> Disciplina
                 Join<Mensualidad, Inscripcion> inscripcion = root.join("inscripcion");
                 Join<Inscripcion, Disciplina> disciplina = inscripcion.join("disciplina");
                 return cb.like(cb.lower(disciplina.get("nombre")), "%" + disciplinaNombre.toLowerCase() + "%");
@@ -320,7 +323,6 @@ public class MensualidadServicio implements IMensualidadService {
 
         if (profesorNombre != null && !profesorNombre.isEmpty()) {
             spec = spec.and((root, query, cb) -> {
-                // Join de Mensualidad -> Inscripcion -> Disciplina -> Profesor
                 Join<Mensualidad, Inscripcion> inscripcion = root.join("inscripcion");
                 Join<Inscripcion, Disciplina> disciplina = inscripcion.join("disciplina");
                 Join<Disciplina, Profesor> profesor = disciplina.join("profesor");
@@ -331,14 +333,12 @@ public class MensualidadServicio implements IMensualidadService {
         List<Mensualidad> mensualidades = mensualidadRepositorio.findAll(spec);
         log.info("Total de mensualidades encontradas: {}", mensualidades.size());
 
-        // Utilizamos el método mapearReporte para transformar cada entidad en un ReporteMensualidadDTO.
         return mensualidades.stream()
                 .map(this::mapearReporte)
                 .collect(Collectors.toList());
     }
 
     public ReporteMensualidadDTO mapearReporte(Mensualidad mensualidad) {
-        // Mapeo del alumno
         AlumnoListadoResponse alumno = new AlumnoListadoResponse(
                 mensualidad.getInscripcion().getAlumno().getId(),
                 mensualidad.getInscripcion().getAlumno().getNombre(),
@@ -346,20 +346,14 @@ public class MensualidadServicio implements IMensualidadService {
                 mensualidad.getInscripcion().getAlumno().getActivo()
         );
 
-        // Determinar el tipo de cuota (método auxiliar que ya tienes definido)
         String cuota = determinarTipoCuota(mensualidad);
-
-        // Valor base de la mensualidad
         Double importe = mensualidad.getValorBase();
 
-        // Calcular y mapear la bonificación
         BonificacionResponse bonificacionResponse = null;
         if (mensualidad.getBonificacion() != null) {
-            double valorFijo = mensualidad.getBonificacion().getValorFijo() != null
-                    ? mensualidad.getBonificacion().getValorFijo() : 0.0;
-            double porcentaje = mensualidad.getBonificacion().getPorcentajeDescuento() != null
-                    ? mensualidad.getBonificacion().getPorcentajeDescuento() / 100.0 * mensualidad.getValorBase()
-                    : 0.0;
+            double valorFijo = mensualidad.getBonificacion().getValorFijo() != null ? mensualidad.getBonificacion().getValorFijo() : 0.0;
+            double porcentaje = mensualidad.getBonificacion().getPorcentajeDescuento() != null ?
+                    mensualidad.getBonificacion().getPorcentajeDescuento() / 100.0 * mensualidad.getValorBase() : 0.0;
             double computedBonificacion = valorFijo + porcentaje;
 
             bonificacionResponse = new BonificacionResponse(
@@ -372,24 +366,17 @@ public class MensualidadServicio implements IMensualidadService {
             );
         }
 
-        // Calcular recargo (se asume que mensualidad.getRecargo() retorna un objeto similar a Bonificacion)
         double recargo = 0.0;
         if (mensualidad.getRecargo() != null) {
-            double recargoFijo = mensualidad.getRecargo().getValorFijo() != null
-                    ? mensualidad.getRecargo().getValorFijo() : 0.0;
-            double recargoPorcentaje = mensualidad.getRecargo().getPorcentaje() != null
-                    ? mensualidad.getRecargo().getPorcentaje() / 100.0 * mensualidad.getValorBase()
-                    : 0.0;
+            double recargoFijo = mensualidad.getRecargo().getValorFijo() != null ? mensualidad.getRecargo().getValorFijo() : 0.0;
+            double recargoPorcentaje = mensualidad.getRecargo().getPorcentaje() != null ?
+                    mensualidad.getRecargo().getPorcentaje() / 100.0 * mensualidad.getValorBase() : 0.0;
             recargo = recargoFijo + recargoPorcentaje;
         }
 
-        // Calcular el total: importe - bonificación + recargo
         Double total = importe - (bonificacionResponse != null ? bonificacionResponse.valorFijo() : 0.0) + recargo;
-
-        // Determinar el estado
         String estado = mensualidad.getEstado() == EstadoMensualidad.PAGADO ? "Abonado" : "Pendiente";
 
-        // Mapear la disciplina
         DisciplinaListadoResponse disciplinaResponse = new DisciplinaListadoResponse(
                 mensualidad.getInscripcion().getDisciplina().getId(),
                 mensualidad.getInscripcion().getDisciplina().getNombre(),
@@ -401,7 +388,6 @@ public class MensualidadServicio implements IMensualidadService {
                 mensualidad.getInscripcion().getDisciplina().getValorCuota()
         );
 
-        // Construir y retornar el DTO
         return new ReporteMensualidadDTO(
                 mensualidad.getId(),
                 alumno,
@@ -411,8 +397,10 @@ public class MensualidadServicio implements IMensualidadService {
                 total,
                 recargo,
                 estado,
-                disciplinaResponse
+                disciplinaResponse,
+                mensualidad.getDescripcion()  // Incluir la descripción calculada
         );
+
     }
 
     public String determinarTipoCuota(Mensualidad mensualidad) {
@@ -426,14 +414,12 @@ public class MensualidadServicio implements IMensualidadService {
         } else if (valorBase.equals(disciplina.getClasePrueba())) {
             return "CLASE DE PRUEBA";
         }
-        // En caso de que no coincida con ninguno, se puede devolver un valor por defecto:
         return "CUOTA";
     }
 
     public List<ReporteMensualidadDTO> buscarMensualidadesAlumnoPorMes(LocalDate fechaMes, String alumnoNombre) {
         log.info("Buscando mensualidades para alumno '{}' en el mes de {}", alumnoNombre, fechaMes);
 
-        // Calcular primer y último día del mes indicado.
         LocalDate primerDia = fechaMes.withDayOfMonth(1);
         LocalDate ultimoDia = fechaMes.withDayOfMonth(fechaMes.lengthOfMonth());
 
@@ -441,7 +427,6 @@ public class MensualidadServicio implements IMensualidadService {
                 cb.between(root.get("fechaGeneracion"), primerDia, ultimoDia)
         );
 
-        // Filtrar por alumno (a través del join: Mensualidad -> Inscripcion -> Alumno)
         if (alumnoNombre != null && !alumnoNombre.isEmpty()) {
             spec = spec.and((root, query, cb) -> {
                 Join<Mensualidad, Inscripcion> inscripcion = root.join("inscripcion");
@@ -462,5 +447,4 @@ public class MensualidadServicio implements IMensualidadService {
                 .map(this::mapearReporte)
                 .collect(Collectors.toList());
     }
-
 }

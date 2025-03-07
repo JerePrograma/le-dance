@@ -1,5 +1,6 @@
 // axiosConfig.ts
 import axios from "axios";
+import { toast } from "react-toastify";
 
 const isDevelopment = process.env.NODE_ENV === "development";
 const baseURL = isDevelopment
@@ -28,7 +29,7 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
     if (error.response?.status === 403) {
-      console.warn("Token invalido o expirado. Redirigiendo al login...");
+      toast.warn("Token invalido o expirado. Redirigiendo al login...");
       localStorage.clear();
       window.location.href = "/login";
       return Promise.reject(error);
@@ -48,7 +49,7 @@ api.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
         return api(originalRequest);
       } catch (refreshError) {
-        console.error("Error al refrescar el token:", refreshError);
+        toast.error("Error al refrescar el token:");
         localStorage.clear();
         window.location.href = "/login";
       }

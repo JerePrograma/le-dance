@@ -62,9 +62,8 @@ const RendicionMensual: React.FC = () => {
             setRendicion(transformed);
             toast.success("Rendición mensual generada exitosamente.");
         } catch (err) {
-            console.error("Error al generar rendición mensual:", err);
+            toast.error("Error al generar rendición mensual:");
             setError("Error al generar rendición mensual.");
-            toast.error("Error al generar rendición mensual.");
         } finally {
             setLoading(false);
         }
@@ -93,9 +92,9 @@ const RendicionMensual: React.FC = () => {
             </div>
             <div className="overflow-x-auto">
                 <Tabla
-                    encabezados={["Concepto", "Monto"]}
-                    datos={rendicion.detalles}
-                    extraRender={(detalle) => [
+                    headers={["Concepto", "Monto"]}
+                    data={rendicion.detalles}
+                    customRender={(detalle) => [
                         detalle.concepto,
                         detalle.monto.toLocaleString(),
                     ]}

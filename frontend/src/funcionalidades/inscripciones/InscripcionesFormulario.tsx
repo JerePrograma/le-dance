@@ -68,7 +68,6 @@ const InscripcionesFormulario: React.FC = () => {
         setDisciplinas(discData || [])
         setBonificaciones(bonData || [])
       } catch (error) {
-        console.error("Error al cargar catálogos:", error)
         toast.error("Error al cargar disciplinas o bonificaciones.")
       }
     }
@@ -89,10 +88,10 @@ const InscripcionesFormulario: React.FC = () => {
           prev.map((insc) => ({ ...insc, alumnoId: aId }))
         )
       } else {
-        console.warn("AlumnoId no es un número válido o es 0:", aId)
+        toast.warn("AlumnoId no es un número válido o es 0:")
       }
     } else {
-      console.warn("No se encontró alumnoId en la URL")
+      toast.warn("No se encontró alumnoId en la URL")
     }
   }, [searchParams])
 
@@ -105,11 +104,10 @@ const InscripcionesFormulario: React.FC = () => {
         console.log("Inscripciones previas cargadas:", lista)
         setPrevInscripciones(lista)
       } catch (error) {
-        console.error("Error al cargar inscripciones previas:", error)
         toast.error("Error al cargar inscripciones previas.")
       }
     } else {
-      console.warn("AlumnoId es 0, no se cargarán inscripciones previas")
+      toast.warn("AlumnoId es 0, no se cargarán inscripciones previas")
     }
   }, [alumnoId])
 
@@ -161,7 +159,6 @@ const InscripcionesFormulario: React.FC = () => {
       setPrevInscripciones((prev) => prev.filter((item) => item.id !== ins.id))
       console.log("Inscripción eliminada correctamente con id:", ins.id)
     } catch (error) {
-      console.error("Error al eliminar inscripción:", error)
       toast.error("Error al eliminar inscripción.")
     }
   }
@@ -172,7 +169,7 @@ const InscripcionesFormulario: React.FC = () => {
     const disciplinaEncontrada = disciplinas.find((d) => d.id === ins.disciplina.id)
     if (!disciplinaEncontrada) {
       toast.error("La inscripción seleccionada no tiene disciplina asignada.")
-      console.warn("Disciplina no encontrada para inscripción:", ins)
+      toast.warn("Disciplina no encontrada para inscripción:")
       return
     }
 
@@ -210,10 +207,8 @@ const InscripcionesFormulario: React.FC = () => {
     console.log("Guardando inscripción con valores:", values)
     if (!values.alumnoId || values.alumnoId === 0 || !values.inscripcion.disciplinaId) {
       toast.error("Debes asignar un alumno y una disciplina.")
-      console.warn(
+      toast.warn(
         "No se pudo guardar, alumnoId o disciplinaId inválidos:",
-        values.alumnoId,
-        values.inscripcion.disciplinaId
       )
       return
     }
@@ -249,7 +244,6 @@ const InscripcionesFormulario: React.FC = () => {
       // Se actualiza el listado de inscripciones previas
       await fetchPrevInscripciones()
     } catch (err) {
-      console.error("Error al guardar inscripción:", err)
       toast.error("Error al guardar la inscripción.")
     }
   }

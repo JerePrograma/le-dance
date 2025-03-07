@@ -12,6 +12,7 @@ import type {
   ConceptoResponse,
   MensualidadResponse,
 } from "../types/types";
+import { toast } from "react-toastify";
 
 export const useCobranzasData = () => {
   const [alumnos, setAlumnos] = useState<AlumnoListadoResponse[]>([]);
@@ -22,15 +23,15 @@ export const useCobranzasData = () => {
   const [mensualidades, setMensualidades] = useState<MensualidadResponse[]>([]);
 
   useEffect(() => {
-    alumnosApi.listar().then(setAlumnos).catch(console.error);
-    pagosApi.listarDisciplinasBasicas().then(setDisciplinas).catch(console.error);
-    pagosApi.listarStocksBasicos().then(setStocks).catch(console.error);
+    alumnosApi.listar().then(setAlumnos).catch(toast.error);
+    pagosApi.listarDisciplinasBasicas().then(setDisciplinas).catch(toast.error);
+    pagosApi.listarStocksBasicos().then(setStocks).catch(toast.error);
     metodosPagoApi
       .listarMetodosPago()
       .then((data) => setMetodosPago(Array.isArray(data) ? data : []))
-      .catch(console.error);
-    conceptosApi.listarConceptos().then(setConceptos).catch(console.error);
-    mensualidadesApi.listarMensualidades().then(setMensualidades).catch(console.error);
+      .catch(toast.error);
+    conceptosApi.listarConceptos().then(setConceptos).catch(toast.error);
+    mensualidadesApi.listarMensualidades().then(setMensualidades).catch(toast.error);
   }, []);
 
   return { alumnos, disciplinas, stocks, metodosPago, conceptos, mensualidades };

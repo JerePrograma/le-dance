@@ -29,7 +29,7 @@ const Profesores = () => {
       const response = await profesoresApi.listarProfesores()
       setProfesores(response)
     } catch (error) {
-      console.error("Error al cargar profesores:", error)
+      toast.error("Error al cargar profesores:")
       setError("Error al cargar profesores.")
     } finally {
       setLoading(false)
@@ -151,10 +151,10 @@ const Profesores = () => {
 
       <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
         <Tabla
-          encabezados={["ID", "Nombre", "Apellido", "Acciones", "Activo"]}
-          datos={currentItems}
-          extraRender={(fila) => [fila.id, fila.nombre, fila.apellido, fila.activo ? "Si" : "No"]}
-          acciones={(fila) => (
+          headers={["ID", "Nombre", "Apellido", "Acciones", "Activo"]}
+          data={currentItems}
+          customRender={(fila) => [fila.id, fila.nombre, fila.apellido, fila.activo ? "Si" : "No"]}
+          actions={(fila) => (
             <div className="flex gap-2">
               <Boton
                 onClick={() => navigate(`/profesores/formulario?id=${fila.id}`)}

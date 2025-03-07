@@ -28,7 +28,7 @@ const Salones = () => {
       const response = await salonesApi.listarSalones(page)
       setSalones(response)
     } catch (error) {
-      console.error("Error al cargar salones:", error)
+      toast.error("Error al cargar salones:", error)
       setError("Error al cargar salones.")
     } finally {
       setLoading(false)
@@ -62,9 +62,9 @@ const Salones = () => {
 
       <div className="page-card">
         <Tabla
-          encabezados={["ID", "Nombre", "Descripcion", "Acciones"]}
-          datos={salones.content}
-          acciones={(fila) => (
+          headers={["ID", "Nombre", "Descripcion", "Acciones"]}
+          data={salones.content}
+          actions={(fila) => (
             <Boton
               onClick={() => navigate(`/salones/formulario?id=${fila.id}`)}
               className="page-button-secondary"
@@ -74,7 +74,7 @@ const Salones = () => {
               Editar
             </Boton>
           )}
-          extraRender={(fila) => [fila.id, fila.nombre, fila.descripcion || "-"]}
+          customRender={(fila) => [fila.id, fila.nombre, fila.descripcion || "-"]}
         />
       </div>
 

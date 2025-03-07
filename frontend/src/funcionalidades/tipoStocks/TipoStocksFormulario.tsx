@@ -40,7 +40,7 @@ const TipoStocksFormulario: React.FC = () => {
             setTipoId(tipo.id);
             setMensaje("Tipo de stock encontrado.");
         } catch (error) {
-            console.error("Error al buscar el tipo de stock:", error);
+            toast.error("Error al buscar el tipo de stock:");
             setMensaje("Tipo de stock no encontrado.");
             resetearFormulario();
         }
@@ -74,7 +74,6 @@ const TipoStocksFormulario: React.FC = () => {
                 }
                 setMensaje("Tipo de stock guardado exitosamente.");
             } catch (error) {
-                console.error("Error al guardar el tipo de stock:", error);
                 toast.error("Error al guardar el tipo de stock.");
                 setMensaje("Error al guardar el tipo de stock.");
             }

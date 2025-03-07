@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import api from "../../api/axiosConfig";
 import { CobranzaDTO, DetalleCobranzaDTO } from "../../types/types";
+import { toast } from "react-toastify";
 
 const CobranzaPagina: React.FC = () => {
     const { alumnoId } = useParams<{ alumnoId: string }>();
@@ -18,7 +19,7 @@ const CobranzaPagina: React.FC = () => {
                 const response = await api.get<CobranzaDTO>(`/pagos/alumno/${alumnoId}/cobranza`);
                 setCobranza(response.data);
             } catch (err) {
-                console.error("Error al cargar la cobranza:", err);
+                toast.error("Error al cargar la cobranza:");
                 setError("Error al cargar la cobranza.");
             } finally {
                 setLoading(false);
