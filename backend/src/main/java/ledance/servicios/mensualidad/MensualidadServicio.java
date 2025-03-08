@@ -447,4 +447,55 @@ public class MensualidadServicio implements IMensualidadService {
                 .map(this::mapearReporte)
                 .collect(Collectors.toList());
     }
+
+    public void marcarComoPagada(Long id, LocalDate fecha) {
+        Mensualidad mensualidad = mensualidadRepositorio.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Mensualidad no encontrada"));
+        mensualidad.setEstado(EstadoMensualidad.PAGADO);
+        mensualidad.setFechaPago(fecha);
+        mensualidadRepositorio.save(mensualidad);
+        log.info("Mensualidad id {} marcada como PAGADO con fecha de pago {}", id, fecha);
+    }
+
+    public Mensualidad buscarMensualidadPendientePorDescripcion(Inscripcion inscripcion, String periodo) {
+        // Utilizamos el método definido en el repositorio para buscar la mensualidad pendiente
+        try {
+            Mensualidad mens = mensualidadRepositorio.findByInscripcionAndDescripcionAndEstado(
+                    inscripcion, periodo, EstadoMensualidad.PENDIENTE);
+            log.info("Mensualidad pendiente encontrada para inscripción id {} y periodo '{}'", inscripcion.getId(), periodo);
+            return mens;
+        } catch (Exception e) {
+            log.info("No se encontró mensualidad pendiente para inscripción id {} y periodo '{}'", inscripcion.getId(), periodo);
+            return null;
+        }
+    }
+
+    public void crearMensualidadPagada(Long inscripcionId, String periodo, LocalDate fecha) {
+        // Buscar la inscripción asociada
+        Inscripcion inscripcion = inscripcionRepositorio.findById(inscripcionId)
+                .orElseThrow(() -> new IllegalArgumentException("Inscripción no encontrada"));
+
+        Mensualidad nuevaMensualidad = new Mensualidad();
+        nuevaMensualidad.setInscripcion(inscripcion);
+        // Asumimos que para la cuota, usamos la fecha de pago para ambas: fechaGeneracion y fechaCuota
+        nuevaMensualidad.setFechaGeneracion(fecha);
+        nuevaMensualidad.setFechaCuota(fecha);
+        nuevaMensualidad.setValorBase(inscripcion.getDisciplina().getValorCuota());
+        nuevaMensualidad.setBonificacion(inscripcion.getBonificacion());
+        // Determinamos el recargo automáticamente (puedes ajustar la lógica según convenga)
+        Recargo recargo = determinarRecargoAutomatico(fecha.getDayOfMonth());
+        nuevaMensualidad.setRecargo(recargo);
+        // Marcamos la mensualidad como PAGADO y asignamos la fecha de pago
+        nuevaMensualidad.setEstado(EstadoMensualidad.PAGADO);
+        nuevaMensualidad.setFechaPago(fecha);
+
+        // Calcular total y asignar descripción (usando los métodos ya definidos)
+        calcularTotal(nuevaMensualidad);
+        asignarDescripcion(nuevaMensualidad);
+
+        mensualidadRepositorio.save(nuevaMensualidad);
+        log.info("Mensualidad creada y marcada como PAGADA para inscripción id {}: mensualidad id {}",
+                inscripcionId, nuevaMensualidad.getId());
+    }
+
 }

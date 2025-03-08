@@ -7,7 +7,7 @@ public record DetallePagoResponse(
         String cuota,
         Double valorBase,
         Double aFavor,
-        Double importe,    // Se calculara dinamicamente
+        Double importe,    // Se calculará dinámicamente
         Double aCobrar,
         Long bonificacionId,
         Long recargoId

@@ -1,5 +1,6 @@
 package ledance.entidades;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
@@ -25,7 +26,8 @@ public class DisciplinaHorario {
 
     @ManyToOne
     @JoinColumn(name = "disciplina_id", nullable = false)
-    @EqualsAndHashCode.Exclude  // Excluir para evitar recursión
+    @EqualsAndHashCode.Exclude  // Excluir para evitar recursión en equals
+    @JsonBackReference        // <-- Añadido para evitar ciclo en la serialización
     private Disciplina disciplina;
 
     @Enumerated(EnumType.STRING)

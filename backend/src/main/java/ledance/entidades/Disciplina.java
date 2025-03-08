@@ -1,6 +1,7 @@
 package ledance.entidades;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
@@ -49,6 +50,7 @@ public class Disciplina {
 
     // Relación con los horarios específicos
     @OneToMany(mappedBy = "disciplina", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference   // <-- Añadido para evitar ciclo en la serialización
     @EqualsAndHashCode.Exclude
     private List<DisciplinaHorario> horarios;
 

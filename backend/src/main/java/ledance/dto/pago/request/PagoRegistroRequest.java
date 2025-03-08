@@ -11,10 +11,9 @@ public record PagoRegistroRequest(
         @NotNull @Min(0) Double monto,
         @NotNull Long inscripcionId,
         Long metodoPagoId,         // Opcional
-        Boolean recargoAplicado,   // Indica si se aplico el recargo global
-        Boolean bonificacionAplicada, // Flag que indica si se aplico la bonificacion global
-        @NotNull @Min(0) Double saldoRestante,
-        Boolean pagoMatricula,
+        Boolean recargoAplicado,   // Indica si se aplicó el recargo global
+        Boolean bonificacionAplicada, // Flag que indica si se aplicó la bonificación global
+        Boolean pagoMatricula,     // Se conserva para lógica futura (aunque por ahora se omite su uso)
         @NotNull List<DetallePagoRegistroRequest> detallePagos,
-        List<PagoMedioRegistroRequest> pagoMedios  // Puede venir vacio en el registro inicial
+        List<PagoMedioRegistroRequest> pagoMedios  // Puede venir vacío en el registro inicial
 ) { }

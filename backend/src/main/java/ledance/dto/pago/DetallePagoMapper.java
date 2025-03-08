@@ -11,8 +11,8 @@ public interface DetallePagoMapper {
     @Mapping(target = "bonificacion", ignore = true)
     @Mapping(target = "recargo", ignore = true)
     @Mapping(target = "pago", ignore = true)
-    @Mapping(target = "ACobrar", source = "aCobrar")
-    @Mapping(target = "abono", source = "abono")
+    @Mapping(target = "aCobrar", source = "aCobrar")
+    @Mapping(target = "cuota", source = "cuota")
     // Aseguramos que importe se asigne con el valorBase del request
     @Mapping(target = "importe", source = "valorBase")
     DetallePago toEntity(DetallePagoRegistroRequest request);

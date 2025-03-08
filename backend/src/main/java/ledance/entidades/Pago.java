@@ -1,6 +1,7 @@
 package ledance.entidades;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -32,6 +33,7 @@ public class Pago {
 
     @ManyToOne
     @JoinColumn(name = "alumno_id", nullable = false)
+    @JsonIgnoreProperties({"pagos", "inscripciones"})
     private Alumno alumno;
 
     @ManyToOne
@@ -42,11 +44,11 @@ public class Pago {
     @JoinColumn(name = "metodo_pago_id")
     private MetodoPago metodoPago;
 
-    // Flag que indica si se aplico el recargo
+    // Flag que indica si se aplicó el recargo
     @Column(nullable = false)
     private Boolean recargoAplicado = false;
 
-    // Flag que indica si se aplico la bonificacion global
+    // Flag que indica si se aplicó la bonificación global
     @Column(nullable = false)
     private Boolean bonificacionAplicada = false;
 
@@ -71,31 +73,32 @@ public class Pago {
     @JsonIgnore
     private List<PagoMedio> pagoMedios;
 
+    // Este método se ejecutará tanto antes de la persistencia como de la actualización
     @PrePersist
     @PreUpdate
     public void actualizarImportes() {
         if (detallePagos != null) {
-            for (DetallePago detalle : detallePagos) {
-                detalle.calcularImporte();
-            }
+            detallePagos.forEach(DetallePago::calcularImporte);
         }
+        // Recalcular el saldoRestante basado en los importes actualizados de los detalles
+        recalcularSaldoRestante();
     }
 
     /**
-     * Recalcula el saldo restante basandose en la suma de los abonos ingresados en los detalles.
-     * Se asume que cada detalle ya tiene calculado su importe y el abono (ingresado por el usuario).
+     * Recalcula el saldo restante basado en la suma de los importes de cada detalle.
+     * Si no hay detalles, se asume que el saldo restante es igual al monto total.
      */
     public void recalcularSaldoRestante() {
-        double totalAbonosDetalles = 0.0;
-        if (detallePagos != null) {
-            // Aseguramos que cada detalle tenga sus importes actualizados
+        if (detallePagos != null && !detallePagos.isEmpty()) {
+            // Actualiza cada detalle y suma sus importes
             detallePagos.forEach(DetallePago::calcularImporte);
-            totalAbonosDetalles = detallePagos.stream()
-                    .mapToDouble(detalle -> detalle.getAbono() != null ? detalle.getAbono() : 0.0)
+            double totalImporte = detallePagos.stream()
+                    .mapToDouble(det -> det.getImporte() != null ? det.getImporte() : 0.0)
                     .sum();
+            this.saldoRestante = totalImporte;
+        } else {
+            this.saldoRestante = this.monto;
         }
-        double nuevoSaldo = this.monto - totalAbonosDetalles;
-        this.saldoRestante = nuevoSaldo < 0 ? 0 : nuevoSaldo;
     }
 
     public String getEstado() {

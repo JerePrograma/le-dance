@@ -64,30 +64,31 @@ public class DetallePago {
         double base = (valorBase != null ? valorBase : 0.0);
         double descuento = 0.0;
         if (bonificacion != null) {
-            double descuentoFijo = (bonificacion.getValorFijo() != null ? bonificacion.getValorFijo() : 0.0);
-            double descuentoPorcentaje = (bonificacion.getPorcentajeDescuento() != null ?
-                    (bonificacion.getPorcentajeDescuento() / 100.0 * base) : 0.0);
-            descuento = descuentoFijo + descuentoPorcentaje;
-        }
-        double recargoValor = (recargo != null ? obtenerValorRecargo() : 0.0);
-        double favor = (aFavor != null ? aFavor : 0.0);
-
-        // Si el usuario ya definió un valor para aCobrar, usamos ese valor
-        if (aCobrar != null) {
-            this.importe = base - aCobrar;
-            this.abono = aCobrar;
-        } else {
-            double calculado = base - descuento + recargoValor - favor;
-            BigDecimal bd = new BigDecimal(calculado).setScale(2, RoundingMode.HALF_UP);
-            this.importe = bd.doubleValue();
-            if (this.aCobrar == null && this.abono == null) {
-                this.aCobrar = this.importe;
-                this.abono = 0.0;
-            } else if (this.aCobrar == null) {
-                this.aCobrar = this.importe - this.abono;
+            if (aFavor == null || aFavor <= 0.0) {
+                double descuentoFijo = (bonificacion.getValorFijo() != null ? bonificacion.getValorFijo() : 0.0);
+                double descuentoPorcentaje = (bonificacion.getPorcentajeDescuento() != null ?
+                        (bonificacion.getPorcentajeDescuento() / 100.0 * base) : 0.0);
+                descuento = descuentoFijo + descuentoPorcentaje;
             }
         }
-        log.info("DetallePago recalculado: Importe = {}, Abono = {}, A Cobrar = {}", this.importe, this.abono, this.aCobrar);
+        double recargoValor = (recargo != null ? obtenerValorRecargo() : 0.0);
+        double original = base - descuento + recargoValor;
+        double abonoPago = (aCobrar != null ? aCobrar : original);
+        if (aFavor == null || aFavor <= 0.0) {
+            this.abono = abonoPago;
+            this.aFavor = abonoPago;
+            // Usamos Math.max para evitar valores negativos
+            this.importe = Math.max(original - abonoPago, 0);
+        } else {
+            double remaining = original - aFavor;
+            this.abono = abonoPago;
+            this.aFavor = aFavor + abonoPago;
+            this.importe = Math.max(remaining - abonoPago, 0);
+        }
+        BigDecimal bd = new BigDecimal(importe).setScale(2, RoundingMode.HALF_UP);
+        this.importe = bd.doubleValue();
+        log.info("DetallePago recalculado: Importe = {}, Abono = {}, AFavor acumulado = {}",
+                this.importe, this.abono, this.aFavor);
     }
 
     private double obtenerValorRecargo() {
@@ -106,5 +107,13 @@ public class DetallePago {
         }
         log.info("No hay recargo aplicable, se toma 0");
         return 0.0;
+    }
+
+    public Double getaCobrar() {
+        return aCobrar;
+    }
+
+    public void setaCobrar(Double aCobrar) {
+        this.aCobrar = aCobrar;
     }
 }

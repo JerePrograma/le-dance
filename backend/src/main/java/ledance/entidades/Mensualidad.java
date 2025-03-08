@@ -20,10 +20,13 @@ public class Mensualidad {
     private Long id;
 
     @NotNull
-    private LocalDate fechaGeneracion; // Fecha de generación de la mensualidad
+    private LocalDate fechaGeneracion;
 
     @NotNull
-    private LocalDate fechaCuota; // Fecha del vencimiento de la mensualidad
+    private LocalDate fechaCuota;
+
+    // Nuevo campo para registrar la fecha en que se realizó el pago (puede ser null si aún no se paga)
+    private LocalDate fechaPago;
 
     @NotNull
     @Min(value = 0, message = "El valor base debe ser mayor o igual a 0")
@@ -38,7 +41,7 @@ public class Mensualidad {
     private Bonificacion bonificacion;
 
     @NotNull
-    private Double totalPagar; // Calculado dinámicamente
+    private Double totalPagar;
 
     @NotNull
     @Enumerated(EnumType.STRING)
@@ -48,6 +51,5 @@ public class Mensualidad {
     @JoinColumn(name = "inscripcion_id", nullable = false)
     private Inscripcion inscripcion;
 
-    // Campo "descripcion" que se asignará desde el servicio
     private String descripcion;
 }
