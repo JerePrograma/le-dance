@@ -4,11 +4,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.LocalDate;
 
 @Entity
 @Data
@@ -16,8 +11,6 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @Table(name = "detalle_pagos")
 public class DetallePago {
-
-    private static final Logger log = LoggerFactory.getLogger(DetallePago.class);
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -38,7 +31,7 @@ public class DetallePago {
     @JoinColumn(name = "recargo_id")
     private Recargo recargo;
 
-    // Si no se envía, se inicializa en 0.0
+    // Inicializado en 0.0 si no se envía
     private Double aFavor = 0.0;
 
     @NotNull
@@ -53,61 +46,6 @@ public class DetallePago {
     @ManyToOne
     @JoinColumn(name = "pago_id", nullable = false)
     private Pago pago;
-
-    // Getters y setters (generados por Lombok)
-
-    // Consolidamos la lógica de cálculo en un único método público
-    @PrePersist
-    @PreUpdate
-    public void calcularImporte() {
-        log.info("Calculando importe para DetallePago id {} - Concepto: {}", this.id, this.concepto);
-        double base = (valorBase != null ? valorBase : 0.0);
-        double descuento = 0.0;
-        if (bonificacion != null) {
-            if (aFavor == null || aFavor <= 0.0) {
-                double descuentoFijo = (bonificacion.getValorFijo() != null ? bonificacion.getValorFijo() : 0.0);
-                double descuentoPorcentaje = (bonificacion.getPorcentajeDescuento() != null ?
-                        (bonificacion.getPorcentajeDescuento() / 100.0 * base) : 0.0);
-                descuento = descuentoFijo + descuentoPorcentaje;
-            }
-        }
-        double recargoValor = (recargo != null ? obtenerValorRecargo() : 0.0);
-        double original = base - descuento + recargoValor;
-        double abonoPago = (aCobrar != null ? aCobrar : original);
-        if (aFavor == null || aFavor <= 0.0) {
-            this.abono = abonoPago;
-            this.aFavor = abonoPago;
-            // Usamos Math.max para evitar valores negativos
-            this.importe = Math.max(original - abonoPago, 0);
-        } else {
-            double remaining = original - aFavor;
-            this.abono = abonoPago;
-            this.aFavor = aFavor + abonoPago;
-            this.importe = Math.max(remaining - abonoPago, 0);
-        }
-        BigDecimal bd = new BigDecimal(importe).setScale(2, RoundingMode.HALF_UP);
-        this.importe = bd.doubleValue();
-        log.info("DetallePago recalculado: Importe = {}, Abono = {}, AFavor acumulado = {}",
-                this.importe, this.abono, this.aFavor);
-    }
-
-    private double obtenerValorRecargo() {
-        if (recargo != null) {
-            int diaActual = LocalDate.now().getDayOfMonth();
-            if (!(diaActual == recargo.getDiaDelMesAplicacion())) {
-                log.info("Hoy ({}) no es el día de aplicación del recargo ({}). No se aplica.", diaActual, recargo.getDiaDelMesAplicacion());
-                return 0.0;
-            }
-            double recargoFijo = (recargo.getValorFijo() != null ? recargo.getValorFijo() : 0.0);
-            double recargoPorcentaje = (recargo.getPorcentaje() != null ?
-                    (recargo.getPorcentaje() / 100.0 * (valorBase != null ? valorBase : 0.0)) : 0.0);
-            log.info("Aplicando recargo: fijo={} / porcentaje={} (Día Aplicación: {})",
-                    recargoFijo, recargoPorcentaje, recargo.getDiaDelMesAplicacion());
-            return recargoFijo + recargoPorcentaje;
-        }
-        log.info("No hay recargo aplicable, se toma 0");
-        return 0.0;
-    }
 
     public Double getaCobrar() {
         return aCobrar;

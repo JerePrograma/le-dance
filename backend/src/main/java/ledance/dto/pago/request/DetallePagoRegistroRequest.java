@@ -11,5 +11,6 @@ public record DetallePagoRegistroRequest(
         @NotNull @Min(0) Double valorBase,
         @Min(0) Long bonificacionId,
         @Min(0) Long recargoId,
-        @NotNull @Min(0) Double aCobrar
+        @NotNull @Min(0) Double aCobrar,
+        Double importe
 ) { }

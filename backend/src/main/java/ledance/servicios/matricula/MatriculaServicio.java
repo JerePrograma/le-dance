@@ -9,7 +9,6 @@ import ledance.repositorios.AlumnoRepositorio;
 import ledance.repositorios.MatriculaRepositorio;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.time.Year;
 import java.util.List;
 
@@ -29,17 +28,15 @@ public class MatriculaServicio {
     }
 
     /**
-     * Obtiene la matricula de un alumno para el año actual.
-     * Si no existe, se crea un registro pendiente.
+     * Obtiene la matrícula pendiente del alumno para el año actual.
+     * Si no existe, se crea una nueva pendiente.
      */
     @Transactional
     public MatriculaResponse obtenerOMarcarPendiente(Long alumnoId) {
         int anioActual = Year.now().getValue();
         List<Matricula> matriculas = matriculaRepositorio.findByAlumnoIdAndAnio(alumnoId, anioActual);
         Matricula matricula;
-
         if (matriculas.isEmpty()) {
-            // Si no existen matrículas para el año actual, se crea una nueva
             Alumno alumno = alumnoRepositorio.findById(alumnoId)
                     .orElseThrow(() -> new IllegalArgumentException("Alumno no encontrado."));
             matricula = new Matricula();
@@ -48,24 +45,21 @@ public class MatriculaServicio {
             matricula.setPagada(false);
             matricula = matriculaRepositorio.save(matricula);
         } else {
-            // Se selecciona la matrícula que no esté pagada.
-            // Si todas están pagadas, se retorna la primera.
             matricula = matriculas.stream()
                     .filter(m -> !m.getPagada())
                     .findFirst()
                     .orElse(matriculas.get(0));
         }
-
         return matriculaMapper.toResponse(matricula);
     }
 
     /**
-     * Actualiza el estado de la matricula.
+     * Actualiza el estado de la matrícula.
      */
     @Transactional
     public MatriculaResponse actualizarEstadoMatricula(Long matriculaId, MatriculaModificacionRequest request) {
         Matricula m = matriculaRepositorio.findById(matriculaId)
-                .orElseThrow(() -> new IllegalArgumentException("Matricula no encontrada."));
+                .orElseThrow(() -> new IllegalArgumentException("Matrícula no encontrada."));
         matriculaMapper.updateEntityFromRequest(request, m);
         return matriculaMapper.toResponse(matriculaRepositorio.save(m));
     }

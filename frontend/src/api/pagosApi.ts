@@ -4,10 +4,10 @@ import type {
   PagoRegistroRequest,
   PagoModificacionRequest,
   PagoResponse,
-  DisciplinaListadoResponse,
   StockResponse,
   AlumnoListadoResponse,
   CobranzaDTO,
+  DisciplinaDetalleResponse,
 } from "../types/types";
 
 const registrarPago = async (
@@ -34,9 +34,9 @@ const obtenerCobranzaPorAlumno = async (
 };
 
 const listarDisciplinasBasicas = async (): Promise<
-  DisciplinaListadoResponse[]
+  DisciplinaDetalleResponse[]
 > => {
-  const { data } = await api.get<DisciplinaListadoResponse[]>(
+  const { data } = await api.get<DisciplinaDetalleResponse[]>(
     "/disciplinas/listado"
   );
   return data;

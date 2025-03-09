@@ -409,6 +409,8 @@ export interface InscripcionResponse {
     nombre: string;
   }
   disciplina: {
+    claseSuelta: number;
+    clasePrueba: number;
     valorCuota: number;
     id: number;
     nombre: string;
@@ -421,6 +423,7 @@ export interface InscripcionResponse {
     porcentajeDescuento: number;
   };
 }
+
 export interface BonificacionRegistroRequest {
   descripcion: string;
   porcentajeDescuento?: number;
@@ -661,25 +664,6 @@ export interface SubConceptoResponse {
   descripcion: string;
 }
 
-export interface MatriculaRegistroRequest {
-  alumnoId: number;
-  anio: number;
-  valor: number;
-}
-
-export interface MatriculaModificacionRequest {
-  pagada: boolean;
-  fechaPago: string; // Formato YYYY-MM-DD
-}
-
-export interface MatriculaResponse {
-  id: number;
-  anio: number;
-  pagada: boolean;
-  fechaPago?: string;
-  alumnoId: number;
-  valor: number;
-}
 
 // --- Metodos de Pago ---
 // Interfaces actualizadas
@@ -700,36 +684,6 @@ export interface MetodoPagoResponse {
   descripcion: string;
   activo: boolean;
   recargo: number;
-}
-
-
-// En algun archivo de types, por ejemplo, types.ts
-
-export interface MensualidadRegistroRequest {
-  fechaCuota: LocalDate;
-  valorBase: number;
-  recargo: number;
-  bonificacion: number;
-  inscripcionId: number;
-}
-
-export interface MensualidadModificacionRequest {
-  fechaCuota: LocalDate;
-  valorBase: number;
-  recargo: number;
-  bonificacion: number;
-  estado: string; // Ej.: "PENDIENTE", "PAGADO", "OMITIDO"
-}
-
-export interface MensualidadResponse {
-  totalPagar: any;
-  id: number;
-  fechaCuota: LocalDate;
-  valorBase: number;
-  recargo: number;
-  bonificacion: number;
-  estado: string;
-  inscripcionId: number;
 }
 
 // DTO para reporte de mensualidades
@@ -862,10 +816,13 @@ export interface DetallePagoResponse {
     porcentajeDescuento: number;
     valorFijo?: number;
   };
-  recargo?: { id: number; descripcion: string };
-  aFavor: number;    // Calculado en el backend (acumulado de abonos)
-  aCobrar: number;   // Valor enviado desde el frontend
-  importe: number;   // Calculado internamente (valorBase - (descuento + aFavor) o similar)
+  recargo?: {
+    id: number;
+    descripcion: string;
+  };
+  aFavor: number;
+  aCobrar: number;
+  importe: number;
 }
 
 // PETICIÓN DE REGISTRO DE PAGO (para enviar al backend)
@@ -908,11 +865,22 @@ export interface DetallePagoRegistroRequest {
 export interface PagoRegistroRequest {
   fecha: string;
   fechaVencimiento: string;
-  monto: number;
+  monto: number; // Monto total a pagar (suma de importes y recargo si corresponde)
+  /**
+   * Si es un pago asociado a inscripción, se envía el id de la inscripción.
+   * Si es un pago general, se debe enviar -1.
+   */
   inscripcionId: number;
+  /**
+   * Para pagos generales (inscripcionId === -1), se debe enviar el id del alumno.
+   * En pagos con inscripción, este campo se ignora.
+   */
+  alumnoId?: number;
   metodoPagoId?: number;
   recargoAplicado?: boolean;
+  // Flag de bonificación según la lógica de negocio
   bonificacionAplicada?: boolean;
+  // Se omiten saldoRestante y saldoAFavor (se calculan en el backend)
   detallePagos: Array<{
     codigoConcepto?: string;
     concepto: string;
@@ -933,12 +901,10 @@ export interface PagoMedioRegistroRequest {
   metodoPagoId: number;
 }
 
-// RESPUESTA DEL PAGO MEDIO
 export interface PagoMedioResponse {
   id: number;
   monto: number;
-  // Se espera que "metodo" incluya al menos el id y la descripción del método de pago.
-  metodo: MetodoPagoResponse;
+  metodo: MetodoPagoResponse; // Asegúrate de que MetodoPagoResponse esté definido (al menos con id y descripción)
 }
 
 // RESPUESTA DEL PAGO (para recepción del backend)
@@ -947,19 +913,22 @@ export interface PagoResponse {
   fecha: string;
   fechaVencimiento: string;
   monto: number;
-  // Se incluye la descripción del método de pago
-  metodoPago: string;
+  metodoPago: string;       // Descripción del método de pago
   recargoAplicado: boolean;
   bonificacionAplicada: boolean;
   saldoRestante: number;
-  saldoAFavor: number; // Derivado de la suma de los aFavor de cada detalle.
+  saldoAFavor: number;
   activo: boolean;
-  estadoPago: string;  // "ACTIVO" o "HISTÓRICO"
+  estadoPago: string;       // "ACTIVO" o "HISTÓRICO"
   inscripcionId: number;
-  alumnoId: number;
+  alumnoId: number;         // Derivado de la inscripción o enviado directamente en pagos generales
   observaciones: string;
   detallePagos: DetallePagoResponse[];
   pagoMedios: PagoMedioResponse[];
+  /**
+   * Indica el origen del pago: "SUBSCRIPTION" para pagos con inscripción, o "GENERAL" para pagos sin inscripción.
+   */
+  tipoPago: string;
 }
 
 // --- Valores para el formulario de cobranza ---
@@ -967,11 +936,19 @@ export interface PagoResponse {
 // Se incluyen "importe" y "aCobrar" para fines visuales y de edición,
 // pero el payload que se envía al backend (en PagoRegistroRequest) solo incluirá "aCobrar".
 export interface CobranzasFormValues {
-  totalACobrar: string | number | readonly string[] | undefined;
   id: number;
+  totalACobrar: number; // Si se puede garantizar que es number
   reciboNro: string;
   alumno: string;
+  /**
+   * En pagos con inscripción, este valor corresponde al id de la inscripción.
+   * Para pagos generales, se debe asignar "-1".
+   */
   inscripcionId: string;
+  /**
+   * Para pagos generales (inscripcionId === "-1"), se debe incluir el id del alumno.
+   */
+  alumnoId?: string;
   fecha: string;
   detallePagos: Array<{
     id?: number | null;
@@ -999,6 +976,7 @@ export interface CobranzasFormValues {
   observaciones: string;
   matriculaRemoved: boolean;
   periodoMensual: string; // Formato ISO (string)
+  autoRemoved: number[]; // IDs de los detalles autogenerados removidos
 }
 
 // --- Para la cobranza ---
@@ -1012,4 +990,62 @@ export interface CobranzaDTO {
   alumnoNombre: string;
   totalPendiente: number;
   detalles: DetalleCobranzaDTO[];
+}
+
+
+export interface MensualidadRegistroRequest {
+  fechaCuota: LocalDate;
+  valorBase: number;
+  recargo: number;
+  bonificacion: number;
+  inscripcionId: number;
+}
+
+export interface MensualidadModificacionRequest {
+  fechaCuota: LocalDate;
+  valorBase: number;
+  recargo: number;
+  bonificacion: number;
+  estado: string; // Ej.: "PENDIENTE", "PAGADO", "OMITIDO"
+}
+
+export interface MensualidadResponse {
+  descripcion: string;
+  id: number;
+  fechaCuota: LocalDate;  // Asegúrate de que LocalDate esté definido, o utiliza string en formato ISO
+  valorBase: number;
+  recargoId: number;
+  bonificacionId: number;
+  estado: string;         // Ej.: "PENDIENTE", "PAGADO", "OMITIDO"
+  inscripcionId: number;
+  totalPagar: number;     // Ahora es number en lugar de any
+}
+
+export interface MatriculaRegistroRequest {
+  alumnoId: number;
+  anio: number;
+  valor: number;
+}
+
+export interface MatriculaModificacionRequest {
+  pagada: boolean;
+  fechaPago: string; // Formato YYYY-MM-DD
+}
+
+export interface MatriculaResponse {
+  id: number;
+  anio: number;
+  pagada: boolean;
+  fechaPago?: string;
+  alumnoId: number;
+  valor: number;
+}
+
+export interface DeudasPendientesResponse {
+  alumnoId: number;
+  alumnoNombre: string;
+  pagosPendientes: PagoResponse[];
+  matriculaPendiente: MatriculaResponse | null;
+  mensualidadesPendientes: MensualidadResponse[];
+  totalDeuda: number;
 }

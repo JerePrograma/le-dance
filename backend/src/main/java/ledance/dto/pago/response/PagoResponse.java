@@ -8,16 +8,17 @@ public record PagoResponse(
         LocalDate fecha,
         LocalDate fechaVencimiento,
         Double monto,
-        String metodoPago,               // Se muestra la descripción del método de pago
+        String metodoPago,               // Descripción del método de pago
         Boolean recargoAplicado,
-        Boolean bonificacionAplicadas,
+        Boolean bonificacionAplicada,
         Double saldoRestante,
         Double saldoAFavor,
         Boolean activo,
         String estadoPago,
         Long inscripcionId,
-        Long alumnoId,                   // Nuevo campo, derivado de la inscripción
+        Long alumnoId,                   // Derivado de la inscripción
         String observaciones,
         List<DetallePagoResponse> detallePagos,
-        List<PagoMedioResponse> pagoMedios
+        List<PagoMedioResponse> pagoMedios,
+        String tipoPago                // Nuevo campo: "SUBSCRIPTION" o "GENERAL"
 ) { }

@@ -14,6 +14,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const { isAuth, loading, hasRole } = useAuth();
 
   if (loading) {
+    // Se podría reemplazar por un componente de carga personalizado
     return <div>Cargando...</div>;
   }
 
@@ -22,7 +23,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   if (requiredRole && !hasRole(requiredRole)) {
-    // Redirige a una ruta de "No autorizado" si no se cumple el rol
+    // Redirige a la ruta "No autorizado" si el usuario no cumple el rol requerido
     return <Navigate to="/unauthorized" replace />;
   }
 

@@ -36,6 +36,7 @@ public class Pago {
     @JsonIgnoreProperties({"pagos", "inscripciones"})
     private Alumno alumno;
 
+    // Relación opcional, se utiliza en pagos de tipo SUBSCRIPTION
     @ManyToOne
     @JoinColumn(name = "inscripcion_id", nullable = true)
     private Inscripcion inscripcion;
@@ -44,11 +45,9 @@ public class Pago {
     @JoinColumn(name = "metodo_pago_id")
     private MetodoPago metodoPago;
 
-    // Flag que indica si se aplicó el recargo
     @Column(nullable = false)
     private Boolean recargoAplicado = false;
 
-    // Flag que indica si se aplicó la bonificación global
     @Column(nullable = false)
     private Boolean bonificacionAplicada = false;
 
@@ -73,33 +72,10 @@ public class Pago {
     @JsonIgnore
     private List<PagoMedio> pagoMedios;
 
-    // Este método se ejecutará tanto antes de la persistencia como de la actualización
-    @PrePersist
-    @PreUpdate
-    public void actualizarImportes() {
-        if (detallePagos != null) {
-            detallePagos.forEach(DetallePago::calcularImporte);
-        }
-        // Recalcular el saldoRestante basado en los importes actualizados de los detalles
-        recalcularSaldoRestante();
-    }
-
-    /**
-     * Recalcula el saldo restante basado en la suma de los importes de cada detalle.
-     * Si no hay detalles, se asume que el saldo restante es igual al monto total.
-     */
-    public void recalcularSaldoRestante() {
-        if (detallePagos != null && !detallePagos.isEmpty()) {
-            // Actualiza cada detalle y suma sus importes
-            detallePagos.forEach(DetallePago::calcularImporte);
-            double totalImporte = detallePagos.stream()
-                    .mapToDouble(det -> det.getImporte() != null ? det.getImporte() : 0.0)
-                    .sum();
-            this.saldoRestante = totalImporte;
-        } else {
-            this.saldoRestante = this.monto;
-        }
-    }
+    @NotNull
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo_pago", nullable = false)
+    private TipoPago tipoPago = TipoPago.SUBSCRIPTION;
 
     public String getEstado() {
         return (activo != null && activo) ? "ACTIVO" : "ANULADO";
