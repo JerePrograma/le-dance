@@ -1,5 +1,5 @@
 // src/forms/CobranzasForm.tsx
-import React, { useState, useCallback, useEffect, useRef } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { Formik, Form, Field, FieldArray, useFormikContext, FormikErrors } from "formik";
 import * as Yup from "yup";
@@ -87,14 +87,11 @@ const validationSchema = Yup.object().shape({
  */
 const FormValuesUpdater: React.FC<{ newValues: Partial<CobranzasFormValues> }> = ({ newValues }) => {
     const { setValues } = useFormikContext<CobranzasFormValues>();
-    const didInit = useRef(false);
 
     useEffect(() => {
-        if (!didInit.current) {
-            setValues((prevValues) => ({ ...prevValues, ...newValues }));
-            didInit.current = true;
-        }
+        setValues((prevValues) => ({ ...prevValues, ...newValues }));
     }, [newValues, setValues]);
+
     return null;
 };
 
@@ -616,16 +613,18 @@ const CobranzasForm: React.FC = () => {
                 (detalle) => Number(detalle.importe) !== 0
             );
             const pagoRegistroRequest: PagoRegistroRequest = {
+                alumno: {
+                    id: values.alumnoId ? Number(values.alumnoId) : 0,
+                    nombre: values.alumno || ""  // O bien, asignar el nombre que corresponda
+                },
                 fecha: values.fecha,
                 fechaVencimiento: values.fecha,
                 monto: Number(values.totalACobrar),
                 inscripcionId: values.inscripcionId ? Number(values.inscripcionId) : -1,
-                alumnoId: values.alumnoId ? Number(values.alumnoId) : undefined,
                 metodoPagoId: values.metodoPagoId ? Number(values.metodoPagoId) : undefined,
                 recargoAplicado: values.metodoPagoId
-                    ? metodosPago.find(
-                        (mp: MetodoPagoResponse) => mp.id.toString() === values.metodoPagoId
-                    )?.descripcion.toUpperCase() === "DEBITO"
+                    ? metodosPago.find((mp: MetodoPagoResponse) => mp.id.toString() === values.metodoPagoId)
+                        ?.descripcion.toUpperCase() === "DEBITO"
                     : false,
                 bonificacionAplicada: false,
                 detallePagos: detallesFiltrados.map((d) => ({

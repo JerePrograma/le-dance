@@ -15,6 +15,7 @@ import java.util.List;
  * - "activo" no se recibe, se establece automaticamente como `true`.
  */
 public record AlumnoRegistroRequest(
+        Long id,
         @NotBlank String nombre,
         @NotBlank String apellido,
         LocalDate fechaNacimiento,

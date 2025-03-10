@@ -826,17 +826,18 @@ export interface DetallePagoResponse {
   cobrado?: boolean;
 }
 
-// PETICIÓN DE REGISTRO DE PAGO (para enviar al backend)
 export interface PagoRegistroRequest {
+  alumno: {
+    id: number;
+    nombre: string;
+  };
   fecha: string;
   fechaVencimiento: string;
-  monto: number; // Monto total a pagar (suma de importes + recargo si corresponde)
+  monto: number;
   inscripcionId: number;
   metodoPagoId?: number;
   recargoAplicado?: boolean;
-  // Se usa "bonificacionAplicada" como flag según la lógica de negocio
   bonificacionAplicada?: boolean;
-  // Se eliminan saldoRestante y saldoAFavor, pues se calculan en el backend
   detallePagos: Array<{
     codigoConcepto?: string;
     concepto: string;
@@ -861,40 +862,6 @@ export interface DetallePagoRegistroRequest {
   recargoId?: number;
   aCobrar: number;
   cobrado: boolean;
-}
-
-// PETICIÓN DE REGISTRO DE PAGO (unificado, se usa en el formulario)
-export interface PagoRegistroRequest {
-  fecha: string;
-  fechaVencimiento: string;
-  monto: number; // Monto total a pagar (suma de importes y recargo si corresponde)
-  /**
-   * Si es un pago asociado a inscripción, se envía el id de la inscripción.
-   * Si es un pago general, se debe enviar -1.
-   */
-  inscripcionId: number;
-  /**
-   * Para pagos generales (inscripcionId === -1), se debe enviar el id del alumno.
-   * En pagos con inscripción, este campo se ignora.
-   */
-  alumnoId?: number;
-  metodoPagoId?: number;
-  recargoAplicado?: boolean;
-  // Flag de bonificación según la lógica de negocio
-  bonificacionAplicada?: boolean;
-  // Se omiten saldoRestante y saldoAFavor (se calculan en el backend)
-  detallePagos: Array<{
-    codigoConcepto?: string;
-    concepto: string;
-    cuota?: string;
-    valorBase: number;
-    bonificacionId?: number;
-    recargoId?: number;
-    aCobrar: number;
-  }>;
-  pagoMedios?: PagoMedioRegistroRequest[];
-  pagoMatricula: boolean;
-  activo: boolean;
 }
 
 // PETICIÓN DE REGISTRO DE PAGO MEDIO (para abonos parciales)
@@ -935,8 +902,6 @@ export interface PagoResponse {
 
 // --- Valores para el formulario de cobranza ---
 // Estos son los valores que usará el formulario para la UI.
-// Se incluyen "importe" y "aCobrar" para fines visuales y de edición,
-// pero el payload que se envía al backend (en PagoRegistroRequest) solo incluirá "aCobrar".
 export interface CobranzasFormValues {
   id: number;
   totalACobrar: number; // Si se puede garantizar que es number

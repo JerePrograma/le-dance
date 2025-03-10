@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 import { useFormikContext } from "formik";
 import type { CobranzasFormValues, DeudasPendientesResponse } from "../../types/types";
 import isEqual from "lodash/isEqual";
@@ -7,7 +7,7 @@ export const useSyncDetalles = (deudaData: DeudasPendientesResponse) => {
   const { values, setFieldValue } = useFormikContext<CobranzasFormValues>();
 
   // Calcula los detalles autogenerados a partir de la deuda.
-  const newAutoDetails = useMemo(() => {
+  const newAutoDetails = (() => {
     const autoFromPagos =
       deudaData.pagosPendientes?.flatMap((pago) =>
         pago.detallePagos?.map((det) => ({
@@ -36,9 +36,8 @@ export const useSyncDetalles = (deudaData: DeudasPendientesResponse) => {
           : []
       ) || [];
 
-    // Aquí se calculan los nuevos detalles autogenerados
     return [...autoFromPagos, ...autoFromMensualidades];
-  }, [deudaData]);
+  })();
 
   useEffect(() => {
     // Separamos los detalles manuales (los que NO son autogenerados)

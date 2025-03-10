@@ -69,6 +69,7 @@ public class PaymentProcessor {
 
         // Se obtiene el alumno (en producción este dato vendría del contexto o del DTO)
         Long alumnoId = obtenerAlumnoIdParaPagoGeneral(request);
+
         Alumno alumno = alumnoRepositorio.findById(alumnoId)
                 .orElseThrow(() -> new IllegalArgumentException("Alumno no encontrado para pago general."));
         pago.setAlumno(alumno);
@@ -96,8 +97,10 @@ public class PaymentProcessor {
     }
 
     private Long obtenerAlumnoIdParaPagoGeneral(PagoRegistroRequest request) {
-        // En producción, este dato debería venir en el DTO o extraerse del contexto.
-        return 1L;
+        if (request.alumno() == null || request.alumno().id() == null) {
+            throw new IllegalArgumentException("El alumno es requerido para un pago general.");
+        }
+        return request.alumno().id();
     }
 
     private List<DetallePago> obtenerDetallesNuevos(PagoRegistroRequest request, Pago pago) {

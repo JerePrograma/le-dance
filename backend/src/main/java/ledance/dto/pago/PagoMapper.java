@@ -16,6 +16,7 @@ public interface PagoMapper {
     @Mapping(target = "metodoPago", ignore = true)
     // Usamos el nombre completamente calificado para el enum TipoPago
     @Mapping(target = "tipoPago", expression = "java((request.inscripcionId() != null && request.inscripcionId() == -1) ? ledance.entidades.TipoPago.GENERAL : ledance.entidades.TipoPago.SUBSCRIPTION)")
+    @Mapping(target = "alumno", ignore = true)
     Pago toEntity(PagoRegistroRequest request);
 
     @Mapping(target = "inscripcionId", source = "inscripcion.id")

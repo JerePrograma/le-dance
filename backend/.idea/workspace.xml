@@ -6,10 +6,13 @@
   <component name="ChangeListManager">
     <list default="true" id="ccb8f120-972c-4a18-b18b-4ae7da723dfa" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/mensualidad/MensualidadServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/mensualidad/MensualidadServicio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/alumno/request/AlumnoRegistroRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/alumno/request/AlumnoRegistroRequest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/pago/PagoMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/pago/PagoMapper.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/pago/request/PagoRegistroRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/pago/request/PagoRegistroRequest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/pago/PaymentProcessor.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/pago/PaymentProcessor.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../frontend/src/componentes/PaymentUpdater.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/componentes/PaymentUpdater.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/pagos/PagosFormulario.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/pagos/PagosFormulario.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/hooks/useAlumnoData.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/hooks/useAlumnoData.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/hooks/context/useSyncDetalles.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/hooks/context/useSyncDetalles.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -296,7 +299,8 @@
       <workItem from="1741560984589" duration="4330000" />
       <workItem from="1741565409784" duration="7465000" />
       <workItem from="1741576891012" duration="4929000" />
-      <workItem from="1741607017141" duration="8815000" />
+      <workItem from="1741607017141" duration="9727000" />
+      <workItem from="1741622947484" duration="3028000" />
     </task>
     <servers />
   </component>
