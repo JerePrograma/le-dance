@@ -8,18 +8,13 @@ import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring")
 public interface DetallePagoMapper {
-    @Mapping(target = "id", ignore = true)
     @Mapping(target = "bonificacion", ignore = true)
     @Mapping(target = "recargo", ignore = true)
     @Mapping(target = "pago", ignore = true)
-    @Mapping(target = "aCobrar", source = "aCobrar")
-    @Mapping(target = "cuota", source = "cuota")
-    // Aseguramos que importe se asigne con el valorBase del request
     @Mapping(target = "importe", source = "importe")
     DetallePago toEntity(DetallePagoRegistroRequest request);
 
     @Mapping(target = "bonificacionId", expression = "java(detallePago.getBonificacion() != null ? detallePago.getBonificacion().getId() : null)")
     @Mapping(target = "recargoId", expression = "java(detallePago.getRecargo() != null ? detallePago.getRecargo().getId() : null)")
     DetallePagoResponse toDTO(DetallePago detallePago);
-
 }

@@ -12,5 +12,12 @@ public record DetallePagoRegistroRequest(
         @Min(0) Long bonificacionId,
         @Min(0) Long recargoId,
         @NotNull @Min(0) Double aCobrar,
-        Double importe
-) { }
+        Double importe,
+        Boolean cobrado
+) {
+    public DetallePagoRegistroRequest {
+        if (cobrado == null) {
+            cobrado = false; // Si es null, lo establece en false
+        }
+    }
+}

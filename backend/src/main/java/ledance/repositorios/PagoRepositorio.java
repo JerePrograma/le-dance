@@ -32,7 +32,11 @@ public interface PagoRepositorio extends JpaRepository<Pago, Long> {
 
     // Métodos ya existentes (por inscripcion) se mantienen, si se requieren
     List<Pago> findByInscripcionIdOrderByFechaDesc(Long inscripcionId);
+
     List<Pago> findByInscripcionAlumnoIdOrderByFechaDesc(Long alumnoId);
+
+    @Query("SELECT p FROM Pago p WHERE p.alumno.id = :alumnoId AND p.saldoRestante > 0 ORDER BY p.fecha DESC")
+    List<Pago> findPagosPendientesPorAlumno(@Param("alumnoId") Long alumnoId);
 
     @Query("SELECT p FROM Pago p WHERE p.fechaVencimiento < :hoy AND p.activo = true")
     List<Pago> findPagosVencidos(LocalDate hoy);

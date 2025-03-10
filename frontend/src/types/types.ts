@@ -823,6 +823,7 @@ export interface DetallePagoResponse {
   aFavor: number;
   aCobrar: number;
   importe: number;
+  cobrado?: boolean;
 }
 
 // PETICIÓN DE REGISTRO DE PAGO (para enviar al backend)
@@ -859,6 +860,7 @@ export interface DetallePagoRegistroRequest {
   bonificacionId?: number;
   recargoId?: number;
   aCobrar: number;
+  cobrado: boolean;
 }
 
 // PETICIÓN DE REGISTRO DE PAGO (unificado, se usa en el formulario)

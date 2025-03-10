@@ -12,22 +12,23 @@ export const PaymentIdUpdater: React.FC<PaymentIdUpdaterProps> = ({ ultimoPago }
     const { values, setFieldValue } = useFormikContext<CobranzasFormValues>();
     const [searchParams, setSearchParams] = useSearchParams();
 
+    // Actualiza el campo "id" del formulario
     useEffect(() => {
-        console.log("[PaymentIdUpdater] Efecto ejecutado. UltimoPago:", ultimoPago);
-        console.log("[PaymentIdUpdater] Valores actuales del form:", values);
-        if (ultimoPago) {
-            if (values.id !== ultimoPago.id) {
-                console.log("[PaymentIdUpdater] Actualizando field 'id' a:", ultimoPago.id);
-                setFieldValue("id", ultimoPago.id);
-            }
-            if (searchParams.get("id") !== ultimoPago.id.toString()) {
-                console.log("[PaymentIdUpdater] Actualizando query param 'id' a:", ultimoPago.id);
-                setSearchParams({ id: ultimoPago.id.toString() }, { replace: true });
-            }
-        } else {
-            console.log("[PaymentIdUpdater] UltimoPago no está definido");
+        if (ultimoPago && values.id !== ultimoPago.id) {
+            setFieldValue("id", ultimoPago.id);
         }
-    }, [ultimoPago, values.id, setFieldValue, searchParams, setSearchParams]);
+    }, [ultimoPago, values.id, setFieldValue]);
+
+    // Actualiza el query param "id" en la URL
+    useEffect(() => {
+        if (ultimoPago) {
+            const currentQueryId = searchParams.get("id");
+            const nuevoId = ultimoPago.id.toString();
+            if (currentQueryId !== nuevoId) {
+                setSearchParams({ id: nuevoId }, { replace: true });
+            }
+        }
+    }, [ultimoPago, searchParams, setSearchParams]);
 
     return null;
 };

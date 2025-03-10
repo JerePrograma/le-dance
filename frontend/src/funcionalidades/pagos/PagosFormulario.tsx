@@ -34,6 +34,20 @@ const getMesVigente = () =>
         })
         .toUpperCase();
 
+// Función externa para generar periodos (para evitar recrearla en cada render)
+const generatePeriodos = (numMeses = 12): string[] => {
+    const periodos: string[] = [];
+    const currentDate = new Date(
+        new Date().toLocaleString("en-US", { timeZone: "America/Argentina/Buenos_Aires" })
+    );
+    for (let i = 0; i < numMeses; i++) {
+        const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - 2 + i, 1);
+        const periodo = date.toLocaleString("default", { month: "long", year: "numeric" }).toUpperCase();
+        periodos.push(periodo);
+    }
+    return periodos;
+};
+
 // Valores iniciales para el formulario
 const defaultValues: CobranzasFormValues = {
     id: 0,
@@ -55,7 +69,7 @@ const defaultValues: CobranzasFormValues = {
     matriculaRemoved: false,
     mensualidadId: "",
     periodoMensual: getMesVigente(),
-    autoRemoved: [] // <-- Nuevo campo
+    autoRemoved: [],
 };
 
 const validationSchema = Yup.object().shape({
@@ -63,12 +77,15 @@ const validationSchema = Yup.object().shape({
     fecha: Yup.string().required("La fecha es obligatoria"),
 });
 
-// --- Componentes internos ---
+// --- Componente para actualizar los valores del formulario ---
 const FormValuesUpdater: React.FC<{ newValues: Partial<CobranzasFormValues> }> = ({ newValues }) => {
     const { values, setValues } = useFormikContext<CobranzasFormValues>();
     useEffect(() => {
-        setValues({ ...values, ...newValues });
-    }, [newValues, setValues]);
+        // Solo actualiza si el id aún es 0 (nueva cobranza)
+        if (values.id === 0) {
+            setValues({ ...values, ...newValues });
+        }
+    }, [newValues, setValues, values.id]);
     return null;
 };
 
@@ -88,32 +105,28 @@ const TotalsUpdater: React.FC<{ metodosPago: MetodoPagoResponse[] }> = ({ metodo
                 recargoValue = Number(selectedMetodo.recargo) || 0;
             }
         }
-        const newTotalACobrar = baseTotal + recargoValue;
-        const newTotalCobrado = values.detallePagos.reduce(
-            (total, item) => total + Number(item.aCobrar || 0),
-            0
+        setFieldValue("totalACobrar", baseTotal + recargoValue);
+        setFieldValue(
+            "totalCobrado",
+            values.detallePagos.reduce((total, item) => total + Number(item.aCobrar || 0), 0)
         );
-        setFieldValue("totalACobrar", newTotalACobrar);
-        setFieldValue("totalCobrado", newTotalCobrado);
     }, [values.detallePagos, values.metodoPagoId, metodosPago, setFieldValue]);
     return null;
 };
 
 const ConceptosSection: React.FC<{
-    inscripcionesData: InscripcionResponse[] | undefined;
+    inscripcionesData?: InscripcionResponse[];
     disciplinas: DisciplinaDetalleResponse[];
     stocks: StockResponse[];
     conceptos: ConceptoResponse[];
-    generatePeriodos: (numMeses?: number) => string[];
     values: CobranzasFormValues;
-    setFieldValue: any;
-    handleAgregarDetalle: (values: CobranzasFormValues, setFieldValue: any) => void;
+    setFieldValue: (field: string, value: any) => void;
+    handleAgregarDetalle: (values: CobranzasFormValues, setFieldValue: (field: string, value: any) => void) => void;
 }> = ({
     inscripcionesData,
     disciplinas,
     stocks,
     conceptos,
-    generatePeriodos,
     values,
     setFieldValue,
     handleAgregarDetalle,
@@ -131,20 +144,14 @@ const ConceptosSection: React.FC<{
                             onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
                                 const selectedInscripcionId = e.target.value;
                                 setFieldValue("inscripcionId", selectedInscripcionId);
-                                if (selectedInscripcionId) {
-                                    const insc = inscripcionesData.find(
-                                        (ins) => ins.id.toString() === selectedInscripcionId
-                                    );
-                                    if (insc) {
-                                        setFieldValue("disciplina", insc.disciplina.nombre);
-                                    }
-                                } else {
-                                    setFieldValue("disciplina", "");
-                                }
+                                const insc = inscripcionesData.find(
+                                    (ins) => ins.id.toString() === selectedInscripcionId
+                                );
+                                setFieldValue("disciplina", insc ? insc.disciplina.nombre : "");
                             }}
                         >
                             <option value="">Seleccione una disciplina</option>
-                            {inscripcionesData.map((insc: InscripcionResponse) => (
+                            {inscripcionesData.map((insc) => (
                                 <option key={insc.id} value={insc.id.toString()}>
                                     {insc.disciplina.nombre}
                                 </option>
@@ -161,7 +168,7 @@ const ConceptosSection: React.FC<{
                             }}
                         >
                             <option value="">Seleccione una disciplina</option>
-                            {disciplinas.map((disc: DisciplinaDetalleResponse) => (
+                            {disciplinas.map((disc) => (
                                 <option key={disc.id} value={disc.id.toString()}>
                                     {disc.nombre}
                                 </option>
@@ -197,7 +204,7 @@ const ConceptosSection: React.FC<{
                             <label className="block font-medium">Concepto:</label>
                             <Field as="select" name="conceptoSeleccionado" className="border p-2 w-full">
                                 <option value="">Seleccione un concepto</option>
-                                {conceptos.map((conc: ConceptoResponse) => (
+                                {conceptos.map((conc) => (
                                     <option key={conc.id} value={conc.id}>
                                         {conc.descripcion}
                                     </option>
@@ -208,7 +215,7 @@ const ConceptosSection: React.FC<{
                             <label className="block font-medium">Stock:</label>
                             <Field as="select" name="stockSeleccionado" className="border p-2 w-full">
                                 <option value="">Seleccione un stock</option>
-                                {stocks.map((s: StockResponse) => (
+                                {stocks.map((s) => (
                                     <option key={s.id} value={s.id}>
                                         {s.nombre}
                                     </option>
@@ -343,7 +350,6 @@ const DetallesTable: React.FC = () => (
     </FieldArray>
 );
 
-// --- Componente principal ---
 const CobranzasForm: React.FC = () => {
     const [initialValues, setInitialValues] = useState<CobranzasFormValues>(defaultValues);
     const [, setMatricula] = useState<MatriculaResponse | null>(null);
@@ -355,16 +361,21 @@ const CobranzasForm: React.FC = () => {
     const inscripcionesQuery = useInscripcionesActivas(selectedAlumnoId || 0);
     const { deudas, ultimoPago } = useAlumnoData(selectedAlumnoId || 0);
 
+    // Ajustamos el tipo de setFieldValue usando un cast para forzar Promise<void>
     const handleAlumnoChange = useCallback(
         async (
             alumnoIdStr: string,
             _currentValues: CobranzasFormValues,
-            setFieldValue: (field: string, value: any, shouldValidate?: boolean) => Promise<void | FormikErrors<CobranzasFormValues>>
+            setFieldValue: (
+                field: string,
+                value: any,
+                shouldValidate?: boolean | undefined
+            ) => Promise<void | FormikErrors<CobranzasFormValues>>
         ) => {
-            await setFieldValue("alumno", alumnoIdStr);
-            await setFieldValue("alumnoId", alumnoIdStr);
+            await setFieldValue("alumno", alumnoIdStr).then(() => { });
+            await setFieldValue("alumnoId", alumnoIdStr).then(() => { });
             setSelectedAlumnoId(Number(alumnoIdStr));
-            await setFieldValue("matriculaRemoved", false);
+            await setFieldValue("matriculaRemoved", false).then(() => { });
             if (Number(alumnoIdStr)) {
                 try {
                     const response = await matriculasApi.obtenerMatricula(Number(alumnoIdStr));
@@ -377,17 +388,7 @@ const CobranzasForm: React.FC = () => {
         []
     );
 
-    const generatePeriodos = (numMeses = 12): string[] => {
-        const periodos: string[] = [];
-        const currentDate = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Argentina/Buenos_Aires" }));
-        for (let i = 0; i < numMeses; i++) {
-            const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - 2 + i, 1);
-            const periodo = date.toLocaleString("default", { month: "long", year: "numeric" }).toUpperCase();
-            periodos.push(periodo);
-        }
-        return periodos;
-    };
-
+    // Cargar datos de pago si hay "id" en query params
     useEffect(() => {
         const idParam = searchParams.get("id");
         if (idParam) {
@@ -435,10 +436,7 @@ const CobranzasForm: React.FC = () => {
                         periodoMensual: getMesVigente(),
                         autoRemoved: [],
                     });
-                    console.log("[CobranzasForm] Valores iniciales actualizados:", {
-                        ...pagoData,
-                        autoRemoved: [],
-                    });
+                    console.log("[CobranzasForm] Valores iniciales actualizados:", { ...pagoData, autoRemoved: [] });
                 })
                 .catch(() => {
                     toast.error("Error al cargar los datos del pago.");
@@ -446,7 +444,7 @@ const CobranzasForm: React.FC = () => {
         }
     }, [searchParams]);
 
-    const handleAgregarDetalle = (values: CobranzasFormValues, setFieldValue: any) => {
+    const handleAgregarDetalle = (values: CobranzasFormValues, setFieldValue: (field: string, value: any) => void) => {
         const newDetails = [...values.detallePagos];
         let added = false;
         const isDuplicate = (concept: string) =>
@@ -550,11 +548,10 @@ const CobranzasForm: React.FC = () => {
         }
         if (added) {
             setFieldValue("detallePagos", newDetails);
-            const nuevoTotalCobrado = newDetails.reduce(
-                (acc, det) => acc + (Number(det.aCobrar) || 0),
-                0
+            setFieldValue(
+                "totalCobrado",
+                newDetails.reduce((acc, det) => acc + (Number(det.aCobrar) || 0), 0)
             );
-            setFieldValue("totalCobrado", nuevoTotalCobrado);
             setFieldValue("inscripcionId", "");
             setFieldValue("disciplina", "");
             setFieldValue("tarifa", "");
@@ -589,15 +586,15 @@ const CobranzasForm: React.FC = () => {
                     : false,
                 bonificacionAplicada: false,
                 detallePagos: detallesFiltrados.map((d) => ({
-                    id: d.id, // si existe, se envía
+                    id: d.id,
                     codigoConcepto: d.codigoConcepto ? String(d.codigoConcepto) : undefined,
                     concepto: d.concepto,
                     cuota: d.cuota,
                     valorBase: d.valorBase,
                     bonificacionId: d.bonificacionId ? Number(d.bonificacionId) : undefined,
                     recargoId: d.recargoId ? Number(d.recargoId) : undefined,
-                    aCobrar: d.aCobrar, // enviamos lo que haya en el form, sin modificar
-                    importe: d.importe, // valor enviado por el usuario
+                    aCobrar: d.aCobrar,
+                    importe: d.importe,
                 })),
                 pagoMedios: [],
                 pagoMatricula: false,
@@ -645,7 +642,6 @@ const CobranzasForm: React.FC = () => {
                     <Form className="w-full">
                         <FormValuesUpdater newValues={initialValues} />
                         <TotalsUpdater metodosPago={metodosPago} />
-                        {/* Integración de PaymentIdUpdater para actualizar el field "id" */}
                         <PaymentIdUpdater ultimoPago={ultimoPago} />
                         {deudas && <AutoAddDetalles deudaData={deudas} />}
                         <FormHeader alumnos={alumnos} handleAlumnoChange={handleAlumnoChange} />
@@ -654,7 +650,6 @@ const CobranzasForm: React.FC = () => {
                             disciplinas={disciplinas}
                             stocks={stocks}
                             conceptos={conceptos}
-                            generatePeriodos={generatePeriodos}
                             values={values}
                             setFieldValue={setFieldValue}
                             handleAgregarDetalle={handleAgregarDetalle}
@@ -694,8 +689,7 @@ const CobranzasForm: React.FC = () => {
                                         type="number"
                                         className="border p-2 w-full"
                                         onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
-                                            const totalInput = Number(e.target.value);
-                                            setFieldValue("totalCobrado", totalInput);
+                                            setFieldValue("totalCobrado", Number(e.target.value));
                                         }}
                                     />
                                     <small className="text-gray-500">

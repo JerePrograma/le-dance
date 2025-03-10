@@ -1,5 +1,3 @@
-SET lc_time = 'es_ES.UTF-8';
-
 UPDATE mensualidades m
 SET descripcion =
         (SELECT d.nombre

@@ -1,6 +1,5 @@
 package ledance.entidades;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
@@ -37,8 +36,6 @@ public class DetallePago {
     @NotNull
     private Double valorBase;
 
-    private Double abono;
-
     private Double importe;
 
     private Double aCobrar;
@@ -46,6 +43,10 @@ public class DetallePago {
     @ManyToOne
     @JoinColumn(name = "pago_id", nullable = false)
     private Pago pago;
+
+    // Nuevo campo para marcar si el detalle ya fue cobrado
+    @Column(nullable = false)
+    private Boolean cobrado = false;
 
     public Double getaCobrar() {
         return aCobrar;

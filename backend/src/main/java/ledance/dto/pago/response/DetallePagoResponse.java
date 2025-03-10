@@ -10,6 +10,7 @@ public record DetallePagoResponse(
         Double importe,    // Se calculará dinámicamente
         Double aCobrar,
         Long bonificacionId,
-        Long recargoId
+        Long recargoId,
+        Boolean cobrado
 ) {
 }

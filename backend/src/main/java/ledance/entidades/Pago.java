@@ -77,6 +77,12 @@ public class Pago {
     @Column(name = "tipo_pago", nullable = false)
     private TipoPago tipoPago = TipoPago.SUBSCRIPTION;
 
+    @NotNull
+    @Column(name = "monto_pagado", nullable = false)
+    @Min(value = 0, message = "El monto pagado no puede ser negativo")
+    private Double montoPagado = 0.0;
+
+
     public String getEstado() {
         return (activo != null && activo) ? "ACTIVO" : "ANULADO";
     }
