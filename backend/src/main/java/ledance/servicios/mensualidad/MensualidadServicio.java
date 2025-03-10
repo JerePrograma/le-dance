@@ -80,9 +80,9 @@ public class MensualidadServicio implements IMensualidadService {
         String nombreDisciplina = mensualidad.getInscripcion().getDisciplina().getNombre();
         String mes = mensualidad.getFechaGeneracion()
                 .getMonth()
-                .getDisplayName(TextStyle.FULL, new Locale("es", "ES"));
+                .getDisplayName(TextStyle.FULL, new Locale("es", "ES")).toUpperCase();
         int anio = mensualidad.getFechaGeneracion().getYear();
-        mensualidad.setDescripcion(nombreDisciplina + " - CUOTA - " + mes + " - " + anio);
+        mensualidad.setDescripcion(nombreDisciplina + " - CUOTA - " + mes + " DE " + anio);
     }
 
     private void calcularTotal(Mensualidad mensualidad) {

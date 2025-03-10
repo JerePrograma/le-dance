@@ -1,5 +1,5 @@
 // src/hooks/useAlumnoData.ts
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import deudasApi from "../api/deudasApi";
 import pagosApi from "../api/pagosApi";
@@ -9,29 +9,34 @@ import type { DeudasPendientesResponse, PagoResponse } from "../types/types";
 export const useAlumnoData = (alumnoId: number) => {
     const isAlumnoValid = alumnoId > 0;
 
-    // Consulta de deudas pendientes
     const deudasQuery = useQuery<DeudasPendientesResponse, Error>({
         queryKey: ["deudas", alumnoId],
         queryFn: () => deudasApi.obtenerDeudasPendientes(alumnoId),
         enabled: isAlumnoValid,
+        staleTime: Infinity,
+        refetchOnMount: false,
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
     });
 
-    // Consulta del último pago (según lógica existente en backend)
     const ultimoPagoQuery = useQuery<PagoResponse, Error>({
         queryKey: ["ultimoPago", alumnoId],
         queryFn: () => pagosApi.obtenerUltimoPagoPorAlumno(alumnoId),
         enabled: isAlumnoValid,
+        staleTime: Infinity,
+        refetchOnMount: false,
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
     });
 
-    // Extraemos de la respuesta de deudas el pago pendiente activo (con saldoRestante > 0)
-    const pagoPendienteActivo = useMemo(() => {
-        return deudasQuery.data?.pagosPendientes?.find((p) => p.saldoRestante > 0);
-    }, [deudasQuery.data]);
+    // Calculamos el pago pendiente activo (aquellos con saldoRestante > 0)
+    const pagoPendienteActivo = deudasQuery.data?.pagosPendientes?.find(
+        (p) => p.saldoRestante > 0
+    );
 
-    // Usamos el último pago obtenido o, si no existe, el pago activo de la deuda
+    // Usamos la data de "ultimoPago" si existe; de lo contrario, el pendiente activo
     const ultimoPago = ultimoPagoQuery.data || pagoPendienteActivo;
 
-    // Manejo de errores
     useEffect(() => {
         if (deudasQuery.error) {
             toast.error(deudasQuery.error.message || "Error al cargar deudas");
@@ -46,7 +51,7 @@ export const useAlumnoData = (alumnoId: number) => {
 
     return {
         deudas: deudasQuery.data,
-        ultimoPago, // Este valor se usará para actualizar el campo "id"
+        ultimoPago,
         isLoading: deudasQuery.isLoading || ultimoPagoQuery.isLoading,
         error: deudasQuery.error || ultimoPagoQuery.error,
     };
