@@ -7,7 +7,7 @@ import { toast } from "react-toastify";
 import pagosApi from "../../api/pagosApi";
 import matriculasApi from "../../api/matriculasApi";
 import { useCobranzasData } from "../../hooks/useCobranzasData";
-import { useAlumnoData } from "../../hooks/useAlumnoData";
+//import { useAlumnoData } from "../../hooks/useAlumnoData";
 import { useInscripcionesActivas } from "../../hooks/useInscripcionesActivas";
 import type {
     StockResponse,
@@ -18,14 +18,12 @@ import type {
     MetodoPagoResponse,
     DisciplinaDetalleResponse,
     InscripcionResponse,
-    DeudasPendientesResponse,
     InscripcionRegistroRequest,
     PagoParcialRequest
 } from "../../types/types";
 import ResponsiveContainer from "../../componentes/comunes/ResponsiveContainer";
 import FormHeader from "../../componentes/FormHeader";
 // Se omite PaymentIdUpdater, ya que sólo se actualizará un pago existente
-import { useSyncDetalles } from "../../hooks/context/useSyncDetalles";
 
 // --- Utilidades ---
 const getMesVigente = () => {
@@ -407,14 +405,14 @@ const EditarPagoForm: React.FC = () => {
 
     const { alumnos, disciplinas, stocks, metodosPago, conceptos } = useCobranzasData();
     const inscripcionesQuery = useInscripcionesActivas(selectedAlumnoId || 0);
-    const { deudas } = useAlumnoData(selectedAlumnoId || 0);
+    // const { deudas } = useAlumnoData(selectedAlumnoId || 0);
 
     // Wrapper para sincronizar detalles
-    const SyncDetalles: React.FC<{ deudaData: DeudasPendientesResponse }> = ({ deudaData }) => {
-        useSyncDetalles(deudaData);
-        return null;
-    };
-
+    /*  const SyncDetalles: React.FC<{ deudaData: DeudasPendientesResponse }> = ({ deudaData }) => {
+          useSyncDetalles(deudaData);
+          return null;
+      };
+  */
     // Aunque en modo edición no se debería cambiar el alumno, se mantiene esta función
     const handleAlumnoChange = useCallback(
         async (
@@ -699,7 +697,6 @@ const EditarPagoForm: React.FC = () => {
                 {({ values, setFieldValue }) => (
                     <Form className="w-full">
                         <TotalsUpdater metodosPago={metodosPago} />
-                        {deudas && <SyncDetalles deudaData={deudas} />}
                         <FormHeader alumnos={alumnos} handleAlumnoChange={handleAlumnoChange} />
                         <ConceptosSection
                             inscripcionesData={inscripcionesQuery.data}

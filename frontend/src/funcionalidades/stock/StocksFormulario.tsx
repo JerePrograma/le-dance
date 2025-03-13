@@ -14,7 +14,6 @@ import type {
 const initialStockValues: StockRegistroRequest & Partial<StockModificacionRequest> = {
     nombre: "",
     precio: 0,
-    tipoStockId: 0,
     stock: 0,
     requiereControlDeStock: false,
     codigoBarras: "",
@@ -37,7 +36,6 @@ const StocksFormulario: React.FC = () => {
             return {
                 nombre: stock.nombre,
                 precio: stock.precio,
-                tipoStockId: stock.tipo.id,
                 stock: stock.stock,
                 requiereControlDeStock: stock.requiereControlDeStock,
                 codigoBarras: stock.codigoBarras,
@@ -90,7 +88,6 @@ const StocksFormulario: React.FC = () => {
         nombre: values.nombre,
         precio: values.precio,
         // Convertimos el campo para que coincida con lo que espera el backend:
-        tipoStockId: values.tipoStockId,
         stock: values.stock,
         requiereControlDeStock: values.requiereControlDeStock,
         codigoBarras: values.codigoBarras,

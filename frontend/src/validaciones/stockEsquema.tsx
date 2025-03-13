@@ -7,10 +7,6 @@ export const stockEsquema = yup.object().shape({
         .typeError("El precio debe ser un numero")
         .positive("El precio debe ser mayor que 0")
         .required("El precio es requerido"),
-    tipoStockId: yup
-        .number()
-        .typeError("Seleccione un tipo de stock")
-        .required("El tipo de stock es requerido"),
     stock: yup
         .number()
         .typeError("El stock debe ser un numero")
