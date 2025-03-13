@@ -25,7 +25,7 @@ public class Mensualidad {
     @NotNull
     private LocalDate fechaCuota;
 
-    // Nuevo campo para registrar la fecha en que se realizó el pago (puede ser null si aún no se paga)
+    // Fecha en la que se realizó el pago (null si aún no se paga)
     private LocalDate fechaPago;
 
     @NotNull
@@ -52,4 +52,8 @@ public class Mensualidad {
     private Inscripcion inscripcion;
 
     private String descripcion;
+
+    // Nuevo campo para registrar el monto acumulado abonado en la mensualidad
+    @NotNull
+    private Double montoAbonado = 0.0;
 }

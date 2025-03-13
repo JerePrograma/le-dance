@@ -9,9 +9,10 @@ import java.time.LocalDate;
 public record InscripcionResponse(
         Long id,
         AlumnoListadoResponse alumno,
-        DisciplinaListadoResponse disciplina, // Cambiado de disciplinaId a objeto
+        DisciplinaListadoResponse disciplina,
         LocalDate fechaInscripcion,
         EstadoInscripcion estado,
         Double costoCalculado,
-        BonificacionResponse bonificacion
+        BonificacionResponse bonificacion,
+        String mensualidadEstado // Este campo se puede derivar, por ejemplo, a partir de la mensualidad vigente
 ) { }

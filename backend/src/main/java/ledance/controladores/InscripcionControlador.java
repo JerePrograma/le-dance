@@ -29,7 +29,7 @@ public class InscripcionControlador {
     @PostMapping
     public ResponseEntity<InscripcionResponse> crear(@RequestBody @Validated InscripcionRegistroRequest request) {
         log.info("Creando inscripción para alumnoId: {} en disciplinaId: {}",
-                request.alumnoId(), request.inscripcion().disciplinaId());
+                request.alumnoId(), request.disciplina().id());
         InscripcionResponse response = inscripcionServicio.crearInscripcion(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }

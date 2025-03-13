@@ -3,7 +3,7 @@ package ledance.dto.alumno.request;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import ledance.dto.inscripcion.request.InscripcionDisciplinaRequest;
+import ledance.dto.inscripcion.request.InscripcionRegistroRequest;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -27,5 +27,5 @@ public record AlumnoModificacionRequest(
         String otrasNotas,
         Double cuotaTotal,
         Boolean activo, // ✅ Ahora si se puede modificar
-        List<InscripcionDisciplinaRequest> disciplinas // ✅ Puede modificarse la inscripcion
+        List<InscripcionRegistroRequest> inscripciones // ✅ Puede modificarse la inscripcion
 ) {}

@@ -62,9 +62,4 @@ public class StockControlador {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/conceptos")
-    public ResponseEntity<List<StockResponse>> listarStocksConceptos() {
-        List<StockResponse> stocks = stockServicio.listarStocksConceptos();
-        return ResponseEntity.ok(stocks);
-    }
 }

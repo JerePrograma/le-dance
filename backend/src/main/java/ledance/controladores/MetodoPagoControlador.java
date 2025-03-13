@@ -72,8 +72,18 @@ public class MetodoPagoControlador {
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {
-        log.info("Eliminando (baja logica) metodo de pago con ID: {}", id);
+        log.info("Eliminando metodo de pago con ID: {}", id);
         metodoPagoServicio.eliminar(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Realiza la baja logica de un metodo de pago.
+     */
+    @DeleteMapping("/baja/{id}")
+    public ResponseEntity<Void> darBaja(@PathVariable Long id) {
+        log.info("Eliminando (baja logica) metodo de pago con ID: {}", id);
+        metodoPagoServicio.darBaja(id);
         return ResponseEntity.noContent().build();
     }
 }

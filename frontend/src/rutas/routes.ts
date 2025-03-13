@@ -50,8 +50,6 @@ export const otherProtectedRoutes = [
     // Stocks y Tipo-Stocks
     { path: "/stocks", Component: lazy(() => import("../funcionalidades/stock/StocksPagina")) },
     { path: "/stocks/formulario", Component: lazy(() => import("../funcionalidades/stock/StocksFormulario")) },
-    { path: "/tipo-stocks", Component: lazy(() => import("../funcionalidades/tipoStocks/TipoStocksPagina")) },
-    { path: "/tipo-stocks/formulario", Component: lazy(() => import("../funcionalidades/tipoStocks/TipoStocksFormulario")) },
     // Conceptos y Métodos de Pago
     { path: "/conceptos", Component: lazy(() => import("../funcionalidades/conceptos/ConceptosPagina")) },
     { path: "/conceptos/formulario-concepto", Component: lazy(() => import("../funcionalidades/conceptos/ConceptosFormulario")) },

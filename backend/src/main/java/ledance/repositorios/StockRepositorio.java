@@ -9,6 +9,4 @@ import java.util.List;
 public interface StockRepositorio extends JpaRepository<Stock, Long> {
     List<Stock> findByActivoTrue();
 
-    List<Stock> findByTipoDescripcion(String descripcion);
-
 }

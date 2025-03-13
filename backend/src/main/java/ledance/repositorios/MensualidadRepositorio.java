@@ -16,8 +16,7 @@ public interface MensualidadRepositorio extends JpaRepository<Mensualidad, Long>
     // Método para verificar si ya existe una cuota para una inscripción en un rango de fechas (mes)
     Optional<Mensualidad> findByInscripcionIdAndFechaCuotaBetween(Long inscripcionId, LocalDate inicio, LocalDate fin);
 
-    Mensualidad findByInscripcionAndDescripcionAndEstado(Inscripcion inscripcion, String descripcion, EstadoMensualidad estado);
-
     List<Mensualidad> findByInscripcionAlumnoIdAndEstadoInOrderByFechaCuotaDesc(Long alumnoId, List<EstadoMensualidad> estados);
 
+    Mensualidad findByInscripcionAndDescripcionAndEstado(Inscripcion inscripcion, String descripcion, EstadoMensualidad estado);
 }

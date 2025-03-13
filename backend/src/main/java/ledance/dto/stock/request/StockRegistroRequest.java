@@ -8,7 +8,6 @@ import java.time.LocalDate;
 public record StockRegistroRequest(
         @NotNull String nombre,
         @NotNull Double precio,
-        @NotNull Long tipoStockId,
         @NotNull @Min(0) Integer stock,
         Boolean requiereControlDeStock,
         String codigoBarras,

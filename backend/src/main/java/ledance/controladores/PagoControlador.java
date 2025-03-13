@@ -1,5 +1,6 @@
 package ledance.controladores;
 
+import ledance.dto.pago.request.PagoMedioRegistroRequest;
 import ledance.dto.pago.request.PagoModificacionRequest;
 import ledance.dto.pago.request.PagoRegistroRequest;
 import ledance.dto.pago.response.PagoResponse;
@@ -29,7 +30,7 @@ public class PagoControlador {
 
     @PostMapping
     public ResponseEntity<PagoResponse> registrarPago(@RequestBody @Validated PagoRegistroRequest request) {
-        log.info("[PagoControlador] Registrando pago para inscriptionId: {}", request.inscripcionId());
+        log.info("[PagoControlador] Registrando pago para inscriptionId: {}", request.inscripcion().id());
         // Aquí podrías loggear también todo el request:
         log.debug("[PagoControlador] Payload recibido: {}", request);
         PagoResponse response = pagoServicio.registrarPago(request);
@@ -42,6 +43,14 @@ public class PagoControlador {
                                                        @RequestBody @Validated PagoModificacionRequest request) {
         log.info("Actualizando pago con id: {}", id);
         PagoResponse response = pagoServicio.actualizarPago(id, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/{id}/parcial")
+    public ResponseEntity<PagoResponse> actualizarPagoParcial(
+            @PathVariable Long id,
+            @RequestBody @Validated PagoMedioRegistroRequest request) {
+        PagoResponse response = pagoServicio.registrarPagoParcial(id, request.montoAbonado(), request.montosPorDetalle(), request.metodoPagoId());
         return ResponseEntity.ok(response);
     }
 

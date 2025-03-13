@@ -1,7 +1,6 @@
 package ledance.servicios.inscripcion;
 
 import ledance.dto.asistencia.AsistenciaMensualMapper;
-import ledance.dto.asistencia.response.AsistenciaMensualListadoResponse;
 import ledance.dto.inscripcion.InscripcionMapper;
 import ledance.dto.inscripcion.request.InscripcionModificacionRequest;
 import ledance.dto.inscripcion.request.InscripcionRegistroRequest;
@@ -44,7 +43,9 @@ public class InscripcionServicio implements IInscripcionServicio {
                                InscripcionMapper inscripcionMapper,
                                AsistenciaMensualRepositorio asistenciaMensualRepositorio,
                                AsistenciaMensualServicio asistenciaMensualServicio,
-                               MensualidadServicio mensualidadServicio, AsistenciaMensualMapper asistenciaMensualMapper, AsistenciaAlumnoMensualRepositorio asistenciaAlumnoMensualRepositorio) {
+                               MensualidadServicio mensualidadServicio,
+                               AsistenciaMensualMapper asistenciaMensualMapper,
+                               AsistenciaAlumnoMensualRepositorio asistenciaAlumnoMensualRepositorio) {
         this.inscripcionRepositorio = inscripcionRepositorio;
         this.alumnoRepositorio = alumnoRepositorio;
         this.disciplinaRepositorio = disciplinaRepositorio;
@@ -62,28 +63,34 @@ public class InscripcionServicio implements IInscripcionServicio {
     @Transactional
     public InscripcionResponse crearInscripcion(InscripcionRegistroRequest request) {
         log.info("Registrando inscripción para alumnoId: {} en disciplinaId: {}",
-                request.alumnoId(), request.inscripcion().disciplinaId());
+                request.alumnoId(), request.disciplina().id());
 
         Alumno alumno = alumnoRepositorio.findById(request.alumnoId())
                 .orElseThrow(() -> new IllegalArgumentException("Alumno no encontrado."));
-        Disciplina disciplina = disciplinaRepositorio.findById(request.inscripcion().disciplinaId())
+        Disciplina disciplina = disciplinaRepositorio.findById(request.disciplina().id())
                 .orElseThrow(() -> new IllegalArgumentException("Disciplina no encontrada."));
         if (disciplina.getProfesor() == null) {
             throw new IllegalStateException("La disciplina indicada no tiene profesor asignado.");
         }
         Bonificacion bonificacion = null;
-        if (request.inscripcion().bonificacionId() != null) {
-            bonificacion = bonificacionRepositorio.findById(request.inscripcion().bonificacionId())
+        if (request.bonificacionId() != null) {
+            bonificacion = bonificacionRepositorio.findById(request.bonificacionId())
                     .orElse(null);
         }
+        // Convertimos el DTO a entidad
         Inscripcion inscripcion = inscripcionMapper.toEntity(request);
         inscripcion.setAlumno(alumno);
         inscripcion.setDisciplina(disciplina);
         inscripcion.setBonificacion(bonificacion);
         inscripcion.setFechaInscripcion(request.fechaInscripcion() == null ? LocalDate.now() : request.fechaInscripcion());
 
+        // Guardamos la inscripción
         Inscripcion guardada = inscripcionRepositorio.save(inscripcion);
         log.info("Inscripción guardada con ID: {}", guardada.getId());
+
+        // Calcular el costo utilizando la lógica de negocio en el servicio
+        Double costoCalculado = calcularCosto(guardada);
+        log.info("Costo calculado para inscripción id {}: {}", guardada.getId(), costoCalculado);
 
         try {
             int mesActual = LocalDate.now().getMonthValue();
@@ -100,7 +107,23 @@ public class InscripcionServicio implements IInscripcionServicio {
         log.info("Incorporando alumno a la planilla de asistencia para {}/{}.", mes, anio);
         asistenciaMensualServicio.agregarAlumnoAPlanilla(guardada.getId(), mes, anio);
 
+        // Convertir la entidad a DTO y asignar el costo calculado al DTO (si el DTO lo incluye)
+
         return inscripcionMapper.toDTO(guardada);
+    }
+
+    // Lógica de cálculo trasladada al servicio (sin utilizar el mapper)
+    private Double calcularCosto(Inscripcion inscripcion) {
+        Disciplina d = inscripcion.getDisciplina();
+        double valorCuota = d.getValorCuota() != null ? d.getValorCuota() : 0.0;
+        double claseSuelta = d.getClaseSuelta() != null ? d.getClaseSuelta() : 0.0;
+        double clasePrueba = d.getClasePrueba() != null ? d.getClasePrueba() : 0.0;
+        double total = valorCuota + claseSuelta + clasePrueba;
+        if (inscripcion.getBonificacion() != null && inscripcion.getBonificacion().getPorcentajeDescuento() != null) {
+            int descuento = inscripcion.getBonificacion().getPorcentajeDescuento();
+            total = total * (100 - descuento) / 100.0;
+        }
+        return total;
     }
 
     @Override
@@ -149,19 +172,12 @@ public class InscripcionServicio implements IInscripcionServicio {
 
     @Transactional
     public void eliminarInscripcion(Long id) {
-        // Buscar la inscripción
         Inscripcion inscripcion = inscripcionRepositorio.findById(id)
                 .orElseThrow(() -> new TratadorDeErrores.RecursoNoEncontradoException("Inscripción no encontrada."));
-
-        // Buscar los registros de asistencia del alumno asociados a esta inscripción
         List<AsistenciaAlumnoMensual> registros = asistenciaAlumnoMensualRepositorio.findByInscripcionId(inscripcion.getId());
-
-        // Eliminar todos los registros de asistencia del alumno
         if (!registros.isEmpty()) {
             asistenciaAlumnoMensualRepositorio.deleteAll(registros);
         }
-
-        // Ahora se puede eliminar la inscripción sin violar la llave foránea
         inscripcionRepositorio.delete(inscripcion);
     }
 
@@ -210,5 +226,19 @@ public class InscripcionServicio implements IInscripcionServicio {
         return inscripcionMapper.toDTO(inscripcion);
     }
 
+    // Ejemplo en el servicio de inscripciones
+    private String obtenerEstadoMensualidad(Inscripcion inscripcion) {
+        // Se asume que Inscripcion tiene una lista de mensualidades
+        if (inscripcion.getMensualidades() != null && !inscripcion.getMensualidades().isEmpty()) {
+            // Por ejemplo, se ordenan por fechaCuota descendente y se toma la primera
+            Mensualidad ultima = inscripcion.getMensualidades().stream()
+                    .sorted((m1, m2) -> m2.getFechaCuota().compareTo(m1.getFechaCuota()))
+                    .findFirst().orElse(null);
+            if (ultima != null) {
+                return ultima.getEstado().name();
+            }
+        }
+        return "Sin mensualidad"; // O el valor que consideres adecuado
+    }
 
 }

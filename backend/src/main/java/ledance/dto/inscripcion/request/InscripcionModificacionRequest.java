@@ -1,6 +1,8 @@
 package ledance.dto.inscripcion.request;
 
 import jakarta.validation.constraints.NotNull;
+import ledance.dto.disciplina.request.DisciplinaRegistroRequest;
+
 import java.time.LocalDate;
 
 /**
@@ -8,7 +10,8 @@ import java.time.LocalDate;
  */
 public record InscripcionModificacionRequest(
         @NotNull Long alumnoId,
-        InscripcionDisciplinaRequest inscripcion,
+        DisciplinaRegistroRequest disciplina,
+        Long bonificacionId,
         LocalDate fechaBaja, // ✅ Permite dar de baja una inscripcion
         Double costoParticular
 ) {}

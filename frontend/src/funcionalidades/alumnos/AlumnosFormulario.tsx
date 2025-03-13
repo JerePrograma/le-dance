@@ -41,7 +41,7 @@ const initialAlumnoValues: AlumnoRegistroRequest &
   autorizadoParaSalirSolo: false,
   otrasNotas: "",
   cuotaTotal: 0,
-  disciplinas: [],
+  inscripciones: [],
   activo: true,
 };
 

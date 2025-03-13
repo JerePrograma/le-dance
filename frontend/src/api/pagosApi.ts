@@ -8,6 +8,7 @@ import type {
   AlumnoListadoResponse,
   CobranzaDTO,
   DisciplinaDetalleResponse,
+  PagoParcialRequest,
 } from "../types/types";
 
 const registrarPago = async (
@@ -71,6 +72,15 @@ const actualizarPago = async (
   return data;
 };
 
+// Actualiza un pago parcial
+const actualizarPagoParcial = async (
+  id: number,
+  pago: PagoParcialRequest
+): Promise<PagoResponse> => {
+  const { data } = await api.put<PagoResponse>(`/pagos/${id}/parcial`, pago);
+  return data;
+};
+
 /**
  * Realiza una baja logica del pago.
  */
@@ -127,6 +137,7 @@ const pagosApi = {
   obtenerPagoPorId,
   listarPagos,
   actualizarPago,
+  actualizarPagoParcial,
   eliminarPago,
   listarPagosPorInscripcion,
   listarPagosPorAlumno,

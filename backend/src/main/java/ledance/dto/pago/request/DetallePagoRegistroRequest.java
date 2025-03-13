@@ -12,6 +12,7 @@ public record DetallePagoRegistroRequest(
         @Min(0) Long bonificacionId,
         @Min(0) Long recargoId,
         @NotNull @Min(0) Double aCobrar,
+        // Puedes mantener el campo "importe" si lo requieres, pero se recalculará en el backend.
         Double importe,
         Boolean cobrado
 ) {

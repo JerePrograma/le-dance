@@ -24,10 +24,6 @@ public class Stock {
     @NotNull
     private Double precio;
 
-    @ManyToOne
-    @JoinColumn(name = "tipo_stocks_id")
-    private TipoStock tipo;
-
     @NotNull
     private Integer stock;
 

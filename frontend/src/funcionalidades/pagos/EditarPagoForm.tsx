@@ -1,4 +1,4 @@
-// src/forms/CobranzasForm.tsx
+// src/forms/EditarPagoForm.tsx
 import React, { useState, useCallback, useEffect } from "react";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { Formik, Form, Field, FieldArray, useFormikContext, FormikErrors } from "formik";
@@ -19,11 +19,12 @@ import type {
     DisciplinaDetalleResponse,
     InscripcionResponse,
     DeudasPendientesResponse,
-    InscripcionRegistroRequest
+    InscripcionRegistroRequest,
+    PagoParcialRequest
 } from "../../types/types";
 import ResponsiveContainer from "../../componentes/comunes/ResponsiveContainer";
 import FormHeader from "../../componentes/FormHeader";
-import { PaymentIdUpdater } from "../../componentes/PaymentUpdater";
+// Se omite PaymentIdUpdater, ya que sólo se actualizará un pago existente
 import { useSyncDetalles } from "../../hooks/context/useSyncDetalles";
 
 // --- Utilidades ---
@@ -35,7 +36,6 @@ const getMesVigente = () => {
             timeZone: "America/Argentina/Buenos_Aires",
         })
         .toUpperCase();
-    console.log("[getMesVigente] mesVigente:", mesVigente);
     return mesVigente;
 };
 
@@ -49,7 +49,6 @@ const generatePeriodos = (numMeses = 12): string[] => {
         const periodo = date.toLocaleString("default", { month: "long", year: "numeric" }).toUpperCase();
         periodos.push(periodo);
     }
-    console.log("[generatePeriodos] periodos generados:", periodos);
     return periodos;
 };
 
@@ -81,28 +80,28 @@ export const normalizeInscripcion = (insc: InscripcionResponse): InscripcionRegi
     disciplina: {
         id: insc.disciplina.id,
         nombre: insc.disciplina.nombre,
-        frecuenciaSemanal: 0, // Valor por defecto o asigna el valor real si lo tienes
-        salonId: 0,           // Valor predeterminado
-        profesorId: 0,        // Valor predeterminado
-        recargoId: 0,         // Valor predeterminado
+        frecuenciaSemanal: 0,
+        salonId: 0,
+        profesorId: 0,
+        recargoId: 0,
         valorCuota: insc.disciplina.valorCuota,
-        matricula: 0,         // Valor predeterminado
+        matricula: 0,
         claseSuelta: insc.disciplina.claseSuelta,
         clasePrueba: insc.disciplina.clasePrueba,
-        horarios: [],         // Ajusta si tienes horarios en la respuesta
+        horarios: [],
     },
     bonificacionId: insc.bonificacion ? insc.bonificacion.id : undefined,
     fechaInscripcion: insc.fechaInscripcion,
 });
 
-// Default values para el formulario
+// Valores por defecto para el formulario (no se utilizará para creación, solo como fallback)
 const defaultValues: CobranzasFormValues = {
     id: 0,
-    reciboNro: "AUTO-001",
+    reciboNro: "",
     alumno: "",
     alumnoId: "",
-    inscripcion: inscripcionDummy, // Objeto dummy para pagos generales
-    inscripcionId: 0, // Nuevo campo para guardar el ID de inscripción seleccionado
+    inscripcion: inscripcionDummy,
+    inscripcionId: -1,
     fecha: new Date().toISOString().split("T")[0],
     detallePagos: [],
     disciplina: "",
@@ -124,12 +123,12 @@ const defaultValues: CobranzasFormValues = {
 const validationSchema = Yup.object().shape({
     alumno: Yup.string().required("El alumno es obligatorio"),
     fecha: Yup.string().required("La fecha es obligatoria"),
-    // Se pueden agregar validaciones adicionales según la lógica de negocio
+    // Otras validaciones según la lógica de negocio
 });
 
 const TotalsUpdater: React.FC<{ metodosPago: MetodoPagoResponse[] }> = ({ metodosPago }) => {
     const { values, setFieldValue } = useFormikContext<CobranzasFormValues>();
-    useEffect(() => {
+    React.useEffect(() => {
         const baseTotal = values.detallePagos.reduce(
             (total, item) => total + Number(item.importe || 0),
             0
@@ -179,16 +178,13 @@ const ConceptosSection: React.FC<{
                     {inscripcionesData && inscripcionesData.length > 0 ? (
                         <Field
                             as="select"
-                            name="inscripcionId" // Usamos el nuevo campo para el valor seleccionado
+                            name="inscripcionId"
                             className="border p-2 w-full"
                             onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
                                 const selectedInscripcionId = Number(e.target.value);
-                                // Guardamos el id seleccionado en el nuevo campo
                                 setFieldValue("inscripcionId", selectedInscripcionId);
-                                // Buscamos en los datos la inscripción correspondiente
                                 const insc = inscripcionesData.find(ins => ins.id === selectedInscripcionId);
                                 if (insc) {
-                                    // Normalizamos la inscripción y la asignamos
                                     setFieldValue("inscripcion", normalizeInscripcion(insc));
                                     setFieldValue("disciplina", insc.disciplina.nombre);
                                 } else {
@@ -341,11 +337,6 @@ const DetallesTable: React.FC = () => {
                                                         className="w-full px-2 py-1 border rounded text-center"
                                                         onChange={(e) => {
                                                             const newImporte = Number(e.target.value);
-                                                            // Si el detalle es autogenerado y no tiene id, le asignamos un _tempId
-                                                            const currentDetail = form.values.detallePagos[index];
-                                                            if (currentDetail.id === null && !currentDetail._tempId) {
-                                                                form.setFieldValue(`detallePagos.${index}._tempId`, Date.now());
-                                                            }
                                                             form.setFieldValue(`detallePagos.${index}.importe`, newImporte);
                                                             form.setFieldValue(`detallePagos.${index}.aCobrar`, newImporte);
                                                             form.setFieldValue(`detallePagos.${index}.autoGenerated`, false);
@@ -363,10 +354,6 @@ const DetallesTable: React.FC = () => {
                                                         className="w-full px-2 py-1 border rounded text-center"
                                                         onChange={(e) => {
                                                             const newACobrar = Number(e.target.value);
-                                                            const currentDetail = form.values.detallePagos[index];
-                                                            if (currentDetail.id === null && !currentDetail._tempId) {
-                                                                form.setFieldValue(`detallePagos.${index}._tempId`, Date.now());
-                                                            }
                                                             form.setFieldValue(`detallePagos.${index}.aCobrar`, newACobrar);
                                                             form.setFieldValue(`detallePagos.${index}.autoGenerated`, false);
                                                         }}
@@ -382,14 +369,10 @@ const DetallesTable: React.FC = () => {
                                                 type="button"
                                                 className="bg-red-500 hover:bg-red-600 text-white p-1 rounded text-xs transition-colors mx-auto block"
                                                 onClick={() => {
-                                                    // Si es un detalle autogenerado y tiene id, lo agregamos a autoRemoved
                                                     if (form.values.detallePagos[index].autoGenerated && form.values.detallePagos[index].id) {
                                                         const currentRemoved = form.values.autoRemoved || [];
-                                                        // Solo agregamos si aún no está en la lista
-                                                        if (!currentRemoved.includes(form.values.detallePagos[index].id)) {
-                                                            const newRemoved = [...currentRemoved, form.values.detallePagos[index].id];
-                                                            form.setFieldValue("autoRemoved", newRemoved);
-                                                        }
+                                                        const newRemoved = [...currentRemoved, form.values.detallePagos[index].id];
+                                                        form.setFieldValue("autoRemoved", newRemoved);
                                                     }
                                                     remove(index);
                                                 }}
@@ -414,7 +397,7 @@ const DetallesTable: React.FC = () => {
     );
 };
 
-const CobranzasForm: React.FC = () => {
+const EditarPagoForm: React.FC = () => {
     const location = useLocation();
     const [initialValues, setInitialValues] = useState<CobranzasFormValues>(defaultValues);
     const [, setMatricula] = useState<MatriculaResponse | null>(null);
@@ -424,14 +407,15 @@ const CobranzasForm: React.FC = () => {
 
     const { alumnos, disciplinas, stocks, metodosPago, conceptos } = useCobranzasData();
     const inscripcionesQuery = useInscripcionesActivas(selectedAlumnoId || 0);
-    const { deudas, ultimoPago } = useAlumnoData(selectedAlumnoId || 0);
+    const { deudas } = useAlumnoData(selectedAlumnoId || 0);
 
     // Wrapper para sincronizar detalles
-    const SyncDetalles: React.FC<{ deudaData: DeudasPendientesResponse, ultimoPago: any }> = ({ deudaData, ultimoPago }) => {
-        useSyncDetalles(deudaData, ultimoPago);
+    const SyncDetalles: React.FC<{ deudaData: DeudasPendientesResponse }> = ({ deudaData }) => {
+        useSyncDetalles(deudaData);
         return null;
     };
 
+    // Aunque en modo edición no se debería cambiar el alumno, se mantiene esta función
     const handleAlumnoChange = useCallback(
         async (
             alumnoIdStr: string,
@@ -454,64 +438,67 @@ const CobranzasForm: React.FC = () => {
         []
     );
 
-    // Cargar datos de pago si hay "id" en query params
+    // Cargar datos de pago basándose en el "id" enviado por query params.
     useEffect(() => {
         const idParam = searchParams.get("id");
-        if (idParam) {
-            pagosApi
-                .obtenerPagoPorId(Number(idParam))
-                .then((pagoData) => {
-                    setInitialValues({
-                        id: 0, // Forzamos 0 para que se interprete siempre como un nuevo pago
-                        reciboNro: pagoData.id.toString(),
-                        alumno: pagoData.alumnoId ? pagoData.alumnoId.toString() : "",
-                        inscripcion: pagoData.inscripcion
-                            ? normalizeInscripcion(pagoData.inscripcion)
-                            : inscripcionDummy,
-                        inscripcionId: pagoData.inscripcion ? pagoData.inscripcion.id : -1,
-                        alumnoId: pagoData.alumnoId ? pagoData.alumnoId.toString() : "",
-                        fecha: pagoData.fecha || new Date().toISOString().split("T")[0],
-                        detallePagos: pagoData.detallePagos.map((detalle: any) => ({
-                            id: detalle.autoGenerated ? null : detalle.id,
-                            codigoConcepto: detalle.codigoConcepto,
-                            concepto: detalle.concepto,
-                            cuota: detalle.cuota,
-                            valorBase: detalle.valorBase,
-                            bonificacionId: detalle.bonificacion ? detalle.bonificacion.id.toString() : "",
-                            recargoId: detalle.recargoId ? detalle.recargoId.toString() : "",
-                            importe: detalle.importe,
-                            aCobrar: detalle.aCobrar != null ? detalle.aCobrar : detalle.importe,
-                            aFavor: detalle.aFavor != null ? detalle.aFavor : 0,
-                            autoGenerated: true,
-                        })),
-                        totalCobrado: pagoData.detallePagos.reduce(
-                            (sum: number, detalle: any) =>
-                                sum + (Number(detalle.aCobrar) || Number(detalle.importe) || 0),
-                            0
-                        ),
-                        totalACobrar: pagoData.detallePagos.reduce(
-                            (sum: number, detalle: any) => sum + (Number(detalle.importe) || 0),
-                            0
-                        ),
-                        metodoPagoId: pagoData.metodoPago ? pagoData.metodoPago : 0,
-                        observaciones: pagoData.observaciones || "",
-                        conceptoSeleccionado: "",
-                        stockSeleccionado: "",
-                        matriculaRemoved: false,
-                        mensualidadId: "",
-                        disciplina: "",
-                        tarifa: "",
-                        cantidad: 1,
-                        periodoMensual: getMesVigente(),
-                        autoRemoved: [],
-                        pagoParcial: 0,
-                    });
-                })
-                .catch(() => {
-                    toast.error("Error al cargar los datos del pago.");
-                });
+        if (!idParam) {
+            toast.error("No se encontró un ID de pago para editar");
+            navigate("/pagos");
+            return;
         }
-    }, [searchParams]);
+        pagosApi
+            .obtenerPagoPorId(Number(idParam))
+            .then((pagoData) => {
+                setInitialValues({
+                    id: Number(pagoData.id),
+                    reciboNro: pagoData.id.toString(),
+                    alumno: pagoData.alumnoId ? pagoData.alumnoId.toString() : "",
+                    inscripcion: pagoData.inscripcion
+                        ? normalizeInscripcion(pagoData.inscripcion)
+                        : inscripcionDummy,
+                    inscripcionId: pagoData.inscripcion ? pagoData.inscripcion.id : -1,
+                    alumnoId: pagoData.alumnoId ? pagoData.alumnoId.toString() : "",
+                    fecha: pagoData.fecha || new Date().toISOString().split("T")[0],
+                    detallePagos: pagoData.detallePagos.map((detalle: any) => ({
+                        id: detalle.id,
+                        codigoConcepto: detalle.codigoConcepto,
+                        concepto: detalle.concepto,
+                        cuota: detalle.cuota,
+                        valorBase: detalle.valorBase,
+                        bonificacionId: detalle.bonificacion ? detalle.bonificacion.id.toString() : "",
+                        recargoId: detalle.recargoId ? detalle.recargoId.toString() : "",
+                        importe: detalle.importe,
+                        aCobrar: detalle.aCobrar != null ? detalle.aCobrar : detalle.importe,
+                        autoGenerated: true,
+                        aFavor: detalle.aFavor != null ? detalle.aFavor : 0,
+                    })),
+                    totalCobrado: pagoData.detallePagos.reduce(
+                        (sum: number, detalle: any) =>
+                            sum + (Number(detalle.aCobrar) || Number(detalle.importe) || 0),
+                        0
+                    ),
+                    totalACobrar: pagoData.detallePagos.reduce(
+                        (sum: number, detalle: any) => sum + (Number(detalle.importe) || 0),
+                        0
+                    ),
+                    metodoPagoId: pagoData.metodoPago ? pagoData.metodoPago : 0,
+                    observaciones: pagoData.observaciones || "",
+                    conceptoSeleccionado: "",
+                    stockSeleccionado: "",
+                    matriculaRemoved: false,
+                    mensualidadId: "",
+                    disciplina: "",
+                    tarifa: "",
+                    cantidad: 1,
+                    periodoMensual: getMesVigente(),
+                    autoRemoved: [],
+                    pagoParcial: 0,
+                });
+            })
+            .catch(() => {
+                toast.error("Error al cargar los datos del pago.");
+            });
+    }, [searchParams, navigate]);
 
     const handleAgregarDetalle = (
         values: CobranzasFormValues,
@@ -621,8 +608,6 @@ const CobranzasForm: React.FC = () => {
         if (added) {
             setFieldValue("detallePagos", newDetails);
             setFieldValue("totalCobrado", newDetails.reduce((acc, det) => acc + (Number(det.aCobrar) || 0), 0));
-            // No reseteamos la inscripción si ya fue asignada correctamente.
-            // Se mantienen los demás campos de selección manual.
             setFieldValue("conceptoSeleccionado", "");
             setFieldValue("stockSeleccionado", "");
             setFieldValue("cantidad", 1);
@@ -637,7 +622,7 @@ const CobranzasForm: React.FC = () => {
 
     const onSubmit = async (values: CobranzasFormValues, actions: any) => {
         try {
-            // Filtrar detalles cuyo importe no sea 0
+            // Se filtran detalles cuyo importe no sea 0
             const detallesFiltrados = values.detallePagos.filter(
                 (detalle) => Number(detalle.importe) !== 0
             );
@@ -657,7 +642,7 @@ const CobranzasForm: React.FC = () => {
                 pagoMatricula: false,
                 activo: true,
                 detallePagos: detallesFiltrados.map((d) => ({
-                    id: d.autoGenerated ? null : d.id,
+                    id: d.id,
                     codigoConcepto: d.codigoConcepto ? String(d.codigoConcepto) : undefined,
                     concepto: d.concepto,
                     cuota: d.cuota,
@@ -669,28 +654,41 @@ const CobranzasForm: React.FC = () => {
                 pagoMedios: [],
             };
 
-            // Siempre se registra un nuevo pago
-            await pagosApi.registrarPago(pagoRegistroRequest);
-            toast.success("Cobranza registrada correctamente");
+            // Solo se ejecuta la actualización; en modo edición no se registra un nuevo pago
+            if (values.id && values.id !== 0) {
+                // Si se detecta pago parcial, se actualiza mediante el endpoint correspondiente
+                const isPagoParcial = Number(values.totalACobrar) > 0;
+                if (isPagoParcial) {
+                    const pagoParcialRequest: PagoParcialRequest = {
+                        montoAbonado: Number(values.pagoParcial),
+                        montosPorDetalle: values.detallePagos.reduce((acc: any, detalle: any) => {
+                            if (detalle.aCobrar && Number(detalle.aCobrar) > 0) {
+                                acc[detalle.id] = Number(detalle.aCobrar);
+                            }
+                            return acc;
+                        }, {}),
+                        metodoPagoId: values.metodoPagoId,
+                    };
+                    await pagosApi.actualizarPagoParcial(Number(values.id), pagoParcialRequest);
+                    toast.success("Pago parcial actualizado correctamente");
+                } else {
+                    await pagosApi.actualizarPago(Number(values.id), pagoRegistroRequest);
+                    toast.success("Cobranza actualizada correctamente");
+                }
+            } else {
+                toast.error("No se encontró un ID válido para actualizar el pago.");
+            }
             actions.resetForm();
             navigate("/pagos");
         } catch (error) {
-            console.error("[onSubmit] Error en registro:", error);
-            toast.error("Error al registrar la cobranza");
+            console.error("[onSubmit] Error al actualizar:", error);
+            toast.error("Error al actualizar la cobranza");
         }
     };
 
     return (
         <ResponsiveContainer className="py-4">
-            <h1 className="page-title text-2xl font-bold mb-4">Gestión de Cobranzas</h1>
-            {ultimoPago && (
-                <div className="mb-4 p-2 border">
-                    <p>
-                        Último pago registrado: <strong>{ultimoPago.id}</strong>
-                    </p>
-                    <p>Monto: {ultimoPago.monto}</p>
-                </div>
-            )}
+            <h1 className="page-title text-2xl font-bold mb-4">Editar Pago</h1>
             <Formik
                 key={location.key}
                 initialValues={initialValues}
@@ -700,10 +698,8 @@ const CobranzasForm: React.FC = () => {
             >
                 {({ values, setFieldValue }) => (
                     <Form className="w-full">
-                        {/* Se eliminó el FormValuesUpdater para evitar sobrescribir los cambios del usuario */}
                         <TotalsUpdater metodosPago={metodosPago} />
-                        <PaymentIdUpdater ultimoPago={ultimoPago} />
-                        {deudas && <SyncDetalles deudaData={deudas} ultimoPago={ultimoPago} />}
+                        {deudas && <SyncDetalles deudaData={deudas} />}
                         <FormHeader alumnos={alumnos} handleAlumnoChange={handleAlumnoChange} />
                         <ConceptosSection
                             inscripcionesData={inscripcionesQuery.data}
@@ -775,7 +771,7 @@ const CobranzasForm: React.FC = () => {
                         </div>
                         <div className="flex justify-end gap-4">
                             <button type="submit" className="bg-green-500 p-2 rounded">
-                                {searchParams.get("id") ? "Actualizar Cobranza" : "Registrar Cobranza"}
+                                Actualizar Cobranza
                             </button>
                             <button type="reset" className="bg-gray-500 p-2 rounded">
                                 Cancelar
@@ -788,4 +784,4 @@ const CobranzasForm: React.FC = () => {
     );
 };
 
-export default CobranzasForm;
+export default EditarPagoForm;

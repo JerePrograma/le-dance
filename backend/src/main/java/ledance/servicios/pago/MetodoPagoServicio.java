@@ -69,6 +69,13 @@ public class MetodoPagoServicio {
      * Realiza la baja logica de un metodo de pago.
      */
     public void eliminar(Long id) {
+        metodoPagoRepositorio.deleteById(id);
+    }
+
+    /**
+     * Realiza la baja logica de un metodo de pago.
+     */
+    public void darBaja(Long id) {
         MetodoPago metodo = metodoPagoRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("No se encontro el metodo de pago con ID: " + id));
         metodo.setActivo(false);
