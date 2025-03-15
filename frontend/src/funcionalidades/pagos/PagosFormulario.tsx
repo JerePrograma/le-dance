@@ -298,7 +298,6 @@ const DetallesTable: React.FC = () => {
                     <table className="border mb-4 w-auto table-layout-auto">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th className="border p-2 text-center text-sm font-medium text-gray-700 min-w-[80px]">Código</th>
                                 <th className="border p-2 text-center text-sm font-medium text-gray-700 min-w-[120px]">Concepto</th>
                                 <th className="border p-2 text-center text-sm font-medium text-gray-700 min-w-[80px]">Cantidad</th>
                                 <th className="border p-2 text-center text-sm font-medium text-gray-700 min-w-[100px]">Valor Base</th>
@@ -314,9 +313,6 @@ const DetallesTable: React.FC = () => {
                             {form.values.detallePagos && form.values.detallePagos.length > 0 ? (
                                 form.values.detallePagos.map((_: any, index: number) => (
                                     <tr key={index} className="hover:bg-gray-50">
-                                        <td className="border p-2 text-center text-sm">
-                                            <Field name={`detallePagos.${index}.codigoConcepto`} type="text" className="w-full px-2 py-1 border rounded text-center" readOnly />
-                                        </td>
                                         <td className="border p-2 text-center text-sm">
                                             <Field name={`detallePagos.${index}.concepto`} type="text" className="w-full px-2 py-1 border rounded text-center" readOnly />
                                         </td>

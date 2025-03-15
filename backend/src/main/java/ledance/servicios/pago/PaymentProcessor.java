@@ -15,6 +15,7 @@ import ledance.dto.pago.DetallePagoMapper;
 import ledance.dto.pago.PagoMapper;
 import ledance.dto.pago.PagoMedioMapper;
 import ledance.dto.inscripcion.InscripcionMapper;
+import ledance.servicios.stock.StockServicio;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -41,6 +42,7 @@ public class PaymentProcessor {
     private final DetallePagoMapper detallePagoMapper;
     private final PagoMedioMapper pagoMedioMapper;
     private final InscripcionMapper inscripcionMapper;
+    private final StockServicio stockServicio;
 
     public PaymentProcessor(PagoRepositorio pagoRepositorio,
                             AlumnoRepositorio alumnoRepositorio,
@@ -54,7 +56,7 @@ public class PaymentProcessor {
                             BonificacionRepositorio bonificacionRepositorio,
                             DetallePagoServicio detallePagoServicio,
                             PagoMedioMapper pagoMedioMapper,
-                            InscripcionMapper inscripcionMapper) {
+                            InscripcionMapper inscripcionMapper, StockServicio stockServicio) {
         this.pagoRepositorio = pagoRepositorio;
         this.alumnoRepositorio = alumnoRepositorio;
         this.inscripcionRepositorio = inscripcionRepositorio;
@@ -68,6 +70,7 @@ public class PaymentProcessor {
         this.detallePagoServicio = detallePagoServicio;
         this.pagoMedioMapper = pagoMedioMapper;
         this.inscripcionMapper = inscripcionMapper;
+        this.stockServicio = stockServicio;
     }
 
     // ---------------------- Creacion de Pagos -----------------------
@@ -622,32 +625,52 @@ public class PaymentProcessor {
         log.info("[procesarPagosEspecificos] Iniciando procesamiento de detalles para pago id={}", pago.getId());
         if (pago.getDetallePagos() != null) {
             for (DetallePago detalle : pago.getDetallePagos()) {
-                // Si el detalle no tiene tipo definido, se intenta determinarlo a partir del concepto
+                // Si no se ha definido un tipo, se determina a partir del concepto
                 if (detalle.getTipo() == null) {
                     if (detalle.getConcepto() != null) {
-                        String concepto = detalle.getConcepto().trim().toUpperCase();
-                        log.debug("[procesarPagosEspecificos] Concepto normalizado: '{}'", concepto);
-                        if (concepto.startsWith("MATRICULA")) {
+                        String conceptoOriginal = detalle.getConcepto();
+                        String conceptoNormalizado = conceptoOriginal.trim().toUpperCase();
+                        log.debug("[procesarPagosEspecificos] Concepto recibido: '{}', normalizado a: '{}'", conceptoOriginal, conceptoNormalizado);
+
+                        // Primero: verifica si existe un stock con ese nombre
+                        if (existeStockConNombre(detalle.getConcepto())) {
+                            detalle.setTipo(TipoDetallePago.STOCK);
+                            log.info("[procesarPagosEspecificos] Se asigna tipo STOCK para el concepto '{}'", conceptoOriginal);
+                            procesarStock(pago, detalle);
+                        } else if (conceptoNormalizado.startsWith("MATRICULA")) {
+                            detalle.setTipo(TipoDetallePago.MATRICULA);
+                            log.info("[procesarPagosEspecificos] Se asigna tipo MATRICULA para el concepto '{}'", conceptoOriginal);
                             procesarMatricula(pago, detalle);
-                        } else if (concepto.contains("CUOTA")) {
+                        } else if (conceptoNormalizado.contains("CUOTA")) {
+                            detalle.setTipo(TipoDetallePago.MENSUALIDAD);
+                            log.info("[procesarPagosEspecificos] Se asigna tipo MENSUALIDAD para el concepto '{}'", conceptoOriginal);
                             procesarMensualidad(pago, detalle);
                         } else {
+                            detalle.setTipo(TipoDetallePago.GENERAL);
+                            log.info("[procesarPagosEspecificos] Se asigna tipo GENERAL para el concepto '{}'", conceptoOriginal);
                             procesarDetalleGeneral(pago, detalle);
                         }
                     } else {
-                        log.warn("[procesarPagosEspecificos] Detalle id={} sin concepto, se omite", detalle.getId());
+                        log.warn("[procesarPagosEspecificos] Detalle id={} sin concepto; se omite", detalle.getId());
                     }
                 } else {
-                    // Si el tipo ya está definido, se llama al procesamiento correspondiente.
+                    // Si el tipo ya fue definido, procesar según el mismo
                     switch (detalle.getTipo()) {
                         case MATRICULA:
+                            log.info("[procesarPagosEspecificos] Procesando MATRICULA para detalle id={}", detalle.getId());
                             procesarMatricula(pago, detalle);
                             break;
                         case MENSUALIDAD:
+                            log.info("[procesarPagosEspecificos] Procesando MENSUALIDAD para detalle id={}", detalle.getId());
                             procesarMensualidad(pago, detalle);
+                            break;
+                        case STOCK:
+                            log.info("[procesarPagosEspecificos] Procesando STOCK para detalle id={}", detalle.getId());
+                            procesarStock(pago, detalle);
                             break;
                         case GENERAL:
                         default:
+                            log.info("[procesarPagosEspecificos] Procesando GENERAL para detalle id={}", detalle.getId());
                             procesarDetalleGeneral(pago, detalle);
                             break;
                     }
@@ -657,6 +680,39 @@ public class PaymentProcessor {
             log.warn("[procesarPagosEspecificos] El pago id={} no contiene detalles", pago.getId());
         }
         log.info("[procesarPagosEspecificos] Finalizado procesamiento de detalles para pago id={}", pago.getId());
+    }
+
+    private void procesarStock(Pago pago, DetallePago detalle) {
+        log.info("[procesarStock] Iniciando procesamiento para detalle id={} con concepto '{}'", detalle.getId(), detalle.getConcepto());
+
+        // Determinar cantidad a reducir
+        int cantidad = 1;
+        if (detalle.getCuota() != null) {
+            try {
+                cantidad = Integer.parseInt(detalle.getCuota().trim());
+            } catch (NumberFormatException e) {
+                log.warn("[procesarStock] No se pudo parsear cuota '{}'. Usando cantidad 1 por defecto.", detalle.getCuota());
+            }
+        }
+
+        String nombreProducto = detalle.getConcepto().trim();
+        log.debug("[procesarStock] Nombre del producto para búsqueda: '{}'", nombreProducto);
+        try {
+            stockServicio.reducirStock(nombreProducto, cantidad);
+            log.info("[procesarStock] Stock actualizado para '{}'. Se redujo la cantidad en {}", nombreProducto, cantidad);
+        } catch (IllegalArgumentException ex) {
+            log.error("[procesarStock] Error al reducir stock para '{}': {}", nombreProducto, ex.getMessage());
+            // Aquí podrías decidir lanzar la excepción o manejarla de otra forma según tu lógica de negocio
+        }
+    }
+
+    private boolean existeStockConNombre(String nombre) {
+        try {
+            stockServicio.obtenerStockPorNombre(nombre.trim());
+            return true;
+        } catch (IllegalArgumentException ex) {
+            return false;
+        }
     }
 
     // Procesamiento para matrícula (ejemplo sin cambios significativos)

@@ -74,7 +74,7 @@ export const navigationItems: NavigationItem[] = [
     items: [
       {
         id: "rendicion-general",
-        label: "Rendición General",
+        label: "Planilla de Caja General",
         href: "/caja/planilla",
         icon: Receipt,
       },
