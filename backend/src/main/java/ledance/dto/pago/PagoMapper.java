@@ -1,6 +1,6 @@
 package ledance.dto.pago;
 
-import ledance.dto.pago.request.PagoModificacionRequest;
+import ledance.dto.pago.request.PagoRegistroRequest;
 import ledance.dto.pago.request.PagoRegistroRequest;
 import ledance.dto.pago.response.PagoResponse;
 import ledance.entidades.Pago;
@@ -14,10 +14,9 @@ import ledance.dto.inscripcion.InscripcionMapper;
 public interface PagoMapper {
 
     @Mapping(target = "id", ignore = true)
-    // Se asigna la inscripción directamente; la conversión se delega en InscripcionMapper.
     @Mapping(target = "inscripcion", source = "inscripcion")
     @Mapping(target = "metodoPago", ignore = true)
-    // Si la inscripción existe se considera SUBSCRIPTION; de lo contrario, GENERAL.
+    // Si la inscripcion existe se considera SUBSCRIPTION; de lo contrario, GENERAL.
     @Mapping(target = "tipoPago", expression = "java(request.inscripcion() != null ? ledance.entidades.TipoPago.SUBSCRIPTION : ledance.entidades.TipoPago.GENERAL)")
     @Mapping(target = "alumno", ignore = true)
     Pago toEntity(PagoRegistroRequest request);
@@ -25,19 +24,23 @@ public interface PagoMapper {
     @Mapping(target = "inscripcion", source = "inscripcion")
     @Mapping(target = "alumnoId", source = "alumno.id")
     @Mapping(target = "metodoPago", expression = "java(pago.getMetodoPago() != null ? pago.getMetodoPago().getDescripcion() : \"\")")
-    // Se puede calcular saldoAFavor y estadoPago de forma similar a como se hacía previamente
+    // Se calcula saldoAFavor sumando los valores a favor de cada detalle.
     @Mapping(target = "saldoAFavor", expression = "java(pago.getDetallePagos().stream().mapToDouble(dp -> dp.getAFavor() != null ? dp.getAFavor() : 0.0).sum())")
-    @Mapping(target = "estadoPago", expression = "java(pago.getActivo() != null && pago.getActivo() ? \"ACTIVO\" : \"HISTÓRICO\")")
-    // Se mapea el enum a su nombre usando getTipoPago().name()
+    // Se determina "activo" a partir del estado: ACTIVO -> true, lo demás -> false.
+    @Mapping(target = "activo", expression = "java(pago.getEstadoPago() != null && pago.getEstadoPago().equals(ledance.entidades.EstadoPago.ACTIVO))")
+    // Se asigna el nombre del enum para el campo estadoPago.
+    @Mapping(target = "estadoPago", expression = "java(pago.getEstadoPago() != null ? pago.getEstadoPago().name() : \"\")")
+    // Se mapea el enum de tipo de pago a su nombre.
     @Mapping(target = "tipoPago", expression = "java(pago.getTipoPago() != null ? pago.getTipoPago().name() : \"\")")
+    // Solo se mapean los detalles con importe pendiente > 0.
     @Mapping(target = "detallePagos", expression = "java( pago.getDetallePagos().stream()" +
-            ".filter(dp -> !pago.getActivo() || (dp.getImportePendiente() != null && dp.getImportePendiente() > 0))" +
+            ".filter(dp -> dp.getImportePendiente() != null && dp.getImportePendiente() > 0)" +
             ".map(dp -> detallePagoMapper.toDTO(dp))" +
             ".collect(java.util.stream.Collectors.toList()) )")
     PagoResponse toDTO(Pago pago);
 
     @Mapping(target = "inscripcion", ignore = true)
     @Mapping(target = "metodoPago", ignore = true)
-        // No se actualiza el campo tipoPago en la modificación; se conserva el original.
-    void updateEntityFromRequest(PagoModificacionRequest request, @MappingTarget Pago pago);
+        // No se actualiza el campo tipoPago en la modificacion; se conserva el original.
+    void updateEntityFromRequest(PagoRegistroRequest request, @MappingTarget Pago pago);
 }

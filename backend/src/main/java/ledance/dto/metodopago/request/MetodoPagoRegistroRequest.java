@@ -6,6 +6,6 @@ import jakarta.validation.constraints.NotBlank;
 public record MetodoPagoRegistroRequest(
         @NotBlank(message = "La descripcion es obligatoria")
         String descripcion,
-        // Puedes agregar validaciones o definirlo sin ellas si es opcional
+        Boolean activo,
         Double recargo
 ) { }

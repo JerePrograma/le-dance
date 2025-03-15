@@ -4,5 +4,5 @@ public record PagoMedioResponse(
         Long id,
         Double monto,
         Long metodoPagoId,              // Referencia al método de pago
-        String metodoPagoDescripcion    // Descripción del método (p.ej., "EFECTIVO")
+        String metodoPagoDescripcion    // Descripcion del método (p.ej., "EFECTIVO")
 ) { }

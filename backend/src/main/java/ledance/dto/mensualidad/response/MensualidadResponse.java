@@ -7,7 +7,7 @@ public record MensualidadResponse(
         LocalDate fechaCuota,
         Double valorBase,
         Long recargoId, // Se devuelve el ID del recargo
-        Long bonificacionId, // Se devuelve el ID de la bonificación
+        Long bonificacionId, // Se devuelve el ID de la bonificacion
         String estado,
         Long inscripcionId,
         Double totalPagar,  // Nuevo campo agregado

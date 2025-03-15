@@ -57,15 +57,15 @@ public class AsistenciaDiariaServicio {
     }
 
     /**
-     * Genera las asistencias diarias para un nuevo alumno (según su inscripción)
+     * Genera las asistencias diarias para un nuevo alumno (según su inscripcion)
      * asociándolas al registro de asistencia mensual del alumno (AsistenciaAlumnoMensual).
-     * Si ya existen registros para ese alumno en la planilla, se omite la generación.
+     * Si ya existen registros para ese alumno en la planilla, se omite la generacion.
      */
     @Transactional
     public void registrarAsistenciasParaNuevoAlumno(Long inscripcionId, Long planillaId) {
-        // Buscar inscripción
+        // Buscar inscripcion
         Inscripcion inscripcion = inscripcionRepositorio.findById(inscripcionId)
-                .orElseThrow(() -> new IllegalArgumentException("Inscripción no encontrada"));
+                .orElseThrow(() -> new IllegalArgumentException("Inscripcion no encontrada"));
 
         // Buscar la planilla mensual
         AsistenciaMensual planilla = asistenciaMensualRepositorio.findById(planillaId)
@@ -76,7 +76,7 @@ public class AsistenciaDiariaServicio {
                 .findByInscripcionIdAndAsistenciaMensualId(inscripcionId, planillaId)
                 .orElseThrow(() -> new IllegalArgumentException("Registro de asistencia del alumno no encontrado"));
 
-        // Evitar duplicados: si ya existen asistencias para este registro, se omite la generación
+        // Evitar duplicados: si ya existen asistencias para este registro, se omite la generacion
         boolean existe = asistenciaDiariaRepositorio.existsByAsistenciaAlumnoMensualId(registroAlumno.getId());
         if (existe) {
             log.info("El alumno ya posee asistencias registradas en el registro id: {}", registroAlumno.getId());
@@ -106,7 +106,7 @@ public class AsistenciaDiariaServicio {
         validarFecha(request.fecha());
 
         AsistenciaAlumnoMensual registroAlumno = asistenciaAlumnoMensualRepositorio.findById(request.asistenciaAlumnoMensualId())
-                .orElseThrow(() -> new IllegalArgumentException("No se encontró el registro de asistencia del alumno"));
+                .orElseThrow(() -> new IllegalArgumentException("No se encontro el registro de asistencia del alumno"));
 
         if (asistenciaDiariaRepositorio.existsByAsistenciaAlumnoMensualIdAndFecha(registroAlumno.getId(), request.fecha())) {
             throw new IllegalStateException("Ya existe una asistencia registrada para este alumno en esta fecha.");
@@ -140,7 +140,7 @@ public class AsistenciaDiariaServicio {
 
     /**
      * Obtiene una página de asistencias diarias para una disciplina y una fecha específica.
-     * Se recorre la relación: AsistenciaDiaria → asistenciaAlumnoMensual → asistenciaMensual → disciplina.
+     * Se recorre la relacion: AsistenciaDiaria → asistenciaAlumnoMensual → asistenciaMensual → disciplina.
      */
     @Transactional(readOnly = true)
     public Page<AsistenciaDiariaDetalleResponse> obtenerAsistenciasPorDisciplinaYFecha(Long disciplinaId, LocalDate fecha, Pageable pageable) {
@@ -181,7 +181,7 @@ public class AsistenciaDiariaServicio {
 
     /**
      * Obtiene las asistencias diarias de una planilla (basado en el id de AsistenciaMensual)
-     * a través de la relación con AsistenciaAlumnoMensual.
+     * a través de la relacion con AsistenciaAlumnoMensual.
      */
     @Transactional(readOnly = true)
     public List<AsistenciaDiariaDetalleResponse> obtenerAsistenciasPorAsistenciaMensual(Long asistenciaMensualId) {

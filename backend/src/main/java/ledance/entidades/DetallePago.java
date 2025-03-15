@@ -30,7 +30,7 @@ public class DetallePago {
     @JoinColumn(name = "recargo_id")
     private Recargo recargo;
 
-    // Para auditoría: monto que se abonó a favor (por ejemplo, créditos o saldos a favor)
+    // Para auditoría: monto que se abono a favor (por ejemplo, créditos o saldos a favor)
     private Double aFavor = 0.0;
 
     // Valor base del concepto (precio original sin descuentos ni recargos)
@@ -44,7 +44,7 @@ public class DetallePago {
     // Monto pendiente por abonar. Se actualizará restando los abonos parciales
     private Double importePendiente;
 
-    // Monto que se aplicará en el próximo abono (puede actualizarse en cada operación)
+    // Monto que se aplicará en el proximo abono (puede actualizarse en cada operacion)
     private Double aCobrar;
 
     @ManyToOne

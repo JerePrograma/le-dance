@@ -48,9 +48,9 @@ public class Disciplina {
     @EqualsAndHashCode.Exclude
     private List<Inscripcion> inscripciones;
 
-    // Relación con los horarios específicos
+    // Relacion con los horarios específicos
     @OneToMany(mappedBy = "disciplina", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference   // <-- Añadido para evitar ciclo en la serialización
+    @JsonManagedReference   // <-- Añadido para evitar ciclo en la serializacion
     @EqualsAndHashCode.Exclude
     private List<DisciplinaHorario> horarios;
 

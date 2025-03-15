@@ -6,6 +6,6 @@ package ledance.dto.usuario.response;
 public record UsuarioResponse(
         Long id,
         String nombreUsuario,
-        String rol,      // Aquí se coloca la descripción del rol, de forma consistente
+        String rol,      // Aquí se coloca la descripcion del rol, de forma consistente
         Boolean activo
 ) {}

@@ -59,12 +59,12 @@ public class DisciplinaServicio implements IDisciplinaServicio {
     }
 
     /**
-     * Crea una nueva disciplina y, de ser proporcionados, delega la creación de sus horarios.
+     * Crea una nueva disciplina y, de ser proporcionados, delega la creacion de sus horarios.
      */
     @Override
     @Transactional
     public DisciplinaDetalleResponse crearDisciplina(DisciplinaRegistroRequest request) {
-        log.info("Iniciando creación de disciplina con nombre: {}", request.nombre());
+        log.info("Iniciando creacion de disciplina con nombre: {}", request.nombre());
 
         log.debug("Buscando profesor con id: {}", request.profesorId());
         Profesor profesor = profesorRepositorio.findById(request.profesorId())
@@ -98,18 +98,18 @@ public class DisciplinaServicio implements IDisciplinaServicio {
             log.info("No se recibieron horarios para la disciplina id: {}", nuevaDisciplina.getId());
         }
         DisciplinaDetalleResponse response = disciplinaMapper.toDetalleResponse(nuevaDisciplina);
-        log.info("Respuesta de creación de disciplina preparada: {}", response);
+        log.info("Respuesta de creacion de disciplina preparada: {}", response);
         return response;
     }
 
     /**
-     * Actualiza una disciplina existente y, si se incluyen horarios en el request, delega su gestión.
+     * Actualiza una disciplina existente y, si se incluyen horarios en el request, delega su gestion.
      */
     // DisciplinaServicio.java (método actualizarDisciplina)
     @Override
     @Transactional
     public DisciplinaDetalleResponse actualizarDisciplina(Long id, DisciplinaModificacionRequest request) {
-        log.info("Iniciando actualización de disciplina con id: {}", id);
+        log.info("Iniciando actualizacion de disciplina con id: {}", id);
 
         // Recupera la disciplina existente
         Disciplina existente = disciplinaRepositorio.findById(id)
@@ -125,7 +125,7 @@ public class DisciplinaServicio implements IDisciplinaServicio {
         disciplinaMapper.updateEntityFromRequest(request, existente);
         existente.setProfesor(profesor);
 
-        // Actualiza la colección de horarios de la disciplina, si se proporcionan
+        // Actualiza la coleccion de horarios de la disciplina, si se proporcionan
         if (request.horarios() != null && !request.horarios().isEmpty()) {
             log.info("Actualizando horarios para la disciplina id: {}", existente.getId());
             // Se asume que request.horarios() ya es de tipo List<DisciplinaHorarioModificacionRequest>
@@ -140,12 +140,12 @@ public class DisciplinaServicio implements IDisciplinaServicio {
     }
 
     /**
-     * Realiza una baja lógica de la disciplina.
+     * Realiza una baja logica de la disciplina.
      */
     @Override
     @Transactional
     public void eliminarDisciplina(Long id) {
-        log.info("Iniciando eliminación de la disciplina con id: {}", id);
+        log.info("Iniciando eliminacion de la disciplina con id: {}", id);
         Disciplina disciplina = disciplinaRepositorio.findById(id)
                 .orElseThrow(() -> new TratadorDeErrores.DisciplinaNotFoundException(id));
         disciplinaRepositorio.delete(disciplina);
@@ -175,7 +175,7 @@ public class DisciplinaServicio implements IDisciplinaServicio {
         DayOfWeek dayOfWeek = targetDate.getDayOfWeek();
         log.debug("DayOfWeek obtenido: {}", dayOfWeek);
 
-        // Conversión de DayOfWeek a nuestro enum DiaSemana
+        // Conversion de DayOfWeek a nuestro enum DiaSemana
         var diaSemana = switch (dayOfWeek) {
             case MONDAY -> ledance.entidades.DiaSemana.LUNES;
             case TUESDAY -> ledance.entidades.DiaSemana.MARTES;
@@ -326,7 +326,7 @@ public class DisciplinaServicio implements IDisciplinaServicio {
     }
 
     public void darBajaDisciplina(Long id) {
-        log.info("Iniciando baja lógica de la disciplina con id: {}", id);
+        log.info("Iniciando baja logica de la disciplina con id: {}", id);
         Disciplina disciplina = disciplinaRepositorio.findById(id)
                 .orElseThrow(() -> new TratadorDeErrores.DisciplinaNotFoundException(id));
         disciplina.setActivo(false);

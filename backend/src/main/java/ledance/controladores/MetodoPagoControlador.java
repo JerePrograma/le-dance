@@ -1,7 +1,7 @@
 // src/main/java/ledance/controladores/MetodoPagoControlador.java
 package ledance.controladores;
 
-import ledance.dto.metodopago.request.MetodoPagoModificacionRequest;
+import ledance.dto.metodopago.request.MetodoPagoRegistroRequest;
 import ledance.dto.metodopago.request.MetodoPagoRegistroRequest;
 import ledance.dto.metodopago.response.MetodoPagoResponse;
 import ledance.servicios.pago.MetodoPagoServicio;
@@ -61,7 +61,7 @@ public class MetodoPagoControlador {
      */
     @PutMapping("/{id}")
     public ResponseEntity<MetodoPagoResponse> actualizar(@PathVariable Long id,
-                                                         @RequestBody @Validated MetodoPagoModificacionRequest request) {
+                                                         @RequestBody @Validated MetodoPagoRegistroRequest request) {
         log.info("Actualizando metodo de pago con ID: {}", id);
         MetodoPagoResponse response = metodoPagoServicio.actualizar(id, request);
         return ResponseEntity.ok(response);

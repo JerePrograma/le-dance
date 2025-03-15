@@ -32,7 +32,7 @@ public class TratadorDeErrores {
                 .body(new DatosErrorGeneral("404_NOT_FOUND", "Recurso no encontrado", e.getMessage(), LocalDateTime.now()));
     }
 
-    // ✅ 404: Recurso no encontrado (cuando se lance una excepción personalizada)
+    // ✅ 404: Recurso no encontrado (cuando se lance una excepcion personalizada)
     @ExceptionHandler({DisciplinaNotFoundException.class, ProfesorNotFoundException.class, NoSuchElementException.class, ResourceNotFoundException.class})
     public ResponseEntity<DatosErrorGeneral> manejarRecursoNoEncontrado(RuntimeException e) {
         log.warn("Error 404 - Elemento no encontrado: {}", e.getMessage());
@@ -157,16 +157,16 @@ public class TratadorDeErrores {
         }
     }
 
-    // Excepciones adicionales para la gestión de disciplinas y profesores
+    // Excepciones adicionales para la gestion de disciplinas y profesores
     public static class DisciplinaNotFoundException extends RuntimeException {
         public DisciplinaNotFoundException(Long id) {
-            super("No se encontró la disciplina con id=" + id);
+            super("No se encontro la disciplina con id=" + id);
         }
     }
 
     public static class ProfesorNotFoundException extends RuntimeException {
         public ProfesorNotFoundException(Long id) {
-            super("No se encontró el profesor con id=" + id);
+            super("No se encontro el profesor con id=" + id);
         }
     }
 }

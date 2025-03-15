@@ -17,15 +17,15 @@ public class AsistenciaAlumnoMensual {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Relación al alumno (a través de su inscripción)
+    // Relacion al alumno (a través de su inscripcion)
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "inscripcion_id", nullable = false)
     private Inscripcion inscripcion;
 
-    // Observación para este alumno en el mes
+    // Observacion para este alumno en el mes
     private String observacion;
 
-    // Relación con la planilla mensual
+    // Relacion con la planilla mensual
     @ManyToOne
     @JoinColumn(name = "asistencia_mensual_id", nullable = false)
     private AsistenciaMensual asistenciaMensual;

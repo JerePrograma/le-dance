@@ -23,7 +23,7 @@ public class SubConceptoServicio {
         this.subConceptoMapper = subConceptoMapper;
     }
 
-    // Crea un subconcepto nuevo. El mapper se encarga de transformar la descripción a mayúsculas.
+    // Crea un subconcepto nuevo. El mapper se encarga de transformar la descripcion a mayúsculas.
     @Transactional
     public SubConceptoResponse crearSubConcepto(SubConceptoRegistroRequest request) {
         SubConcepto subConcepto = subConceptoMapper.toEntity(request);

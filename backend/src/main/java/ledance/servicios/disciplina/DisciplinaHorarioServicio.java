@@ -44,13 +44,13 @@ public class DisciplinaHorarioServicio {
 
 
     /**
-     * Actualiza los horarios de una disciplina en base a una lista de solicitudes de modificación.
+     * Actualiza los horarios de una disciplina en base a una lista de solicitudes de modificacion.
      * Se actualizan los horarios existentes, se crean nuevos y se eliminan los que no vienen en la solicitud.
-     * Finalmente, se invoca la actualización de la planilla de asistencia (por cambio de horario)
+     * Finalmente, se invoca la actualizacion de la planilla de asistencia (por cambio de horario)
      * usando la fecha de cambio (puedes recibirla como parámetro o usar LocalDate.now()).
      *
      * @param disciplina   la disciplina a la cual se actualizarán los horarios
-     * @param horariosRequest lista de solicitudes de modificación de horarios
+     * @param horariosRequest lista de solicitudes de modificacion de horarios
      * @param fechaCambio  la fecha a partir de la cual se deben recalcular las asistencias
      * @return la lista de horarios guardados
      */
@@ -97,13 +97,13 @@ public class DisciplinaHorarioServicio {
             disciplinaHorarioRepositorio.delete(eliminado);
         }
 
-        // Actualiza la colección de horarios en la disciplina sin reemplazar la instancia
+        // Actualiza la coleccion de horarios en la disciplina sin reemplazar la instancia
         disciplina.getHorarios().clear();
         disciplina.getHorarios().addAll(updatedHorarios);
         List<DisciplinaHorario> savedHorarios = disciplinaHorarioRepositorio.saveAll(updatedHorarios);
         log.info("Actualizados {} horarios para disciplina id: {}", savedHorarios.size(), disciplina.getId());
 
-        // Invoca la actualización de las planillas de asistencia debido al cambio de horario.
+        // Invoca la actualizacion de las planillas de asistencia debido al cambio de horario.
         // Se utiliza la fecha de cambio proporcionada.
         asistenciaMensualServicio.actualizarPlanillaPorCambioHorario(disciplina.getId(), fechaCambio);
 
@@ -131,7 +131,7 @@ public class DisciplinaHorarioServicio {
         List<DisciplinaHorario> nuevosHorarios = horariosRequest.stream()
                 .map(req -> {
                     DisciplinaHorario horario = disciplinaHorarioMapper.toEntity(req);
-                    // Asignación exclusiva en el servicio:
+                    // Asignacion exclusiva en el servicio:
                     horario.setDisciplina(disciplina);
                     log.debug("Horario mapeado: dia={}, inicio={}, duracion={}, disciplina asignada: {}",
                             horario.getDiaSemana(), horario.getHorarioInicio(), horario.getDuracion(),
@@ -141,13 +141,13 @@ public class DisciplinaHorarioServicio {
                 .collect(Collectors.toList());
         log.info("Mapeados {} horarios para guardar", nuevosHorarios.size());
 
-        // Guarda todos los nuevos horarios y actualiza la colección en la disciplina
+        // Guarda todos los nuevos horarios y actualiza la coleccion en la disciplina
         List<DisciplinaHorario> savedHorarios = disciplinaHorarioRepositorio.saveAll(nuevosHorarios);
         log.info("Se guardaron {} horarios para disciplina id: {}", savedHorarios.size(), disciplinaId);
         disciplina.getHorarios().clear();
         disciplina.getHorarios().addAll(savedHorarios);
 
-        log.debug("Colección de horarios actualizada en la disciplina: {}", disciplina.getHorarios());
+        log.debug("Coleccion de horarios actualizada en la disciplina: {}", disciplina.getHorarios());
 
         return savedHorarios;
     }

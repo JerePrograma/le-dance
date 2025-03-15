@@ -1,5 +1,6 @@
 package ledance.servicios;
 
+import ledance.entidades.EstadoPago;
 import ledance.entidades.Recargo;
 import ledance.repositorios.RecargoRepositorio;
 import ledance.repositorios.PagoRepositorio;
@@ -59,14 +60,14 @@ public class ScheduledTasks {
             aplicarRecargo(recargo);
         }
 
-        log.info("🎯 Aplicación de recargos completada para el día {}", diaActual);
+        log.info("🎯 Aplicacion de recargos completada para el día {}", diaActual);
     }
 
     /**
      * Aplica el recargo a los pagos pendientes del sistema.
      */
     private void aplicarRecargo(Recargo recargo) {
-        List<Pago> pagosPendientes = pagoRepositorio.findPagosPendientes(); // Debes definir este método en tu repositorio
+        List<Pago> pagosPendientes = pagoRepositorio.findPagosPendientes(EstadoPago.ACTIVO); // Debes definir este método en tu repositorio
 
         for (Pago pago : pagosPendientes) {
             double montoBase = pago.getMonto();

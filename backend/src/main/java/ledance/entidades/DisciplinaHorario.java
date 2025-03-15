@@ -26,8 +26,8 @@ public class DisciplinaHorario {
 
     @ManyToOne
     @JoinColumn(name = "disciplina_id", nullable = false)
-    @EqualsAndHashCode.Exclude  // Excluir para evitar recursión en equals
-    @JsonBackReference        // <-- Añadido para evitar ciclo en la serialización
+    @EqualsAndHashCode.Exclude  // Excluir para evitar recursion en equals
+    @JsonBackReference        // <-- Añadido para evitar ciclo en la serializacion
     private Disciplina disciplina;
 
     @Enumerated(EnumType.STRING)

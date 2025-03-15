@@ -28,7 +28,7 @@ public class ReporteMensualidadControlador {
      * - disciplinaId (opcional)
      * - profesorId (opcional)
      *
-     * Se utiliza Pageable para paginación.
+     * Se utiliza Pageable para paginacion.
      */
     @GetMapping("/buscar")
     public ResponseEntity<List<ReporteMensualidadDTO>> buscarMensualidades(

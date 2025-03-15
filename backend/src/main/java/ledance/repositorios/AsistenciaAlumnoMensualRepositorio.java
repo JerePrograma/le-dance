@@ -10,10 +10,10 @@ import java.util.Optional;
 @Repository
 public interface AsistenciaAlumnoMensualRepositorio extends JpaRepository<AsistenciaAlumnoMensual, Long> {
 
-    // Obtiene el registro de asistencia mensual de un alumno a partir de su inscripción y la planilla (asistencia mensual)
+    // Obtiene el registro de asistencia mensual de un alumno a partir de su inscripcion y la planilla (asistencia mensual)
     Optional<AsistenciaAlumnoMensual> findByInscripcionIdAndAsistenciaMensualId(Long inscripcionId, Long asistenciaMensualId);
 
-    // Verifica si existe un registro de asistencia para una inscripción en una planilla dada
+    // Verifica si existe un registro de asistencia para una inscripcion en una planilla dada
     boolean existsByInscripcionIdAndAsistenciaMensualId(Long inscripcionId, Long asistenciaMensualId);
 
     List<AsistenciaAlumnoMensual> findByInscripcionId(Long inscripcionId);

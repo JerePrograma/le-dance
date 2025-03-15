@@ -63,8 +63,10 @@ public class Pago {
     @Min(value = 0, message = "El saldo a favor no puede ser negativo")
     private Double saldoAFavor = 0.0;
 
-    @Column(nullable = false)
-    private Boolean activo = true;
+    @NotNull
+    @Enumerated(EnumType.STRING)
+    @Column(name = "estado_pago", nullable = false)
+    private EstadoPago estadoPago = EstadoPago.ACTIVO;
 
     private String observaciones;
 
@@ -87,7 +89,4 @@ public class Pago {
     @Min(value = 0, message = "El monto pagado no puede ser negativo")
     private Double montoPagado = 0.0;
 
-    public String getEstado() {
-        return (activo != null && activo) ? "ACTIVO" : "ANULADO";
-    }
 }

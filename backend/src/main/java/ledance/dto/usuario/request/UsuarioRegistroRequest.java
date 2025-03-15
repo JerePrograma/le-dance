@@ -8,5 +8,5 @@ import jakarta.validation.constraints.NotBlank;
 public record UsuarioRegistroRequest(
         @NotBlank String nombreUsuario,
         @NotBlank String contrasena,
-        @NotBlank String rol // Se espera la descripción del rol (por ejemplo, "ADMIN", "USER", etc.)
+        @NotBlank String rol // Se espera la descripcion del rol (por ejemplo, "ADMIN", "USER", etc.)
 ) {}

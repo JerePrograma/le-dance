@@ -2,7 +2,7 @@
 package ledance.servicios.pago;
 
 import ledance.dto.metodopago.MetodoPagoMapper;
-import ledance.dto.metodopago.request.MetodoPagoModificacionRequest;
+import ledance.dto.metodopago.request.MetodoPagoRegistroRequest;
 import ledance.dto.metodopago.request.MetodoPagoRegistroRequest;
 import ledance.dto.metodopago.response.MetodoPagoResponse;
 import ledance.entidades.MetodoPago;
@@ -57,7 +57,7 @@ public class MetodoPagoServicio {
     /**
      * Actualiza un metodo de pago existente.
      */
-    public MetodoPagoResponse actualizar(Long id, MetodoPagoModificacionRequest request) {
+    public MetodoPagoResponse actualizar(Long id, MetodoPagoRegistroRequest request) {
         MetodoPago metodo = metodoPagoRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("No se encontro el metodo de pago con ID: " + id));
         metodoPagoMapper.updateEntityFromRequest(request, metodo);

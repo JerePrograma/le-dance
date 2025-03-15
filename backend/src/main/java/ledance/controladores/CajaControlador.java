@@ -67,7 +67,7 @@ public class CajaControlador {
     }
 
     /**
-     * 4) Rendición general en un rango de fechas
+     * 4) Rendicion general en un rango de fechas
      */
     @GetMapping("/rendicion")
     public RendicionDTO obtenerRendicion(
@@ -81,7 +81,7 @@ public class CajaControlador {
     }
 
     /**
-     * NUEVO: Endpoint para generar la rendición mensual para el mes vigente.
+     * NUEVO: Endpoint para generar la rendicion mensual para el mes vigente.
      * Se determina el primer y último día del mes actual.
      */
     @PostMapping("/rendicion/generar")

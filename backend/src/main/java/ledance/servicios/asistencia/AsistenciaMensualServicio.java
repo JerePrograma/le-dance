@@ -68,13 +68,13 @@ public class AsistenciaMensualServicio {
     }
 
     /**
-     * Incorpora un alumno (a través de su inscripción) a la planilla de asistencia de su disciplina.
+     * Incorpora un alumno (a través de su inscripcion) a la planilla de asistencia de su disciplina.
      */
     @Transactional
     public void agregarAlumnoAPlanilla(Long inscripcionId, int mes, int anio) {
-        // Buscar inscripción
+        // Buscar inscripcion
         Inscripcion inscripcion = inscripcionRepositorio.findById(inscripcionId)
-                .orElseThrow(() -> new IllegalArgumentException("Inscripción no encontrada con ID: " + inscripcionId));
+                .orElseThrow(() -> new IllegalArgumentException("Inscripcion no encontrada con ID: " + inscripcionId));
         Long disciplinaId = inscripcion.getDisciplina().getId();
 
         // Buscar o crear la planilla mensual para la disciplina en el mes y año indicados
@@ -82,11 +82,11 @@ public class AsistenciaMensualServicio {
         AsistenciaMensual planilla = asistenciaMensualRepositorio.findById(planillaDTO.id())
                 .orElseThrow(() -> new IllegalArgumentException("Planilla no encontrada con ID: " + planillaDTO.id()));
 
-        // Verificar si ya existe un registro para esta inscripción en la planilla
+        // Verificar si ya existe un registro para esta inscripcion en la planilla
         boolean yaExiste = planilla.getAsistenciasAlumnoMensual().stream()
                 .anyMatch(aam -> aam.getInscripcion().getId().equals(inscripcionId));
         if (yaExiste) {
-            // Si ya está incorporado, se omite la creación
+            // Si ya está incorporado, se omite la creacion
             return;
         }
 
@@ -94,7 +94,7 @@ public class AsistenciaMensualServicio {
         AsistenciaAlumnoMensual alumnoMensual = new AsistenciaAlumnoMensual();
         alumnoMensual.setInscripcion(inscripcion);
         alumnoMensual.setAsistenciaMensual(planilla);
-        alumnoMensual.setObservacion(null); // Se inicia sin observación
+        alumnoMensual.setObservacion(null); // Se inicia sin observacion
 
         // Agregar el registro a la planilla y guardarlo para asignarle un ID
         planilla.getAsistenciasAlumnoMensual().add(alumnoMensual);
@@ -116,7 +116,7 @@ public class AsistenciaMensualServicio {
     public AsistenciaMensualDetalleResponse obtenerPlanillaPorDisciplinaYMes(Long disciplinaId, int mes, int anio) {
         Optional<AsistenciaMensual> planillaOpt = asistenciaMensualRepositorio.findByDisciplina_IdAndMesAndAnioFetch(disciplinaId, mes, anio);
         return planillaOpt.map(asistenciaMensualMapper::toDetalleDTO)
-                .orElseThrow(() -> new NoSuchElementException("No se encontró planilla para (Disciplina ID: "
+                .orElseThrow(() -> new NoSuchElementException("No se encontro planilla para (Disciplina ID: "
                         + disciplinaId + ", mes: " + mes + ", anio: " + anio + ")"));
     }
 
@@ -178,7 +178,7 @@ public class AsistenciaMensualServicio {
     public AsistenciaMensualDetalleResponse obtenerAsistenciaMensualPorParametros(Long disciplinaId, int mes, int anio) {
         Optional<AsistenciaMensual> planillaOpt = asistenciaMensualRepositorio.findByDisciplina_IdAndMesAndAnio(disciplinaId, mes, anio);
         return planillaOpt.map(asistenciaMensualMapper::toDetalleDTO)
-                .orElseThrow(() -> new NoSuchElementException("No se encontró planilla para (Disciplina ID: "
+                .orElseThrow(() -> new NoSuchElementException("No se encontro planilla para (Disciplina ID: "
                         + disciplinaId + ", mes: " + mes + ", anio: " + anio + ")"));
     }
 
@@ -217,9 +217,9 @@ public class AsistenciaMensualServicio {
             // Obtener los días de clase para la disciplina
             List<LocalDate> fechasClase = disciplinaServicio.obtenerDiasClase(disciplina.getId(), mes, anio);
             int asistenciasGeneradasParaDisciplina = 0;
-            // Para cada inscripción de esta disciplina
+            // Para cada inscripcion de esta disciplina
             for (Inscripcion inscripcion : inscripciones) {
-                // Verificar si ya existe un registro de asistencia mensual para esta inscripción
+                // Verificar si ya existe un registro de asistencia mensual para esta inscripcion
                 boolean existe = asistenciaAlumnoMensualRepositorio.existsByInscripcionIdAndAsistenciaMensualId(inscripcion.getId(), planilla.getId());
                 if (!existe) {
                     // Crear el registro de asistencia mensual para el alumno

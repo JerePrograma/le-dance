@@ -27,17 +27,20 @@ public class DetallePagoServicio {
      * importe = totalAjustado - aCobrar (acumulado)
      */
     public void calcularImporte(DetallePago detalle) {
-        log.info("[calcularImporte] Calculando importe inicial para DetallePago id={} | Concepto='{}'",
+        log.info("[calcularImporte] Iniciando cálculo para DetallePago id={} | Concepto='{}'",
                 detalle.getId(), detalle.getConcepto());
         double base = Optional.ofNullable(detalle.getValorBase()).orElse(0.0);
         double descuento = calcularDescuento(detalle, base);
         double recargo = (detalle.getRecargo() != null) ? obtenerValorRecargo(detalle, base) : 0.0;
         double importeInicial = base - descuento + recargo;
-        log.info("[calcularImporte] Importe inicial calculado = {}", importeInicial);
-        // Asignar el importe inicial y, si aún no se ha establecido, inicializar el importe pendiente.
+        log.info("[calcularImporte] Detalle id={} | Base={}, Descuento={}, Recargo={}, ImporteInicial={}",
+                detalle.getId(), base, descuento, recargo, importeInicial);
         detalle.setImporteInicial(importeInicial);
+        // Si aún no se ha asignado importe pendiente, se usa el importe inicial
         if (detalle.getImportePendiente() == null) {
             detalle.setImportePendiente(importeInicial);
+            log.debug("[calcularImporte] Detalle id={} | ImportePendiente no definido. Se asigna: {}",
+                    detalle.getId(), importeInicial);
         }
     }
 
@@ -51,7 +54,7 @@ public class DetallePagoServicio {
                     detalle.getId(), descuentoFijo, descuentoPorcentaje, totalDescuento);
             return totalDescuento;
         }
-        log.debug("[calcularDescuento] Detalle id={} sin bonificación, descuento=0", detalle.getId());
+        log.debug("[calcularDescuento] Detalle id={} sin bonificacion, descuento=0", detalle.getId());
         return 0.0;
     }
 
@@ -59,7 +62,7 @@ public class DetallePagoServicio {
         Recargo recargo = detalle.getRecargo();
         if (recargo != null) {
             int diaActual = LocalDate.now().getDayOfMonth();
-            log.debug("[obtenerValorRecargo] Detalle id={} | Día actual={} | Día de aplicación={}",
+            log.debug("[obtenerValorRecargo] Detalle id={} | Día actual={} | Día de aplicacion={}",
                     detalle.getId(), diaActual, recargo.getDiaDelMesAplicacion());
             if (diaActual != recargo.getDiaDelMesAplicacion()) {
                 log.debug("[obtenerValorRecargo] Día actual no coincide; recargo=0");

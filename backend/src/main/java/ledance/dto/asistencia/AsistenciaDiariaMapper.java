@@ -15,7 +15,7 @@ public interface AsistenciaDiariaMapper {
     @Mapping(target = "id", source = "id")
     @Mapping(target = "fecha", source = "fecha")
     @Mapping(target = "estado", source = "estado")
-    // Se asigna el objeto AlumnoResponse a partir de la inscripción del alumno
+    // Se asigna el objeto AlumnoResponse a partir de la inscripcion del alumno
     @Mapping(target = "alumno", source = "asistenciaAlumnoMensual.inscripcion")
     // Se obtiene el id del registro mensual del alumno
     @Mapping(target = "asistenciaAlumnoMensualId", source = "asistenciaAlumnoMensual.id")
@@ -24,7 +24,7 @@ public interface AsistenciaDiariaMapper {
     AsistenciaDiariaDetalleResponse toDTO(AsistenciaDiaria asistenciaDiaria);
 
     @Mapping(target = "id", ignore = false)
-    // La relación con asistenciaAlumnoMensual se establecerá por separado en el servicio
+    // La relacion con asistenciaAlumnoMensual se establecerá por separado en el servicio
     @Mapping(target = "asistenciaAlumnoMensual", ignore = true)
     AsistenciaDiaria toEntity(AsistenciaDiariaRegistroRequest request);
 
@@ -33,7 +33,7 @@ public interface AsistenciaDiariaMapper {
     void updateEntityFromRequest(AsistenciaDiariaModificacionRequest request,
                                  @org.mapstruct.MappingTarget AsistenciaDiaria asistenciaDiaria);
 
-    // Método de mapeo para crear el objeto AlumnoResponse a partir de la Inscripción
+    // Método de mapeo para crear el objeto AlumnoResponse a partir de la Inscripcion
     default AlumnoResponse toAlumnoResponse(Inscripcion inscripcion) {
         if (inscripcion == null || inscripcion.getAlumno() == null) {
             return null;

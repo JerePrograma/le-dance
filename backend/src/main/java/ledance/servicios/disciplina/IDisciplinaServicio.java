@@ -41,7 +41,7 @@ public interface IDisciplinaServicio {
     DisciplinaDetalleResponse actualizarDisciplina(Long id, DisciplinaModificacionRequest requestDTO);
 
     /**
-     * ✅ Dar de baja (baja lógica) a una disciplina.
+     * ✅ Dar de baja (baja logica) a una disciplina.
      */
     void eliminarDisciplina(Long id);
 

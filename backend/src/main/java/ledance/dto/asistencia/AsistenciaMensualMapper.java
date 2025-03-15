@@ -14,7 +14,7 @@ import java.util.List;
 @Mapper(componentModel = "spring", uses = {AsistenciaDiariaMapper.class})
 public interface AsistenciaMensualMapper {
 
-    // Mapea la entidad AsistenciaMensual a su respuesta detallada, anidando la información de disciplina y alumnos.
+    // Mapea la entidad AsistenciaMensual a su respuesta detallada, anidando la informacion de disciplina y alumnos.
     @Mapping(target = "disciplina", source = "disciplina")
     @Mapping(target = "profesor", source = "disciplina.profesor.nombre")
     @Mapping(target = "alumnos", source = "asistenciasAlumnoMensual")
@@ -27,7 +27,7 @@ public interface AsistenciaMensualMapper {
     @Mapping(target = "anio", source = "anio")
     AsistenciaMensualListadoResponse toListadoDTO(AsistenciaMensual asistenciaMensual);
 
-    // Para crear una nueva planilla (se ignora la relación de alumnos, que se establecerá posteriormente)
+    // Para crear una nueva planilla (se ignora la relacion de alumnos, que se establecerá posteriormente)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "disciplina", ignore = true)
     @Mapping(target = "asistenciasAlumnoMensual", ignore = true)
@@ -35,7 +35,7 @@ public interface AsistenciaMensualMapper {
 
     /**
      * Actualiza la planilla mensual sin modificar disciplina, mes ni año.
-     * La actualización de los registros de alumno se hace por separado.
+     * La actualizacion de los registros de alumno se hace por separado.
      */
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "disciplina", ignore = true)
