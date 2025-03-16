@@ -3,7 +3,6 @@ package ledance.servicios.pago;
 
 import ledance.dto.metodopago.MetodoPagoMapper;
 import ledance.dto.metodopago.request.MetodoPagoRegistroRequest;
-import ledance.dto.metodopago.request.MetodoPagoRegistroRequest;
 import ledance.dto.metodopago.response.MetodoPagoResponse;
 import ledance.entidades.MetodoPago;
 import ledance.repositorios.MetodoPagoRepositorio;
@@ -30,6 +29,7 @@ public class MetodoPagoServicio {
      */
     public MetodoPagoResponse registrar(MetodoPagoRegistroRequest request) {
         MetodoPago nuevo = metodoPagoMapper.toEntity(request);
+        nuevo.setActivo(true);
         MetodoPago guardado = metodoPagoRepositorio.save(nuevo);
         return metodoPagoMapper.toDTO(guardado);
     }
