@@ -8,17 +8,18 @@ public record DetallePagoRegistroRequest(
         String codigoConcepto,
         @NotNull String concepto,
         String cuota,
-        @NotNull @Min(0) Double valorBase,
+        // Se renombra: de valorBase a montoOriginal.
+        @NotNull @Min(0) Double montoOriginal,
         @Min(0) Long bonificacionId,
         @Min(0) Long recargoId,
         @NotNull @Min(0) Double aCobrar,
-        // Puedes mantener el campo "importe" si lo requieres, pero se recalculará en el backend.
+        // Campo opcional, se recalcula en el backend.
         Double importe,
         Boolean cobrado
 ) {
     public DetallePagoRegistroRequest {
         if (cobrado == null) {
-            cobrado = false; // Si es null, lo establece en false
+            cobrado = false; // Si es null, se establece en false.
         }
     }
 }

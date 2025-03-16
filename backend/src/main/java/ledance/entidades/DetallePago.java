@@ -4,10 +4,13 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
-@Entity
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@ToString(onlyExplicitlyIncluded = true)
+@Entity
 @Table(name = "detalle_pagos")
 public class DetallePago {
 
@@ -30,35 +33,35 @@ public class DetallePago {
     @JoinColumn(name = "recargo_id")
     private Recargo recargo;
 
-    // Para auditoría: monto que se abono a favor (por ejemplo, créditos o saldos a favor)
+    // Monto abonado a favor (créditos, etc.)
     private Double aFavor = 0.0;
 
-    // Valor base del concepto (precio original sin descuentos ni recargos)
+    // Se renombra valorBase a montoOriginal: monto original del concepto.
     @NotNull
-    private Double valorBase;
+    private Double montoOriginal;
 
-    // Monto calculado inicialmente (valorBase - descuento + recargo)
-    // Este campo se establece al crear el detalle y no se modifica con abonos, para fines de auditoría
+    // Importe inicial calculado en el momento de creación (montoOriginal - descuento + recargo)
     private Double importeInicial;
 
-    // Monto pendiente por abonar. Se actualizará restando los abonos parciales
+    // Importe pendiente a abonar (se actualiza con cada pago parcial)
     private Double importePendiente;
 
-    // Monto que se aplicará en el proximo abono (puede actualizarse en cada operacion)
+    // Monto que se cobrará en el próximo abono
     private Double aCobrar;
 
     @ManyToOne
     @JoinColumn(name = "pago_id", nullable = false)
     private Pago pago;
 
-    // Campo para marcar si el detalle ya fue cobrado (importePendiente==0)
+    // Indica si el detalle ya se ha saldado
     @Column(nullable = false)
     private Boolean cobrado = false;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private TipoDetallePago tipo = TipoDetallePago.GENERAL;
+    private TipoDetallePago tipo;
 
+    // Getters y setters
     public Double getaCobrar() {
         return aCobrar;
     }

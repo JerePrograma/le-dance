@@ -7,10 +7,13 @@ import lombok.*;
 import java.time.LocalDate;
 import java.util.List;
 
-@Entity
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@ToString(onlyExplicitlyIncluded = true)
+@Entity
 @Table(name = "inscripciones")
 public class Inscripcion {
 
@@ -20,6 +23,8 @@ public class Inscripcion {
 
     @ManyToOne
     @JoinColumn(name = "alumno_id", nullable = false)
+    @EqualsAndHashCode.Exclude
+    @ToString.Exclude // ⬅️ Añadir aquí
     private Alumno alumno;
 
     @ManyToOne

@@ -5,13 +5,14 @@ public record DetallePagoResponse(
         String codigoConcepto,
         String concepto,
         String cuota,
-        Double valorBase,
+        // Renombrado: valorBase -> montoOriginal.
+        Double montoOriginal,
         Double aFavor,
-        // Se conserva el importe calculado (aunque ahora se entiende que es el importePendiente)
+        // Se conserva el campo 'importe' que puede representar el importe total calculado.
         Double importe,
-        // Nuevo campo: importe inicial, que representa el monto total antes de abonos.
+        // Nuevo campo: importe inicial, representa el monto antes de abonos.
         Double importeInicial,
-        // Nuevo campo: importe pendiente, que se actualiza a medida que se realizan abonos.
+        // Nuevo campo: importe pendiente, se actualiza conforme se realizan abonos.
         Double importePendiente,
         Double aCobrar,
         Long bonificacionId,

@@ -59,10 +59,10 @@ public class MensualidadServicio implements IMensualidadService {
         log.info("Iniciando creacion de mensualidad para inscripcion id: {}", request.inscripcionId());
         Inscripcion inscripcion = inscripcionRepositorio.findById(request.inscripcionId())
                 .orElseThrow(() -> new IllegalArgumentException("Inscripcion no encontrada"));
-        log.debug("Inscripcion encontrada: {}", inscripcion);
+        log.info("Inscripcion encontrada: {}", inscripcion);
 
         Mensualidad mensualidad = mensualidadMapper.toEntity(request);
-        log.debug("Entidad mensualidad mapeada: {}", mensualidad);
+        log.info("Entidad mensualidad mapeada: {}", mensualidad);
 
         if (request.recargoId() != null) {
             Recargo recargo = recargoRepositorio.findById(request.recargoId())
@@ -101,7 +101,7 @@ public class MensualidadServicio implements IMensualidadService {
         int anio = mensualidad.getFechaGeneracion().getYear();
         String descripcion = nombreDisciplina + " - CUOTA - " + mes + " DE " + anio;
         mensualidad.setDescripcion(descripcion);
-        log.debug("Descripcion asignada: {}", descripcion);
+        log.info("Descripcion asignada: {}", descripcion);
     }
 
     /**
@@ -241,7 +241,7 @@ public class MensualidadServicio implements IMensualidadService {
         log.info("Iniciando actualizacion de mensualidad id: {}", id);
         Mensualidad mensualidad = mensualidadRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Mensualidad no encontrada"));
-        log.debug("Mensualidad actual antes de actualizar: {}", mensualidad);
+        log.info("Mensualidad actual antes de actualizar: {}", mensualidad);
 
         mensualidad.setFechaCuota(request.fechaCuota());
         mensualidad.setValorBase(request.valorBase());
@@ -305,7 +305,7 @@ public class MensualidadServicio implements IMensualidadService {
         log.info("Obteniendo mensualidad con id: {}", id);
         Mensualidad mensualidad = mensualidadRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Mensualidad no encontrada"));
-        log.debug("Mensualidad obtenida: {}", mensualidad);
+        log.info("Mensualidad obtenida: {}", mensualidad);
         return mensualidadMapper.toDTO(mensualidad);
     }
 

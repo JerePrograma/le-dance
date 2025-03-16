@@ -8,12 +8,14 @@ import lombok.*;
 
 import java.util.List;
 
-@Entity
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "disciplinas")
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@ToString(onlyExplicitlyIncluded = true)
+@Entity
+@Table(name = "disciplinas")
 public class Disciplina {
 
     @Id
@@ -32,6 +34,7 @@ public class Disciplina {
     @JoinColumn(name = "profesor_id", nullable = false)
     @NotNull(message = "La disciplina debe tener un profesor asignado")
     @EqualsAndHashCode.Exclude
+    @ToString.Exclude // ⬅️ Añadir aquí
     private Profesor profesor;
 
     @NotNull

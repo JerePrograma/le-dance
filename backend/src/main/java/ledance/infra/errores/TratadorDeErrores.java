@@ -169,4 +169,12 @@ public class TratadorDeErrores {
             super("No se encontro el profesor con id=" + id);
         }
     }
+
+    @ExceptionHandler(SinStockException.class)
+    public ResponseEntity<DatosErrorGeneral> manejarSinStock(SinStockException e) {
+        log.warn("Error de stock: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new DatosErrorGeneral("409_SIN_STOCK", "Stock insuficiente", e.getMessage(), LocalDateTime.now()));
+    }
+
 }

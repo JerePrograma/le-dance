@@ -9,12 +9,14 @@ import org.slf4j.LoggerFactory;
 
 import java.time.LocalTime;
 
-@Entity
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "disciplina_horarios")
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@ToString(onlyExplicitlyIncluded = true)
+@Entity
+@Table(name = "disciplina_horarios")
 public class DisciplinaHorario {
 
     private static final Logger log = LoggerFactory.getLogger(DisciplinaHorario.class);
@@ -45,6 +47,6 @@ public class DisciplinaHorario {
 
     public void setDisciplina(Disciplina disciplina) {
         this.disciplina = disciplina;
-        log.debug("Set disciplina: {}", (disciplina != null ? disciplina.getId() : "null"));
+        log.info("Set disciplina: {}", (disciplina != null ? disciplina.getId() : "null"));
     }
 }

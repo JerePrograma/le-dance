@@ -1,10 +1,10 @@
 package ledance.servicios.stock;
 
 import ledance.dto.stock.request.StockRegistroRequest;
-import ledance.dto.stock.request.StockModificacionRequest;
 import ledance.dto.stock.response.StockResponse;
 import ledance.dto.stock.StockMapper;
 import ledance.entidades.Stock;
+import ledance.infra.errores.SinStockException;
 import ledance.repositorios.StockRepositorio;
 import ledance.servicios.pago.PaymentProcessor;
 import org.slf4j.Logger;
@@ -33,7 +33,7 @@ public class StockServicio {
     @Transactional
     public StockResponse crearStock(StockRegistroRequest request) {
         Stock stock = stockMapper.toEntity(request);
-
+        stock.setNombre(stock.getNombre().toUpperCase());
         stock.setFechaIngreso(request.fechaIngreso());
         stock.setFechaEgreso(request.fechaEgreso());
         Stock saved = stockRepositorio.save(stock);
@@ -62,12 +62,13 @@ public class StockServicio {
     }
 
     @Transactional
-    public StockResponse actualizarStock(Long id, StockModificacionRequest request) {
+    public StockResponse actualizarStock(Long id, StockRegistroRequest request) {
         Stock stock = stockRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Stock no encontrado con id: " + id));
         // Actualiza la entidad usando el mapper, que convierte el tipoEgreso y mapea el id del tipo
         stockMapper.updateEntityFromRequest(request, stock);
 
+        stock.setNombre(stock.getNombre().toUpperCase());
         stock.setFechaIngreso(request.fechaIngreso());
         stock.setFechaEgreso(request.fechaEgreso());
         Stock updated = stockRepositorio.save(stock);
@@ -86,38 +87,35 @@ public class StockServicio {
     @Transactional(readOnly = true)
     public StockResponse obtenerStockPorNombre(String nombre) {
         String nombreNormalizado = nombre.trim();
-        log.debug("[obtenerStockPorNombre] Valor recibido: '{}', normalizado a: '{}'", nombre, nombreNormalizado);
-        Optional<Stock> optionalStock = stockRepositorio.findByNombreIgnoreCase(nombreNormalizado);
-        if (optionalStock.isPresent()) {
-            Stock stock = optionalStock.get();
-            log.debug("[obtenerStockPorNombre] Stock encontrado: id={}, nombre='{}', stock={}",
-                    stock.getId(), stock.getNombre(), stock.getStock());
-            return stockMapper.toDTO(stock);
-        } else {
-            log.warn("[obtenerStockPorNombre] No se encontró stock con nombre: '{}'", nombreNormalizado);
-            throw new IllegalArgumentException("Stock no encontrado con nombre: " + nombreNormalizado);
-        }
+        log.info("[obtenerStockPorNombre] Valor recibido: '{}', normalizado a: '{}'", nombre, nombreNormalizado);
+        return stockRepositorio.findByNombreIgnoreCase(nombreNormalizado)
+                .map(stockMapper::toDTO)
+                .orElse(null);  // No lanza excepción, devuelve null
     }
 
     @Transactional
     public void reducirStock(String nombre, int cantidad) {
         String nombreNormalizado = nombre.trim();
-        log.debug("[reducirStock] Valor recibido: '{}', normalizado a: '{}'", nombre, nombreNormalizado);
+        log.info("[reducirStock] Valor recibido: '{}', normalizado a: '{}'", nombre, nombreNormalizado);
+
         Stock stock = stockRepositorio.findByNombreIgnoreCase(nombreNormalizado)
                 .orElseThrow(() -> {
                     log.error("[reducirStock] No se encontró stock con nombre: '{}'", nombreNormalizado);
-                    return new IllegalArgumentException("No se encontró stock con nombre: " + nombreNormalizado);
+                    return new SinStockException("No se encontró stock con nombre: " + nombreNormalizado);
                 });
-        log.debug("[reducirStock] Stock actual: {} unidades para '{}'", stock.getStock(), stock.getNombre());
+
+        log.info("[reducirStock] Stock actual para '{}': {} unidades", nombreNormalizado, stock.getStock());
+
         if (stock.getStock() < cantidad) {
-            log.error("[reducirStock] No hay suficiente stock para '{}'. Cantidad requerida: {}, disponible: {}",
+            log.error("[reducirStock] No hay suficiente stock para '{}'. Requerido: {}, disponible: {}",
                     nombreNormalizado, cantidad, stock.getStock());
-            throw new IllegalArgumentException("No hay suficiente stock para el producto: " + nombreNormalizado);
+            throw new SinStockException("No hay suficiente stock para el producto: " + nombreNormalizado +
+                    ". Requerido: " + cantidad + ", disponible: " + stock.getStock());
         }
+
         stock.setStock(stock.getStock() - cantidad);
         stockRepositorio.save(stock);
-        log.debug("[reducirStock] Stock actualizado para '{}'. Nueva cantidad: {}", nombreNormalizado, stock.getStock());
+        log.info("[reducirStock] Stock actualizado para '{}'. Nueva cantidad: {}", nombreNormalizado, stock.getStock());
     }
-
 
 }

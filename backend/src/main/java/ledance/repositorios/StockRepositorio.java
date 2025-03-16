@@ -12,7 +12,6 @@ import java.util.Optional;
 public interface StockRepositorio extends JpaRepository<Stock, Long> {
     List<Stock> findByActivoTrue();
 
-    @Query("SELECT s FROM Stock s WHERE TRIM(LOWER(s.nombre)) = LOWER(TRIM(:nombre))")
-    Optional<Stock> findByNombreIgnoreCase(@Param("nombre") String nombre);
+    Optional<Stock> findByNombreIgnoreCase(String nombre);
 
 }

@@ -9,6 +9,8 @@ public record PagoResponse(
         LocalDate fecha,
         LocalDate fechaVencimiento,
         Double monto,
+        // Nuevo: Se podría incluir el montoBasePago, si es relevante para la respuesta.
+        Double montoBasePago,
         String metodoPago,
         Boolean recargoAplicado,
         Boolean bonificacionAplicada,

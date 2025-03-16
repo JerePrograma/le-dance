@@ -11,11 +11,13 @@ import java.util.List;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
-@Entity
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @ToString(exclude = {"detallePagos", "pagoMedios", "inscripcion"})
+@Entity
 @Table(name = "pagos")
 public class Pago {
 
@@ -29,14 +31,18 @@ public class Pago {
     @NotNull
     private LocalDate fechaVencimiento;
 
-    // Monto total calculado inicialmente (suma de importeInicial de los detalles)
+    // Monto total calculado (suma de aCobrar de cada detalle)
     @NotNull
     @Min(value = 0, message = "El monto debe ser mayor o igual a 0")
     private Double monto;
 
+    // Nuevo campo: monto base de este pago, es decir, el monto original que se esperaba cobrar en este registro.
+    @NotNull
+    @Min(value = 0, message = "El monto base no puede ser negativo")
+    private Double montoBasePago;
+
     @ManyToOne
-    @JoinColumn(name = "alumno_id", nullable = false)
-    @JsonIgnoreProperties({"pagos", "inscripciones"})
+    @JoinColumn(name = "alumno_id", nullable = false) // Asegúrate que esté así.
     private Alumno alumno;
 
     @ManyToOne
@@ -54,7 +60,7 @@ public class Pago {
     @Column(nullable = false)
     private Boolean bonificacionAplicada = false;
 
-    // Suma de los importes pendientes de los detalles (monto aún por pagar)
+    // Saldo restante a cobrar (se actualiza conforme se realizan pagos parciales)
     @NotNull
     private Double saldoRestante;
 
@@ -83,10 +89,9 @@ public class Pago {
     @Column(name = "tipo_pago", nullable = false)
     private TipoPago tipoPago = TipoPago.SUBSCRIPTION;
 
-    // Monto total abonado a lo largo del tiempo
+    // Monto total abonado a lo largo del tiempo en este pago
     @NotNull
     @Column(name = "monto_pagado", nullable = false)
     @Min(value = 0, message = "El monto pagado no puede ser negativo")
     private Double montoPagado = 0.0;
-
 }

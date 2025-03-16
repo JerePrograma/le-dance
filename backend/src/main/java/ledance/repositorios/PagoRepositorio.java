@@ -21,7 +21,8 @@ public interface PagoRepositorio extends JpaRepository<Pago, Long> {
                                         @Param("estadoActivo") EstadoPago estadoActivo);
 
     // Retorna el último pago con el estado indicado (por alumno) ordenado por fecha descendente.
-    Optional<Pago> findTopByAlumnoIdAndEstadoPagoOrderByFechaDesc(Long alumnoId, EstadoPago estadoPago);
+    Optional<Pago> findTopByAlumnoIdAndEstadoPagoAndSaldoRestanteGreaterThanOrderByFechaDesc(
+            Long alumnoId, EstadoPago estadoPago, Double saldo);
 
     // Retorna los pagos asociados a una inscripción, ordenados por fecha descendente.
     List<Pago> findByInscripcionIdOrderByFechaDesc(Long inscripcionId);
@@ -42,9 +43,6 @@ public interface PagoRepositorio extends JpaRepository<Pago, Long> {
 
     // Método para listar pagos de un alumno (sin depender de inscripción) que estén activos.
     List<Pago> findByAlumnoIdAndEstadoPagoOrderByFechaDesc(Long alumnoId, EstadoPago estadoPago);
-
-    // Retorna el último pago activo (con saldo > 0) para un alumno.
-    Optional<Pago> findTopByAlumnoIdAndEstadoPagoAndSaldoRestanteGreaterThanOrderByFechaDesc(Long alumnoId, EstadoPago estadoPago, Double saldoMinimo);
 
     // Si se requiere otra variante para pagos activos en un rango (opcional, ya que la firma anterior es suficiente)
     // @Query("SELECT p FROM Pago p WHERE p.fecha BETWEEN :start AND :end AND p.estadoPago = :estadoActivo")

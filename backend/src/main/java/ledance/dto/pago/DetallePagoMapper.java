@@ -9,21 +9,22 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface DetallePagoMapper {
 
-    // Mapeo a entidad (sin cambios)
     @Mapping(target = "bonificacion", ignore = true)
     @Mapping(target = "recargo", ignore = true)
     @Mapping(target = "pago", ignore = true)
     @Mapping(target = "importeInicial", ignore = true)
     @Mapping(target = "importePendiente", ignore = true)
     @Mapping(target = "AFavor", ignore = true)
+        // El campo montoOriginal se mapea automáticamente, pues el nombre es el mismo.
     DetallePago toEntity(DetallePagoRegistroRequest request);
 
-    // Mapeo a DTO: se asigna aCobrar el mismo valor que importePendiente.
     @Mapping(target = "bonificacionId", expression = "java(detallePago.getBonificacion() != null ? detallePago.getBonificacion().getId() : null)")
     @Mapping(target = "recargoId", expression = "java(detallePago.getRecargo() != null ? detallePago.getRecargo().getId() : null)")
-    @Mapping(target = "importe", source = "importePendiente") // Utilizamos importePendiente como importe.
+    @Mapping(target = "importe", source = "importePendiente")
     @Mapping(target = "importeInicial", source = "importeInicial")
     @Mapping(target = "importePendiente", source = "importePendiente")
     @Mapping(target = "aCobrar", expression = "java(detallePago.getImportePendiente() != null ? detallePago.getImportePendiente() : 0.0)")
+    @Mapping(target = "montoOriginal", source = "montoOriginal")
     DetallePagoResponse toDTO(DetallePago detallePago);
+
 }

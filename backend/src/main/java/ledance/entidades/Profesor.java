@@ -3,16 +3,18 @@ package ledance.entidades;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDate;
 import java.util.List;
 
-@Entity
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
+@AllArgsConstructor
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@ToString(onlyExplicitlyIncluded = true)
+@Entity
 @Table(name = "profesores")
 public class Profesor {
 
@@ -41,6 +43,7 @@ public class Profesor {
     @OneToMany(mappedBy = "profesor")
     @JsonIgnore
     @EqualsAndHashCode.Exclude
+    @ToString.Exclude // ⬅️ Añadir aquí
     private List<Disciplina> disciplinas;
 
     @OneToOne

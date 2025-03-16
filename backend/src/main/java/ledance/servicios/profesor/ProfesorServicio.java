@@ -46,8 +46,8 @@ public class ProfesorServicio implements IProfesorServicio {
     @Transactional
     public ProfesorDetalleResponse registrarProfesor(ProfesorRegistroRequest request) {
         log.info("Registrando profesor: {} {}", request.nombre(), request.apellido());
-        log.debug("Fecha de nacimiento: {}, Telefono: {}", request.fechaNacimiento(), request.telefono());
-        log.debug("Datos completos del profesor a registrar: {}", request); // Agregamos este log para depuracion
+        log.info("Fecha de nacimiento: {}, Telefono: {}", request.fechaNacimiento(), request.telefono());
+        log.info("Datos completos del profesor a registrar: {}", request); // Agregamos este log para depuracion
 
         Profesor profesor = profesorMapper.toEntity(request);
         profesor.setEdad(calcularEdad(request.fechaNacimiento()));
@@ -59,8 +59,8 @@ public class ProfesorServicio implements IProfesorServicio {
     @Transactional
     public ProfesorDetalleResponse actualizarProfesor(Long id, ProfesorModificacionRequest request) {
         log.info("Actualizando profesor con id: {}", id);
-        log.debug("Fecha de nacimiento: {}, Telefono: {}", request.fechaNacimiento(), request.telefono()); // Agregamos este log para depuracion
-        log.debug("Datos completos del profesor a actualizar: {}", request); // Agregamos este log para depuracion
+        log.info("Fecha de nacimiento: {}, Telefono: {}", request.fechaNacimiento(), request.telefono()); // Agregamos este log para depuracion
+        log.info("Datos completos del profesor a actualizar: {}", request); // Agregamos este log para depuracion
 
         Profesor profesor = profesorRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Profesor no encontrado."));

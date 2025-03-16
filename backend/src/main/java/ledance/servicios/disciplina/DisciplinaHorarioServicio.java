@@ -121,10 +121,10 @@ public class DisciplinaHorarioServicio {
         // Recupera la disciplina
         Disciplina disciplina = disciplinaRepositorio.findById(disciplinaId)
                 .orElseThrow(() -> new TratadorDeErrores.DisciplinaNotFoundException(disciplinaId));
-        log.debug("Disciplina recuperada: id={}, nombre={}", disciplina.getId(), disciplina.getNombre());
+        log.info("Disciplina recuperada: id={}, nombre={}", disciplina.getId(), disciplina.getNombre());
 
         // Elimina los horarios previos asociados a la disciplina
-        log.debug("Eliminando horarios previos para disciplina id: {}", disciplinaId);
+        log.info("Eliminando horarios previos para disciplina id: {}", disciplinaId);
         disciplinaHorarioRepositorio.deleteByDisciplinaId(disciplinaId);
 
         // Mapear cada request a entidad y asignarle la disciplina
@@ -133,7 +133,7 @@ public class DisciplinaHorarioServicio {
                     DisciplinaHorario horario = disciplinaHorarioMapper.toEntity(req);
                     // Asignacion exclusiva en el servicio:
                     horario.setDisciplina(disciplina);
-                    log.debug("Horario mapeado: dia={}, inicio={}, duracion={}, disciplina asignada: {}",
+                    log.info("Horario mapeado: dia={}, inicio={}, duracion={}, disciplina asignada: {}",
                             horario.getDiaSemana(), horario.getHorarioInicio(), horario.getDuracion(),
                             (horario.getDisciplina() != null ? horario.getDisciplina().getId() : "null"));
                     return horario;
@@ -147,7 +147,7 @@ public class DisciplinaHorarioServicio {
         disciplina.getHorarios().clear();
         disciplina.getHorarios().addAll(savedHorarios);
 
-        log.debug("Coleccion de horarios actualizada en la disciplina: {}", disciplina.getHorarios());
+        log.info("Coleccion de horarios actualizada en la disciplina: {}", disciplina.getHorarios());
 
         return savedHorarios;
     }
@@ -158,9 +158,9 @@ public class DisciplinaHorarioServicio {
     public List<DisciplinaHorarioResponse> obtenerHorarios(Long disciplinaId) {
         log.info("Obteniendo horarios para disciplina id: {}", disciplinaId);
         List<DisciplinaHorario> horarios = disciplinaHorarioRepositorio.findByDisciplinaId(disciplinaId);
-        log.debug("Se encontraron {} horarios", horarios.size());
+        log.info("Se encontraron {} horarios", horarios.size());
         List<DisciplinaHorarioResponse> response = disciplinaHorarioMapper.toResponseList(horarios);
-        log.debug("Mapeo de horarios completado, retornando respuesta");
+        log.info("Mapeo de horarios completado, retornando respuesta");
         return response;
     }
 
@@ -171,7 +171,7 @@ public class DisciplinaHorarioServicio {
     public void eliminarHorarios(Long disciplinaId) {
         log.info("Eliminando todos los horarios para disciplina id: {}", disciplinaId);
         disciplinaHorarioRepositorio.deleteByDisciplinaId(disciplinaId);
-        log.debug("Horarios eliminados para disciplina id: {}", disciplinaId);
+        log.info("Horarios eliminados para disciplina id: {}", disciplinaId);
     }
 
     /**
@@ -180,7 +180,7 @@ public class DisciplinaHorarioServicio {
     public List<DisciplinaHorario> obtenerHorariosPorDia(DiaSemana diaSemana) {
         log.info("Obteniendo horarios para el día: {}", diaSemana);
         List<DisciplinaHorario> horarios = disciplinaHorarioRepositorio.findByDiaSemana(diaSemana);
-        log.debug("Se encontraron {} horarios para el día {}", horarios.size(), diaSemana);
+        log.info("Se encontraron {} horarios para el día {}", horarios.size(), diaSemana);
         return horarios;
     }
 

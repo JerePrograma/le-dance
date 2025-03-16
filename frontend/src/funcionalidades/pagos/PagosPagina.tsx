@@ -10,22 +10,10 @@ import Pagination from "../../componentes/comunes/Pagination" // Importamos el n
 import Boton from "../../componentes/comunes/Boton"
 import { PlusCircle, Pencil, Trash2 } from "lucide-react"
 import { toast } from "react-toastify"
-
-interface Pago {
-    id: number
-    fecha: string
-    fechaVencimiento: string
-    monto: number
-    metodoPago: string
-    saldoRestante: number
-    saldoAFavor: number
-    estadoPago: string
-    activo: boolean
-    inscripcionId: number
-}
+import { PagoResponse } from "../../types/types"
 
 const PaymentList: React.FC = () => {
-    const [pagos, setPagos] = useState<Pago[]>([])
+    const [pagos, setPagos] = useState<PagoResponse[]>([])
     const [currentPage, setCurrentPage] = useState(0)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -36,7 +24,7 @@ const PaymentList: React.FC = () => {
         try {
             setLoading(true)
             setError(null)
-            const response = await api.get<Pago[]>("/pagos")
+            const response = await api.get<PagoResponse[]>("/pagos")
             setPagos(response.data)
         } catch (error) {
             toast.error("Error al cargar pagos:")

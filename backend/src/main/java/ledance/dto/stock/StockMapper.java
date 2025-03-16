@@ -1,7 +1,6 @@
 package ledance.dto.stock;
 
 import ledance.dto.stock.request.StockRegistroRequest;
-import ledance.dto.stock.request.StockModificacionRequest;
 import ledance.dto.stock.response.StockResponse;
 import ledance.entidades.Stock;
 import org.mapstruct.Mapper;
@@ -18,5 +17,6 @@ public interface StockMapper {
     @Mapping(target = "activo", constant = "true")
     Stock toEntity(StockRegistroRequest request);
 
-    void updateEntityFromRequest(StockModificacionRequest request, @MappingTarget Stock stock);
+    @Mapping(target = "id", ignore = true)
+    void updateEntityFromRequest(StockRegistroRequest request, @MappingTarget Stock stock);
 }

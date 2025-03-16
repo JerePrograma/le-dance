@@ -8,7 +8,6 @@ public record StockResponse(
         Double precio,
         Integer stock,
         Boolean requiereControlDeStock,
-        String codigoBarras,
         Boolean activo,
         LocalDate fechaIngreso,
         LocalDate fechaEgreso

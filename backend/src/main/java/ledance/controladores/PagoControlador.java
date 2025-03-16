@@ -2,7 +2,6 @@ package ledance.controladores;
 
 import ledance.dto.pago.request.PagoMedioRegistroRequest;
 import ledance.dto.pago.request.PagoRegistroRequest;
-import ledance.dto.pago.request.PagoRegistroRequest;
 import ledance.dto.pago.response.PagoResponse;
 import ledance.dto.cobranza.CobranzaDTO;
 import ledance.servicios.pago.PagoServicio;
@@ -31,7 +30,7 @@ public class PagoControlador {
     @PostMapping
     public ResponseEntity<PagoResponse> registrarPago(@RequestBody @Validated PagoRegistroRequest request) {
         log.info("[PagoControlador] Registrando pago para inscriptionId: {}", request.inscripcion().id());
-        log.debug("[PagoControlador] Payload recibido: {}", request);
+        log.info("[PagoControlador] Payload recibido: {}", request);
         PagoResponse response = pagoServicio.registrarPago(request);
         log.info("[PagoControlador] Respuesta del registro/actualizacion: {}", response);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -118,7 +117,7 @@ public class PagoControlador {
 
     @GetMapping("/alumno/{alumnoId}/ultimo")
     public ResponseEntity<PagoResponse> obtenerUltimoPagoPorAlumno(@PathVariable Long alumnoId) {
-        log.info("Obteniendo último pago para alumno id: {}", alumnoId);
+        log.info("Obteniendo último pago pendiente para alumno id: {}", alumnoId);
         PagoResponse pago = pagoServicio.obtenerUltimoPagoPorAlumno(alumnoId);
         return ResponseEntity.ok(pago);
     }

@@ -4,12 +4,12 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import ledance.dto.alumno.request.AlumnoRegistroRequest;
 import ledance.dto.inscripcion.request.InscripcionRegistroRequest;
-import ledance.entidades.EstadoPago;
 
 import java.time.LocalDate;
 import java.util.List;
 
 public record PagoRegistroRequest(
+        Long id,
         @NotNull LocalDate fecha,
         @NotNull LocalDate fechaVencimiento,
         @NotNull @Min(0) Double monto,
@@ -22,5 +22,4 @@ public record PagoRegistroRequest(
         @NotNull List<DetallePagoRegistroRequest> detallePagos,
         List<PagoMedioRegistroRequest> pagoMedios,
         boolean activo
-) {
-}
+) { }

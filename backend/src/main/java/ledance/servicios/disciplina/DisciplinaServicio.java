@@ -66,16 +66,16 @@ public class DisciplinaServicio implements IDisciplinaServicio {
     public DisciplinaDetalleResponse crearDisciplina(DisciplinaRegistroRequest request) {
         log.info("Iniciando creacion de disciplina con nombre: {}", request.nombre());
 
-        log.debug("Buscando profesor con id: {}", request.profesorId());
+        log.info("Buscando profesor con id: {}", request.profesorId());
         Profesor profesor = profesorRepositorio.findById(request.profesorId())
                 .orElseThrow(() -> new TratadorDeErrores.ProfesorNotFoundException(request.profesorId()));
-        log.debug("Profesor encontrado: {} {}", profesor.getNombre(), profesor.getApellido());
+        log.info("Profesor encontrado: {} {}", profesor.getNombre(), profesor.getApellido());
 
-        log.debug("Mapeando request a entidad Disciplina");
+        log.info("Mapeando request a entidad Disciplina");
         Disciplina nuevaDisciplina = disciplinaMapper.toEntity(request);
         nuevaDisciplina.setProfesor(profesor);
 
-        log.debug("Guardando disciplina en la base de datos");
+        log.info("Guardando disciplina en la base de datos");
         for (DisciplinaHorario horario : nuevaDisciplina.getHorarios()) {
             horario.setDisciplina(nuevaDisciplina);
         }
@@ -114,12 +114,12 @@ public class DisciplinaServicio implements IDisciplinaServicio {
         // Recupera la disciplina existente
         Disciplina existente = disciplinaRepositorio.findById(id)
                 .orElseThrow(() -> new TratadorDeErrores.DisciplinaNotFoundException(id));
-        log.debug("Disciplina encontrada: {}", existente.getNombre());
+        log.info("Disciplina encontrada: {}", existente.getNombre());
 
         // Recupera el profesor indicado en la request
         Profesor profesor = profesorRepositorio.findById(request.profesorId())
                 .orElseThrow(() -> new TratadorDeErrores.ProfesorNotFoundException(request.profesorId()));
-        log.debug("Profesor encontrado: {} {}", profesor.getNombre(), profesor.getApellido());
+        log.info("Profesor encontrado: {} {}", profesor.getNombre(), profesor.getApellido());
 
         // Actualiza los campos básicos de la disciplina mediante el mapper
         disciplinaMapper.updateEntityFromRequest(request, existente);
@@ -161,7 +161,7 @@ public class DisciplinaServicio implements IDisciplinaServicio {
         Disciplina disciplina = disciplinaRepositorio.findById(id)
                 .orElseThrow(() -> new TratadorDeErrores.DisciplinaNotFoundException(id));
         DisciplinaDetalleResponse response = disciplinaMapper.toDetalleResponse(disciplina);
-        log.debug("Detalle obtenido: {}", response);
+        log.info("Detalle obtenido: {}", response);
         return response;
     }
 
@@ -173,7 +173,7 @@ public class DisciplinaServicio implements IDisciplinaServicio {
         log.info("Obteniendo disciplinas para la fecha: {}", fecha);
         LocalDate targetDate = LocalDate.parse(fecha);
         DayOfWeek dayOfWeek = targetDate.getDayOfWeek();
-        log.debug("DayOfWeek obtenido: {}", dayOfWeek);
+        log.info("DayOfWeek obtenido: {}", dayOfWeek);
 
         // Conversion de DayOfWeek a nuestro enum DiaSemana
         var diaSemana = switch (dayOfWeek) {
@@ -185,10 +185,10 @@ public class DisciplinaServicio implements IDisciplinaServicio {
             case SATURDAY -> ledance.entidades.DiaSemana.SABADO;
             case SUNDAY -> ledance.entidades.DiaSemana.DOMINGO;
         };
-        log.debug("Convertido a DiaSemana: {}", diaSemana);
+        log.info("Convertido a DiaSemana: {}", diaSemana);
 
         List<?> horarios = disciplinaHorarioServicio.obtenerHorariosPorDia(diaSemana);
-        log.debug("Se encontraron {} horarios para el día: {}", horarios.size(), diaSemana);
+        log.info("Se encontraron {} horarios para el día: {}", horarios.size(), diaSemana);
 
         List<Disciplina> disciplinas = ((List<ledance.entidades.DisciplinaHorario>) horarios).stream()
                 .map(ledance.entidades.DisciplinaHorario::getDisciplina)
@@ -199,7 +199,7 @@ public class DisciplinaServicio implements IDisciplinaServicio {
         List<DisciplinaListadoResponse> response = disciplinas.stream()
                 .map(disciplinaMapper::toListadoResponse)
                 .collect(Collectors.toList());
-        log.debug("Respuesta obtenida: {}", response);
+        log.info("Respuesta obtenida: {}", response);
         return response;
     }
 
@@ -221,7 +221,7 @@ public class DisciplinaServicio implements IDisciplinaServicio {
         List<AlumnoListadoResponse> response = disciplinaRepositorio.findAlumnosPorDisciplina(disciplinaId).stream()
                 .map(alumnoMapper::toListadoResponse)
                 .collect(Collectors.toList());
-        log.debug("Se encontraron {} alumnos inscritos", response.size());
+        log.info("Se encontraron {} alumnos inscritos", response.size());
         return response;
     }
 
@@ -234,7 +234,7 @@ public class DisciplinaServicio implements IDisciplinaServicio {
         Profesor profesor = disciplinaRepositorio.findProfesorPorDisciplina(disciplinaId)
                 .orElseThrow(() -> new TratadorDeErrores.DisciplinaNotFoundException(disciplinaId));
         ProfesorListadoResponse response = profesorMapper.toListadoResponse(profesor);
-        log.debug("Profesor obtenido: {} {}", response.nombre(), response.apellido());
+        log.info("Profesor obtenido: {} {}", response.nombre(), response.apellido());
         return response;
     }
 
@@ -253,7 +253,7 @@ public class DisciplinaServicio implements IDisciplinaServicio {
                 .map(h -> h.getDiaSemana().toDayOfWeek())
                 .collect(Collectors.toSet());
 
-        log.debug("Días de clase identificados: {}", diasClase);
+        log.info("Días de clase identificados: {}", diasClase);
 
         YearMonth yearMonth = YearMonth.of(anio, mes);
         List<LocalDate> fechasClase = new ArrayList<>();
@@ -276,7 +276,7 @@ public class DisciplinaServicio implements IDisciplinaServicio {
         List<DisciplinaDetalleResponse> response = disciplinaRepositorio.findByActivoTrue().stream()
                 .map(disciplinaMapper::toDetalleResponse)
                 .collect(Collectors.toList());
-        log.debug("Total de disciplinas activas encontradas: {}", response.size());
+        log.info("Total de disciplinas activas encontradas: {}", response.size());
         return response;
     }
 
@@ -289,7 +289,7 @@ public class DisciplinaServicio implements IDisciplinaServicio {
         List<DisciplinaListadoResponse> response = disciplinaRepositorio.findByActivoTrue().stream()
                 .map(disciplinaMapper::toListadoResponse)
                 .collect(Collectors.toList());
-        log.debug("Total de disciplinas activas encontradas: {}", response.size());
+        log.info("Total de disciplinas activas encontradas: {}", response.size());
         return response;
     }
 
@@ -300,7 +300,7 @@ public class DisciplinaServicio implements IDisciplinaServicio {
     public List<DisciplinaListadoResponse> buscarPorNombre(String nombre) {
         log.info("Buscando disciplinas por nombre: {}", nombre);
         List<Disciplina> resultado = disciplinaRepositorio.buscarPorNombre(nombre);
-        log.debug("Se encontraron {} disciplinas para el término: {}", resultado.size(), nombre);
+        log.info("Se encontraron {} disciplinas para el término: {}", resultado.size(), nombre);
         List<DisciplinaListadoResponse> response = resultado.stream()
                 .map(disciplinaMapper::toListadoResponse)
                 .collect(Collectors.toList());
@@ -321,7 +321,7 @@ public class DisciplinaServicio implements IDisciplinaServicio {
                         h.duracion()
                 ))
                 .collect(Collectors.toList());
-        log.debug("Se encontraron {} horarios para la disciplina id: {}", horarios.size(), disciplinaId);
+        log.info("Se encontraron {} horarios para la disciplina id: {}", horarios.size(), disciplinaId);
         return horarios;
     }
 

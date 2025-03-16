@@ -1,7 +1,6 @@
 package ledance.controladores;
 
 import jakarta.validation.Valid;
-import ledance.dto.stock.request.StockModificacionRequest;
 import ledance.dto.stock.request.StockRegistroRequest;
 import ledance.dto.stock.response.StockResponse;
 import ledance.servicios.stock.StockServicio;
@@ -51,7 +50,7 @@ public class StockControlador {
 
     @PutMapping("/{id}")
     public ResponseEntity<StockResponse> actualizarStock(@PathVariable Long id,
-                                                         @RequestBody @Valid StockModificacionRequest request) {
+                                                         @RequestBody @Valid StockRegistroRequest request) {
         StockResponse actualizado = stockServicio.actualizarStock(id, request);
         return ResponseEntity.ok(actualizado);
     }
