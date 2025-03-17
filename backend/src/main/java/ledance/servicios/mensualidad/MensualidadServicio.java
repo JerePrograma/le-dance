@@ -4,7 +4,6 @@ import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
 import ledance.dto.mensualidad.MensualidadMapper;
-import ledance.dto.mensualidad.request.MensualidadModificacionRequest;
 import ledance.dto.mensualidad.request.MensualidadRegistroRequest;
 import ledance.dto.mensualidad.response.MensualidadResponse;
 import ledance.dto.reporte.ReporteMensualidadDTO;
@@ -237,7 +236,7 @@ public class MensualidadServicio implements IMensualidadService {
     }
 
     @Override
-    public MensualidadResponse actualizarMensualidad(Long id, MensualidadModificacionRequest request) {
+    public MensualidadResponse actualizarMensualidad(Long id, MensualidadRegistroRequest request) {
         log.info("Iniciando actualizacion de mensualidad id: {}", id);
         Mensualidad mensualidad = mensualidadRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Mensualidad no encontrada"));

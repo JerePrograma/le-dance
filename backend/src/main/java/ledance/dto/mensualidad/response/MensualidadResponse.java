@@ -1,5 +1,7 @@
 package ledance.dto.mensualidad.response;
 
+import ledance.dto.bonificacion.response.BonificacionResponse;
+
 import java.time.LocalDate;
 
 public record MensualidadResponse(
@@ -7,7 +9,7 @@ public record MensualidadResponse(
         LocalDate fechaCuota,
         Double valorBase,
         Long recargoId, // Se devuelve el ID del recargo
-        Long bonificacionId, // Se devuelve el ID de la bonificacion
+        BonificacionResponse bonificacion, // Se devuelve el ID de la bonificacion
         String estado,
         Long inscripcionId,
         Double totalPagar,  // Nuevo campo agregado
