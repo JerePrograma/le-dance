@@ -197,7 +197,7 @@ public class PagoServicio {
         // Para cada detalle del DTO se obtiene o define el detalle correspondiente
         List<DetallePago> detallesFinales = detallesDTO.stream()
                 .map(dto -> obtenerODefinirDetallePago(dto, existentes, pago))
-                .collect(Collectors.toList());
+                .toList();
 
         pago.getDetallePagos().clear();
         pago.getDetallePagos().addAll(detallesFinales);

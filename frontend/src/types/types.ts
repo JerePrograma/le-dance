@@ -770,8 +770,7 @@ export interface DetallePagoResponse {
   id: number;
   codigoConcepto?: string;
   concepto: string;
-  cuota?: string;
-  // Se actualiza: de "valorBase" a "montoOriginal"
+  // Se renombra de "valorBase" a "montoOriginal"
   montoOriginal: number;
   bonificacion?: {
     id: number;
@@ -822,16 +821,16 @@ export interface PagoResponse {
   fecha: string;
   fechaVencimiento: string;
   monto: number;
-  // Nuevo campo: se incluye "montoBasePago" que representa el monto original asignado a este pago.
+  // Nuevo campo: monto original asignado al pago.
   montoBasePago: number;
-  // Ahora "metodoPago" es una descripción, por lo que se define como string.
+  // Ahora es una descripción
   metodoPago: string;
   recargoAplicado: boolean;
   bonificacionAplicada: boolean;
   saldoRestante: number;
   saldoAFavor: number;
   activo: boolean;
-  // "estadoPago" se mantiene como string ("ACTIVO", "HISTÓRICO", etc.)
+  // Ejemplo: "ACTIVO", "HISTÓRICO", etc.
   estadoPago: string;
   inscripcion: InscripcionResponse;
   alumnoId: number;
@@ -839,7 +838,7 @@ export interface PagoResponse {
   detallePagos: DetallePagoResponse[];
   pagoMedios: PagoMedioResponse[];
   /**
-   * Indica el origen del pago: "SUBSCRIPTION" para pagos con inscripción, o "GENERAL" para pagos sin inscripción.
+   * Indica el origen del pago: "SUBSCRIPTION" para pagos con inscripción o "GENERAL" para pagos independientes.
    */
   tipoPago: string;
 }
@@ -940,19 +939,20 @@ export interface MensualidadModificacionRequest {
   valorBase: number;
   recargo: number;
   bonificacion: number;
-  estado: string; // Ej.: "PENDIENTE", "PAGADO", "OMITIDO"
+  estado: string;
 }
 
 export interface MensualidadResponse {
   descripcion: string;
   id: number;
-  fechaCuota: LocalDate;  // Asegúrate de que LocalDate esté definido, o utiliza string en formato ISO
+  fechaCuota: LocalDate;
+  // Si bien aquí se conserva "valorBase", en el hook se puede mapear a "montoOriginal"
   valorBase: number;
   recargoId: number;
-  bonificacionId: number;
-  estado: string;         // Ej.: "PENDIENTE", "PAGADO", "OMITIDO"
+  bonificacion: BonificacionResponse;
+  estado: string;
   inscripcionId: number;
-  totalPagar: number;     // Ahora es number en lugar de any
+  totalPagar: number;
 }
 
 export interface MatriculaRegistroRequest {

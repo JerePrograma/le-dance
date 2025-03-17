@@ -1,7 +1,6 @@
 package ledance.controladores;
 
 import jakarta.validation.Valid;
-import ledance.dto.mensualidad.request.MensualidadModificacionRequest;
 import ledance.dto.mensualidad.request.MensualidadRegistroRequest;
 import ledance.dto.mensualidad.response.MensualidadResponse;
 import ledance.servicios.mensualidad.MensualidadServicio;
@@ -31,7 +30,7 @@ public class MensualidadControlador {
     @PutMapping("/{id}")
     public ResponseEntity<MensualidadResponse> actualizarMensualidad(
             @PathVariable Long id,
-            @Valid @RequestBody MensualidadModificacionRequest request) {
+            @Valid @RequestBody MensualidadRegistroRequest request) {
         MensualidadResponse response = mensualidadServicio.actualizarMensualidad(id, request);
         return ResponseEntity.ok(response);
     }
