@@ -3,6 +3,7 @@ package ledance.controladores;
 import jakarta.validation.Valid;
 import ledance.dto.alumno.request.AlumnoModificacionRequest;
 import ledance.dto.alumno.request.AlumnoRegistroRequest;
+import ledance.dto.alumno.response.AlumnoDataResponse;
 import ledance.dto.alumno.response.AlumnoDetalleResponse;
 import ledance.dto.alumno.response.AlumnoListadoResponse;
 import ledance.dto.disciplina.response.DisciplinaListadoResponse;
@@ -83,6 +84,12 @@ public class AlumnoControlador {
     public ResponseEntity<List<DisciplinaListadoResponse>> obtenerDisciplinasDeAlumno(@PathVariable Long alumnoId) {
         List<DisciplinaListadoResponse> disciplinas = alumnoServicio.obtenerDisciplinasDeAlumno(alumnoId);
         return ResponseEntity.ok(disciplinas);
+    }
+
+    @GetMapping("/{id}/datos")
+    public ResponseEntity<AlumnoDataResponse> obtenerDatosAlumno(@PathVariable Long id) {
+        AlumnoDataResponse response = alumnoServicio.obtenerDatosAlumno(id);
+        return ResponseEntity.ok(response);
     }
 
 }

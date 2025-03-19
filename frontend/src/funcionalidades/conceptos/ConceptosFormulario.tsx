@@ -6,47 +6,54 @@ import Boton from "../../componentes/comunes/Boton";
 import * as Yup from "yup";
 import conceptosApi from "../../api/conceptosApi";
 import subConceptosApi from "../../api/subConceptosApi";
-import useDebounce from "../../hooks/useDebounce";
 import type {
   ConceptoRegistroRequest,
-  ConceptoModificacionRequest,
 } from "../../types/types";
 import type { ConceptoResponse, SubConceptoResponse } from "../../types/types";
 
-const initialConceptoValues: ConceptoRegistroRequest & Partial<ConceptoModificacionRequest> = {
+interface FormValues {
+  id?: number;
+  descripcion: string;
+  precio: number;
+  subConceptoId: number;
+  activo: boolean;
+}
+
+const initialConceptoValues: FormValues = {
   descripcion: "",
   precio: 0,
-  // Este valor se asignara luego segun el subconcepto seleccionado
   subConceptoId: 0,
+  activo: true,
 };
 
 const conceptoSchema = Yup.object().shape({
-  descripcion: Yup.string().required("La descripcion es obligatoria"),
+  descripcion: Yup.string().required("La descripción es obligatoria"),
   precio: Yup.number().positive().required("El precio es obligatorio"),
-  subConceptoDescripcion: Yup.string().required("La descripcion del subconcepto es obligatoria"),
+  subConceptoId: Yup.number().min(1, "Selecciona un subconcepto").required("El subconcepto es obligatorio"),
 });
-
-type FormValues = ConceptoRegistroRequest & Partial<ConceptoModificacionRequest> & {
-  subConceptoDescripcion: string;
-  id?: number; // Campo opcional para edicion
-};
 
 const ConceptosFormulario: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [conceptoId, setConceptoId] = useState<number | null>(null);
-  const [formValues, setFormValues] = useState<FormValues>({
-    ...initialConceptoValues,
-    subConceptoDescripcion: "",
-  });
+  const [formValues, setFormValues] = useState<FormValues>(initialConceptoValues);
   const [mensaje, setMensaje] = useState("");
+  const [subConceptos, setSubConceptos] = useState<SubConceptoResponse[]>([]);
 
-  // Estados para la busqueda de subconcepto
-  const [subConceptoBusqueda, setSubConceptoBusqueda] = useState("");
-  const debouncedSubConceptoBusqueda = useDebounce(subConceptoBusqueda, 300);
-  const [sugerenciasSubConceptos, setSugerenciasSubConceptos] = useState<SubConceptoResponse[]>([]);
+  // Al montar el componente, cargar la lista completa de subconceptos.
+  useEffect(() => {
+    const fetchSubConceptos = async () => {
+      try {
+        const subs = await subConceptosApi.listarSubConceptos();
+        setSubConceptos(subs);
+      } catch (error) {
+        toast.error("Error al cargar la lista de subconceptos");
+      }
+    };
+    fetchSubConceptos();
+  }, []);
 
-  // Si hay un parametro "id" en la URL, cargar el concepto para edicion
+  // Si hay un parámetro "id" en la URL, cargar el concepto para edición
   const handleBuscar = useCallback(async () => {
     const idParam = searchParams.get("id");
     if (idParam) {
@@ -56,18 +63,15 @@ const ConceptosFormulario: React.FC = () => {
           id: concepto.id,
           descripcion: concepto.descripcion,
           precio: concepto.precio,
-          subConceptoDescripcion: concepto.subConcepto.descripcion,
           subConceptoId: concepto.subConcepto.id,
+          activo: concepto.activo ?? true,
         });
         setConceptoId(concepto.id);
         setMensaje("Concepto encontrado.");
       } catch (error) {
         toast.error("Error al buscar el concepto:");
         setMensaje("Concepto no encontrado.");
-        setFormValues({
-          ...initialConceptoValues,
-          subConceptoDescripcion: "",
-        });
+        setFormValues(initialConceptoValues);
         setConceptoId(null);
       }
     }
@@ -77,54 +81,19 @@ const ConceptosFormulario: React.FC = () => {
     handleBuscar();
   }, [handleBuscar]);
 
-  // Buscar sugerencias de subconceptos a partir del texto ingresado
-  useEffect(() => {
-    const buscarSugerencias = async () => {
-      if (debouncedSubConceptoBusqueda) {
-        try {
-          const sugerencias = await subConceptosApi.buscarSubConceptos(debouncedSubConceptoBusqueda);
-          setSugerenciasSubConceptos(sugerencias);
-        } catch (error) {
-          toast.error("Error al buscar subconceptos:");
-          setSugerenciasSubConceptos([]);
-        }
-      } else {
-        setSugerenciasSubConceptos([]);
-      }
-    };
-    buscarSugerencias();
-  }, [debouncedSubConceptoBusqueda]);
-
   const handleSubmit = useCallback(
     async (values: FormValues) => {
       try {
-        // Si ya se selecciono un subconcepto (campo subConceptoId distinto de 0), lo usamos;
-        // de lo contrario, se realiza la busqueda por descripcion.
-        let subConceptoIdFinal: number;
-        if (values.subConceptoId && values.subConceptoId !== 0) {
-          subConceptoIdFinal = values.subConceptoId;
-        } else {
-          const subDesc = values.subConceptoDescripcion.trim().toUpperCase();
-          const subExistente = await subConceptosApi.obtenerSubConceptoPorDescripcion(subDesc);
-          if (subExistente) {
-            subConceptoIdFinal = subExistente.id;
-          } else {
-            const nuevoSub = await subConceptosApi.registrarSubConcepto({ descripcion: subDesc });
-            subConceptoIdFinal = nuevoSub.id;
-          }
-        }
-
         const payload: ConceptoRegistroRequest = {
           descripcion: values.descripcion,
           precio: values.precio,
-          subConceptoId: subConceptoIdFinal,
+          // Se construye el objeto de subconcepto únicamente con el id
+          subConcepto: { id: values.subConceptoId, descripcion: "" },
+          activo: values.activo,
         };
 
         if (conceptoId) {
-          await conceptosApi.actualizarConcepto(conceptoId, {
-            ...payload,
-            activo: true,
-          } as ConceptoModificacionRequest);
+          await conceptosApi.actualizarConcepto(conceptoId, payload);
           toast.success("Concepto actualizado correctamente.");
         } else {
           await conceptosApi.registrarConcepto(payload);
@@ -154,13 +123,13 @@ const ConceptosFormulario: React.FC = () => {
         onSubmit={handleSubmit}
         enableReinitialize
       >
-        {({ isSubmitting, resetForm, setFieldValue }) => (
+        {({ isSubmitting, resetForm }) => (
           <Form className="formulario max-w-4xl mx-auto">
-            {/* Campos principales: Descripcion y Precio */}
+            {/* Campos principales: Descripción y Precio */}
             <div className="form-grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="mb-4">
                 <label htmlFor="descripcion" className="auth-label">
-                  Descripcion:
+                  Descripción:
                 </label>
                 <Field name="descripcion" type="text" className="form-input" />
                 <ErrorMessage name="descripcion" component="div" className="auth-error" />
@@ -174,47 +143,20 @@ const ConceptosFormulario: React.FC = () => {
               </div>
             </div>
 
-            {/* Campo de Subconcepto con autocompletado */}
+            {/* Campo de Subconcepto (select) */}
             <div className="mb-4">
-              <label htmlFor="subConceptoDescripcion" className="auth-label">
+              <label htmlFor="subConceptoId" className="auth-label">
                 Subconcepto:
               </label>
-              <div className="relative">
-                <Field
-                  name="subConceptoDescripcion"
-                  type="text"
-                  className="form-input"
-                  placeholder="Ingrese el subconcepto"
-                  style={{ textTransform: "uppercase" }}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                    const value = e.target.value.toUpperCase();
-                    setFieldValue("subConceptoDescripcion", value);
-                    // Si el usuario escribe manualmente, reiniciamos el subConceptoId
-                    setFieldValue("subConceptoId", 0);
-                    setSubConceptoBusqueda(value);
-                  }}
-                />
-                <ErrorMessage name="subConceptoDescripcion" component="div" className="auth-error" />
-                {sugerenciasSubConceptos.length > 0 && (
-                  <ul className="absolute z-10 w-full bg-white border border-gray-200 max-h-48 overflow-auto mt-1">
-                    {sugerenciasSubConceptos.map((sub) => (
-                      <li
-                        key={sub.id}
-                        className="p-2 hover:bg-gray-100 cursor-pointer"
-                        onClick={() => {
-                          // Al seleccionar, actualizamos ambos campos
-                          setFieldValue("subConceptoDescripcion", sub.descripcion);
-                          setFieldValue("subConceptoId", sub.id);
-                          setSubConceptoBusqueda(sub.descripcion);
-                          setSugerenciasSubConceptos([]);
-                        }}
-                      >
-                        {sub.descripcion}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
+              <Field as="select" name="subConceptoId" className="form-input">
+                <option value={0}>Seleccione un subconcepto...</option>
+                {subConceptos.map((sub) => (
+                  <option key={sub.id} value={sub.id}>
+                    {sub.descripcion}
+                  </option>
+                ))}
+              </Field>
+              <ErrorMessage name="subConceptoId" component="div" className="auth-error" />
             </div>
 
             <div className="form-acciones">

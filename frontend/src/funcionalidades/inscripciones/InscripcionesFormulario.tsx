@@ -13,11 +13,10 @@ import bonificacionesApi from "../../api/bonificacionesApi"
 
 // Types
 import type {
-  InscripcionRegistroRequest,
   InscripcionResponse,
   BonificacionResponse,
   DisciplinaDetalleResponse,
-  InscripcionModificacionRequest,
+  InscripcionRegistroRequest,
 } from "../../types/types"
 
 // Esquema de validación
@@ -206,7 +205,7 @@ const InscripcionesFormulario: React.FC = () => {
 
     try {
       // Importante: Enviar el objeto disciplina completo (incluyendo el array de horarios)
-      const payload: InscripcionModificacionRequest = {
+      const payload: InscripcionRegistroRequest = {
         alumnoId: values.alumnoId,
         disciplina: values.disciplina,
         bonificacionId: values.bonificacionId,

@@ -1,6 +1,5 @@
 package ledance.controladores;
 
-import ledance.dto.inscripcion.request.InscripcionModificacionRequest;
 import ledance.dto.inscripcion.request.InscripcionRegistroRequest;
 import ledance.dto.response.EstadisticasInscripcionResponse;
 import ledance.dto.inscripcion.response.InscripcionResponse;
@@ -29,14 +28,14 @@ public class InscripcionControlador {
     @PostMapping
     public ResponseEntity<InscripcionResponse> crear(@RequestBody @Validated InscripcionRegistroRequest request) {
         log.info("Creando inscripcion para alumnoId: {} en disciplinaId: {}",
-                request.alumnoId(), request.disciplina().id());
+                request.alumno().id(), request.disciplina().id());
         InscripcionResponse response = inscripcionServicio.crearInscripcion(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<InscripcionResponse> actualizar(@PathVariable Long id,
-                                                          @RequestBody @Validated InscripcionModificacionRequest request) {
+                                                          @RequestBody @Validated InscripcionRegistroRequest request) {
         log.info("Actualizando inscripcion con id: {}", id);
         InscripcionResponse response = inscripcionServicio.actualizarInscripcion(id, request);
         return ResponseEntity.ok(response);

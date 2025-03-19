@@ -45,8 +45,8 @@ export interface AlumnoRegistroRequest {
   id?: number;
   nombre: string;
   apellido: string;
-  fechaNacimiento: string;      // Formato ISO (ej. "2025-03-10")
-  fechaIncorporacion: string;     // Formato ISO
+  fechaNacimiento: string;
+  fechaIncorporacion: string;
   celular1?: string;
   celular2?: string;
   email1?: string;
@@ -57,7 +57,6 @@ export interface AlumnoRegistroRequest {
   autorizadoParaSalirSolo?: boolean;
   otrasNotas?: string;
   cuotaTotal?: number;
-  // Se renombra el campo de 'disciplinas' a 'inscripciones' para ser coherente con el backend
   inscripciones: InscripcionRegistroRequest[];
 }
 
@@ -362,21 +361,14 @@ export interface DisciplinaListadoResponse {
 
 export interface InscripcionRegistroRequest {
   id?: number; // opcional en creación
-  alumnoId: number;
+  alumno: AlumnoRegistroRequest;
   disciplina: DisciplinaRegistroRequest;
   bonificacionId?: number;
   fechaInscripcion?: string; // ISO string, ej. "2025-03-10"
-}
-
-export interface InscripcionModificacionRequest {
-  alumnoId: number;
-  // Se utiliza el objeto de disciplina completo
-  disciplina: DisciplinaRegistroRequest;
-  bonificacionId?: number;
-  fechaBaja?: string; // string ISO, opcional
   costoParticular?: number;
+  fechaBaja?: string; // string ISO, opcional
   activo?: boolean;
-  estado?: string; // Puedes definir un enum o union de string (por ejemplo: "ACTIVA" | "BAJA")
+  estado?: string; // Por ejemplo: "ACTIVA" | "BAJA"
 }
 
 // ==========================================
@@ -403,6 +395,8 @@ export interface InscripcionFormData extends InscripcionRequest {
 export interface InscripcionResponse {
   id: number;
   alumno: {
+    fechaNacimiento: string;
+    fechaIncorporacion: string;
     id: number;
     nombre: string;
     apellido: string;
@@ -617,14 +611,8 @@ export interface ReporteResponse {
 export interface ConceptoRegistroRequest {
   descripcion: string;
   precio: number;
-  subConceptoId: number;
-}
-
-export interface ConceptoModificacionRequest {
-  descripcion: string;
-  precio: number;
-  subConceptoId: number;
-  activo: boolean;
+  subConcepto: SubConceptoResponse;
+  activo?: boolean;
 }
 
 export interface ConceptoResponse {
@@ -632,6 +620,7 @@ export interface ConceptoResponse {
   descripcion: string;
   precio: number;
   subConcepto: SubConceptoResponse;
+  activo?: boolean;
 }
 
 export interface SubConceptoRegistroRequest {
@@ -677,7 +666,7 @@ export interface ReporteMensualidadDTO {
     nombre: string;
   };
   cuota: string;
-  importe: number;
+  importePendiente: number;
   bonificacion: {
     id: number;
     descripcion: string;
@@ -731,14 +720,6 @@ export interface Pago {
   // metodo de pago, etc., segun tu back
 }
 
-export interface Egreso {
-  id: number;
-  fecha: string;
-  monto: number;
-  observaciones?: string;
-  // etc...
-}
-
 export interface CajaDiariaDTO {
   fecha: string; // "2025-02-26"
   rangoRecibos: string; // "Recibo #10 al #12"
@@ -750,12 +731,12 @@ export interface CajaDiariaDTO {
 
 export interface CajaDetalleDTO {
   pagosDelDia: Pago[];
-  egresosDelDia: Egreso[];
+  egresosDelDia: EgresoResponse[];
 }
 
 export interface RendicionDTO {
   pagos: Pago[];
-  egresos: Egreso[];
+  egresos: EgresoResponse[];
   totalEfectivo: number;
   totalDebito: number;
   totalEgresos: number;
@@ -765,29 +746,6 @@ export interface RendicionDTO {
 // PAGO Y MÉTODOS DE PAGO
 // ==========================================
 
-// RESPUESTA DE CADA DETALLE DEL PAGO
-export interface DetallePagoResponse {
-  id: number;
-  codigoConcepto?: string;
-  concepto: string;
-  // Se renombra de "valorBase" a "montoOriginal"
-  montoOriginal: number;
-  bonificacion?: {
-    id: number;
-    descripcion: string;
-    porcentajeDescuento: number;
-    valorFijo?: number;
-  };
-  recargo?: {
-    id: number;
-    descripcion: string;
-  };
-  aFavor: number;
-  aCobrar: number;
-  importe: number;
-  cobrado?: boolean;
-}
-
 export interface PagoRegistroRequest {
   alumno: {
     id: number;
@@ -796,23 +754,13 @@ export interface PagoRegistroRequest {
   fecha: string;
   fechaVencimiento: string;
   monto: number;
-  // Ahora se envía la inscripción completa
   inscripcion: InscripcionRegistroRequest;
-  metodoPago?: number;
+  metodoPagoId: number;
   recargoAplicado?: boolean;
   bonificacionAplicada?: boolean;
   pagoMatricula: boolean;
   activo: boolean;
-  detallePagos: Array<{
-    codigoConcepto?: string;
-    concepto: string;
-    cuota?: string;
-    // Se actualiza: de "valorBase" a "montoOriginal"
-    montoOriginal: number;
-    bonificacionId?: number;
-    recargoId?: number;
-    aCobrar: number;
-  }>;
+  detallePagos: DetallePagoRegistroRequest[]; // Ahora usa el nuevo interface
   pagoMedios?: PagoMedioRegistroRequest[];
 }
 
@@ -824,7 +772,7 @@ export interface PagoResponse {
   // Nuevo campo: monto original asignado al pago.
   montoBasePago: number;
   // Ahora es una descripción
-  metodoPago: string;
+  metodoPago: MetodoPagoResponse;
   recargoAplicado: boolean;
   bonificacionAplicada: boolean;
   saldoRestante: number;
@@ -843,16 +791,41 @@ export interface PagoResponse {
   tipoPago: string;
 }
 
-export interface DetallePagoRegistroRequest {
-  id?: number; // Opcional, ya que para nuevos detalles no se envía
-  codigoConcepto?: string;
-  concepto: string;
+export interface DetallePagoResponse {
+  subConceptoId?: number | null;
+  conceptoId?: number | null;
+  id: number;
+  descripcionConcepto: string;
   cuota?: string;
-  // Se renombra de "valorBase" a "montoOriginal"
   montoOriginal: number;
-  bonificacionId?: number;
-  recargoId?: number;
+  aFavor: number;
+  importeInicial: number;
+  importePendiente: number;
+  inscripcion: InscripcionResponse;
   aCobrar: number;
+  bonificacionId?: number | null;
+  recargoId?: number | null;
+  mensualidadId?: number | null;
+  matriculaId?: number | null;
+  stockId?: number | null;
+  cobrado: boolean;
+  tipo?: string;
+}
+
+export interface DetallePagoRegistroRequest {
+  id: number;
+  descripcionConcepto: string;      // Campo para enviar la descripción unificada del concepto
+  conceptoId?: number | null;
+  subConceptoId?: number | null;
+  cuota?: string;
+  montoOriginal: number;
+  aCobrar: number;
+  bonificacionId?: number | null;
+  recargoId?: number | null;
+  cobrado?: boolean;
+  mensualidadId?: number | null;
+  matriculaId?: number | null;
+  stockId?: number | null;
 }
 
 // PETICIÓN DE REGISTRO DE PAGO MEDIO (para abonos parciales)
@@ -879,20 +852,24 @@ export interface CobranzasFormValues {
   alumnoId?: string;
   fecha: string;
   detallePagos: Array<{
-    id?: number | null;
-    codigoConcepto?: number | string;
-    concepto: string;
+    id: number;
+    importePendiente: any;
+    descripcionConcepto: string;
+    conceptoId?: number | null;
+    subConceptoId?: number | null;
     cuota?: string;
-    // Renombrado: de "valorBase" a "montoOriginal"
     montoOriginal: number;
-    bonificacionId?: number | string; // Ajusta el tipo según corresponda (idealmente number)
-    recargoId?: number | string;       // Ajusta el tipo según corresponda (idealmente number)
-    aFavor: number;
-    importe: number;
     aCobrar: number;
+    bonificacionId?: number | null;
+    recargoId?: number | null;
+    cobrado?: boolean;
+    mensualidadId?: number | null;
+    matriculaId?: number | null;
+    stockId: number | null;
+    aFavor: number;
     autoGenerated?: boolean;
     abono?: number;
-    _tempId?: number; // Propiedad temporal para control interno
+    _tempId?: number;
   }>;
   mensualidadId?: string;
   disciplina: string;
@@ -903,12 +880,12 @@ export interface CobranzasFormValues {
   stockSeleccionado: string;
   cantidad: number;
   totalCobrado: number;
-  metodoPago: string;
+  metodoPagoId: number;
   observaciones: string;
   matriculaRemoved: boolean;
   periodoMensual: string;
   autoRemoved: number[];
-  // Agregar el campo para el monto del abono parcial general:
+  // Campo para el monto del abono parcial general:
   pagoParcial: number;
 }
 
@@ -918,14 +895,6 @@ export interface DetalleCobranzaDTO {
   pendiente: number;
 }
 
-export interface CobranzaDTO {
-  alumnoId: number;
-  alumnoNombre: string;
-  totalPendiente: number;
-  detalles: DetalleCobranzaDTO[];
-}
-
-
 export interface MensualidadRegistroRequest {
   fechaCuota: LocalDate;
   valorBase: number;
@@ -934,25 +903,16 @@ export interface MensualidadRegistroRequest {
   inscripcionId: number;
 }
 
-export interface MensualidadModificacionRequest {
-  fechaCuota: LocalDate;
-  valorBase: number;
-  recargo: number;
-  bonificacion: number;
-  estado: string;
-}
-
 export interface MensualidadResponse {
   descripcion: string;
   id: number;
   fechaCuota: LocalDate;
-  // Si bien aquí se conserva "valorBase", en el hook se puede mapear a "montoOriginal"
   valorBase: number;
   recargoId: number;
   bonificacion: BonificacionResponse;
   estado: string;
   inscripcionId: number;
-  totalPagar: number;
+  importeInicial: number;
 }
 
 export interface MatriculaRegistroRequest {
@@ -978,9 +938,7 @@ export interface MatriculaResponse {
 export interface DeudasPendientesResponse {
   alumnoId: number;
   alumnoNombre: string;
-  pagosPendientes: PagoResponse[];
-  matriculaPendiente: MatriculaResponse | null;
-  mensualidadesPendientes: MensualidadResponse[];
+  detallePagosPendientes: DetallePagoResponse[];
   totalDeuda: number;
 }
 
@@ -988,4 +946,57 @@ export interface PagoParcialRequest {
   montoAbonado: number;
   montosPorDetalle: { [detalleId: number]: number };
   metodoPagoId: number;
+}
+
+// EgresoRegistroRequest.ts
+export interface EgresoRegistroRequest {
+  id?: number; // Opcional, ya que al crear se genera automáticamente
+  fecha: string; // Usamos string en formato ISO (e.g. "2025-03-17")
+  monto: number;
+  observaciones?: string;
+  metodoPagoId: number;
+}
+
+export interface EgresoResponse {
+  id: number;
+  fecha: string;
+  monto: number;
+  observaciones?: string;
+  metodoPago?: MetodoPagoResponse;
+  activo: boolean;
+}
+
+export interface CobranzaDetalleDTO {
+  id?: number;
+  tipo: 'INSCRIPCION' | 'MENSUALIDAD' | 'STOCK' | 'CONCEPTO';
+  descripcion?: string;
+  monto: number;
+  inscripcionId?: number;
+  mensualidadId?: number;
+  stockId?: number;
+  conceptoId?: number;
+}
+
+
+
+export interface CobranzaDTO {
+  alumnoId: number;
+  alumnoNombre: string;
+  totalPendiente: number;
+  detalles: DetalleCobranzaDTO[];
+}
+
+export interface AlumnoDataResponse {
+  alumno: AlumnoDetalleResponse;
+  inscripcionesActivas: InscripcionResponse[];
+  deudas: DeudasPendientesResponse;
+  ultimoPago: PagoResponse | null;
+}
+
+export interface CobranzasDataResponse {
+  alumnos: AlumnoListadoResponse[];
+  disciplinas: DisciplinaListadoResponse[];
+  stocks: StockResponse[];
+  metodosPago: MetodoPagoResponse[];
+  conceptos: ConceptoResponse[];
 }

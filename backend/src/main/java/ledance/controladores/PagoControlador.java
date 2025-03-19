@@ -2,16 +2,20 @@ package ledance.controladores;
 
 import ledance.dto.pago.request.PagoMedioRegistroRequest;
 import ledance.dto.pago.request.PagoRegistroRequest;
+import ledance.dto.pago.response.DetallePagoResponse;
 import ledance.dto.pago.response.PagoResponse;
 import ledance.dto.cobranza.CobranzaDTO;
+import ledance.servicios.detallepago.DetallePagoServicio;
 import ledance.servicios.pago.PagoServicio;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -22,9 +26,11 @@ public class PagoControlador {
 
     private static final Logger log = LoggerFactory.getLogger(PagoControlador.class);
     private final PagoServicio pagoServicio;
+    private final DetallePagoServicio detallePagoServicio;
 
-    public PagoControlador(PagoServicio pagoServicio) {
+    public PagoControlador(PagoServicio pagoServicio, DetallePagoServicio detallePagoServicio) {
         this.pagoServicio = pagoServicio;
+        this.detallePagoServicio = detallePagoServicio;
     }
 
     @PostMapping
@@ -66,17 +72,27 @@ public class PagoControlador {
         return pagos.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(pagos);
     }
 
+    @GetMapping("/alumno/{alumnoId}")
+    public ResponseEntity<List<PagoResponse>> listarPagosPorAlumno(@PathVariable Long alumnoId) {
+        log.info("Listando pagos para el alumno con id: {}", alumnoId);
+        List<PagoResponse> pagos = pagoServicio.listarPagosPorAlumno(alumnoId);
+        return pagos.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(pagos);
+    }
+
+    @GetMapping("/alumno/{alumnoId}/facturas")
+    public ResponseEntity<List<PagoResponse>> listarFacturasPorAlumno(@PathVariable Long alumnoId) {
+        log.info("Listando facturas para el alumno con id: {}", alumnoId);
+        List<PagoResponse> facturas = pagoServicio.listarPagosPorAlumno(alumnoId)
+                .stream()
+                .filter(p -> p.observaciones() != null && p.observaciones().contains("FACTURA"))
+                .collect(Collectors.toList());
+        return facturas.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(facturas);
+    }
+
     @GetMapping("/inscripcion/{inscripcionId}")
     public ResponseEntity<List<PagoResponse>> listarPagosPorInscripcion(@PathVariable Long inscripcionId) {
         log.info("Listando pagos para inscripcionId: {}", inscripcionId);
         List<PagoResponse> pagos = pagoServicio.listarPagosPorInscripcion(inscripcionId);
-        return pagos.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(pagos);
-    }
-
-    @GetMapping("/alumno/{alumnoId}")
-    public ResponseEntity<List<PagoResponse>> listarPagosPorAlumno(@PathVariable Long alumnoId) {
-        log.info("Listando pagos para alumnoId: {}", alumnoId);
-        List<PagoResponse> pagos = pagoServicio.listarPagosPorAlumno(alumnoId);
         return pagos.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(pagos);
     }
 
@@ -92,15 +108,6 @@ public class PagoControlador {
         log.info("Eliminando (marcando inactivo) pago con id: {}", id);
         pagoServicio.eliminarPago(id);
         return ResponseEntity.noContent().build();
-    }
-
-    @GetMapping("/alumno/{alumnoId}/facturas")
-    public ResponseEntity<List<PagoResponse>> listarFacturasPorAlumno(@PathVariable Long alumnoId) {
-        List<PagoResponse> facturas = pagoServicio.listarPagosPorAlumno(alumnoId)
-                .stream()
-                .filter(p -> p.observaciones() != null && p.observaciones().contains("FACTURA"))
-                .collect(Collectors.toList());
-        return facturas.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(facturas);
     }
 
     @PutMapping("/{id}/quitar-recargo")
@@ -122,4 +129,49 @@ public class PagoControlador {
         return ResponseEntity.ok(pago);
     }
 
+    /**
+     * Endpoint para filtrar detalles de pago.
+     * Todos los parámetros son opcionales. Si algún parámetro no es enviado, se considerará
+     * que se requieren todos los registros para ese criterio.
+     *
+     * @param fechaRegistroDesde (opcional) fecha mínima de registro (por ejemplo, fecha de creación del registro)
+     * @param fechaRegistroHasta (opcional) fecha máxima de registro
+     * @param detalleConcepto    (opcional) valor o parte del valor del concepto en el DetallePago
+     * @param stock              (opcional) tipo de stock; si no se envía, se incluyen todos los tipos
+     * @param subConcepto        (opcional) sub concepto, en caso de querer filtrar aún más el campo concepto
+     * @param disciplina         (opcional) tarifa o tipo de disciplina, por ejemplo: CUOTA, MATRICULA, CLASE_SUELTA, CLASE_DE_PRUEBA
+     * @return Lista de DetallePagoResponse filtrados según los parámetros enviados.
+     */
+    @GetMapping("/filtrar")
+    public ResponseEntity<List<DetallePagoResponse>> filtrarDetalles(
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate fechaRegistroDesde,
+
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate fechaRegistroHasta,
+
+            @RequestParam(required = false) String detalleConcepto,
+
+            @RequestParam(required = false) String stock,
+
+            @RequestParam(required = false) String subConcepto,
+
+            @RequestParam(required = false) String disciplina
+    ) {
+        log.info("Filtrando detalles de pago con parámetros: fechaRegistroDesde={}, fechaRegistroHasta={}, detalleConcepto={}, stock={}, subConcepto={}, disciplina={}",
+                fechaRegistroDesde, fechaRegistroHasta, detalleConcepto, stock, subConcepto, disciplina);
+
+        List<DetallePagoResponse> detalles = detallePagoServicio.filtrarDetalles(
+                fechaRegistroDesde,
+                fechaRegistroHasta,
+                detalleConcepto,
+                stock,
+                subConcepto,
+                disciplina
+        );
+
+        return detalles.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(detalles);
+    }
 }

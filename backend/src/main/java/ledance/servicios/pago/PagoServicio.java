@@ -1,16 +1,17 @@
 package ledance.servicios.pago;
 
+import ledance.dto.alumno.AlumnoMapper;
 import ledance.dto.deudas.DeudasPendientesResponse;
 import ledance.dto.inscripcion.InscripcionMapper;
-import ledance.dto.matricula.request.MatriculaModificacionRequest;
+import ledance.dto.matricula.request.MatriculaRegistroRequest;
 import ledance.dto.matricula.response.MatriculaResponse;
 import ledance.dto.mensualidad.response.MensualidadResponse;
+import ledance.dto.metodopago.MetodoPagoMapper;
 import ledance.dto.pago.DetallePagoMapper;
 import ledance.dto.pago.PagoMapper;
 import ledance.dto.pago.PagoMedioMapper;
 import ledance.dto.pago.request.DetallePagoRegistroRequest;
 import ledance.dto.pago.request.PagoMedioRegistroRequest;
-import ledance.dto.pago.request.PagoRegistroRequest;
 import ledance.dto.pago.request.PagoRegistroRequest;
 import ledance.dto.pago.response.DetallePagoResponse;
 import ledance.dto.pago.response.PagoMedioResponse;
@@ -46,6 +47,9 @@ public class PagoServicio {
     private final MensualidadServicio mensualidadServicio;
     private final RecargoRepositorio recargoRepositorio;
     private final BonificacionRepositorio bonificacionRepositorio;
+    private final MetodoPagoMapper metodoPagoMapper;
+    private final MatriculaRepositorio matriculaRepositorio;
+    private final MensualidadRepositorio mensualidadRepositorio;
 
     // Servicios para delegar la logica de cálculo y procesamiento
     private final DetallePagoServicio detallePagoServicio;
@@ -53,6 +57,10 @@ public class PagoServicio {
     private final DetallePagoMapper detallePagoMapper;
     private final PagoMedioMapper pagoMedioMapper;
     private final InscripcionMapper inscripcionMapper;
+    private final SubConceptoRepositorio subConceptoRepositorio;
+    private final ConceptoRepositorio conceptoRepositorio;
+    private final DetallePagoRepositorio detallePagoRepositorio;
+    private final AlumnoMapper alumnoMapper;
 
     public PagoServicio(AlumnoRepositorio alumnoRepositorio,
                         PagoRepositorio pagoRepositorio,
@@ -65,11 +73,13 @@ public class PagoServicio {
                         RecargoRepositorio recargoRepositorio,
                         BonificacionRepositorio bonificacionRepositorio,
                         DetallePagoRepositorio detallePagoRepositorio,
+                        MetodoPagoMapper metodoPagoMapper, MatriculaRepositorio matriculaRepositorio, MensualidadRepositorio mensualidadRepositorio,
                         DetallePagoServicio detallePagoServicio,
                         PaymentProcessor paymentProcessor,
-                        DetallePagoMapper detallePagoMapper1,
                         PagoMedioMapper pagoMedioMapper,
-                        InscripcionMapper inscripcionMapper) {
+                        InscripcionMapper inscripcionMapper,
+                        SubConceptoRepositorio subConceptoRepositorio,
+                        ConceptoRepositorio conceptoRepositorio, AlumnoMapper alumnoMapper) {
         this.alumnoRepositorio = alumnoRepositorio;
         this.pagoRepositorio = pagoRepositorio;
         this.inscripcionRepositorio = inscripcionRepositorio;
@@ -79,78 +89,86 @@ public class PagoServicio {
         this.mensualidadServicio = mensualidadServicio;
         this.recargoRepositorio = recargoRepositorio;
         this.bonificacionRepositorio = bonificacionRepositorio;
+        this.metodoPagoMapper = metodoPagoMapper;
+        this.matriculaRepositorio = matriculaRepositorio;
+        this.mensualidadRepositorio = mensualidadRepositorio;
         this.detallePagoServicio = detallePagoServicio;
         this.paymentProcessor = paymentProcessor;
         this.detallePagoMapper = detallePagoMapper;
         this.pagoMedioMapper = pagoMedioMapper;
         this.inscripcionMapper = inscripcionMapper;
+        this.subConceptoRepositorio = subConceptoRepositorio;
+        this.conceptoRepositorio = conceptoRepositorio;
+        this.detallePagoRepositorio = detallePagoRepositorio;
+        this.alumnoMapper = alumnoMapper;
     }
 
     @Transactional
     public PagoResponse registrarPago(PagoRegistroRequest request) {
         log.info("[registrarPago] Iniciando registro de pago para inscripción: {}",
-                request.inscripcion() != null ? request.inscripcion().id() : "N/A");
-
+                (request.inscripcion() != null ? request.inscripcion().id() : "N/A"));
         try {
-            // Paso 1: Crear el pago (histórico o nuevo) según la inscripción.
-            log.info("[registrarPago] Paso 1: Creando pago según inscripción...");
+            // Paso 1: Crear el pago según inscripción.
             Pago pagoFinal = paymentProcessor.crearPagoSegunInscripcion(request);
             log.info("[registrarPago] Pago generado: id={}, monto={}, saldoRestante={}",
                     pagoFinal.getId(), pagoFinal.getMonto(), pagoFinal.getSaldoRestante());
 
-            // Paso 2: Marcar como cobrados los detalles con importe pendiente = 0.
-            log.info("[registrarPago] Paso 2: Marcando detalles con importe pendiente = 0");
-            marcarDetallesCobradosSiImporteEsCero(pagoFinal);
+            // Paso 2: Marcar detalles con importe pendiente igual a 0.
+            marcarDetallesConImportePendienteCero(pagoFinal);
 
-            // Paso 3: Registrar los medios de pago (si existen).
-            log.info("[registrarPago] Paso 3: Registrando medios de pago...");
+            // Paso 3: Registrar medios de pago (si existen).
             registrarMediosDePago(pagoFinal, request.pagoMedios());
 
-            // Paso 4: Actualizar importes (recalcular descuentos, recargos y saldo).
-            log.info("[registrarPago] Paso 4: Actualizando importes del pago...");
+            // Paso 4: Actualizar importes del pago.
             paymentProcessor.actualizarImportesPago(pagoFinal);
             verificarSaldoRestante(pagoFinal);
             log.info("[registrarPago] Importes actualizados: montoPagado={}, saldoRestante={}",
                     pagoFinal.getMontoPagado(), pagoFinal.getSaldoRestante());
+
             // Paso 5: Persistir el pago.
-            log.info("[registrarPago] Paso 5: Persistiendo pago en la base de datos...");
+            pagoFinal.setAlumno(alumnoMapper.toEntity(request.alumno()));
+            pagoFinal.setMontoBasePago(pagoFinal.getMonto());
             pagoRepositorio.save(pagoFinal);
             log.info("[registrarPago] Pago guardado: id={}, saldoRestante={}",
                     pagoFinal.getId(), pagoFinal.getSaldoRestante());
 
-            // Paso 6: Actualizar deudas (si aplica).
-            log.info("[registrarPago] Paso 6: Verificando detalles de deuda (MATRICULA/MENSUALIDAD)...");
-            List<TipoDetallePago> tiposDeuda = Arrays.asList(TipoDetallePago.MATRICULA, TipoDetallePago.MENSUALIDAD);
-            boolean tieneDetalleDeuda = pagoFinal.getDetallePagos().stream()
-                    .peek(det -> log.info("[registrarPago] Detalle: id={}, tipo={}", det.getId(), det.getTipo()))
-                    .anyMatch(det -> tiposDeuda.contains(det.getTipo()));
-            log.info("[registrarPago] Resultado - Tiene detalle de deuda: {}", tieneDetalleDeuda);
+            // Paso 6: Actualizar deudas si corresponde.
+            actualizarDeudasSiCorrespondiente(pagoFinal);
 
-            if (pagoFinal.getSaldoRestante() == 0
-                    && pagoFinal.getAlumno() != null
-                    && pagoFinal.getInscripcion() != null
-                    && tieneDetalleDeuda) {
-                log.info("[registrarPago] Condición para actualizar deudas cumplida: saldoRestante=0, alumno id={}, inscripción id={}",
-                        pagoFinal.getAlumno().getId(), pagoFinal.getInscripcion().getId());
-                actualizarEstadoDeudas(pagoFinal.getAlumno().getId(), pagoFinal.getFecha());
-                log.info("[registrarPago] Deudas actualizadas para alumno id={}", pagoFinal.getAlumno().getId());
-            } else {
-                log.info("[registrarPago] Condición para actualizar deudas no cumplida. Detalles: saldoRestante={}, alumno={}, inscripción={}, tieneDetalleDeuda={}",
-                        pagoFinal.getSaldoRestante(),
-                        (pagoFinal.getAlumno() != null ? pagoFinal.getAlumno().getId() : "null"),
-                        (pagoFinal.getInscripcion() != null ? pagoFinal.getInscripcion().getId() : "null"),
-                        tieneDetalleDeuda);
-            }
-
-            // Paso 7: Mapear la entidad Pago a DTO para la respuesta.
-            log.info("[registrarPago] Paso 7: Mapeando entidad a DTO...");
+            // Paso 7: Mapear la entidad a DTO para la respuesta.
             PagoResponse response = pagoMapper.toDTO(pagoFinal);
             log.info("[registrarPago] Respuesta generada: {}", response);
-
             return response;
         } catch (Exception e) {
             log.error("[registrarPago] Error durante el registro de pago: ", e);
             throw e;
+        }
+    }
+
+    private void marcarDetallesConImportePendienteCero(Pago pago) {
+        pago.getDetallePagos().forEach(detalle -> {
+            if (detalle.getImportePendiente() != null && detalle.getImportePendiente() == 0.0) {
+                detalle.setCobrado(true);
+            }
+        });
+        verificarSaldoRestante(pago);
+        pagoRepositorio.save(pago);
+    }
+
+    private void actualizarDeudasSiCorrespondiente(Pago pago) {
+        List<TipoDetallePago> tiposDeuda = Arrays.asList(TipoDetallePago.MATRICULA, TipoDetallePago.MENSUALIDAD);
+        boolean tieneDetalleDeuda = pago.getDetallePagos().stream().anyMatch(det -> tiposDeuda.contains(det.getTipo()));
+        if (pago.getSaldoRestante() == 0 && pago.getAlumno() != null && pago.getInscripcion() != null && tieneDetalleDeuda) {
+            log.info("[actualizarDeudasSiCorrespondiente] Actualizando deudas para alumno id={} y inscripción id={}",
+                    pago.getAlumno().getId(), pago.getInscripcion().getId());
+            actualizarEstadoDeudas(pago.getAlumno().getId(), pago.getFecha());
+        } else {
+            log.info("[actualizarDeudasSiCorrespondiente] No se cumple la condición para actualizar deudas. " +
+                            "Detalles: saldoRestante={}, alumnoId={}, inscripcionId={}, tieneDetalleDeuda={}",
+                    pago.getSaldoRestante(),
+                    (pago.getAlumno() != null ? pago.getAlumno().getId() : "null"),
+                    (pago.getInscripcion() != null ? pago.getInscripcion().getId() : "null"),
+                    tieneDetalleDeuda);
         }
     }
 
@@ -181,29 +199,22 @@ public class PagoServicio {
         verificarSaldoRestante(pago);
         pagoRepositorio.save(pago);
 
-        if (pago.getSaldoRestante() == 0) {
-            actualizarEstadoDeudas(pago.getAlumno().getId(), pago.getFecha());
-        }
-
         return pagoMapper.toDTO(pago);
     }
 
     private void actualizarDetallesPago(Pago pago, List<DetallePagoRegistroRequest> detallesDTO) {
         log.info("[actualizarDetallesPago] Actualizando detalles para pago id={}", pago.getId());
-        // Mapeo de detalles existentes por su ID
-        Map<Long, DetallePago> existentes = pago.getDetallePagos().stream()
+        // Mapear detalles existentes por su ID para acceso rápido.
+        Map<Long, DetallePago> detallesExistentes = pago.getDetallePagos().stream()
                 .collect(Collectors.toMap(DetallePago::getId, Function.identity()));
-
-        // Para cada detalle del DTO se obtiene o define el detalle correspondiente
         List<DetallePago> detallesFinales = detallesDTO.stream()
-                .map(dto -> obtenerODefinirDetallePago(dto, existentes, pago))
-                .toList();
-
+                .map(dto -> obtenerODefinirDetallePago(dto, detallesExistentes, pago))
+                .collect(Collectors.toList());
         pago.getDetallePagos().clear();
         pago.getDetallePagos().addAll(detallesFinales);
-        log.info("[actualizarDetallesPago] Detalles actualizados. Recalculando importes para cada detalle.");
+        log.info("[actualizarDetallesPago] Detalles actualizados. Recalculando importes...");
 
-        // Recalcular el importe de cada detalle (se preserva el aCobrar acumulado)
+        // Recalcular el importe de cada detalle.
         pago.getDetallePagos().forEach(detalle -> {
             log.info("[actualizarDetallesPago] Recalculando importe para detalle id={}", detalle.getId());
             detallePagoServicio.calcularImporte(detalle);
@@ -211,35 +222,48 @@ public class PagoServicio {
     }
 
     private DetallePago obtenerODefinirDetallePago(DetallePagoRegistroRequest dto,
-                                                   Map<Long, DetallePago> existentes,
+                                                   Map<Long, DetallePago> detallesExistentes,
                                                    Pago pago) {
-        if (dto.id() != null && existentes.containsKey(dto.id())) {
-            // Se actualiza un detalle existente.
-            DetallePago detalle = existentes.get(dto.id());
+        if (dto.id() != null && detallesExistentes.containsKey(dto.id())) {
+            // Actualizar detalle existente.
+            DetallePago detalle = detallesExistentes.get(dto.id());
             log.info("[obtenerODefinirDetallePago] Actualizando detalle existente id={}", detalle.getId());
-            detalle.setConcepto(dto.concepto());
-            // Se usa el nuevo nombre: montoOriginal en lugar de valorBase.
+            // Actualiza relaciones utilizando el nuevo campo 'descripcionConcepto' si corresponde.
+            detalle.setConcepto(dto.conceptoId() != null
+                    ? conceptoRepositorio.findById(dto.conceptoId()).orElse(null)
+                    : null);
+            detalle.setSubConcepto(dto.subConceptoId() != null
+                    ? subConceptoRepositorio.findById(dto.subConceptoId()).orElse(null)
+                    : null);
             detalle.setMontoOriginal(dto.montoOriginal());
-            // Se preserva el acumulado de aCobrar; no se sobrescribe.
-            // Actualizar otros campos:
-            detalle.setBonificacion(Optional.ofNullable(dto.bonificacionId())
-                    .flatMap(bonificacionRepositorio::findById).orElse(null));
+            detalle.setBonificacion(dto.bonificacionId() != null
+                    ? bonificacionRepositorio.findById(dto.bonificacionId()).orElse(null)
+                    : null);
             detalle.setRecargo(dto.recargoId() != null
                     ? recargoRepositorio.findById(dto.recargoId()).orElse(null)
                     : null);
+            // Se podría actualizar otros campos según necesidad.
             return detalle;
         } else {
-            // Se crea un nuevo detalle.
-            log.info("[obtenerODefinirDetallePago] Creando nuevo detalle para concepto '{}'", dto.concepto());
+            // Crear un nuevo detalle.
+            log.info("[obtenerODefinirDetallePago] Creando nuevo detalle para conceptoId '{}' y subconceptoId '{}'",
+                    dto.conceptoId(), dto.subConceptoId());
             DetallePago nuevo = new DetallePago();
             nuevo.setPago(pago);
-            nuevo.setConcepto(dto.concepto());
-            // Se asigna el montoOriginal (antes valorBase) del DTO.
+            nuevo.setConcepto(dto.conceptoId() != null
+                    ? conceptoRepositorio.findById(dto.conceptoId()).orElse(null)
+                    : null);
+            nuevo.setSubConcepto(dto.subConceptoId() != null
+                    ? subConceptoRepositorio.findById(dto.subConceptoId()).orElse(null)
+                    : null);
             nuevo.setMontoOriginal(dto.montoOriginal());
-            // Si aCobrar viene definido y mayor a 0, se usa; de lo contrario se asigna el montoOriginal.
+            // Asigna el nuevo campo unificado para la descripción.
+            nuevo.setDescripcionConcepto(dto.descripcionConcepto());
+            // Si aCobrar está definido y es mayor a 0, se utiliza; de lo contrario se usa montoOriginal.
             nuevo.setaCobrar((dto.aCobrar() != null && dto.aCobrar() > 0) ? dto.aCobrar() : dto.montoOriginal());
-            nuevo.setBonificacion(Optional.ofNullable(dto.bonificacionId())
-                    .flatMap(bonificacionRepositorio::findById).orElse(null));
+            nuevo.setBonificacion(dto.bonificacionId() != null
+                    ? bonificacionRepositorio.findById(dto.bonificacionId()).orElse(null)
+                    : null);
             nuevo.setRecargo(dto.recargoId() != null
                     ? recargoRepositorio.findById(dto.recargoId()).orElse(null)
                     : null);
@@ -253,33 +277,47 @@ public class PagoServicio {
                 .orElseThrow(() -> new IllegalArgumentException("Alumno no encontrado."));
 
         // Se obtienen los pagos activos (no anulados) y con saldo pendiente.
-        List<Pago> pagosPendientes = pagoRepositorio.findByAlumnoIdAndEstadoPagoOrderByFechaDesc(alumnoId, EstadoPago.ACTIVO)
+        List<Pago> pagosPendientes = pagoRepositorio
+                .findByAlumnoIdAndEstadoPagoOrderByFechaDesc(alumnoId, EstadoPago.ACTIVO)
                 .stream()
                 .filter(p -> p.getSaldoRestante() != null && p.getSaldoRestante() > 0)
                 .toList();
 
         Map<String, Double> conceptosPendientes = new HashMap<>();
         double totalPendiente = 0.0;
+
         // Para cada pago pendiente, sumar el pendiente de cada detalle.
         for (Pago pago : pagosPendientes) {
             if (pago.getDetallePagos() != null) {
                 for (DetallePago detalle : pago.getDetallePagos()) {
                     // Se calcula el pendiente usando montoOriginal y aFavor.
-                    double pendiente = detalle.getMontoOriginal() -
-                            (detalle.getAFavor() != null ? detalle.getAFavor() : 0.0);
+                    double aFavor = detalle.getAFavor() != null ? detalle.getAFavor() : 0.0;
+                    double pendiente = detalle.getMontoOriginal() - aFavor;
                     if (pendiente > 0) {
-                        String concepto = detalle.getConcepto();
-                        conceptosPendientes.put(concepto, conceptosPendientes.getOrDefault(concepto, 0.0) + pendiente);
+                        // Se obtiene la descripción del concepto desde la entidad relacionada.
+                        String conceptoDescripcion = (detalle.getConcepto() != null && detalle.getConcepto().getDescripcion() != null)
+                                ? detalle.getConcepto().getDescripcion()
+                                : "N/A";
+
+                        conceptosPendientes.put(conceptoDescripcion,
+                                conceptosPendientes.getOrDefault(conceptoDescripcion, 0.0) + pendiente);
                         totalPendiente += pendiente;
                     }
                 }
             }
         }
+
         List<DetalleCobranzaDTO> detalles = conceptosPendientes.entrySet().stream()
                 .map(e -> new DetalleCobranzaDTO(e.getKey(), e.getValue()))
                 .collect(Collectors.toList());
-        log.info("[generarCobranzaPorAlumno] Alumno id={} tiene total pendiente: {} con detalles: {}", alumnoId, totalPendiente, detalles);
-        return new CobranzaDTO(alumno.getId(), alumno.getNombre() + " " + alumno.getApellido(), totalPendiente, detalles);
+
+        log.info("[generarCobranzaPorAlumno] Alumno id={} tiene total pendiente: {} con detalles: {}",
+                alumnoId, totalPendiente, detalles);
+
+        return new CobranzaDTO(alumno.getId(),
+                alumno.getNombre() + " " + alumno.getApellido(),
+                totalPendiente,
+                detalles);
     }
 
     public PagoResponse obtenerUltimoPagoPendiente(Long alumnoId) {
@@ -293,7 +331,7 @@ public class PagoServicio {
         MatriculaResponse matResp = matriculaServicio.obtenerOMarcarPendiente(alumnoId);
         if (matResp != null && !matResp.pagada()) {
             matriculaServicio.actualizarEstadoMatricula(matResp.id(),
-                    new MatriculaModificacionRequest(matResp.anio(), true, fechaPago));
+                    new MatriculaRegistroRequest(alumnoId,matResp.anio(), true, fechaPago));
         }
 
         List<MensualidadResponse> pendientes = mensualidadServicio.listarMensualidadesPendientesPorAlumno(alumnoId);
@@ -472,7 +510,7 @@ public class PagoServicio {
                 pago.getFechaVencimiento(),
                 pago.getMonto(),                  // Monto total de este pago.
                 pago.getMontoBasePago(),          // Nuevo campo: monto original asignado a este pago.
-                pago.getMetodoPago() != null ? pago.getMetodoPago().getDescripcion() : "",
+                metodoPagoMapper.toDTO(pago.getMetodoPago()),
                 pago.getRecargoAplicado(),
                 pago.getBonificacionAplicada(),
                 pago.getSaldoRestante(),
@@ -490,70 +528,123 @@ public class PagoServicio {
 
     @Transactional
     public DeudasPendientesResponse listarDeudasPendientesPorAlumno(Long alumnoId) {
-        // Se obtienen los pagos ACTIVOS con saldo pendiente para el alumno.
-        List<Pago> pagosPendientes = pagoRepositorio.findByAlumnoIdAndEstadoPagoOrderByFechaDesc(alumnoId, EstadoPago.ACTIVO)
-                .stream()
-                .filter(p -> p.getSaldoRestante() != null && p.getSaldoRestante() > 0)
-                .toList();
-        log.info("[listarDeudasPendientesPorAlumno] Se encontraron {} pago(s) pendientes para el alumno id={}", pagosPendientes.size(), alumnoId);
+        log.info("Inicio listarDeudasPendientesPorAlumno para alumnoId: {}", alumnoId);
 
-        // Para cada pago pendiente, se mapean los detalles pendientes y se construye el DTO de pago.
-        List<PagoResponse> pagosPendientesDTO = pagosPendientes.stream()
-                .map(pago -> {
-                    List<DetallePagoResponse> detallesFiltrados = pago.getDetallePagos().stream()
-                            .filter(detalle -> !detalle.getCobrado())
-                            .map(detallePagoMapper::toDTO)
-                            .toList();
-                    log.info("[listarDeudasPendientesPorAlumno] Para el pago id={} se encontraron {} detalle(s) pendientes", pago.getId(), detallesFiltrados.size());
-                    return new PagoResponse(
-                            pago.getId(),
-                            pago.getFecha(),
-                            pago.getFechaVencimiento(),
-                            pago.getMonto(),
-                            pago.getMontoBasePago(), // Nuevo campo: monto base del pago.
-                            pago.getMetodoPago() != null ? pago.getMetodoPago().getDescripcion() : "",
-                            pago.getRecargoAplicado(),
-                            pago.getBonificacionAplicada(),
-                            pago.getSaldoRestante(),
-                            pago.getSaldoAFavor(),
-                            pago.getEstadoPago().equals(ledance.entidades.EstadoPago.ACTIVO),
-                            pago.getEstadoPago().name(),
-                            pago.getInscripcion() != null ? inscripcionMapper.toDTO(pago.getInscripcion()) : null,
-                            pago.getAlumno() != null ? pago.getAlumno().getId() : null,
-                            pago.getObservaciones(),
-                            detallesFiltrados,
-                            pago.getPagoMedios().stream().map(pagoMedioMapper::toDTO).toList(),
-                            pago.getTipoPago().toString()
+        // 1. Obtener todos los DetallePago con importePendiente > 0.
+        List<DetallePago> detallesPendientes = detallePagoRepositorio
+                .findByAlumnoIdAndImportePendienteGreaterThan(alumnoId, 0.0);
+        log.info("Detalles de pago pendientes encontrados: {}", detallesPendientes.size());
+
+        // 2. Obtener Matrículas pendientes (no pagadas) del alumno.
+        List<Matricula> matriculasPendientes = matriculaRepositorio
+                .findByAlumnoIdAndPagadaFalse(alumnoId);
+        log.info("Matrículas pendientes encontradas: {}", matriculasPendientes.size());
+
+        // 3. Obtener Mensualidades pendientes (estado PENDIENTE) del alumno.
+        List<Mensualidad> mensualidadesPendientes = mensualidadRepositorio
+                .findByInscripcionAlumnoIdAndEstado(alumnoId, EstadoMensualidad.PENDIENTE);
+        log.info("Mensualidades pendientes encontradas: {}", mensualidadesPendientes.size());
+
+        // 4. Convertir cada lista a DTO unificado.
+        List<DetallePagoResponse> detallePagosDTO = new ArrayList<>();
+
+        // 4a. Convertir DetallePago a DTO
+        List<DetallePagoResponse> detallesFromPago = detallesPendientes.stream()
+                .map(detallePagoMapper::toDTO)
+                .collect(Collectors.toList());
+        detallePagosDTO.addAll(detallesFromPago);
+
+        // 4b. Convertir Matrículas pendientes a DTO.
+        List<DetallePagoResponse> matriculasDTO = matriculasPendientes.stream().map(matricula -> {
+            return new DetallePagoResponse(
+                    matricula.getId(),                               // id
+                    "Matrícula " + matricula.getAnio(),              // descripcionConcepto
+                    matricula.getAnio().toString(),                  // cuota (se puede ajustar según lógica)
+                    0.0,                                             // montoOriginal (ajustar si corresponde)
+                    null,                                            // bonificacionId
+                    null,                                            // recargoId
+                    0.0,                                             // aFavor
+                    0.0,                                             // aCobrar
+                    false,                                           // cobrado
+                    null,                                            // conceptoId
+                    null,                                            // subConceptoId
+                    null,                                            // mensualidadId
+                    matricula.getId(),                               // matriculaId
+                    null,                                            // stockId
+                    0.0,                                             // importeInicial (ajustar según la deuda)
+                    0.0,                                             // importePendiente (valor pendiente)
+                    "MATRICULA",                                     // tipo
+                    matricula.getFechaPago() != null ? matricula.getFechaPago() : LocalDate.now() // fechaRegistro
+            );
+        }).collect(Collectors.toList());
+        detallePagosDTO.addAll(matriculasDTO);
+
+        // 4c. Convertir Mensualidades pendientes a DTO.
+        // Primero, obtener los IDs de mensualidades que ya se encuentran registradas en DetallePago.
+        Set<Long> mensualidadesRegistradas = detallesFromPago.stream()
+                .filter(dto -> dto.mensualidadId() != null)
+                .map(DetallePagoResponse::mensualidadId)
+                .collect(Collectors.toSet());
+
+        List<DetallePagoResponse> mensualidadesDTO = mensualidadesPendientes.stream()
+                // Filtrar: solo incluir si no está registrada y si aún tiene importe pendiente.
+                .filter(mensualidad -> mensualidad.getImportePendiente() > 0
+                        && !mensualidadesRegistradas.contains(mensualidad.getId()))
+                .map(mensualidad -> {
+                    // Formatear la fecha de cuota para obtener el período (ej. "MARZO 2025")
+                    String periodo = mensualidad.getFechaCuota()
+                            .format(java.time.format.DateTimeFormatter.ofPattern("MMMM yyyy"))
+                            .toUpperCase();
+                    return new DetallePagoResponse(
+                            mensualidad.getId(),                              // id (usamos el id de la mensualidad)
+                            mensualidad.getDescripcion() != null
+                                    ? mensualidad.getDescripcion()
+                                    : "Mensualidad " + periodo,                // descripcionConcepto
+                            periodo,                                          // cuota: el período registrado
+                            mensualidad.getValorBase(),                       // montoOriginal
+                            mensualidad.getBonificacion() != null
+                                    ? mensualidad.getBonificacion().getId() : null,  // bonificacionId
+                            mensualidad.getRecargo() != null
+                                    ? mensualidad.getRecargo().getId() : null,       // recargoId
+                            0.0,                                              // aFavor
+                            mensualidad.getValorBase(),                       // aCobrar (valor base; frontend siempre podrá ajustarlo)
+                            false,                                            // cobrado
+                            null,                                             // conceptoId
+                            null,                                             // subConceptoId
+                            mensualidad.getId(),                              // mensualidadId
+                            null,                                             // matriculaId
+                            null,                                             // stockId
+                            mensualidad.getImporteInicial(),                  // importeInicial
+                            mensualidad.getImporteInicial() - mensualidad.getMontoAbonado(), // importePendiente
+                            "MENSUALIDAD",                                    // tipo
+                            mensualidad.getFechaCuota()                       // fechaRegistro
                     );
                 })
-                .toList();
+                .collect(Collectors.toList());
+        detallePagosDTO.addAll(mensualidadesDTO);
 
-        // Obtener y procesar la matrícula pendiente (si corresponde).
-        MatriculaResponse matriculaDTO = matriculaServicio.obtenerOMarcarPendiente(alumnoId);
-        if (matriculaDTO != null && matriculaDTO.pagada()) {
-            matriculaDTO = null;
-        }
-
-        // Obtener las mensualidades pendientes.
-        List<MensualidadResponse> mensualidadesPendientesDTO = mensualidadServicio.listarMensualidadesPendientesPorAlumno(alumnoId);
-        double totalPagos = pagosPendientes.stream().mapToDouble(Pago::getSaldoRestante).sum();
-        double totalMensualidades = mensualidadesPendientesDTO.stream()
-                .mapToDouble(m -> m.totalPagar() != null ? m.totalPagar() : 0)
+        // 5. Calcular el total de deuda (sumar importePendiente de cada elemento).
+        double totalDeuda = detallePagosDTO.stream()
+                .mapToDouble(item -> item.importePendiente() != null ? item.importePendiente() : 0.0)
                 .sum();
-        double totalDeuda = totalPagos + totalMensualidades;
-        Alumno alumno = pagosPendientes.isEmpty() ? alumnoRepositorio.findById(alumnoId).orElse(null)
-                : pagosPendientes.get(0).getAlumno();
-        String alumnoNombre = (alumno != null) ? alumno.getNombre() + " " + alumno.getApellido() : "Desconocido";
-        log.info("[listarDeudasPendientesPorAlumno] Total deuda para el alumno id={} es {}", alumnoId, totalDeuda);
+        log.info("Total deuda calculada: {}", totalDeuda);
 
-        return new DeudasPendientesResponse(
+        // 6. Obtener los datos del alumno.
+        Alumno alumno = alumnoRepositorio.findById(alumnoId).orElse(null);
+        String alumnoNombre = alumno != null ? alumno.getNombre() + " " + alumno.getApellido() : "Desconocido";
+        log.info("Datos del alumno: id={}, nombre={}", alumno != null ? alumno.getId() : "null", alumnoNombre);
+
+        // 7. Crear y retornar la respuesta unificada.
+        DeudasPendientesResponse respuesta = new DeudasPendientesResponse(
                 alumno != null ? alumno.getId() : null,
                 alumnoNombre,
-                pagosPendientesDTO,
-                matriculaDTO,
-                mensualidadesPendientesDTO,
+                detallePagosDTO,
                 totalDeuda
         );
+        log.info("Respuesta DeudasPendientesResponse generada: {}", respuesta);
+        log.info("Fin listarDeudasPendientesPorAlumno");
+
+        return respuesta;
     }
 
     private void actualizarDatosPrincipalesPago(Pago pago, PagoRegistroRequest request) {
@@ -615,10 +706,8 @@ public class PagoServicio {
     }
 
     public List<PagoResponse> listarPagosPorAlumno(Long alumnoId) {
-        return pagoRepositorio.findByInscripcionAlumnoIdOrderByFechaDesc(alumnoId)
+        return pagoRepositorio.findByAlumnoIdAndEstadoPagoNotOrderByFechaDesc(alumnoId, EstadoPago.ANULADO)
                 .stream()
-                // Solo pagos con deuda y que no estén anulados
-                .filter(p -> p.getSaldoRestante() > 0 && p.getEstadoPago() != EstadoPago.ANULADO)
                 .map(pagoMapper::toDTO)
                 .collect(Collectors.toList());
     }

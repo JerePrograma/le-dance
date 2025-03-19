@@ -1,7 +1,6 @@
 package ledance.controladores;
 
 import ledance.dto.concepto.request.ConceptoRegistroRequest;
-import ledance.dto.concepto.request.ConceptoModificacionRequest;
 import ledance.dto.concepto.response.ConceptoResponse;
 import ledance.servicios.concepto.ConceptoServicio;
 import org.slf4j.Logger;
@@ -45,7 +44,7 @@ public class ConceptoControlador {
 
     @PutMapping("/{id}")
     public ResponseEntity<ConceptoResponse> actualizarConcepto(@PathVariable Long id,
-                                                               @RequestBody @Validated ConceptoModificacionRequest request) {
+                                                               @RequestBody @Validated ConceptoRegistroRequest request) {
         ConceptoResponse actualizado = conceptoServicio.actualizarConcepto(id, request);
         return ResponseEntity.ok(actualizado);
     }
@@ -54,5 +53,12 @@ public class ConceptoControlador {
     public ResponseEntity<Void> eliminarConcepto(@PathVariable Long id) {
         conceptoServicio.eliminarConcepto(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/sub-concepto/{subConceptoId}")
+    public ResponseEntity<List<ConceptoResponse>> listarConceptosPorSubConcepto(@PathVariable Long subConceptoId) {
+        log.info("Listando conceptos para el subconcepto con id: {}", subConceptoId);
+        List<ConceptoResponse> conceptos = conceptoServicio.listarConceptosPorSubConcepto(subConceptoId);
+        return conceptos.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(conceptos);
     }
 }

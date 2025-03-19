@@ -4,7 +4,13 @@ import ledance.entidades.Concepto;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+import java.util.Optional;
+
 @Repository
 public interface ConceptoRepositorio extends JpaRepository<Concepto, Long> {
-    // Puedes agregar metodos de consulta adicionales si lo requieres
+    List<Concepto> findBySubConceptoId(Long subConceptoId);
+
+    Optional<Concepto> findByDescripcionIgnoreCase(String descripcion);
+
 }

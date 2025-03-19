@@ -15,4 +15,6 @@ public interface MatriculaRepositorio extends JpaRepository<Matricula, Long> {
 
     // Devuelve la primera matrícula pendiente (no pagada) para el alumno
     Optional<Matricula> findFirstByAlumnoIdAndPagadaFalseOrderByIdAsc(Long alumnoId);
+
+    List<Matricula> findByAlumnoIdAndPagadaFalse(Long alumnoId);
 }

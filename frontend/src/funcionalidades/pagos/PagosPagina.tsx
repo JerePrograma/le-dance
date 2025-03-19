@@ -83,7 +83,7 @@ const PaymentList: React.FC = () => {
                         fila.id,
                         fila.fecha,
                         fila.monto,
-                        fila.metodoPago,
+                        fila.metodoPago ? fila.metodoPago.descripcion : "Sin método",
                         fila.saldoRestante,
                         fila.estadoPago,
                     ]}

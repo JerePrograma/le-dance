@@ -3,11 +3,10 @@ package ledance.controladores;
 import ledance.dto.caja.CajaDetalleDTO;
 import ledance.dto.caja.CajaDiariaDTO;
 import ledance.dto.caja.RendicionDTO;
-import ledance.entidades.Egreso;
-import ledance.entidades.MetodoPago;
-import ledance.repositorios.MetodoPagoRepositorio;
+import ledance.dto.caja.response.CobranzasDataResponse;
 import ledance.servicios.caja.CajaServicio;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -18,12 +17,9 @@ import java.util.List;
 public class CajaControlador {
 
     private final CajaServicio cajaServicio;
-    private final MetodoPagoRepositorio metodoPagoRepositorio;
 
-    public CajaControlador(CajaServicio cajaServicio,
-                           MetodoPagoRepositorio metodoPagoRepositorio) {
+    public CajaControlador(CajaServicio cajaServicio) {
         this.cajaServicio = cajaServicio;
-        this.metodoPagoRepositorio = metodoPagoRepositorio;
     }
 
     /**
@@ -52,21 +48,6 @@ public class CajaControlador {
     }
 
     /**
-     * 3) Agregar Egreso en la fecha dada.
-     */
-    @PostMapping("/dia/{fecha}/egresos")
-    public Egreso agregarEgreso(
-            @PathVariable("fecha") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha,
-            @RequestParam Double monto,
-            @RequestParam(required = false) String observaciones,
-            @RequestParam(required = false, defaultValue = "1") Long metodoPagoId
-    ) {
-        MetodoPago metodo = metodoPagoRepositorio.findById(metodoPagoId)
-                .orElseThrow(() -> new IllegalArgumentException("Metodo de pago no encontrado"));
-        return cajaServicio.agregarEgreso(fecha, monto, observaciones, metodo);
-    }
-
-    /**
      * 4) Rendicion general en un rango de fechas
      */
     @GetMapping("/rendicion")
@@ -91,5 +72,10 @@ public class CajaControlador {
         return cajaServicio.obtenerRendicionGeneral(start, end);
     }
 
-    // Opcional: Endpoints para anular y actualizar egresos...
+    @GetMapping("/datos-unificados")
+    public ResponseEntity<CobranzasDataResponse> obtenerDatosCobranzas() {
+        CobranzasDataResponse response = cajaServicio.obtenerDatosCobranzas();
+        return ResponseEntity.ok(response);
+    }
+
 }

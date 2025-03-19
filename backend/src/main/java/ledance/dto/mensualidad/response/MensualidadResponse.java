@@ -12,7 +12,7 @@ public record MensualidadResponse(
         BonificacionResponse bonificacion, // Se devuelve el ID de la bonificacion
         String estado,
         Long inscripcionId,
-        Double totalPagar,  // Nuevo campo agregado
+        Double importeInicial,  // Nuevo campo agregado
         String descripcion
 ) {
 }

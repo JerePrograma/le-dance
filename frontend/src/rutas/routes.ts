@@ -45,8 +45,11 @@ export const otherProtectedRoutes = [
     { path: "/pagos", Component: lazy(() => import("../funcionalidades/pagos/PagosPagina")) },
     { path: "/pagos/formulario", Component: lazy(() => import("../funcionalidades/pagos/PagosFormulario")) },
     { path: "/caja", Component: lazy(() => import("../funcionalidades/caja/CajaPagina")) },
+    { path: "/pagos-pendientes", Component: lazy(() => import("../funcionalidades/caja/PagosPendientes")) },
+    { path: "/debitos", Component: lazy(() => import("../funcionalidades/caja/EgresoDebitoPagina")) },
     { path: "/caja/formulario", Component: lazy(() => import("../funcionalidades/caja/CajaFormulario")) },
     { path: "/cobranza/:alumnoId", Component: lazy(() => import("../funcionalidades/pagos/CobranzaPagina")) },
+    { path: "/pagos/alumno/:alumnoId", Component: lazy(() => import("../funcionalidades/pagos/PagosAlumnoPagina")) },
     // Stocks y Tipo-Stocks
     { path: "/stocks", Component: lazy(() => import("../funcionalidades/stock/StocksPagina")) },
     { path: "/stocks/formulario", Component: lazy(() => import("../funcionalidades/stock/StocksFormulario")) },

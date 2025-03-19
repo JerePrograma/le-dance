@@ -1,11 +1,13 @@
 package ledance.dto.caja;
 
+import ledance.dto.egreso.response.EgresoResponse;
+import ledance.dto.pago.response.PagoResponse;
 import ledance.entidades.Egreso;
 import ledance.entidades.Pago;
 
 import java.util.List;
 
 public record CajaDetalleDTO(
-        List<Pago> pagosDelDia,
-        List<Egreso> egresosDelDia
+        List<PagoResponse> pagosDelDia,
+        List<EgresoResponse> egresosDelDia
 ) {}

@@ -1,9 +1,11 @@
+// src/alumnosApi.ts
 import api from "./axiosConfig";
 import type {
   AlumnoListadoResponse,
   AlumnoRegistroRequest,
   AlumnoModificacionRequest,
   AlumnoDetalleResponse,
+  AlumnoDataResponse,
   DisciplinaListadoResponse,
 } from "../types/types";
 
@@ -15,6 +17,12 @@ const alumnosApi = {
 
   obtenerPorId: async (id: number): Promise<AlumnoDetalleResponse> => {
     const response = await api.get(`/alumnos/${id}`);
+    return response.data;
+  },
+
+  // Nuevo método para obtener datos unificados del alumno.
+  obtenerDatosAlumno: async (id: number): Promise<AlumnoDataResponse> => {
+    const response = await api.get(`/alumnos/${id}/datos`);
     return response.data;
   },
 
@@ -59,7 +67,6 @@ const alumnosApi = {
     const response = await api.get(`/alumnos/${alumnoId}/disciplinas`);
     return response.data;
   },
-
 };
 
 export default alumnosApi;

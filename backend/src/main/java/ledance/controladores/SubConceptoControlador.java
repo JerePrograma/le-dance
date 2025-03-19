@@ -1,7 +1,6 @@
 package ledance.controladores;
 
 import ledance.dto.concepto.request.SubConceptoRegistroRequest;
-import ledance.dto.concepto.request.SubConceptoModificacionRequest;
 import ledance.dto.concepto.response.SubConceptoResponse;
 import ledance.servicios.concepto.SubConceptoServicio;
 import org.slf4j.Logger;
@@ -45,7 +44,7 @@ public class SubConceptoControlador {
 
     @PutMapping("/{id}")
     public ResponseEntity<SubConceptoResponse> actualizarSubConcepto(@PathVariable Long id,
-                                                                     @RequestBody @Validated SubConceptoModificacionRequest request) {
+                                                                     @RequestBody @Validated SubConceptoRegistroRequest request) {
         SubConceptoResponse actualizado = subConceptoServicio.actualizarSubConcepto(id, request);
         return ResponseEntity.ok(actualizado);
     }

@@ -235,10 +235,10 @@ const ConsultaCajaDiaria: React.FC = () => {
                         </div>
 
                         <div className="flex justify-end gap-2 mt-4">
-                            <Boton onClick={handleCerrarModal} className="bg-gray-400 text-white p-2 rounded">
+                            <Boton onClick={handleCerrarModal} >
                                 Cancelar
                             </Boton>
-                            <Boton onClick={handleGuardarEgreso} className="bg-blue-600 text-white p-2 rounded">
+                            <Boton onClick={handleGuardarEgreso} >
                                 Guardar
                             </Boton>
                         </div>

@@ -1,15 +1,22 @@
 package ledance.servicios.detallepago;
 
+import ledance.dto.pago.response.DetallePagoResponse;
 import ledance.entidades.DetallePago;
 import ledance.entidades.Recargo;
+import ledance.entidades.TipoDetallePago;
 import ledance.repositorios.DetallePagoRepositorio;
+import org.flywaydb.core.internal.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class DetallePagoServicio {
@@ -27,17 +34,47 @@ public class DetallePagoServicio {
      * importe = totalAjustado - aCobrar (acumulado)
      */
     public void calcularImporte(DetallePago detalle) {
-        log.info("[calcularImporte] Iniciando cálculo para DetallePago id={} (Concepto: '{}')", detalle.getId(), detalle.getConcepto());
+        // Usar el campo unificado en lugar de la relación con Concepto
+        String conceptoDesc = (detalle.getDescripcionConcepto() != null)
+                ? detalle.getDescripcionConcepto()
+                : "N/A";
+        log.info("[calcularImporte] Iniciando cálculo para DetallePago id={} (Concepto: '{}')",
+                detalle.getId(), conceptoDesc);
+
         double base = Optional.ofNullable(detalle.getMontoOriginal()).orElse(0.0);
-        double descuento = calcularDescuento(detalle, base);
+        log.info("[calcularImporte] Base para DetallePago id={} es {}", detalle.getId(), base);
+
+        double descuento;
+        if (TipoDetallePago.MENSUALIDAD.equals(detalle.getTipo())
+                && detalle.getPago() != null
+                && detalle.getPago().getInscripcion() != null
+                && detalle.getPago().getInscripcion().getBonificacion() != null) {
+            double descuentoFijo = detalle.getPago().getInscripcion().getBonificacion().getValorFijo() != null
+                    ? detalle.getPago().getInscripcion().getBonificacion().getValorFijo()
+                    : 0.0;
+            double descuentoPorcentaje = detalle.getPago().getInscripcion().getBonificacion().getPorcentajeDescuento() != null
+                    ? (detalle.getPago().getInscripcion().getBonificacion().getPorcentajeDescuento() / 100.0 * base)
+                    : 0.0;
+            descuento = descuentoFijo + descuentoPorcentaje;
+            log.info("[calcularImporte] Detalle id={} (Mensualidad): Descuento calculado basado en inscripción = {}",
+                    detalle.getId(), descuento);
+        } else {
+            descuento = calcularDescuento(detalle, base);
+            log.info("[calcularImporte] Detalle id={} (No Mensualidad): Descuento calculado = {}",
+                    detalle.getId(), descuento);
+        }
+
         double recargo = (detalle.getRecargo() != null) ? obtenerValorRecargo(detalle, base) : 0.0;
+        log.info("[calcularImporte] Detalle id={} : Recargo calculado = {}", detalle.getId(), recargo);
+
         double importeInicial = base - descuento + recargo;
-        log.info("[calcularImporte] Detalle id={} -> Base: {}, Descuento: {}, Recargo: {}, ImporteInicial: {}",
-                detalle.getId(), base, descuento, recargo, importeInicial);
+        log.info("[calcularImporte] Detalle id={} : ImporteInicial calculado = {}", detalle.getId(), importeInicial);
         detalle.setImporteInicial(importeInicial);
+
         if (detalle.getImportePendiente() == null) {
             detalle.setImportePendiente(importeInicial);
-            log.info("[calcularImporte] Detalle id={} -> ImportePendiente no definido, se asigna: {}", detalle.getId(), importeInicial);
+            log.info("[calcularImporte] Detalle id={} : ImportePendiente no definido, se asigna = {}",
+                    detalle.getId(), importeInicial);
         }
     }
 
@@ -78,6 +115,114 @@ public class DetallePagoServicio {
 
     private double importeRedondeado(double importe) {
         return BigDecimal.valueOf(importe).setScale(2, RoundingMode.HALF_UP).doubleValue();
+    }
+
+    public List<DetallePagoResponse> filtrarDetalles(LocalDate fechaRegistroDesde,
+                                                     LocalDate fechaRegistroHasta,
+                                                     String detalleConcepto, // Filtra por parte del nombre en conceptoEntity.descripcion
+                                                     String stock,
+                                                     String subConcepto,     // Texto para filtrar por sub concepto
+                                                     String disciplina) {
+        log.info("Inicio del método filtrarDetalles con parámetros:");
+        log.info("  fechaRegistroDesde: {}", fechaRegistroDesde);
+        log.info("  fechaRegistroHasta: {}", fechaRegistroHasta);
+        log.info("  detalleConcepto: {}", detalleConcepto);
+        log.info("  stock: {}", stock);
+        log.info("  subConcepto: {}", subConcepto);
+        log.info("  disciplina: {}", disciplina);
+
+        Specification<DetallePago> spec = Specification.where(null);
+
+        // Filtrado por rango de fecha en DetallePago
+        if (fechaRegistroDesde != null) {
+            log.info("Aplicando filtro: fechaRegistro >= {}", fechaRegistroDesde);
+            spec = spec.and((root, query, cb) ->
+                    cb.greaterThanOrEqualTo(root.get("fechaRegistro"), fechaRegistroDesde)
+            );
+        }
+        if (fechaRegistroHasta != null) {
+            log.info("Aplicando filtro: fechaRegistro <= {}", fechaRegistroHasta);
+            spec = spec.and((root, query, cb) ->
+                    cb.lessThanOrEqualTo(root.get("fechaRegistro"), fechaRegistroHasta)
+            );
+        }
+
+        // Filtrado por stock: se filtra por detalles cuyo tipo sea STOCK
+        if (StringUtils.hasText(stock)) {
+            log.info("Aplicando filtro: tipo = {}", TipoDetallePago.STOCK);
+            spec = spec.and((root, query, cb) ->
+                    cb.equal(root.get("tipo"), TipoDetallePago.STOCK)
+            );
+        }
+
+        // Lógica de filtrado para Concepto/SubConcepto:
+        // 1. Si se proporciona subConcepto, se filtra por el campo de la relación SubConcepto.
+        // 2. Si no se proporcionó subConcepto pero sí detalleConcepto, se filtra por el concepto.
+        if (StringUtils.hasText(subConcepto)) {
+            String pattern = "%" + subConcepto.toLowerCase() + "%";
+            log.info("Aplicando filtro prioritario: subConcepto.descripcion LIKE {}", pattern);
+            spec = spec.and((root, query, cb) ->
+                    cb.like(cb.lower(root.get("subConcepto").get("descripcion")), pattern)
+            );
+        } else if (StringUtils.hasText(detalleConcepto)) {
+            String pattern = "%" + detalleConcepto.toLowerCase() + "%";
+            log.info("Aplicando filtro: descripcionConcepto LIKE {}", pattern);
+            spec = spec.and((root, query, cb) ->
+                    cb.like(cb.lower(root.get("descripcionConcepto")), pattern)
+            );
+        }
+
+        // Filtrado por disciplina (tipo de detalle)
+        if (StringUtils.hasText(disciplina)) {
+            try {
+                TipoDetallePago tipo = TipoDetallePago.valueOf(disciplina.toUpperCase());
+                log.info("Aplicando filtro: tipo = {}", tipo);
+                spec = spec.and((root, query, cb) ->
+                        cb.equal(root.get("tipo"), tipo)
+                );
+            } catch (IllegalArgumentException ex) {
+                log.warn("Valor de disciplina no válido: {}", disciplina);
+            }
+        }
+
+        // Se realiza la consulta utilizando la Specification compuesta
+        List<DetallePago> detalles = detallePagoRepositorio.findAll(spec);
+        log.info("Consulta realizada. Número de registros encontrados: {}", detalles.size());
+
+        // Conversión de la entidad a DTO
+        List<DetallePagoResponse> responses = detalles.stream()
+                .map(this::mapToDetallePagoResponse)
+                .collect(Collectors.toList());
+        log.info("Conversión a DetallePagoResponse completada. Regresando respuesta.");
+
+        return responses;
+    }
+
+    private DetallePagoResponse mapToDetallePagoResponse(DetallePago detalle) {
+        String conceptoDesc = (detalle.getDescripcionConcepto() != null)
+                ? detalle.getDescripcionConcepto()
+                : "N/A";
+
+        return new DetallePagoResponse(
+                detalle.getId(),
+                conceptoDesc,
+                detalle.getCuota(),
+                detalle.getMontoOriginal(),
+                detalle.getBonificacion() != null ? detalle.getBonificacion().getId() : null,
+                detalle.getRecargo() != null ? detalle.getRecargo().getId() : null,
+                detalle.getAFavor(),  // O detalle.getaFavor() según el getter definido en la entidad
+                detalle.getaCobrar(),
+                detalle.getCobrado(),
+                detalle.getConcepto() != null ? detalle.getConcepto().getId() : null,
+                detalle.getSubConcepto() != null ? detalle.getSubConcepto().getId() : null,
+                detalle.getMensualidad() != null ? detalle.getMensualidad().getId() : null,
+                detalle.getMatricula() != null ? detalle.getMatricula().getId() : null,
+                detalle.getStock() != null ? detalle.getStock().getId() : null,
+                detalle.getImporteInicial(),
+                detalle.getImportePendiente(),
+                detalle.getTipo() != null ? detalle.getTipo().name() : null,
+                detalle.getFechaRegistro()
+        );
     }
 
 }

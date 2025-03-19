@@ -85,12 +85,10 @@ public class StockServicio {
     }
 
     @Transactional(readOnly = true)
-    public StockResponse obtenerStockPorNombre(String nombre) {
+    public boolean obtenerStockPorNombre(String nombre) {
         String nombreNormalizado = nombre.trim();
         log.info("[obtenerStockPorNombre] Valor recibido: '{}', normalizado a: '{}'", nombre, nombreNormalizado);
-        return stockRepositorio.findByNombreIgnoreCase(nombreNormalizado)
-                .map(stockMapper::toDTO)
-                .orElse(null);  // No lanza excepción, devuelve null
+        return stockRepositorio.findByNombreIgnoreCase(nombreNormalizado).isPresent();
     }
 
     @Transactional

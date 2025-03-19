@@ -7,5 +7,6 @@ export const useInscripcionesActivas = (alumnoId: number) =>
     useQuery<InscripcionResponse[], Error>({
         queryKey: ["inscripciones", alumnoId],
         queryFn: () => inscripcionesApi.obtenerInscripcionesActivas(alumnoId),
-        enabled: Boolean(alumnoId),
+        enabled: alumnoId > 0,
+        staleTime: Infinity,
     });

@@ -2,14 +2,15 @@ package ledance.servicios.inscripcion;
 
 import ledance.dto.asistencia.AsistenciaMensualMapper;
 import ledance.dto.inscripcion.InscripcionMapper;
-import ledance.dto.inscripcion.request.InscripcionModificacionRequest;
 import ledance.dto.inscripcion.request.InscripcionRegistroRequest;
+import ledance.dto.matricula.response.MatriculaResponse;
 import ledance.dto.response.EstadisticasInscripcionResponse;
 import ledance.dto.inscripcion.response.InscripcionResponse;
 import ledance.entidades.*;
 import ledance.infra.errores.TratadorDeErrores;
 import ledance.repositorios.*;
 import ledance.servicios.asistencia.AsistenciaMensualServicio;
+import ledance.servicios.matricula.MatriculaServicio;
 import ledance.servicios.mensualidad.MensualidadServicio;
 import ledance.dto.mensualidad.response.MensualidadResponse;
 import org.slf4j.Logger;
@@ -35,6 +36,7 @@ public class InscripcionServicio implements IInscripcionServicio {
     private final AsistenciaMensualServicio asistenciaMensualServicio;
     private final MensualidadServicio mensualidadServicio;
     private final AsistenciaAlumnoMensualRepositorio asistenciaAlumnoMensualRepositorio;
+    private final MatriculaServicio matriculaServicio;
 
     public InscripcionServicio(InscripcionRepositorio inscripcionRepositorio,
                                AlumnoRepositorio alumnoRepositorio,
@@ -45,7 +47,7 @@ public class InscripcionServicio implements IInscripcionServicio {
                                AsistenciaMensualServicio asistenciaMensualServicio,
                                MensualidadServicio mensualidadServicio,
                                AsistenciaMensualMapper asistenciaMensualMapper,
-                               AsistenciaAlumnoMensualRepositorio asistenciaAlumnoMensualRepositorio) {
+                               AsistenciaAlumnoMensualRepositorio asistenciaAlumnoMensualRepositorio, MatriculaServicio matriculaServicio) {
         this.inscripcionRepositorio = inscripcionRepositorio;
         this.alumnoRepositorio = alumnoRepositorio;
         this.disciplinaRepositorio = disciplinaRepositorio;
@@ -54,6 +56,7 @@ public class InscripcionServicio implements IInscripcionServicio {
         this.asistenciaMensualServicio = asistenciaMensualServicio;
         this.mensualidadServicio = mensualidadServicio;
         this.asistenciaAlumnoMensualRepositorio = asistenciaAlumnoMensualRepositorio;
+        this.matriculaServicio = matriculaServicio;
     }
 
     /**
@@ -62,10 +65,10 @@ public class InscripcionServicio implements IInscripcionServicio {
      */
     @Transactional
     public InscripcionResponse crearInscripcion(InscripcionRegistroRequest request) {
-        log.info("Registrando inscripcion para alumnoId: {} en disciplinaId: {}",
-                request.alumnoId(), request.disciplina().id());
+        log.info("Registrando inscripción para alumnoId: {} en disciplinaId: {}",
+                request.alumno().id(), request.disciplina().id());
 
-        Alumno alumno = alumnoRepositorio.findById(request.alumnoId())
+        Alumno alumno = alumnoRepositorio.findById(request.alumno().id())
                 .orElseThrow(() -> new IllegalArgumentException("Alumno no encontrado."));
         Disciplina disciplina = disciplinaRepositorio.findById(request.disciplina().id())
                 .orElseThrow(() -> new IllegalArgumentException("Disciplina no encontrada."));
@@ -77,29 +80,30 @@ public class InscripcionServicio implements IInscripcionServicio {
             bonificacion = bonificacionRepositorio.findById(request.bonificacionId())
                     .orElse(null);
         }
-        // Convertimos el DTO a entidad
+
+        // Convertimos el DTO a entidad Inscripción y asignamos relaciones
         Inscripcion inscripcion = inscripcionMapper.toEntity(request);
         inscripcion.setAlumno(alumno);
         inscripcion.setDisciplina(disciplina);
         inscripcion.setBonificacion(bonificacion);
         inscripcion.setFechaInscripcion(request.fechaInscripcion() == null ? LocalDate.now() : request.fechaInscripcion());
 
-        // Guardamos la inscripcion
+        // Guardamos la inscripción
         Inscripcion guardada = inscripcionRepositorio.save(inscripcion);
-        log.info("Inscripcion guardada con ID: {}", guardada.getId());
+        log.info("Inscripción guardada con ID: {}", guardada.getId());
 
-        // Calcular el costo utilizando la logica de negocio en el servicio
+        // Calcular el costo utilizando la lógica de negocio
         Double costoCalculado = calcularCosto(guardada);
-        log.info("Costo calculado para inscripcion id {}: {}", guardada.getId(), costoCalculado);
+        log.info("Costo calculado para inscripción id {}: {}", guardada.getId(), costoCalculado);
 
         try {
             int mesActual = LocalDate.now().getMonthValue();
             int anioActual = LocalDate.now().getYear();
             MensualidadResponse cuotaGenerada = mensualidadServicio.generarCuota(guardada.getId(), mesActual, anioActual);
-            log.info("Cuota generada automáticamente para inscripcion id: {} con cuota id: {}",
+            log.info("Cuota generada automáticamente para inscripción id: {} con cuota id: {}",
                     guardada.getId(), cuotaGenerada.id());
         } catch (IllegalStateException e) {
-            log.warn("No se genero cuota automática para la inscripcion id {}: {}", guardada.getId(), e.getMessage());
+            log.warn("No se generó cuota automática para la inscripción id {}: {}", guardada.getId(), e.getMessage());
         }
 
         int mes = LocalDate.now().getMonthValue();
@@ -107,10 +111,13 @@ public class InscripcionServicio implements IInscripcionServicio {
         log.info("Incorporando alumno a la planilla de asistencia para {}/{}.", mes, anio);
         asistenciaMensualServicio.agregarAlumnoAPlanilla(guardada.getId(), mes, anio);
 
-        // Convertir la entidad a DTO y asignar el costo calculado al DTO (si el DTO lo incluye)
+        // Verificar o crear la matrícula para el año vigente utilizando el servicio correspondiente
+        MatriculaResponse matriculaResponse = matriculaServicio.obtenerOMarcarPendiente(alumno.getId());
+        log.info("Matrícula obtenida o creada para el alumno id {}: {}", alumno.getId(), matriculaResponse);
 
         return inscripcionMapper.toDTO(guardada);
     }
+
 
     // Logica de cálculo trasladada al servicio (sin utilizar el mapper)
     private Double calcularCosto(Inscripcion inscripcion) {
@@ -135,7 +142,7 @@ public class InscripcionServicio implements IInscripcionServicio {
 
     @Override
     @Transactional
-    public InscripcionResponse actualizarInscripcion(Long id, InscripcionModificacionRequest request) {
+    public InscripcionResponse actualizarInscripcion(Long id, InscripcionRegistroRequest request) {
         log.info("Actualizando inscripcion con id: {}", id);
         Inscripcion inscripcion = inscripcionRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Inscripcion no encontrada."));
@@ -174,10 +181,17 @@ public class InscripcionServicio implements IInscripcionServicio {
     public void eliminarInscripcion(Long id) {
         Inscripcion inscripcion = inscripcionRepositorio.findById(id)
                 .orElseThrow(() -> new TratadorDeErrores.RecursoNoEncontradoException("Inscripcion no encontrada."));
+
+        // Eliminar registros relacionados en otras entidades antes de eliminar la inscripción
         List<AsistenciaAlumnoMensual> registros = asistenciaAlumnoMensualRepositorio.findByInscripcionId(inscripcion.getId());
         if (!registros.isEmpty()) {
             asistenciaAlumnoMensualRepositorio.deleteAll(registros);
         }
+
+        // Refrescar la entidad en el contexto de persistencia
+        inscripcionRepositorio.flush();
+
+        // Ahora eliminamos la inscripción (sus mensualidades serán eliminadas en cascada)
         inscripcionRepositorio.delete(inscripcion);
     }
 

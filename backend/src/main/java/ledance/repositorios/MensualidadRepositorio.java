@@ -19,4 +19,6 @@ public interface MensualidadRepositorio extends JpaRepository<Mensualidad, Long>
     List<Mensualidad> findByInscripcionAlumnoIdAndEstadoInOrderByFechaCuotaDesc(Long alumnoId, List<EstadoMensualidad> estados);
 
     Mensualidad findByInscripcionAndDescripcionAndEstado(Inscripcion inscripcion, String descripcion, EstadoMensualidad estado);
+
+    List<Mensualidad> findByInscripcionAlumnoIdAndEstado(Long alumnoId, EstadoMensualidad estado);
 }

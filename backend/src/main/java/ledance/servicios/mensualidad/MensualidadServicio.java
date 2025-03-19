@@ -8,10 +8,7 @@ import ledance.dto.mensualidad.request.MensualidadRegistroRequest;
 import ledance.dto.mensualidad.response.MensualidadResponse;
 import ledance.dto.reporte.ReporteMensualidadDTO;
 import ledance.entidades.*;
-import ledance.repositorios.BonificacionRepositorio;
-import ledance.repositorios.InscripcionRepositorio;
-import ledance.repositorios.MensualidadRepositorio;
-import ledance.repositorios.RecargoRepositorio;
+import ledance.repositorios.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.jpa.domain.Specification;
@@ -35,17 +32,19 @@ public class MensualidadServicio implements IMensualidadService {
 
     private static final Logger log = LoggerFactory.getLogger(MensualidadServicio.class);
 
+    private final DetallePagoRepositorio detallePagoRepositorio;
     private final MensualidadRepositorio mensualidadRepositorio;
     private final InscripcionRepositorio inscripcionRepositorio;
     private final MensualidadMapper mensualidadMapper;
     private final RecargoRepositorio recargoRepositorio;
     private final BonificacionRepositorio bonificacionRepositorio;
 
-    public MensualidadServicio(MensualidadRepositorio mensualidadRepositorio,
+    public MensualidadServicio(DetallePagoRepositorio detallePagoRepositorio, MensualidadRepositorio mensualidadRepositorio,
                                InscripcionRepositorio inscripcionRepositorio,
                                MensualidadMapper mensualidadMapper,
                                RecargoRepositorio recargoRepositorio,
                                BonificacionRepositorio bonificacionRepositorio) {
+        this.detallePagoRepositorio = detallePagoRepositorio;
         this.mensualidadRepositorio = mensualidadRepositorio;
         this.inscripcionRepositorio = inscripcionRepositorio;
         this.mensualidadMapper = mensualidadMapper;
@@ -78,16 +77,16 @@ public class MensualidadServicio implements IMensualidadService {
         mensualidad.setInscripcion(inscripcion);
 
         // Calcular el total a pagar (fijo) según la formula:
-        // totalPagar = (valorBase + recargos) - (descuentos)
-        calcularTotalPagar(mensualidad);
+        // importeInicial = (valorBase + recargos) - (descuentos)
+        calcularImporteInicial(mensualidad);
         // Inicializar montoAbonado en 0
         mensualidad.setMontoAbonado(0.0);
-        // Con base en totalPagar y montoAbonado se calcula el importe pendiente y se actualiza el estado.
+        // Con base en importeInicial y montoAbonado se calcula el importe pendiente y se actualiza el estado.
         recalcularImportePendiente(mensualidad);
         asignarDescripcion(mensualidad);
 
         mensualidad = mensualidadRepositorio.save(mensualidad);
-        log.info("Mensualidad creada con id: {} y total a pagar (fijo): {}", mensualidad.getId(), mensualidad.getTotalPagar());
+        log.info("Mensualidad creada con id: {} y total a pagar (fijo): {}", mensualidad.getId(), mensualidad.getImporteInicial());
         return mensualidadMapper.toDTO(mensualidad);
     }
 
@@ -104,10 +103,10 @@ public class MensualidadServicio implements IMensualidadService {
     }
 
     /**
-     * Calcula el totalPagar (fijo) a partir del valor base, recargos y descuentos.
+     * Calcula el importeInicial (fijo) a partir del valor base, recargos y descuentos.
      * Esta operacion se realiza una única vez (al crear o configurar la mensualidad).
      */
-    private void calcularTotalPagar(Mensualidad mensualidad) {
+    private void calcularImporteInicial(Mensualidad mensualidad) {
         double valorBase = mensualidad.getValorBase();
 
         // Descuentos
@@ -129,22 +128,22 @@ public class MensualidadServicio implements IMensualidadService {
         double totalRecargo = recargoFijo + recargoPorcentaje;
 
         double totalPagar = (valorBase + totalRecargo) - totalDescuento;
-        // Redondeamos el totalPagar para evitar discrepancias decimales
+        // Redondeamos el importeInicial para evitar discrepancias decimales
         totalPagar = redondear(totalPagar);
-        mensualidad.setTotalPagar(totalPagar);
+        mensualidad.setImporteInicial(totalPagar);
         log.info("Total a pagar (fijo) calculado: {}", totalPagar);
     }
 
     /**
-     * Recalcula el importe pendiente (saldo) en base al totalPagar fijo y al montoAbonado acumulado.
+     * Recalcula el importe pendiente (saldo) en base al importeInicial fijo y al montoAbonado acumulado.
      * Actualiza el estado: si importePendiente es 0 (redondeado), se marca como PAGADO, en caso contrario PENDIENTE.
      */
     public void recalcularImportePendiente(Mensualidad mensualidad) {
-        double totalPagar = mensualidad.getTotalPagar();
+        double totalPagar = mensualidad.getImporteInicial();
         double montoAbonado = mensualidad.getMontoAbonado();
         double importePendiente = totalPagar - montoAbonado;
         importePendiente = redondear(Math.max(importePendiente, 0.0));
-        mensualidad.setTotalPagar(importePendiente); // aquí se usa totalPagar para reflejar el saldo restante
+        mensualidad.setImporteInicial(importePendiente); // aquí se usa importeInicial para reflejar el saldo restante
         if (importePendiente == 0.0) {
             mensualidad.setEstado(EstadoMensualidad.PAGADO);
             mensualidad.setFechaPago(LocalDate.now());
@@ -189,13 +188,13 @@ public class MensualidadServicio implements IMensualidadService {
                 mensualidadExistente.setBonificacion(inscripcion.getBonificacion());
                 Recargo recargo = determinarRecargoAutomatico(inicioMes.getDayOfMonth());
                 mensualidadExistente.setRecargo(recargo);
-                // El totalPagar fijo se recalcula (pero montoAbonado se conserva)
-                calcularTotalPagar(mensualidadExistente);
+                // El importeInicial fijo se recalcula (pero montoAbonado se conserva)
+                calcularImporteInicial(mensualidadExistente);
                 recalcularImportePendiente(mensualidadExistente);
                 asignarDescripcion(mensualidadExistente);
                 mensualidadExistente = mensualidadRepositorio.save(mensualidadExistente);
                 log.info("Mensualidad actualizada para inscripcion id {}: mensualidad id {}, importe pendiente = {}",
-                        inscripcion.getId(), mensualidadExistente.getId(), mensualidadExistente.getTotalPagar());
+                        inscripcion.getId(), mensualidadExistente.getId(), mensualidadExistente.getImporteInicial());
                 respuestas.add(mensualidadMapper.toDTO(mensualidadExistente));
             } else {
                 log.info("No existe mensualidad para inscripcion id {} en el periodo; creando nueva mensualidad.", inscripcion.getId());
@@ -208,13 +207,13 @@ public class MensualidadServicio implements IMensualidadService {
                 Recargo recargo = determinarRecargoAutomatico(inicioMes.getDayOfMonth());
                 nuevaMensualidad.setRecargo(recargo);
                 nuevaMensualidad.setMontoAbonado(0.0);
-                calcularTotalPagar(nuevaMensualidad);
+                calcularImporteInicial(nuevaMensualidad);
                 recalcularImportePendiente(nuevaMensualidad);
                 nuevaMensualidad.setEstado(EstadoMensualidad.PENDIENTE);
                 asignarDescripcion(nuevaMensualidad);
                 nuevaMensualidad = mensualidadRepositorio.save(nuevaMensualidad);
                 log.info("Mensualidad creada para inscripcion id {}: mensualidad id {}, importe pendiente = {}",
-                        inscripcion.getId(), nuevaMensualidad.getId(), nuevaMensualidad.getTotalPagar());
+                        inscripcion.getId(), nuevaMensualidad.getId(), nuevaMensualidad.getImporteInicial());
                 respuestas.add(mensualidadMapper.toDTO(nuevaMensualidad));
             }
         }
@@ -264,11 +263,11 @@ public class MensualidadServicio implements IMensualidadService {
             log.info("Bonificacion eliminada de mensualidad id: {}", id);
         }
         // Se recalcula el total fijo y luego se recalcula el importe pendiente
-        calcularTotalPagar(mensualidad);
+        calcularImporteInicial(mensualidad);
         recalcularImportePendiente(mensualidad);
         asignarDescripcion(mensualidad);
         mensualidad = mensualidadRepositorio.save(mensualidad);
-        log.info("Mensualidad actualizada: id={}, importe pendiente = {}", mensualidad.getId(), mensualidad.getTotalPagar());
+        log.info("Mensualidad actualizada: id={}, importe pendiente = {}", mensualidad.getId(), mensualidad.getImporteInicial());
         return mensualidadMapper.toDTO(mensualidad);
     }
 
@@ -289,17 +288,42 @@ public class MensualidadServicio implements IMensualidadService {
         mensualidad.setBonificacion(inscripcion.getBonificacion());
         mensualidad.setRecargo(null);
         mensualidad.setMontoAbonado(0.0);
-        calcularTotalPagar(mensualidad);
+        calcularImporteInicial(mensualidad);
         recalcularImportePendiente(mensualidad);
         mensualidad.setEstado(EstadoMensualidad.PENDIENTE);
         asignarDescripcion(mensualidad);
         mensualidad = mensualidadRepositorio.save(mensualidad);
         log.info("Cuota generada: id={} para inscripcion id {} con importe pendiente = {}",
-                mensualidad.getId(), inscripcionId, mensualidad.getTotalPagar());
+                mensualidad.getId(), inscripcionId, mensualidad.getImporteInicial());
+
+        registrarDetallePagoMensualidad(mensualidad);
         return mensualidadMapper.toDTO(mensualidad);
     }
 
-    @Override
+    @Transactional
+    public DetallePago registrarDetallePagoMensualidad(Mensualidad mensualidad) {
+        DetallePago detalle = new DetallePago();
+        detalle.setAlumno(mensualidad.getInscripcion().getAlumno());
+        // Asumimos que para la mensualidad se utiliza la descripción y los valores calculados
+        detalle.setDescripcionConcepto(mensualidad.getDescripcion());
+        detalle.setMontoOriginal(mensualidad.getValorBase()); // O el que corresponda
+        detalle.setImporteInicial(mensualidad.getImporteInicial());
+        // Inicialmente, el importe pendiente es igual al importe inicial
+        detalle.setImportePendiente(mensualidad.getImporteInicial());
+        // Al crearlo, aCobrar se asigna 0, ya que no se va a cobrar de inmediato
+        detalle.setaCobrar(0.0);
+        detalle.setCobrado(false);
+        detalle.setTipo(TipoDetallePago.MENSUALIDAD);
+        detalle.setFechaRegistro(LocalDate.now());
+        // Relacionamos la mensualidad
+        detalle.setMensualidad(mensualidad);
+        // Si es necesario, se pueden asignar otras relaciones (por ejemplo, inscripción o alumno)
+        detallePagoRepositorio.save(detalle);
+        log.info("DetallePago para Mensualidad id={} creado con importeInicial={}",
+                mensualidad.getId(), mensualidad.getImporteInicial());
+        return detalle;
+    }
+
     public MensualidadResponse obtenerMensualidad(Long id) {
         log.info("Obteniendo mensualidad con id: {}", id);
         Mensualidad mensualidad = mensualidadRepositorio.findById(id)
@@ -308,7 +332,6 @@ public class MensualidadServicio implements IMensualidadService {
         return mensualidadMapper.toDTO(mensualidad);
     }
 
-    @Override
     public List<MensualidadResponse> listarMensualidades() {
         log.info("Listando todas las mensualidades");
         List<MensualidadResponse> respuestas = mensualidadRepositorio.findAll()
@@ -370,7 +393,7 @@ public class MensualidadServicio implements IMensualidadService {
                 "CUOTA",
                 mensualidad.getValorBase(),
                 null,
-                mensualidad.getTotalPagar(),
+                mensualidad.getImporteInicial(),
                 0.0,
                 mensualidad.getEstado() == EstadoMensualidad.PAGADO ? "Abonado" : "Pendiente",
                 null,
@@ -392,14 +415,23 @@ public class MensualidadServicio implements IMensualidadService {
     }
 
     public List<MensualidadResponse> listarMensualidadesPendientesPorAlumno(Long alumnoId) {
+        log.info("Inicio listarMensualidadesPendientesPorAlumno para alumnoId: {}", alumnoId);
         List<EstadoMensualidad> estadosPendientes = List.of(EstadoMensualidad.PENDIENTE, EstadoMensualidad.OMITIDO);
-        log.info("Listando mensualidades pendientes para alumno id: {}", alumnoId);
-        List<MensualidadResponse> respuestas = mensualidadRepositorio
-                .findByInscripcionAlumnoIdAndEstadoInOrderByFechaCuotaDesc(alumnoId, estadosPendientes)
-                .stream()
+
+        // 1. Obtener las mensualidades de la base de datos
+        List<Mensualidad> mensualidades = mensualidadRepositorio
+                .findByInscripcionAlumnoIdAndEstadoInOrderByFechaCuotaDesc(alumnoId, estadosPendientes);
+        log.info("Mensualidades encontradas en BD: {}", mensualidades.size());
+        mensualidades.forEach(m -> log.info("Mensualidad BD id: {} - importe_inicial: {}", m.getId(), m.getImporteInicial()));
+
+        // 2. Mapear a DTO usando MapStruct
+        List<MensualidadResponse> respuestas = mensualidades.stream()
                 .map(mensualidadMapper::toDTO)
                 .collect(Collectors.toList());
-        log.info("Mensualidades pendientes encontradas: {}", respuestas.size());
+        log.info("Mensualidades pendientes DTO generadas: {}", respuestas.size());
+        respuestas.forEach(r -> log.info("DTO Mensualidad id: {} - importeInicial: {}", r.id(), r.importeInicial()));
+
+        log.info("Fin listarMensualidadesPendientesPorAlumno");
         return respuestas;
     }
 
@@ -418,7 +450,7 @@ public class MensualidadServicio implements IMensualidadService {
         try {
             Mensualidad mens = mensualidadRepositorio
                     .findByInscripcionAndDescripcionAndEstado(inscripcion, descripcion, EstadoMensualidad.PENDIENTE);
-            log.info("Mensualidad pendiente encontrada: id={}, importe pendiente = {}", mens.getId(), mens.getTotalPagar());
+            log.info("Mensualidad pendiente encontrada: id={}, importe pendiente = {}", mens.getId(), mens.getImporteInicial());
             return mensualidadMapper.toDTO(mens);
         } catch (Exception e) {
             log.info("No se encontro mensualidad pendiente para inscripcion id {} y descripcion '{}'", inscripcion.getId(), descripcion);
@@ -443,7 +475,7 @@ public class MensualidadServicio implements IMensualidadService {
         nuevaMensualidad.setRecargo(recargo);
         // Para marcarla como pagada, se acumula el abono completo
         nuevaMensualidad.setMontoAbonado(inscripcion.getDisciplina().getValorCuota());
-        calcularTotalPagar(nuevaMensualidad);
+        calcularImporteInicial(nuevaMensualidad);
         recalcularImportePendiente(nuevaMensualidad);
         nuevaMensualidad.setEstado(EstadoMensualidad.PAGADO);
         nuevaMensualidad.setFechaPago(fecha);
@@ -488,6 +520,6 @@ public class MensualidadServicio implements IMensualidadService {
         recalcularImportePendiente(mensualidad);
         mensualidadRepositorio.save(mensualidad);
         log.info("Mensualidad id {} actualizada. Monto abonado acumulado: {}, importe pendiente: {}, estado: {}",
-                id, mensualidad.getMontoAbonado(), mensualidad.getTotalPagar(), mensualidad.getEstado());
+                id, mensualidad.getMontoAbonado(), mensualidad.getImporteInicial(), mensualidad.getEstado());
     }
 }

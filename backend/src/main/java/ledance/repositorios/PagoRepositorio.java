@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -22,7 +23,7 @@ public interface PagoRepositorio extends JpaRepository<Pago, Long> {
 
     // Retorna el último pago con el estado indicado (por alumno) ordenado por fecha descendente.
     Optional<Pago> findTopByAlumnoIdAndEstadoPagoAndSaldoRestanteGreaterThanOrderByFechaDesc(
-            Long alumnoId, EstadoPago estadoPago, Double saldo);
+            Long alumnoId, EstadoPago estadoPago, double saldoRestante);
 
     // Retorna los pagos asociados a una inscripción, ordenados por fecha descendente.
     List<Pago> findByInscripcionIdOrderByFechaDesc(Long inscripcionId);
@@ -43,6 +44,8 @@ public interface PagoRepositorio extends JpaRepository<Pago, Long> {
 
     // Método para listar pagos de un alumno (sin depender de inscripción) que estén activos.
     List<Pago> findByAlumnoIdAndEstadoPagoOrderByFechaDesc(Long alumnoId, EstadoPago estadoPago);
+
+    List<Pago> findByAlumnoIdAndEstadoPagoNotOrderByFechaDesc(Long alumnoId, EstadoPago estado);
 
     // Si se requiere otra variante para pagos activos en un rango (opcional, ya que la firma anterior es suficiente)
     // @Query("SELECT p FROM Pago p WHERE p.fecha BETWEEN :start AND :end AND p.estadoPago = :estadoActivo")

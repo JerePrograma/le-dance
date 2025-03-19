@@ -1,6 +1,5 @@
 package ledance.servicios.inscripcion;
 
-import ledance.dto.inscripcion.request.InscripcionModificacionRequest;
 import ledance.dto.inscripcion.request.InscripcionRegistroRequest;
 import ledance.dto.inscripcion.response.InscripcionResponse;
 
@@ -13,7 +12,7 @@ public interface IInscripcionServicio {
 
     List<InscripcionResponse> listarInscripciones();
 
-    InscripcionResponse actualizarInscripcion(Long id, InscripcionModificacionRequest request);
+    InscripcionResponse actualizarInscripcion(Long id, InscripcionRegistroRequest request);
 
     void eliminarInscripcion(Long id);
 

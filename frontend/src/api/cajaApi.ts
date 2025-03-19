@@ -1,11 +1,12 @@
 // src/cajaApi.ts
-import {
+import api from "./axiosConfig";
+import type {
   CajaDetalleDTO,
   CajaDiariaDTO,
-  Egreso,
-  RendicionDTO
+  EgresoResponse,
+  RendicionDTO,
+  CobranzasDataResponse,
 } from "../types/types";
-import api from "./axiosConfig";
 
 const cajaApi = {
   async obtenerPlanillaGeneral(startDate: string, endDate: string): Promise<CajaDiariaDTO[]> {
@@ -20,10 +21,27 @@ const cajaApi = {
     return data;
   },
 
-  async agregarEgreso(fecha: string, monto: number, observaciones?: string, metodoPagoId: number = 1): Promise<Egreso> {
+  async agregarEgreso(
+    fecha: string,
+    monto: number,
+    observaciones?: string,
+    metodoPagoId: number = 1
+  ): Promise<EgresoResponse> {
     const params = { monto, observaciones, metodoPagoId };
-    const { data } = await api.post<Egreso>(`/caja/dia/${fecha}/egresos`, null, { params });
+    const { data } = await api.post<EgresoResponse>(`/caja/dia/${fecha}/egresos`, null, { params });
     return data;
+  },
+
+  async actualizarEgreso(
+    egresoId: number,
+    payload: { fecha: string; monto: number; observaciones?: string; metodoPagoId?: number }
+  ): Promise<EgresoResponse> {
+    const { data } = await api.put<EgresoResponse>(`/caja/egresos/${egresoId}`, payload);
+    return data;
+  },
+
+  async anularEgreso(egresoId: number): Promise<void> {
+    await api.patch(`/caja/egresos/${egresoId}/anular`);
   },
 
   async obtenerRendicionGeneral(startDate: string, endDate: string): Promise<RendicionDTO> {
@@ -33,21 +51,14 @@ const cajaApi = {
     return data;
   },
 
-  async anularEgreso(egresoId: number): Promise<void> {
-    await api.patch(`/caja/egresos/${egresoId}/anular`);
-  },
-
-  async actualizarEgreso(
-    egresoId: number,
-    payload: { fecha: string; monto: number; observaciones?: string; metodoPagoId?: number }
-  ): Promise<Egreso> {
-    const { data } = await api.put<Egreso>(`/caja/egresos/${egresoId}`, payload);
+  async generarRendicionMensual(): Promise<RendicionDTO> {
+    const { data } = await api.post<RendicionDTO>("/caja/rendicion/generar");
     return data;
   },
 
-  // NUEVO: Endpoint para generar la rendición mensual (se supone que el back lo implementó)
-  async generarRendicionMensual(): Promise<RendicionDTO> {
-    const { data } = await api.post<RendicionDTO>("/caja/rendicion/generar");
+  // Nuevo método para obtener los datos unificados de cobranzas.
+  async obtenerDatosCobranzas(): Promise<CobranzasDataResponse> {
+    const { data } = await api.get<CobranzasDataResponse>("/caja/datos-unificados");
     return data;
   },
 };

@@ -1,7 +1,6 @@
 import api from "./axiosConfig";
 import type {
   ConceptoRegistroRequest,
-  ConceptoModificacionRequest,
   ConceptoResponse,
 } from "../types/types";
 
@@ -24,7 +23,7 @@ const listarConceptos = async (): Promise<ConceptoResponse[]> => {
 
 const actualizarConcepto = async (
   id: number,
-  concepto: ConceptoModificacionRequest
+  concepto: ConceptoRegistroRequest
 ): Promise<ConceptoResponse> => {
   const { data } = await api.put<ConceptoResponse>(
     `/conceptos/${id}`,
@@ -37,12 +36,18 @@ const eliminarConcepto = async (id: number): Promise<void> => {
   await api.delete(`/conceptos/${id}`);
 };
 
+const listarConceptosPorSubConcepto = async (subConceptoId: string): Promise<ConceptoResponse[]> => {
+  const { data } = await api.get<ConceptoResponse[]>(`/conceptos/sub-concepto/${subConceptoId}`);
+  return data;
+};
+
 const conceptosApi = {
   registrarConcepto,
   obtenerConceptoPorId,
   listarConceptos,
   actualizarConcepto,
   eliminarConcepto,
+  listarConceptosPorSubConcepto,
 };
 
 export default conceptosApi;

@@ -1,7 +1,6 @@
 package ledance.dto.concepto;
 
 import ledance.dto.concepto.request.SubConceptoRegistroRequest;
-import ledance.dto.concepto.request.SubConceptoModificacionRequest;
 import ledance.dto.concepto.response.SubConceptoResponse;
 import ledance.entidades.SubConcepto;
 import org.mapstruct.Mapper;
@@ -22,7 +21,7 @@ public interface SubConceptoMapper {
     SubConceptoResponse toResponse(SubConcepto subConcepto);
 
     @Mapping(target = "descripcion", source = "descripcion", qualifiedByName = "toUpperCase")
-    void updateEntityFromRequest(SubConceptoModificacionRequest request, @MappingTarget SubConcepto subConcepto);
+    void updateEntityFromRequest(SubConceptoRegistroRequest request, @MappingTarget SubConcepto subConcepto);
 
     @Named("toUpperCase")
     default String toUpperCase(String value) {

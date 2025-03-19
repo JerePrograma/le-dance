@@ -1,15 +1,22 @@
 package ledance.servicios.alumno;
 
 import ledance.dto.alumno.AlumnoMapper;
+import ledance.dto.alumno.response.AlumnoDataResponse;
+import ledance.dto.deudas.DeudasPendientesResponse;
 import ledance.dto.disciplina.DisciplinaMapper;
 import ledance.dto.alumno.request.AlumnoModificacionRequest;
 import ledance.dto.alumno.request.AlumnoRegistroRequest;
 import ledance.dto.alumno.response.AlumnoDetalleResponse;
 import ledance.dto.alumno.response.AlumnoListadoResponse;
 import ledance.dto.disciplina.response.DisciplinaListadoResponse;
+import ledance.dto.inscripcion.response.InscripcionResponse;
+import ledance.dto.pago.response.PagoResponse;
 import ledance.entidades.Alumno;
+import ledance.infra.errores.TratadorDeErrores;
 import ledance.repositorios.AlumnoRepositorio;
 import jakarta.transaction.Transactional;
+import ledance.servicios.inscripcion.InscripcionServicio;
+import ledance.servicios.pago.PagoServicio;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -27,11 +34,15 @@ public class AlumnoServicio implements IAlumnoServicio {
     private final AlumnoRepositorio alumnoRepositorio;
     private final AlumnoMapper alumnoMapper;
     private final DisciplinaMapper disciplinaMapper;
+    private final InscripcionServicio inscripcionServicio;
+    private final PagoServicio pagoServicio;
 
-    public AlumnoServicio(AlumnoRepositorio alumnoRepositorio, AlumnoMapper alumnoMapper, DisciplinaMapper disciplinaMapper) {
+    public AlumnoServicio(AlumnoRepositorio alumnoRepositorio, AlumnoMapper alumnoMapper, DisciplinaMapper disciplinaMapper, InscripcionServicio inscripcionServicio, PagoServicio pagoServicio) {
         this.alumnoRepositorio = alumnoRepositorio;
         this.alumnoMapper = alumnoMapper;
         this.disciplinaMapper = disciplinaMapper;
+        this.inscripcionServicio = inscripcionServicio;
+        this.pagoServicio = pagoServicio;
     }
 
     @Override
@@ -132,5 +143,26 @@ public class AlumnoServicio implements IAlumnoServicio {
                 .orElseThrow(() -> new IllegalArgumentException("Alumno no encontrado."));
 
         alumnoRepositorio.delete(alumno);
+    }
+
+    public AlumnoDataResponse obtenerDatosAlumno(Long id) {
+        // 1. Obtener el alumno o lanzar excepción si no se encuentra.
+        Alumno alumno = alumnoRepositorio.findById(id)
+                .orElseThrow(() -> new TratadorDeErrores.ResourceNotFoundException("Alumno no encontrado con id: " + id));
+
+        // 2. Convertir la entidad Alumno a un DTO de detalle.
+        AlumnoDetalleResponse alumnoDetalle = alumnoMapper.toDetalleResponse(alumno);
+
+        // 3. Consultar inscripciones activas para este alumno.
+        List<InscripcionResponse> inscripcionesActivas = inscripcionServicio.listarPorAlumno(id);
+
+        // 4. Consultar deudas pendientes del alumno (por ejemplo, consolidando detalles de pagos)
+        DeudasPendientesResponse deudas = pagoServicio.listarDeudasPendientesPorAlumno(id);
+
+        // 5. Consultar el último pago (o el pago pendiente activo) del alumno.
+        PagoResponse ultimoPago = pagoServicio.obtenerUltimoPagoPorAlumno(id);
+
+        // 6. Armar el DTO unificado y retornarlo.
+        return new AlumnoDataResponse(alumnoDetalle, inscripcionesActivas, deudas, ultimoPago);
     }
 }

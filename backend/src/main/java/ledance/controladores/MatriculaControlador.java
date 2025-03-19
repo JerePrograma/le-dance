@@ -1,7 +1,7 @@
 package ledance.controladores;
 
+import ledance.dto.matricula.request.MatriculaRegistroRequest;
 import ledance.dto.matricula.response.MatriculaResponse;
-import ledance.dto.matricula.request.MatriculaModificacionRequest;
 import ledance.servicios.matricula.MatriculaServicio;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -27,7 +27,7 @@ public class MatriculaControlador {
     @PutMapping("/{matriculaId}")
     public ResponseEntity<MatriculaResponse> actualizarMatricula(
             @PathVariable Long matriculaId,
-            @RequestBody MatriculaModificacionRequest request) {
+            @RequestBody MatriculaRegistroRequest request) {
         MatriculaResponse updated = matriculaServicio.actualizarEstadoMatricula(matriculaId, request);
         return ResponseEntity.ok(updated);
     }

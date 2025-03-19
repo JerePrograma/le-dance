@@ -1,6 +1,5 @@
 package ledance.dto.matricula;
 
-import ledance.dto.matricula.request.MatriculaModificacionRequest;
 import ledance.dto.matricula.request.MatriculaRegistroRequest;
 import ledance.dto.matricula.response.MatriculaResponse;
 import ledance.entidades.Matricula;
@@ -23,7 +22,10 @@ public interface MatriculaMapper {
     @Mapping(target = "alumno.id", source = "alumnoId")
     Matricula toEntity(MatriculaRegistroRequest request);
 
+    @Mapping(target = "alumno.id", source = "alumnoId")
+    Matricula toEntity(MatriculaResponse response);
+
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "alumno", ignore = true)
-    void updateEntityFromRequest(MatriculaModificacionRequest request, @MappingTarget Matricula matricula);
+    void updateEntityFromRequest(MatriculaRegistroRequest request, @MappingTarget Matricula matricula);
 }

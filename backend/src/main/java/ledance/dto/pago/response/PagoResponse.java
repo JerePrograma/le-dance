@@ -1,6 +1,8 @@
 package ledance.dto.pago.response;
 
 import ledance.dto.inscripcion.response.InscripcionResponse;
+import ledance.dto.metodopago.response.MetodoPagoResponse;
+
 import java.time.LocalDate;
 import java.util.List;
 
@@ -9,9 +11,8 @@ public record PagoResponse(
         LocalDate fecha,
         LocalDate fechaVencimiento,
         Double monto,
-        // Nuevo: Se podría incluir el montoBasePago, si es relevante para la respuesta.
         Double montoBasePago,
-        String metodoPago,
+        MetodoPagoResponse metodoPago,
         Boolean recargoAplicado,
         Boolean bonificacionAplicada,
         Double saldoRestante,

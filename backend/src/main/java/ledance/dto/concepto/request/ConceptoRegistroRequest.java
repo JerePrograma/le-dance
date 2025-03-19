@@ -5,5 +5,7 @@ import jakarta.validation.constraints.NotNull;
 public record ConceptoRegistroRequest(
         @NotNull String descripcion,
         double precio,
-        @NotNull Long subConceptoId
-) {}
+        SubConceptoRegistroRequest subConcepto,
+        Boolean activo
+) {
+}

@@ -2,7 +2,7 @@
 import api from "./axiosConfig";
 import type {
   InscripcionRegistroRequest,
-  InscripcionModificacionRequest,
+  InscripcionRegistroRequest,
   InscripcionResponse,
 } from "../types/types";
 
@@ -29,7 +29,7 @@ const listarPorDisciplina = async (disciplinaId: number): Promise<InscripcionRes
 
 const actualizar = async (
   id: number,
-  request: InscripcionModificacionRequest
+  request: InscripcionRegistroRequest
 ): Promise<InscripcionResponse> => {
   const response = await api.put(`/inscripciones/${id}`, request);
   return response.data;

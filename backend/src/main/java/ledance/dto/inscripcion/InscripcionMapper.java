@@ -1,7 +1,6 @@
 package ledance.dto.inscripcion;
 
 import ledance.dto.inscripcion.request.InscripcionRegistroRequest;
-import ledance.dto.inscripcion.request.InscripcionModificacionRequest;
 import ledance.dto.inscripcion.response.InscripcionResponse;
 import ledance.entidades.Bonificacion;
 import ledance.entidades.Disciplina;
@@ -38,7 +37,7 @@ public interface InscripcionMapper {
     @Mapping(target = "disciplina", expression = "java(mapDisciplina(request.disciplina().id()))")
     @Mapping(target = "bonificacion", expression = "java(request.bonificacionId() != null ? mapBonificacion(request.bonificacionId()) : null)")
     @Mapping(target = "fechaBaja", source = "fechaBaja")
-    Inscripcion updateEntityFromRequest(InscripcionModificacionRequest request, @MappingTarget Inscripcion inscripcion);
+    Inscripcion updateEntityFromRequest(InscripcionRegistroRequest request, @MappingTarget Inscripcion inscripcion);
 
     // Métodos auxiliares para crear instancias mínimas de Disciplina y Bonificacion a partir del id
     default Disciplina mapDisciplina(Long disciplinaId) {

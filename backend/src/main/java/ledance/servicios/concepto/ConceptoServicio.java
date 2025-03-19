@@ -1,13 +1,15 @@
 package ledance.servicios.concepto;
 
 import ledance.dto.concepto.request.ConceptoRegistroRequest;
-import ledance.dto.concepto.request.ConceptoModificacionRequest;
 import ledance.dto.concepto.response.ConceptoResponse;
 import ledance.dto.concepto.ConceptoMapper;
 import ledance.entidades.Concepto;
 import ledance.entidades.SubConcepto;
 import ledance.repositorios.ConceptoRepositorio;
 import ledance.repositorios.SubConceptoRepositorio;
+import ledance.servicios.disciplina.DisciplinaHorarioServicio;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +18,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class ConceptoServicio {
+
+    private static final Logger log = LoggerFactory.getLogger(DisciplinaHorarioServicio.class);
 
     private final ConceptoRepositorio conceptoRepositorio;
     private final SubConceptoRepositorio subConceptoRepositorio;
@@ -32,11 +36,6 @@ public class ConceptoServicio {
     @Transactional
     public ConceptoResponse crearConcepto(ConceptoRegistroRequest request) {
         Concepto concepto = conceptoMapper.toEntity(request);
-        SubConcepto subConcepto = subConceptoRepositorio.findById(request.subConceptoId())
-                .orElseThrow(() -> new IllegalArgumentException("SubConcepto no encontrado con id: " + request.subConceptoId()));
-        // Forzamos la descripcion a mayúsculas manualmente
-        subConcepto.setDescripcion(subConcepto.getDescripcion().toUpperCase());
-        concepto.setSubConcepto(subConcepto);
         Concepto saved = conceptoRepositorio.save(concepto);
         return conceptoMapper.toResponse(saved);
     }
@@ -56,15 +55,41 @@ public class ConceptoServicio {
     }
 
     @Transactional
-    public ConceptoResponse actualizarConcepto(Long id, ConceptoModificacionRequest request) {
+    public ConceptoResponse actualizarConcepto(Long id, ConceptoRegistroRequest request) {
+        log.info("[ConceptoService] Iniciando actualización del concepto con id: {}", id);
+
         Concepto concepto = conceptoRepositorio.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Concepto no encontrado con id: " + id));
-        conceptoMapper.updateEntityFromRequest(request, concepto);
-        SubConcepto subConcepto = subConceptoRepositorio.findById(request.subConceptoId())
-                .orElseThrow(() -> new IllegalArgumentException("SubConcepto no encontrado con id: " + request.subConceptoId()));
+                .orElseThrow(() -> {
+                    String mensaje = "Concepto no encontrado con id: " + id;
+                    log.error("[ConceptoService] {}", mensaje);
+                    return new IllegalArgumentException(mensaje);
+                });
+        log.info("[ConceptoService] Concepto encontrado: {}", concepto);
+
+        // Actualizamos solo los campos de Concepto, ignorando la descripción del subconcepto
+        concepto.setDescripcion(request.descripcion());
+        concepto.setPrecio(request.precio());
+        log.info("[ConceptoService] Campos actualizados - Descripción: {}, Precio: {}", request.descripcion(), request.precio());
+
+        // Recuperamos el subconcepto existente según el id del request
+        Long subConceptoId = request.subConcepto().id();
+        SubConcepto subConcepto = subConceptoRepositorio.findById(subConceptoId)
+                .orElseThrow(() -> {
+                    String mensaje = "SubConcepto no encontrado con id: " + subConceptoId;
+                    log.error("[ConceptoService] {}", mensaje);
+                    return new IllegalArgumentException(mensaje);
+                });
+        log.info("[ConceptoService] SubConcepto encontrado: {}", subConcepto);
+
+        // Asignamos el subconcepto sin modificar su descripción
         concepto.setSubConcepto(subConcepto);
+
         Concepto updated = conceptoRepositorio.save(concepto);
-        return conceptoMapper.toResponse(updated);
+        log.info("[ConceptoService] Concepto actualizado correctamente: {}", updated);
+
+        ConceptoResponse response = conceptoMapper.toResponse(updated);
+        log.info("[ConceptoService] Respuesta mapeada: {}", response);
+        return response;
     }
 
     @Transactional
@@ -73,5 +98,12 @@ public class ConceptoServicio {
             throw new IllegalArgumentException("Concepto no encontrado con id: " + id);
         }
         conceptoRepositorio.deleteById(id);
+    }
+
+    public List<ConceptoResponse> listarConceptosPorSubConcepto(Long subConceptoId) {
+        List<Concepto> conceptos = conceptoRepositorio.findBySubConceptoId(subConceptoId);
+        return conceptos.stream()
+                .map(conceptoMapper::toResponse)
+                .collect(Collectors.toList());
     }
 }

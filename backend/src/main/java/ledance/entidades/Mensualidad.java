@@ -6,7 +6,9 @@ import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
 import java.time.LocalDate;
+import java.util.List;
 
 @Entity
 @Data
@@ -41,7 +43,8 @@ public class Mensualidad {
     private Bonificacion bonificacion;
 
     @NotNull
-    private Double totalPagar;
+    @Column(name="importe_inicial")
+    private Double importeInicial;
 
     @NotNull
     @Enumerated(EnumType.STRING)
@@ -56,4 +59,9 @@ public class Mensualidad {
     // Nuevo campo para registrar el monto acumulado abonado en la mensualidad
     @NotNull
     private Double montoAbonado = 0.0;
+
+    @OneToMany(mappedBy = "mensualidad", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<DetallePago> detallePagos;
+
+    private Double importePendiente;
 }

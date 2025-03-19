@@ -1,21 +1,24 @@
 package ledance.dto.pago.response;
 
+import java.time.LocalDate;
+
 public record DetallePagoResponse(
         Long id,
-        String codigoConcepto,
-        String concepto,
+        String descripcionConcepto,
         String cuota,
-        // Renombrado: valorBase -> montoOriginal.
         Double montoOriginal,
-        Double aFavor,
-        // Se conserva el campo 'importe' que puede representar el importe total calculado.
-        Double importe,
-        // Nuevo campo: importe inicial, representa el monto antes de abonos.
-        Double importeInicial,
-        // Nuevo campo: importe pendiente, se actualiza conforme se realizan abonos.
-        Double importePendiente,
-        Double aCobrar,
         Long bonificacionId,
         Long recargoId,
-        Boolean cobrado
-) { }
+        Double aFavor,
+        Double aCobrar,
+        Boolean cobrado,
+        Long conceptoId,
+        Long subConceptoId,
+        Long mensualidadId,
+        Long matriculaId,
+        Long stockId,
+        Double importeInicial,
+        Double importePendiente,
+        String tipo,           // Nuevo campo para indicar el tipo (MENSUALIDAD, MATRICULA, etc.)
+        LocalDate fechaRegistro  // Nuevo campo para la fecha de registro
+) {}

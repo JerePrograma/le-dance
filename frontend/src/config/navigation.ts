@@ -73,9 +73,21 @@ export const navigationItems: NavigationItem[] = [
     description: "Gestión de pagos, stocks y configuraciones generales",
     items: [
       {
+        id: "debitos",
+        label: "Debitos",
+        href: "/debitos",
+        icon: Wallet,
+      },
+      {
         id: "rendicion-general",
         label: "Planilla de Caja General",
         href: "/caja/planilla",
+        icon: Receipt,
+      },
+      {
+        id: "pagos-pendientes",
+        label: "Pagos pendientes",
+        href: "/pagos-pendientes",
         icon: Receipt,
       },
       {

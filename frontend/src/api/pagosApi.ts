@@ -2,13 +2,13 @@
 import api from "./axiosConfig";
 import type {
   PagoRegistroRequest,
-  PagoModificacionRequest,
   PagoResponse,
   StockResponse,
   AlumnoListadoResponse,
   CobranzaDTO,
   DisciplinaDetalleResponse,
   PagoParcialRequest,
+  DetallePagoResponse,
 } from "../types/types";
 
 const registrarPago = async (
@@ -66,7 +66,7 @@ const listarPagos = async (): Promise<PagoResponse[]> => {
  */
 const actualizarPago = async (
   id: number,
-  pago: Partial<PagoModificacionRequest>
+  pago: Partial<PagoRegistroRequest>
 ): Promise<PagoResponse> => {
   const { data } = await api.put<PagoResponse>(`/pagos/${id}`, pago);
   return data;
@@ -132,6 +132,22 @@ const obtenerUltimoPagoPorAlumno = async (
   return data;
 };
 
+/**
+ * Endpoint para filtrar DetallePagos.
+ * Los parámetros son opcionales y se envían en la query string.
+ */
+const filtrarDetalles = async (params: {
+  fechaRegistroDesde?: string;
+  fechaRegistroHasta?: string;
+  detalleConcepto?: string;
+  stock?: string;
+  subConcepto?: string;
+  disciplina?: string;
+}): Promise<DetallePagoResponse[]> => {
+  const { data } = await api.get<DetallePagoResponse[]>("/pagos/filtrar", { params });
+  return data;
+};
+
 const pagosApi = {
   registrarPago,
   obtenerPagoPorId,
@@ -148,6 +164,7 @@ const pagosApi = {
   listarAlumnosBasicos,
   obtenerCobranzaPorAlumno, // Agregado aqui
   obtenerUltimoPagoPorAlumno,
+  filtrarDetalles, // Agregamos el nuevo endpoint
 };
 
 export default pagosApi;

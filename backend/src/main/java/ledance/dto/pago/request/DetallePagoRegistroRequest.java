@@ -5,21 +5,23 @@ import jakarta.validation.constraints.NotNull;
 
 public record DetallePagoRegistroRequest(
         Long id,
-        String codigoConcepto,
-        @NotNull String concepto,
+        String descripcionConcepto,
         String cuota,
-        // Se renombra: de valorBase a montoOriginal.
         @NotNull @Min(0) Double montoOriginal,
-        @Min(0) Long bonificacionId,
-        @Min(0) Long recargoId,
+        Long bonificacionId,
+        Long recargoId,
         @NotNull @Min(0) Double aCobrar,
-        // Campo opcional, se recalcula en el backend.
-        Double importe,
-        Boolean cobrado
+        Boolean cobrado,
+        Long conceptoId,
+        Long subConceptoId,
+        Long mensualidadId,
+        Long matriculaId,
+        Long stockId
 ) {
     public DetallePagoRegistroRequest {
+        // Asignamos false por defecto si viene null
         if (cobrado == null) {
-            cobrado = false; // Si es null, se establece en false.
+            cobrado = false;
         }
     }
 }

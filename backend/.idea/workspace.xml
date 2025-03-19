@@ -5,26 +5,73 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="ccb8f120-972c-4a18-b18b-4ae7da723dfa" name="Changes" comment="">
-<<<<<<< HEAD
-      <change beforePath="$PROJECT_DIR$/.idea/compiler.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dataSources.local.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dataSources.local.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend.iml" beforeDir="false" afterPath="$PROJECT_DIR$/backend.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/codealike.json" beforeDir="false" />
-=======
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/MensualidadControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/MensualidadControlador.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/AlumnoControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/AlumnoControlador.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/CajaControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/CajaControlador.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/ConceptoControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/ConceptoControlador.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/InscripcionControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/InscripcionControlador.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/MatriculaControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/MatriculaControlador.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/PagoControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/PagoControlador.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/SubConceptoControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/SubConceptoControlador.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/caja/CajaDetalleDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/caja/CajaDetalleDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/caja/RendicionDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/caja/RendicionDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/concepto/ConceptoMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/concepto/ConceptoMapper.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/concepto/SubConceptoMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/concepto/SubConceptoMapper.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/concepto/request/ConceptoModificacionRequest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/concepto/request/ConceptoRegistroRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/concepto/request/ConceptoRegistroRequest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/concepto/request/SubConceptoModificacionRequest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/concepto/request/SubConceptoRegistroRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/concepto/request/SubConceptoRegistroRequest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/deudas/DeudasPendientesResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/deudas/DeudasPendientesResponse.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/inscripcion/InscripcionMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/inscripcion/InscripcionMapper.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/inscripcion/request/InscripcionModificacionRequest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/inscripcion/request/InscripcionRegistroRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/inscripcion/request/InscripcionRegistroRequest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/matricula/MatriculaMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/matricula/MatriculaMapper.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/matricula/request/MatriculaModificacionRequest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/matricula/request/MatriculaRegistroRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/matricula/request/MatriculaRegistroRequest.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/mensualidad/MensualidadMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/mensualidad/MensualidadMapper.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/mensualidad/request/MensualidadModificacionRequest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/mensualidad/request/MensualidadRegistroRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/mensualidad/request/MensualidadRegistroRequest.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/mensualidad/response/MensualidadResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/mensualidad/response/MensualidadResponse.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/pago/DetallePagoMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/pago/DetallePagoMapper.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/pago/PagoMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/pago/PagoMapper.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/pago/request/DetallePagoRegistroRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/pago/request/DetallePagoRegistroRequest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/pago/response/DetallePagoResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/pago/response/DetallePagoResponse.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/pago/response/PagoResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/pago/response/PagoResponse.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/entidades/DetallePago.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/entidades/DetallePago.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/entidades/Inscripcion.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/entidades/Inscripcion.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/entidades/Mensualidad.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/entidades/Mensualidad.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/repositorios/ConceptoRepositorio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/repositorios/ConceptoRepositorio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/repositorios/DetallePagoRepositorio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/repositorios/DetallePagoRepositorio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/repositorios/MatriculaRepositorio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/repositorios/MatriculaRepositorio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/repositorios/MensualidadRepositorio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/repositorios/MensualidadRepositorio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/repositorios/PagoRepositorio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/repositorios/PagoRepositorio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/alumno/AlumnoServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/alumno/AlumnoServicio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/caja/CajaServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/caja/CajaServicio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/concepto/ConceptoServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/concepto/ConceptoServicio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/concepto/SubConceptoServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/concepto/SubConceptoServicio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/detallepago/DetallePagoServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/detallepago/DetallePagoServicio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/inscripcion/IInscripcionServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/inscripcion/IInscripcionServicio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/inscripcion/InscripcionServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/inscripcion/InscripcionServicio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/matricula/MatriculaServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/matricula/MatriculaServicio.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/mensualidad/IMensualidadService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/mensualidad/IMensualidadService.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/mensualidad/MensualidadServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/mensualidad/MensualidadServicio.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/pago/PagoServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/pago/PagoServicio.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/pago/PaymentProcessor.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/pago/PaymentProcessor.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/stock/StockServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/stock/StockServicio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/api/alumnosApi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/api/alumnosApi.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/api/cajaApi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/api/cajaApi.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/api/conceptosApi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/api/conceptosApi.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/api/pagosApi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/api/pagosApi.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/config/navigation.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/config/navigation.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/caja/ConsultaCajaDiaria.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/caja/ConsultaCajaDiaria.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/conceptos/ConceptosFormulario.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/conceptos/ConceptosFormulario.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/pagos/PagosFormulario.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/pagos/PagosFormulario.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/pagos/PagosPagina.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/pagos/PagosPagina.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../frontend/src/hooks/context/useSyncDetalles.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/hooks/context/useSyncDetalles.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/hooks/useAlumnoData.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/hooks/useAlumnoData.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/hooks/useCobranzasData.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/hooks/useCobranzasData.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/hooks/useInscripcionesActivas.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/hooks/useInscripcionesActivas.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/rutas/routes.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/rutas/routes.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../frontend/src/types/types.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/types/types.ts" afterDir="false" />
->>>>>>> b92607256c86dc99b84a27c0f368f881ea5b0b17
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -53,19 +100,19 @@
     &quot;assignee&quot;: &quot;JerePrograma&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/JerePrograma/le-dance",
-    "accountId": "8a13bb65-d7cf-4222-a1f3-68b15ea79572"
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/JerePrograma/le-dance&quot;,
+    &quot;accountId&quot;: &quot;8a13bb65-d7cf-4222-a1f3-68b15ea79572&quot;
   }
-}]]></component>
+}</component>
   <component name="KubernetesApiPersistence">{}</component>
   <component name="KubernetesApiProvider">{
-  &quot;isMigrated&quot;: true
-}</component>
+    &quot;isMigrated&quot;: true
+    }</component>
   <component name="ProjectColorInfo">{
-  &quot;associatedIndex&quot;: 1
-}</component>
+    &quot;associatedIndex&quot;: 1
+    }</component>
   <component name="ProjectId" id="2s4zS9Oqq5y7rIix9UrfQvYCyWE" />
   <component name="ProjectLevelVcsManager">
     <ConfirmationsSetting value="1" id="Add" />
@@ -74,32 +121,6 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-<<<<<<< HEAD
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "RequestMappingsPanelOrder0": "0",
-    "RequestMappingsPanelOrder1": "1",
-    "RequestMappingsPanelWidth0": "75",
-    "RequestMappingsPanelWidth1": "75",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "Spring Boot.Main.executor": "Run",
-    "git-widget-placeholder": "main",
-    "kotlin-language-version-configured": "true",
-    "last_directory_selection": "D:/laburo/LE Dance/backend/src/main/java/ledance/validaciones",
-    "last_opened_file_path": "D:/laburo/LE Dance/le-dance/backend",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "project.structure.last.edited": "Project",
-    "project.structure.proportion": "0.15",
-    "project.structure.side.proportion": "0.16896552",
-    "settings.editor.selected.configurable": "reference.projectsettings.compiler.javacompiler",
-    "ts.external.directory.path": "D:\\IntelliJ IDEA 2024.1\\plugins\\javascript-impl\\jsLanguageServicesImpl\\external",
-    "vue.rearranger.settings.migration": "true"
-=======
   <component name="PropertiesComponent">{
   &quot;keyToString&quot;: {
     &quot;RequestMappingsPanelOrder0&quot;: &quot;0&quot;,
@@ -111,57 +132,14 @@
     &quot;Spring Boot.Main.executor&quot;: &quot;Run&quot;,
     &quot;git-widget-placeholder&quot;: &quot;main&quot;,
     &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
-    &quot;last_directory_selection&quot;: &quot;D:/laburo/LE Dance/backend/src/main/java/ledance/validaciones&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/Jerem/Documents/Laburo/le-dance/backend&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
     &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
     &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
-    &quot;project.structure.proportion&quot;: &quot;0.0&quot;,
-    &quot;project.structure.side.proportion&quot;: &quot;0.15977012&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.general&quot;,
-    &quot;ts.external.directory.path&quot;: &quot;D:\\IntelliJ IDEA 2024.1\\plugins\\javascript-impl\\jsLanguageServicesImpl\\external&quot;,
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
->>>>>>> b92607256c86dc99b84a27c0f368f881ea5b0b17
-  },
-  &quot;keyToStringList&quot;: {
-    &quot;DatabaseDriversLRU&quot;: [
-      &quot;postgresql&quot;
-    ]
   }
 }</component>
-  <component name="RecentsManager">
-    <key name="CreateClassDialog.RecentsKey">
-      <recent name="ledance.entidades" />
-      <recent name="ledance.servicios.pago" />
-      <recent name="ledance.dto.asistencia.response" />
-      <recent name="ledance.dto.asistencia.request" />
-      <recent name="ledance.dto" />
-    </key>
-    <key name="CopyFile.RECENT_KEYS">
-      <recent name="D:\laburo\LE Dance\backend\src\main\resources\db\migration" />
-      <recent name="D:\laburo\LE Dance\backend\src\main\java\ledance\dto\matricula" />
-      <recent name="D:\laburo\LE Dance\backend\src\main\java\ledance\servicios\producto" />
-      <recent name="D:\laburo\LE Dance\backend\src\main\java\ledance\dto" />
-      <recent name="D:\laburo\LE Dance\backend\src\main\java\ledance\servicios" />
-    </key>
-    <key name="MoveFile.RECENT_KEYS">
-      <recent name="D:\laburo\LE Dance\backend\src\main\resources\db\migration" />
-      <recent name="D:\laburo\LE Dance\backend\src\main\resources" />
-    </key>
-    <key name="MoveClassesOrPackagesDialog.RECENTS_KEY">
-      <recent name="ledance.dto.producto" />
-    </key>
-    <key name="CopyClassDialog.RECENTS_KEY">
-      <recent name="ledance.dto.disciplina.request" />
-      <recent name="ledance.dto.matricula.request" />
-      <recent name="ledance.repositorios" />
-      <recent name="ledance.dto.response" />
-      <recent name="ledance.dto.request" />
-    </key>
-  </component>
   <component name="RunManager">
     <configuration name="Main" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" temporary="true" nameIsGenerated="true">
       <option name="FRAME_DEACTIVATION_UPDATE_POLICY" value="UpdateClassesAndResources" />
@@ -186,8 +164,8 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-jdk-9823dce3aa75-a94e463ab2e7-intellij.indexing.shared.core-IU-243.25659.59" />
-        <option value="bundled-js-predefined-d6986cc7102b-1632447f56bf-JavaScript-IU-243.25659.59" />
+        <option value="bundled-jdk-9823dce3aa75-a94e463ab2e7-intellij.indexing.shared.core-IU-243.26053.27" />
+        <option value="bundled-js-predefined-d6986cc7102b-1632447f56bf-JavaScript-IU-243.26053.27" />
       </set>
     </attachedChunks>
   </component>
@@ -195,201 +173,23 @@
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
       <changelist id="ccb8f120-972c-4a18-b18b-4ae7da723dfa" name="Changes" comment="" />
-      <created>1737729640926</created>
+      <created>1742213421896</created>
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
-      <updated>1737729640926</updated>
-      <workItem from="1737729644169" duration="4171000" />
-      <workItem from="1737736311721" duration="6015000" />
-      <workItem from="1737761136857" duration="9681000" />
-      <workItem from="1737842193038" duration="10188000" />
-      <workItem from="1737899797591" duration="9945000" />
-      <workItem from="1737936211743" duration="2572000" />
-      <workItem from="1737983162806" duration="6561000" />
-      <workItem from="1738008415822" duration="7918000" />
-      <workItem from="1738017094090" duration="2146000" />
-      <workItem from="1738020915193" duration="5334000" />
-      <workItem from="1738087575463" duration="8972000" />
-      <workItem from="1738108788506" duration="3303000" />
-      <workItem from="1738166405092" duration="2033000" />
-      <workItem from="1738183206812" duration="2382000" />
-      <workItem from="1738276207724" duration="4883000" />
-      <workItem from="1738346254973" duration="7482000" />
-      <workItem from="1738376935430" duration="2843000" />
-      <workItem from="1738414547978" duration="7413000" />
-      <workItem from="1738436755001" duration="3162000" />
-      <workItem from="1738453630581" duration="929000" />
-      <workItem from="1738455499980" duration="617000" />
-      <workItem from="1738501175935" duration="10584000" />
-      <workItem from="1738537591150" duration="21122000" />
-      <workItem from="1738605663523" duration="2559000" />
-      <workItem from="1738608684027" duration="7942000" />
-      <workItem from="1738617592386" duration="3467000" />
-      <workItem from="1738621826400" duration="2397000" />
-      <workItem from="1738634738616" duration="12827000" />
-      <workItem from="1738648521226" duration="573000" />
-      <workItem from="1738694962177" duration="9791000" />
-      <workItem from="1738756080054" duration="15476000" />
-      <workItem from="1738780697828" duration="11923000" />
-      <workItem from="1738800155254" duration="6026000" />
-      <workItem from="1738863213899" duration="514000" />
-      <workItem from="1738876191590" duration="1709000" />
-      <workItem from="1738928574911" duration="4009000" />
-      <workItem from="1738933286975" duration="1002000" />
-      <workItem from="1738951953656" duration="7473000" />
-      <workItem from="1739018309590" duration="3201000" />
-      <workItem from="1739054175898" duration="8128000" />
-      <workItem from="1739072317916" duration="6282000" />
-      <workItem from="1739118513811" duration="3966000" />
-      <workItem from="1739133596522" duration="5180000" />
-      <workItem from="1739159981337" duration="12706000" />
-      <workItem from="1739218478467" duration="1323000" />
-      <workItem from="1739282114733" duration="4960000" />
-      <workItem from="1739310601000" duration="3855000" />
-      <workItem from="1739386442163" duration="1373000" />
-      <workItem from="1739400192040" duration="7549000" />
-      <workItem from="1739454585927" duration="6007000" />
-      <workItem from="1739464245445" duration="505000" />
-      <workItem from="1739492746310" duration="862000" />
-      <workItem from="1739533813099" duration="4878000" />
-      <workItem from="1739635157436" duration="18356000" />
-      <workItem from="1739665928166" duration="406000" />
-      <workItem from="1739711558516" duration="4744000" />
-      <workItem from="1739792865515" duration="4648000" />
-      <workItem from="1739845005849" duration="693000" />
-      <workItem from="1739892359960" duration="748000" />
-      <workItem from="1739926374080" duration="181000" />
-      <workItem from="1739926663258" duration="17000" />
-      <workItem from="1739926791653" duration="13000" />
-      <workItem from="1739927422578" duration="11000" />
-      <workItem from="1739927483393" duration="9000" />
-      <workItem from="1739927507001" duration="4000" />
-      <workItem from="1739927644790" duration="3000" />
-      <workItem from="1739927943419" duration="11000" />
-      <workItem from="1739927992169" duration="16000" />
-      <workItem from="1739928018347" duration="5000" />
-      <workItem from="1740055047418" duration="5201000" />
-      <workItem from="1740085374038" duration="1079000" />
-      <workItem from="1740094938092" duration="2648000" />
-      <workItem from="1740099340338" duration="70000" />
-      <workItem from="1740099561920" duration="208000" />
-      <workItem from="1740100431493" duration="155000" />
-      <workItem from="1740101181768" duration="15000" />
-      <workItem from="1740101571573" duration="44000" />
-      <workItem from="1740101996387" duration="17000" />
-      <workItem from="1740139650423" duration="1524000" />
-      <workItem from="1740149708715" duration="7440000" />
-      <workItem from="1740172304605" duration="10113000" />
-      <workItem from="1740187403340" duration="475000" />
-      <workItem from="1740225492100" duration="9607000" />
-      <workItem from="1740241391353" duration="156000" />
-      <workItem from="1740241902735" duration="6000" />
-      <workItem from="1740259770712" duration="3615000" />
-      <workItem from="1740279484494" duration="8000" />
-      <workItem from="1740349553207" duration="13000" />
-      <workItem from="1740351843516" duration="647000" />
-      <workItem from="1740356376202" duration="5000" />
-      <workItem from="1740358454026" duration="1314000" />
-      <workItem from="1740423146926" duration="9709000" />
-      <workItem from="1740442112985" duration="64000" />
-      <workItem from="1740442259241" duration="11000" />
-      <workItem from="1740442986699" duration="137000" />
-      <workItem from="1740493580637" duration="6403000" />
-      <workItem from="1740500348683" duration="324000" />
-      <workItem from="1740504573861" duration="7014000" />
-      <workItem from="1740513073123" duration="693000" />
-      <workItem from="1740513965741" duration="66000" />
-      <workItem from="1740514164653" duration="129000" />
-      <workItem from="1740514784472" duration="11005000" />
-      <workItem from="1740584951479" duration="19243000" />
-      <workItem from="1740607033550" duration="58000" />
-      <workItem from="1740613974644" duration="1112000" />
-      <workItem from="1740656718276" duration="11634000" />
-      <workItem from="1740677438033" duration="1262000" />
-      <workItem from="1740689492130" duration="9000000" />
-      <workItem from="1740701884866" duration="2515000" />
-      <workItem from="1740705139895" duration="628000" />
-      <workItem from="1740739220861" duration="65801000" />
-      <workItem from="1740871004498" duration="1764000" />
-      <workItem from="1740891186910" duration="2692000" />
-      <workItem from="1740895618149" duration="9869000" />
-      <workItem from="1740939778001" duration="1755000" />
-      <workItem from="1740999036870" duration="29712000" />
-      <workItem from="1741040645239" duration="7442000" />
-      <workItem from="1741054312864" duration="7657000" />
-      <workItem from="1741071132601" duration="903000" />
-      <workItem from="1741072569687" duration="40000" />
-      <workItem from="1741072944641" duration="303000" />
-      <workItem from="1741073730477" duration="604000" />
-      <workItem from="1741074639154" duration="409000" />
-      <workItem from="1741075062837" duration="1154000" />
-      <workItem from="1741076245496" duration="733000" />
-      <workItem from="1741078267492" duration="6824000" />
-      <workItem from="1741089616800" duration="1013000" />
-      <workItem from="1741135169658" duration="5868000" />
-      <workItem from="1741175745368" duration="11836000" />
-      <workItem from="1741199007428" duration="5998000" />
-      <workItem from="1741217659409" duration="1591000" />
-      <workItem from="1741257746991" duration="11462000" />
-      <workItem from="1741284256180" duration="27000" />
-      <workItem from="1741287019477" duration="13813000" />
-      <workItem from="1741307743398" duration="2862000" />
-      <workItem from="1741339278621" duration="6172000" />
-      <workItem from="1741384938441" duration="1536000" />
-      <workItem from="1741434390555" duration="11774000" />
-      <workItem from="1741517841659" duration="12761000" />
-      <workItem from="1741533315519" duration="20845000" />
-      <workItem from="1741560984589" duration="4330000" />
-      <workItem from="1741565409784" duration="7465000" />
-      <workItem from="1741576891012" duration="4929000" />
-      <workItem from="1741607017141" duration="9727000" />
-      <workItem from="1741622947484" duration="14424000" />
-      <workItem from="1741722623494" duration="8880000" />
-      <workItem from="1741790620672" duration="3042000" />
-      <workItem from="1741799909648" duration="27122000" />
-      <workItem from="1741872306763" duration="14999000" />
-      <workItem from="1741903296091" duration="431000" />
-      <workItem from="1741952378400" duration="11767000" />
-      <workItem from="1741971443886" duration="12559000" />
-      <workItem from="1741989211452" duration="28000" />
-      <workItem from="1741990030102" duration="6628000" />
-      <workItem from="1742044731444" duration="3617000" />
-      <workItem from="1742051355012" duration="336000" />
-      <workItem from="1742055875046" duration="3332000" />
-      <workItem from="1742071067370" duration="12869000" />
-      <workItem from="1742089430809" duration="214000" />
-      <workItem from="1742090025085" duration="9454000" />
-      <workItem from="1742134140513" duration="5630000" />
-      <workItem from="1742139966557" duration="107000" />
-      <workItem from="1742143515946" duration="881000" />
-<<<<<<< HEAD
-      <workItem from="1742159336379" duration="711000" />
-      <workItem from="1742160130639" duration="469000" />
-      <workItem from="1742160624967" duration="591000" />
-      <workItem from="1742161239261" duration="262000" />
-      <workItem from="1742212001090" duration="72000" />
-      <workItem from="1742212456773" duration="866000" />
-=======
-      <workItem from="1742167093300" duration="4387000" />
-      <workItem from="1742181931589" duration="2199000" />
->>>>>>> b92607256c86dc99b84a27c0f368f881ea5b0b17
+      <updated>1742213421896</updated>
+      <workItem from="1742213424777" duration="2952000" />
+      <workItem from="1742219917014" duration="9845000" />
+      <workItem from="1742230046439" duration="2576000" />
+      <workItem from="1742237590777" duration="16987000" />
+      <workItem from="1742263900266" duration="9469000" />
+      <workItem from="1742319664432" duration="9512000" />
+      <workItem from="1742335610960" duration="11584000" />
+      <workItem from="1742398055077" duration="39000" />
+      <workItem from="1742398163278" duration="12568000" />
     </task>
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
-  </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <default-breakpoints>
-        <breakpoint log-message="true" log-stack="true" type="java-exception">
-          <dependency id="0" />
-        </breakpoint>
-        <breakpoint log-message="true" log-stack="true" type="javascript-exception">
-          <dependency leave-enabled="true" master-id="0" />
-          <properties uncaughtOnly="true" />
-        </breakpoint>
-      </default-breakpoints>
-    </breakpoint-manager>
   </component>
 </project>

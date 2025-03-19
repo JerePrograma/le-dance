@@ -53,4 +53,5 @@ public class Inscripcion {
     @JsonIgnore
     @EqualsAndHashCode.Exclude
     private List<Mensualidad> mensualidades;
+
 }

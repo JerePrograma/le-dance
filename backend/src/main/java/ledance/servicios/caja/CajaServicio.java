@@ -1,14 +1,30 @@
 package ledance.servicios.caja;
 
+import ledance.dto.alumno.response.AlumnoListadoResponse;
 import ledance.dto.caja.CajaDetalleDTO;
 import ledance.dto.caja.CajaDiariaDTO;
 import ledance.dto.caja.RendicionDTO;
+import ledance.dto.caja.response.CobranzasDataResponse;
+import ledance.dto.concepto.response.ConceptoResponse;
+import ledance.dto.disciplina.response.DisciplinaListadoResponse;
+import ledance.dto.egreso.request.EgresoRegistroRequest;
+import ledance.dto.egreso.response.EgresoResponse;
+import ledance.dto.egreso.EgresoMapper;
+import ledance.dto.metodopago.response.MetodoPagoResponse;
+import ledance.dto.pago.PagoMapper;
+import ledance.dto.stock.response.StockResponse;
 import ledance.entidades.Egreso;
 import ledance.entidades.EstadoPago;
 import ledance.entidades.Pago;
 import ledance.entidades.MetodoPago;
 import ledance.repositorios.EgresoRepositorio;
+import ledance.repositorios.MetodoPagoRepositorio;
 import ledance.repositorios.PagoRepositorio;
+import ledance.servicios.alumno.AlumnoServicio;
+import ledance.servicios.concepto.ConceptoServicio;
+import ledance.servicios.disciplina.DisciplinaServicio;
+import ledance.servicios.pago.MetodoPagoServicio;
+import ledance.servicios.stock.StockServicio;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,51 +37,69 @@ public class CajaServicio {
 
     private final PagoRepositorio pagoRepositorio;
     private final EgresoRepositorio egresoRepositorio;
+    private final PagoMapper pagoMapper;
+    private final EgresoMapper egresoMapper;
+    private final MetodoPagoRepositorio metodoPagoRepositorio;
+    private final AlumnoServicio alumnoServicio;
+    private final DisciplinaServicio disciplinaServicio;
+    private final ConceptoServicio conceptoServicio;
+    private final StockServicio stockServicio;
+    private final MetodoPagoServicio metodoPagoServicio;
 
-    public CajaServicio(PagoRepositorio pagoRepositorio, EgresoRepositorio egresoRepositorio) {
+    public CajaServicio(PagoRepositorio pagoRepositorio,
+                        EgresoRepositorio egresoRepositorio,
+                        PagoMapper pagoMapper,
+                        EgresoMapper egresoMapper, MetodoPagoRepositorio metodoPagoRepositorio, AlumnoServicio alumnoServicio, DisciplinaServicio disciplinaServicio, ConceptoServicio conceptoServicio, StockServicio stockServicio, MetodoPagoServicio metodoPagoServicio) {
         this.pagoRepositorio = pagoRepositorio;
         this.egresoRepositorio = egresoRepositorio;
+        this.pagoMapper = pagoMapper;
+        this.egresoMapper = egresoMapper;
+        this.metodoPagoRepositorio = metodoPagoRepositorio;
+        this.alumnoServicio = alumnoServicio;
+        this.disciplinaServicio = disciplinaServicio;
+        this.conceptoServicio = conceptoServicio;
+        this.stockServicio = stockServicio;
+        this.metodoPagoServicio = metodoPagoServicio;
     }
 
     // -------------------------------------------------------------------------
-    // 1. Planilla General de Caja: lista diaria con totales de efectivo, transferencia, etc.
-    //    - Muestra cada dia dentro de un rango [start, end].
-    //    - Suma los Pagos segun metodo de pago, y los Egresos para ese dia.
-    //    - Retorna un listado de CajaDiariaDTO (uno por dia).
+    // 1. Planilla General de Caja: Lista diaria con totales de ingresos y egresos.
     // -------------------------------------------------------------------------
     public List<CajaDiariaDTO> obtenerPlanillaGeneral(LocalDate start, LocalDate end) {
-        // a) Obtener todos los pagos activos en el rango
-        List<Pago> pagos = pagoRepositorio.findByFechaBetweenAndEstadoPago(start, end, EstadoPago.ACTIVO);
-
-        // b) Obtener todos los egresos en el rango
+        // a) Obtener pagos activos (o HISTÓRICOS según convenga) en el rango
+        List<Pago> pagos = pagoRepositorio.findByFechaBetweenAndEstadoPago(start, end, EstadoPago.HISTORICO);
+        // b) Obtener egresos en el rango
         List<Egreso> egresos = egresoRepositorio.findByFechaBetween(start, end);
 
-        // c) Agrupar pagos por fecha
+        // Mapear entidades a DTOs para desacoplar la lógica:
+        List<?> pagosDTO = pagos.stream()
+                .map(pagoMapper::toDTO)
+                .collect(Collectors.toList());
+        List<?> egresosDTO = egresos.stream()
+                .map(egresoMapper::toDTO)
+                .collect(Collectors.toList());
+
+        // Para agrupar, usaremos las fechas (asumimos que en los DTOs la fecha es de tipo LocalDate)
         Map<LocalDate, List<Pago>> pagosPorDia = pagos.stream()
                 .collect(Collectors.groupingBy(Pago::getFecha));
-
-        // d) Agrupar egresos por fecha
         Map<LocalDate, List<Egreso>> egresosPorDia = egresos.stream()
                 .collect(Collectors.groupingBy(Egreso::getFecha));
 
-        // e) Tomar todas las fechas involucradas (pueden ser dias en que hay pagos o egresos)
+        // Todas las fechas involucradas
         Set<LocalDate> fechasCompletas = new HashSet<>();
         fechasCompletas.addAll(pagosPorDia.keySet());
         fechasCompletas.addAll(egresosPorDia.keySet());
 
-        // f) Construir la lista de resultados
         List<CajaDiariaDTO> resultado = new ArrayList<>();
-
         for (LocalDate dia : fechasCompletas) {
             List<Pago> pagosDia = pagosPorDia.getOrDefault(dia, Collections.emptyList());
             List<Egreso> egresosDia = egresosPorDia.getOrDefault(dia, Collections.emptyList());
 
             double totalEfectivo = sumarPorMetodoPago(pagosDia, "EFECTIVO");
-            double totalDebito   = sumarPorMetodoPago(pagosDia, "DEBITO");
+            double totalDebito = sumarPorMetodoPago(pagosDia, "DEBITO");
+            double totalEgresos = egresosDia.stream().mapToDouble(Egreso::getMonto).sum();
 
-            double totalEgresos    = egresosDia.stream().mapToDouble(Egreso::getMonto).sum();
-            String rangoRecibos    = calcularRangoRecibos(pagosDia);
-
+            String rangoRecibos = calcularRangoRecibos(pagosDia);
             double totalNeto = (totalEfectivo + totalDebito) - totalEgresos;
 
             CajaDiariaDTO dto = new CajaDiariaDTO(
@@ -79,13 +113,12 @@ public class CajaServicio {
             resultado.add(dto);
         }
 
-        // g) Ordenar por fecha ascendente y retornar
         resultado.sort(Comparator.comparing(CajaDiariaDTO::fecha));
         return resultado;
     }
 
     /**
-     * Auxiliar: Suma los montos de los Pagos que tengan metodoPago.descripcion == metodoDescripcion
+     * Suma los montos de pagos que tengan el método de pago con la descripción indicada.
      */
     private double sumarPorMetodoPago(List<Pago> pagos, String metodoDescripcion) {
         return pagos.stream()
@@ -96,66 +129,46 @@ public class CajaServicio {
     }
 
     /**
-     * Auxiliar: Devuelve un string que describa el rango de recibos (IDs) del dia
-     *           p. ej. “Recibo #15 al #20” o “Sin Recibos”.
+     * Calcula el rango de recibos (IDs) para una lista de pagos.
      */
     private String calcularRangoRecibos(List<Pago> pagos) {
-        if (pagos.isEmpty()) {
-            return "Sin Recibos";
-        }
+        if (pagos.isEmpty()) return "Sin Recibos";
         long min = pagos.stream().mapToLong(Pago::getId).min().orElse(0);
         long max = pagos.stream().mapToLong(Pago::getId).max().orElse(0);
-        if (min == max) {
-            return "Recibo #" + min;
-        }
-        return String.format("Recibo #%d al #%d", min, max);
+        return min == max ? "Recibo #" + min : String.format("Recibo #%d al #%d", min, max);
     }
 
     // -------------------------------------------------------------------------
-    // 2. Caja Diaria: lista de Pagos (recibos) y Egresos de un dia
+    // 2. Caja Diaria: Obtener pagos y egresos de un día específico.
     // -------------------------------------------------------------------------
     public CajaDetalleDTO obtenerCajaDiaria(LocalDate fecha) {
-        List<Pago>   pagosDia   = pagoRepositorio.findByFechaBetweenAndEstadoPago(fecha, fecha, EstadoPago.HISTORICO);
+        List<Pago> pagosDia = pagoRepositorio.findByFechaBetweenAndEstadoPago(fecha, fecha, EstadoPago.HISTORICO);
         List<Egreso> egresosDia = egresoRepositorio.findByFecha(fecha);
 
-        return new CajaDetalleDTO(pagosDia, egresosDia);
+        // Se pueden mapear a DTOs si se requiere
+        return new CajaDetalleDTO(pagoMapper.toDTOList(pagosDia), egresoMapper.toDTOList(egresosDia));
     }
 
     // -------------------------------------------------------------------------
-    // 3. Registrar un nuevo Egreso en un dia
+    // 3. Rendición General de Caja: Detalles y totales en un rango.
     // -------------------------------------------------------------------------
-    @Transactional
-    public Egreso agregarEgreso(LocalDate fecha, Double monto, String obs, MetodoPago metodo) {
-        Egreso egreso = new Egreso();
-        egreso.setFecha(fecha);
-        egreso.setMonto(monto);
-        egreso.setObservaciones(obs);
-        egreso.setMetodoPago(metodo); // Por defecto EFECTIVO, o lo que pases
-        return egresoRepositorio.save(egreso);
-    }
-
-    /**
-     * Rendicion General de Caja: detalles y totales de un rango de fechas.
-     */
     public RendicionDTO obtenerRendicionGeneral(LocalDate start, LocalDate end) {
         List<Pago> pagos = pagoRepositorio.findByFechaBetweenAndEstadoPago(start, end, EstadoPago.HISTORICO);
         List<Egreso> egresos = egresoRepositorio.findByFechaBetween(start, end);
 
         double totalEfectivo = sumarPorMetodoPago(pagos, "EFECTIVO");
-        double totalDebito   = sumarPorMetodoPago(pagos, "DEBITO");
-        double totalEgresos  = egresos.stream().mapToDouble(Egreso::getMonto).sum();
+        double totalDebito = sumarPorMetodoPago(pagos, "DEBITO");
+        double totalEgresos = egresos.stream().mapToDouble(Egreso::getMonto).sum();
 
-        return new RendicionDTO(pagos, egresos, totalEfectivo, totalDebito, totalEgresos);
+        // Se mapean los pagos y egresos a DTOs si se desea, o se usan las entidades directamente
+        return new RendicionDTO(pagoMapper.toDTOList(pagos), egresoMapper.toDTOList(egresos),
+                totalEfectivo, totalDebito, totalEgresos);
     }
 
     // -------------------------------------------------------------------------
-    // 5. Funcionalidades Adicionales
+    // 4. Funcionalidades CRUD para Egresos
     // -------------------------------------------------------------------------
 
-    /**
-     * 5a) Eliminar (o anular) un Egreso.
-     *     Dejas activo=false para no perder registro historico.
-     */
     @Transactional
     public void anularEgreso(Long egresoId) {
         Egreso egreso = egresoRepositorio.findById(egresoId)
@@ -164,53 +177,88 @@ public class CajaServicio {
         egresoRepositorio.save(egreso);
     }
 
-    /**
-     * 5b) Actualizar un Egreso existente (fecha, monto, observaciones, metodoPago)
-     */
     @Transactional
-    public Egreso actualizarEgreso(Long egresoId,
-                                   LocalDate nuevaFecha,
-                                   Double nuevoMonto,
-                                   String nuevasObs,
-                                   MetodoPago nuevoMetodo) {
+    public EgresoResponse actualizarEgreso(Long egresoId,
+                                           EgresoRegistroRequest request) {
         Egreso egreso = egresoRepositorio.findById(egresoId)
                 .orElseThrow(() -> new IllegalArgumentException("Egreso no encontrado."));
-        egreso.setFecha(nuevaFecha);
-        egreso.setMonto(nuevoMonto);
-        egreso.setObservaciones(nuevasObs);
-        egreso.setMetodoPago(nuevoMetodo);
-        return egresoRepositorio.save(egreso);
+        // Actualiza los campos básicos mediante el mapper
+        egresoMapper.updateEntityFromRequest(request, egreso);
+        // Actualiza el método de pago si se envía
+        if (request.metodoPagoId() != null) {
+            MetodoPago metodo = metodoPagoRepositorio.findById(request.metodoPagoId())
+                    .orElseThrow(() -> new IllegalArgumentException("Método de pago no encontrado."));
+            egreso.setMetodoPago(metodo);
+        }
+        Egreso saved = egresoRepositorio.save(egreso);
+        return egresoMapper.toDTO(saved);
+    }
+
+    public EgresoResponse obtenerEgresoPorId(Long id) {
+        Egreso egreso = egresoRepositorio.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Egreso no encontrado."));
+        return egresoMapper.toDTO(egreso);
+    }
+
+    public List<EgresoResponse> listarEgresos() {
+        return egresoRepositorio.findAll()
+                .stream()
+                .filter(e -> e.getActivo() != null && e.getActivo())
+                .map(egresoMapper::toDTO)
+                .collect(Collectors.toList());
     }
 
     /**
-     * 5c) Calcular “saldo total” de la caja en un rango (ingresos - egresos).
-     *     Aunque ya se muestra en rendicion, a veces se necesita un metodo directo.
-     */
-    public double calcularSaldoCaja(LocalDate start, LocalDate end) {
-        List<Pago> pagos   = pagoRepositorio.findByFechaBetweenAndEstadoPago(start, end, EstadoPago.HISTORICO);
-        double totalIngresos = pagos.stream().mapToDouble(Pago::getMonto).sum();
-
-        List<Egreso> egresos = egresoRepositorio.findByFechaBetween(start, end);
-        double totalEgresos = egresos.stream().mapToDouble(Egreso::getMonto).sum();
-
-        return totalIngresos - totalEgresos;
-    }
-
-    /**
-     * 5d) Filtrar pagos y egresos por metodo de pago (p.ej. Efectivo) en un rango
+     * 5d) Filtrar pagos y egresos por método de pago en un rango.
      */
     public List<Pago> obtenerPagosPorMetodo(LocalDate start, LocalDate end, String metodoDescripcion) {
-        return pagoRepositorio.findByFechaBetweenAndEstadoPago(start, end, EstadoPago.ACTIVO).stream()
+        return pagoRepositorio.findByFechaBetweenAndEstadoPago(start, end, EstadoPago.ACTIVO)
+                .stream()
                 .filter(p -> p.getMetodoPago() != null &&
                         p.getMetodoPago().getDescripcion().equalsIgnoreCase(metodoDescripcion))
                 .collect(Collectors.toList());
     }
 
     public List<Egreso> obtenerEgresosPorMetodo(LocalDate start, LocalDate end, String metodoDescripcion) {
-        return egresoRepositorio.findByFechaBetween(start, end).stream()
+        return egresoRepositorio.findByFechaBetween(start, end)
+                .stream()
                 .filter(e -> e.getMetodoPago() != null &&
                         e.getMetodoPago().getDescripcion().equalsIgnoreCase(metodoDescripcion))
                 .collect(Collectors.toList());
     }
 
+    /**
+     * 5e) Calcular “saldo total” de la caja en un rango (ingresos - egresos).
+     */
+    public double calcularSaldoCaja(LocalDate start, LocalDate end) {
+        double totalIngresos = pagoRepositorio.findByFechaBetweenAndEstadoPago(start, end, EstadoPago.HISTORICO)
+                .stream()
+                .mapToDouble(Pago::getMonto)
+                .sum();
+        double totalEgresos = egresoRepositorio.findByFechaBetween(start, end)
+                .stream()
+                .mapToDouble(Egreso::getMonto)
+                .sum();
+        return totalIngresos - totalEgresos;
+    }
+
+    public CobranzasDataResponse obtenerDatosCobranzas() {
+        // 1. Obtener listado simplificado de alumnos.
+        List<AlumnoListadoResponse> alumnos = alumnoServicio.listarAlumnosSimplificado();
+
+        // 2. Obtener listado básico de disciplinas.
+        List<DisciplinaListadoResponse> disciplinas = disciplinaServicio.listarDisciplinasSimplificadas();
+
+        // 3. Obtener listado de stocks.
+        List<StockResponse> stocks = stockServicio.listarStocksActivos();
+
+        // 4. Obtener listado de métodos de pago.
+        List<MetodoPagoResponse> metodosPago = metodoPagoServicio.listar();
+
+        // 5. Obtener listado de conceptos.
+        List<ConceptoResponse> conceptos = conceptoServicio.listarConceptos();
+
+        // 6. Armar y retornar el DTO unificado de cobranzas.
+        return new CobranzasDataResponse(alumnos, disciplinas, stocks, metodosPago, conceptos);
+    }
 }

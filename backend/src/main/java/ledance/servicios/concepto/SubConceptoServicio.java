@@ -1,7 +1,6 @@
 package ledance.servicios.concepto;
 
 import ledance.dto.concepto.request.SubConceptoRegistroRequest;
-import ledance.dto.concepto.request.SubConceptoModificacionRequest;
 import ledance.dto.concepto.response.SubConceptoResponse;
 import ledance.dto.concepto.SubConceptoMapper;
 import ledance.entidades.SubConcepto;
@@ -33,7 +32,7 @@ public class SubConceptoServicio {
 
     // Actualiza un subconcepto existente.
     @Transactional
-    public SubConceptoResponse actualizarSubConcepto(Long id, SubConceptoModificacionRequest request) {
+    public SubConceptoResponse actualizarSubConcepto(Long id, SubConceptoRegistroRequest request) {
         SubConcepto subConcepto = subConceptoRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("SubConcepto no encontrado con id: " + id));
         subConceptoMapper.updateEntityFromRequest(request, subConcepto);
@@ -73,4 +72,5 @@ public class SubConceptoServicio {
                 .map(subConceptoMapper::toResponse)
                 .collect(Collectors.toList());
     }
+
 }

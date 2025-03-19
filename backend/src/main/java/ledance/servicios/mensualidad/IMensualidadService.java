@@ -8,7 +8,6 @@ public interface IMensualidadService {
     MensualidadResponse crearMensualidad(MensualidadRegistroRequest request);
     MensualidadResponse actualizarMensualidad(Long id, MensualidadRegistroRequest request);
     MensualidadResponse obtenerMensualidad(Long id);
-    List<MensualidadResponse> listarMensualidades();
     List<MensualidadResponse> listarPorInscripcion(Long inscripcionId);
     void eliminarMensualidad(Long id);
 }
