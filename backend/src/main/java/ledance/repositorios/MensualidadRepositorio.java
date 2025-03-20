@@ -20,5 +20,9 @@ public interface MensualidadRepositorio extends JpaRepository<Mensualidad, Long>
 
     Mensualidad findByInscripcionAndDescripcionAndEstado(Inscripcion inscripcion, String descripcion, EstadoMensualidad estado);
 
+    // Busca todas las mensualidades para el alumno (a través de la inscripción) que tengan un estado específico.
     List<Mensualidad> findByInscripcionAlumnoIdAndEstado(Long alumnoId, EstadoMensualidad estado);
+
+    // Busca una mensualidad para el alumno con una descripción específica.
+    Optional<Mensualidad> findByInscripcionAlumnoIdAndDescripcion(Long alumnoId, String descripcionConcepto);
 }

@@ -2,6 +2,7 @@ package ledance.dto.matricula;
 
 import ledance.dto.matricula.request.MatriculaRegistroRequest;
 import ledance.dto.matricula.response.MatriculaResponse;
+import ledance.entidades.Inscripcion;
 import ledance.entidades.Matricula;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -28,4 +29,12 @@ public interface MatriculaMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "alumno", ignore = true)
     void updateEntityFromRequest(MatriculaRegistroRequest request, @MappingTarget Matricula matricula);
+
+    // Método para transformar una Inscripción en un MatriculaRegistroRequest.
+    // Se asume que la fecha de inscripción es la que se usará para determinar el año.
+    @Mapping(target = "alumnoId", source = "alumno.id")
+    @Mapping(target = "anio", expression = "java(inscripcionObtenida.getFechaInscripcion() != null ? inscripcionObtenida.getFechaInscripcion().getYear() : null)")
+    @Mapping(target = "pagada", constant = "false")
+    @Mapping(target = "fechaPago", ignore = true)
+    MatriculaRegistroRequest toRegistroRequest(Inscripcion inscripcionObtenida);
 }

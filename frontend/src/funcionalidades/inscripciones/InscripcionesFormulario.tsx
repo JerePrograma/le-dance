@@ -1,15 +1,15 @@
-"use client"
+"use client";
 
-import React, { useEffect, useState, useCallback } from "react"
-import { useNavigate, useSearchParams } from "react-router-dom"
-import { Formik, Form, Field, ErrorMessage } from "formik"
-import { toast } from "react-toastify"
-import Boton from "../../componentes/comunes/Boton"
+import React, { useEffect, useState, useCallback } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Formik, Form, Field, ErrorMessage } from "formik";
+import { toast } from "react-toastify";
+import Boton from "../../componentes/comunes/Boton";
 
 // APIs
-import inscripcionesApi from "../../api/inscripcionesApi"
-import disciplinasApi from "../../api/disciplinasApi"
-import bonificacionesApi from "../../api/bonificacionesApi"
+import inscripcionesApi from "../../api/inscripcionesApi";
+import disciplinasApi from "../../api/disciplinasApi";
+import bonificacionesApi from "../../api/bonificacionesApi";
 
 // Types
 import type {
@@ -17,19 +17,32 @@ import type {
   BonificacionResponse,
   DisciplinaDetalleResponse,
   InscripcionRegistroRequest,
-} from "../../types/types"
+  AlumnoRegistroRequest,
+} from "../../types/types";
 
 // Esquema de validación
-import { inscripcionEsquema } from "../../validaciones/inscripcionEsquema"
+import { inscripcionEsquema } from "../../validaciones/inscripcionEsquema";
 
 // Extendemos el tipo para el formulario (para distinguir inscripciones ya existentes)
 interface InscripcionFormData extends InscripcionRegistroRequest {
-  id?: number
+  id?: number;
 }
+
+const obtenerFechaGTM3 = () => {
+  // Usamos 'en-CA' que genera el formato YYYY-MM-DD
+  return new Date().toLocaleDateString("en-CA", { timeZone: "America/Argentina/Buenos_Aires" });
+};
 
 // Valor inicial para una inscripción nueva
 const initialInscripcion: InscripcionFormData = {
-  alumnoId: 0,
+  alumno: {
+    id: 0,
+    nombre: "",
+    apellido: "",
+    fechaNacimiento: "",
+    fechaIncorporacion: "",
+    inscripciones: [],
+  } as AlumnoRegistroRequest,
   // Inicialmente no se selecciona ninguna disciplina (id = 0)
   disciplina: {
     id: 0,
@@ -41,25 +54,25 @@ const initialInscripcion: InscripcionFormData = {
     horarios: [],
   },
   bonificacionId: undefined,
-  fechaInscripcion: new Date().toISOString().split("T")[0],
-}
+  fechaInscripcion: obtenerFechaGTM3(),
+};
 
 const InscripcionesFormulario: React.FC = () => {
-  const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   // Listados de catálogos
-  const [disciplinas, setDisciplinas] = useState<DisciplinaDetalleResponse[]>([])
-  const [bonificaciones, setBonificaciones] = useState<BonificacionResponse[]>([])
+  const [disciplinas, setDisciplinas] = useState<DisciplinaDetalleResponse[]>([]);
+  const [bonificaciones, setBonificaciones] = useState<BonificacionResponse[]>([]);
 
-  // Para el alumno (se asume que viene en la URL)
-  const [alumnoId, setAlumnoId] = useState<number>(0)
+  // Guardamos el id del alumno obtenido de la URL
+  const [alumnoId, setAlumnoId] = useState<number>(0);
 
   // Lista dinámica de inscripciones a agregar/editar (inicialmente vacía)
-  const [inscripcionesList, setInscripcionesList] = useState<InscripcionFormData[]>([])
+  const [inscripcionesList, setInscripcionesList] = useState<InscripcionFormData[]>([]);
 
   // Lista de inscripciones previas (ya guardadas) del alumno
-  const [prevInscripciones, setPrevInscripciones] = useState<InscripcionResponse[]>([])
+  const [prevInscripciones, setPrevInscripciones] = useState<InscripcionResponse[]>([]);
 
   // Cargar catálogos de disciplinas y bonificaciones
   useEffect(() => {
@@ -68,107 +81,123 @@ const InscripcionesFormulario: React.FC = () => {
         const [discData, bonData] = await Promise.all([
           disciplinasApi.listarDisciplinas(),
           bonificacionesApi.listarBonificaciones(),
-        ])
-        setDisciplinas(discData || [])
-        setBonificaciones(bonData || [])
+        ]);
+        setDisciplinas(discData || []);
+        setBonificaciones(bonData || []);
       } catch (error) {
-        toast.error("Error al cargar disciplinas o bonificaciones.")
+        toast.error("Error al cargar disciplinas o bonificaciones.");
       }
-    }
-    fetchCatalogos()
-  }, [])
+    };
+    fetchCatalogos();
+  }, []);
 
-  // Leer "alumnoId" de la URL y asignarlo a los formularios
+  // Leer "alumnoId" de la URL y asignarlo al objeto alumno de cada inscripción
   useEffect(() => {
-    const alumnoParam = searchParams.get("alumnoId")
+    const alumnoParam = searchParams.get("alumnoId");
     if (alumnoParam) {
-      const aId = Number(alumnoParam)
+      const aId = Number(alumnoParam);
       if (!isNaN(aId) && aId !== 0) {
-        setAlumnoId(aId)
-        // Actualizamos el alumnoId en los formularios existentes
+        setAlumnoId(aId);
+        // Actualizamos el alumno.id en los formularios existentes
         setInscripcionesList((prev) =>
-          prev.map((insc) => ({ ...insc, alumnoId: aId }))
-        )
+          prev.map((insc) => ({
+            ...insc,
+            alumno: { ...insc.alumno, id: aId },
+          }))
+        );
       } else {
-        toast.warn("AlumnoId no es un número válido o es 0")
+        toast.warn("AlumnoId no es un número válido o es 0");
       }
     } else {
-      toast.warn("No se encontró alumnoId en la URL")
+      toast.warn("No se encontró alumnoId en la URL");
     }
-  }, [searchParams])
+  }, [searchParams]);
+
+  // Agregar un formulario vacío para una nueva inscripción
+  const agregarInscripcion = () => {
+    setInscripcionesList((prev) => [
+      ...prev,
+      {
+        ...initialInscripcion,
+        alumno: { ...initialInscripcion.alumno, id: alumnoId },
+      },
+    ]);
+  };
 
   // Función para cargar las inscripciones previas del alumno
   const fetchPrevInscripciones = useCallback(async () => {
     if (alumnoId) {
       try {
-        const lista: InscripcionResponse[] = await inscripcionesApi.listar(alumnoId)
-        setPrevInscripciones(lista)
+        const lista: InscripcionResponse[] = await inscripcionesApi.listar(alumnoId);
+        setPrevInscripciones(lista);
       } catch (error) {
-        toast.error("Error al cargar inscripciones previas.")
+        toast.error("Error al cargar inscripciones previas.");
       }
     } else {
-      toast.warn("AlumnoId es 0, no se cargarán inscripciones previas")
+      toast.warn("AlumnoId es 0, no se cargarán inscripciones previas");
     }
-  }, [alumnoId])
+  }, [alumnoId]);
 
   useEffect(() => {
-    fetchPrevInscripciones()
-  }, [fetchPrevInscripciones])
+    fetchPrevInscripciones();
+  }, [fetchPrevInscripciones]);
 
   // Para cada inscripción, calculamos los valores de cuota, bonificación y total
   const calcularValores = (ins: InscripcionResponse) => {
-    const cuota = ins.disciplina?.valorCuota || 0
-    const bonifPct = ins.bonificacion?.porcentajeDescuento || 0
-    const bonifMonto = ins.bonificacion?.valorFijo || 0
-    const total = cuota - bonifMonto - (cuota * bonifPct) / 100
-    return { cuota, bonifPct, bonifMonto, total }
-  }
+    const cuota = ins.disciplina?.valorCuota || 0;
+    const bonifPct = ins.bonificacion?.porcentajeDescuento || 0;
+    const bonifMonto = ins.bonificacion?.valorFijo || 0;
+    const total = cuota - bonifMonto - (cuota * bonifPct) / 100;
+    return { cuota, bonifPct, bonifMonto, total };
+  };
 
   // Sumas totales de las inscripciones previas
   const totales = prevInscripciones.reduce(
     (acc, ins) => {
-      const { cuota, bonifPct, bonifMonto, total } = calcularValores(ins)
+      const { cuota, bonifPct, bonifMonto, total } = calcularValores(ins);
       return {
         cuota: acc.cuota + cuota,
         bonifPct: acc.bonifPct + bonifPct,
         bonifMonto: acc.bonifMonto + bonifMonto,
         total: acc.total + total,
-      }
+      };
     },
     { cuota: 0, bonifPct: 0, bonifMonto: 0, total: 0 }
-  )
-
-  // Agregar un formulario vacío para una nueva inscripción
-  const agregarInscripcion = () => {
-    setInscripcionesList((prev) => [...prev, { ...initialInscripcion, alumnoId }])
-  }
+  );
 
   // Eliminar un formulario de inscripción (por índice)
   const eliminarInscripcionRow = (index: number) => {
-    setInscripcionesList((prev) => prev.filter((_, i) => i !== index))
-  }
+    setInscripcionesList((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const handleEliminarInscripcion = async (ins: InscripcionResponse) => {
     try {
-      await inscripcionesApi.eliminar(ins.id)
-      toast.success("Inscripción eliminada correctamente.")
-      setPrevInscripciones((prev) => prev.filter((item) => item.id !== ins.id))
+      await inscripcionesApi.eliminar(ins.id);
+      toast.success("Inscripción eliminada correctamente.");
+      setPrevInscripciones((prev) => prev.filter((item) => item.id !== ins.id));
     } catch (error) {
-      toast.error("Error al eliminar inscripción.")
+      toast.error("Error al eliminar inscripción.");
     }
-  }
+  };
 
   // Cargar inscripción previa en el formulario para editar
   const handleEditarInscripcion = (ins: InscripcionResponse) => {
-    const disciplinaEncontrada = disciplinas.find((d) => d.id === ins.disciplina.id)
+    const disciplinaEncontrada = disciplinas.find((d) => d.id === ins.disciplina.id);
     if (!disciplinaEncontrada) {
-      toast.error("La inscripción seleccionada no tiene disciplina asignada.")
-      return
+      toast.error("La inscripción seleccionada no tiene disciplina asignada.");
+      return;
     }
 
     const formData: InscripcionFormData = {
       id: ins.id,
-      alumnoId: ins.alumno.id,
+      alumno: {
+        id: ins.alumno.id,
+        nombre: ins.alumno.nombre || "",
+        apellido: ins.alumno.apellido || "",
+        inscripciones: [],
+        fechaNacimiento: "",
+        fechaIncorporacion: ""
+      },
       disciplina: {
         id: disciplinaEncontrada.id,
         nombre: disciplinaEncontrada.nombre,
@@ -176,58 +205,60 @@ const InscripcionesFormulario: React.FC = () => {
         profesorId: disciplinaEncontrada.profesorId,
         valorCuota: disciplinaEncontrada.valorCuota,
         matricula: disciplinaEncontrada.matricula,
-        horarios: [],
+        horarios: [], // O, si se requiere, mapear horarios según sea necesario
       },
       bonificacionId: ins.bonificacion?.id,
-      fechaInscripcion: ins.fechaInscripcion || new Date().toISOString().split("T")[0],
-    }
+      fechaInscripcion:
+        ins.fechaInscripcion || new Date().toISOString().split("T")[0],
+    };
 
     setInscripcionesList((prev) => {
-      const idx = prev.findIndex((item) => item.id === formData.id)
+      const idx = prev.findIndex((item) => item.id === formData.id);
       if (idx !== -1) {
-        const nuevos = [...prev]
-        nuevos[idx] = formData
-        return nuevos
+        const nuevos = [...prev];
+        nuevos[idx] = formData;
+        return nuevos;
       }
-      return [...prev, formData]
-    })
-  }
+      return [...prev, formData];
+    });
+  };
 
   // Guardar (crear o actualizar) inscripción
   const handleGuardarInscripcion = async (
     values: InscripcionFormData,
     _resetForm: () => void
   ) => {
-    if (!values.alumnoId || values.alumnoId === 0 || !values.disciplina.id || values.disciplina.id === 0) {
-      toast.error("Debes asignar un alumno y una disciplina.")
-      return
+    // Validamos que se haya asignado un alumno (a través de alumno.id) y una disciplina
+    if (!values.alumno?.id || values.alumno.id === 0 || !values.disciplina?.id || values.disciplina.id === 0) {
+      toast.error("Debes asignar un alumno y una disciplina.");
+      return;
     }
 
     try {
-      // Importante: Enviar el objeto disciplina completo (incluyendo el array de horarios)
       const payload: InscripcionRegistroRequest = {
-        alumnoId: values.alumnoId,
+        alumno: values.alumno,
         disciplina: values.disciplina,
         bonificacionId: values.bonificacionId,
-      }
+        fechaInscripcion: ""
+      };
 
       if (values.id) {
-        await inscripcionesApi.actualizar(values.id, payload)
-        toast.success("Inscripción actualizada correctamente.")
+        await inscripcionesApi.actualizar(values.id, payload);
+        toast.success("Inscripción actualizada correctamente.");
         setInscripcionesList((prev) =>
-          prev.map((insc) =>
-            insc.id === values.id ? { ...values } : insc
-          )
-        )
+          prev.map((insc) => (insc.id === values.id ? { ...values } : insc))
+        );
       } else {
-        await inscripcionesApi.crear(values)
-        toast.success("Inscripción creada correctamente. La cuota del mes vigente se generó automáticamente.")
+        await inscripcionesApi.crear(values);
+        toast.success(
+          "Inscripción creada correctamente. La cuota del mes vigente se generó automáticamente."
+        );
       }
-      await fetchPrevInscripciones()
+      await fetchPrevInscripciones();
     } catch (err) {
-      toast.error("Error al guardar la inscripción.")
+      toast.error("Error al guardar la inscripción.");
     }
-  }
+  };
 
   return (
     <div className="container mx-auto p-6 space-y-8">
@@ -256,7 +287,7 @@ const InscripcionesFormulario: React.FC = () => {
               </thead>
               <tbody>
                 {prevInscripciones.map((ins) => {
-                  const { cuota, bonifPct, bonifMonto, total } = calcularValores(ins)
+                  const { cuota, bonifPct, bonifMonto, total } = calcularValores(ins);
                   return (
                     <tr key={ins.id} className="border-t border-border">
                       <td className="px-4 py-2 border border-border">{ins.id}</td>
@@ -304,7 +335,7 @@ const InscripcionesFormulario: React.FC = () => {
                         </div>
                       </td>
                     </tr>
-                  )
+                  );
                 })}
               </tbody>
               <tfoot className="bg-muted">
@@ -343,32 +374,40 @@ const InscripcionesFormulario: React.FC = () => {
             initialValues={inscripcion}
             validationSchema={inscripcionEsquema}
             onSubmit={(values, actions) => {
-              handleGuardarInscripcion(values, actions.resetForm)
-                .finally(() => {
-                  actions.setSubmitting(false)
-                })
+              handleGuardarInscripcion(values, actions.resetForm).finally(() => {
+                actions.setSubmitting(false);
+              });
             }}
           >
-            {({ isSubmitting, values, setFieldValue }) => {
+            {({ isSubmitting, values, setFieldValue, errors, touched }) => {
               const selectedDiscipline = disciplinas.find(
                 (d) => d.id === Number(values.disciplina.id)
-              )
-              const cuota = selectedDiscipline?.valorCuota ?? 0
-
+              );
+              const cuota = selectedDiscipline?.valorCuota ?? 0;
               const selectedBonification = bonificaciones.find(
                 (b) => b.id === Number(values.bonificacionId)
-              )
-              const bonificacionPorcentaje = selectedBonification?.porcentajeDescuento ?? 0
-              const bonificacionValor = selectedBonification?.valorFijo ?? 0
-
-              const total = cuota - bonificacionValor - (cuota * bonificacionPorcentaje) / 100
+              );
+              const bonificacionPorcentaje = selectedBonification?.porcentajeDescuento ?? 0;
+              const bonificacionValor = selectedBonification?.valorFijo ?? 0;
+              const total =
+                cuota - bonificacionValor - (cuota * bonificacionPorcentaje) / 100;
 
               return (
                 <Form className="space-y-6">
+                  {/* Mostrar errores de validación para depurar */}
+                  {Object.keys(errors).length > 0 && (
+                    <div className="text-red-600 text-sm">
+                      <pre>{JSON.stringify(errors, null, 2)}</pre>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-6 border-b pb-4">
                     {/* Campo para seleccionar disciplina */}
                     <div className="space-y-2">
-                      <label htmlFor="disciplina.id" className="block text-sm font-medium">
+                      <label
+                        htmlFor="disciplina.id"
+                        className="block text-sm font-medium"
+                      >
                         Disciplina
                       </label>
                       <Field
@@ -376,9 +415,11 @@ const InscripcionesFormulario: React.FC = () => {
                         name="disciplina.id"
                         className="w-full px-3 py-2 border border-border rounded-md bg-background"
                         onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-                          const selectedId = Number(e.target.value)
-                          setFieldValue("disciplina.id", selectedId)
-                          const found = disciplinas.find((d) => d.id === selectedId)
+                          const selectedId = Number(e.target.value);
+                          setFieldValue("disciplina.id", selectedId);
+                          const found = disciplinas.find(
+                            (d) => d.id === selectedId
+                          );
                           if (found) {
                             setFieldValue("disciplina", {
                               id: found.id,
@@ -388,7 +429,7 @@ const InscripcionesFormulario: React.FC = () => {
                               valorCuota: found.valorCuota,
                               matricula: found.matricula,
                               horarios: found.horarios,
-                            })
+                            });
                           } else {
                             setFieldValue("disciplina", {
                               id: 0,
@@ -398,7 +439,7 @@ const InscripcionesFormulario: React.FC = () => {
                               valorCuota: 0,
                               matricula: 0,
                               horarios: [],
-                            })
+                            });
                           }
                         }}
                       >
@@ -416,9 +457,12 @@ const InscripcionesFormulario: React.FC = () => {
                       />
                     </div>
 
-                    {/* Campo para bonificación consolidado */}
+                    {/* Campo para bonificación */}
                     <div className="space-y-2">
-                      <label htmlFor="bonificacionId" className="block text-sm font-medium">
+                      <label
+                        htmlFor="bonificacionId"
+                        className="block text-sm font-medium"
+                      >
                         Bonificación (Opcional)
                       </label>
                       <Field
@@ -426,7 +470,10 @@ const InscripcionesFormulario: React.FC = () => {
                         name="bonificacionId"
                         className="w-full px-3 py-2 border border-border rounded-md bg-background"
                         onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                          setFieldValue("bonificacionId", e.target.value ? Number(e.target.value) : undefined)
+                          setFieldValue(
+                            "bonificacionId",
+                            e.target.value ? Number(e.target.value) : undefined
+                          )
                         }
                       >
                         <option value="">-- Ninguna --</option>
@@ -443,8 +490,12 @@ const InscripcionesFormulario: React.FC = () => {
                       />
                     </div>
 
+                    {/* Campo para fecha de inscripción */}
                     <div className="space-y-2">
-                      <label htmlFor="fechaInscripcion" className="block text-sm font-medium">
+                      <label
+                        htmlFor="fechaInscripcion"
+                        className="block text-sm font-medium"
+                      >
                         Fecha de Inscripción
                       </label>
                       <Field
@@ -516,7 +567,7 @@ const InscripcionesFormulario: React.FC = () => {
                     </Boton>
                   </div>
                 </Form>
-              )
+              );
             }}
           </Formik>
         </div>
@@ -531,7 +582,9 @@ const InscripcionesFormulario: React.FC = () => {
         </Boton>
         <Boton
           onClick={() =>
-            navigate(alumnoId ? `/alumnos/formulario?id=${alumnoId}` : "/inscripciones")
+            navigate(
+              alumnoId ? `/alumnos/formulario?id=${alumnoId}` : "/inscripciones"
+            )
           }
           className="inline-flex items-center gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/90"
         >
@@ -539,7 +592,7 @@ const InscripcionesFormulario: React.FC = () => {
         </Boton>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default InscripcionesFormulario
+export default InscripcionesFormulario;

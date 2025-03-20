@@ -1,9 +1,9 @@
 // src/hooks/useAlumnoDeudas.ts
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import deudasApi from "../api/deudasApi";
 import { toast } from "react-toastify";
-import type { DeudasPendientesResponse } from "../types/types";
+import type { DeudasPendientesResponse, InscripcionResponse } from "../types/types";
 
 export const useAlumnoDeudas = (alumnoId: number) => {
   const query = useQuery<DeudasPendientesResponse, Error>({
@@ -18,19 +18,34 @@ export const useAlumnoDeudas = (alumnoId: number) => {
     }
   }, [query.error]);
 
-  // Si la respuesta no incluye alumnoId o alumnoNombre, se intenta tomarlo del objeto matrícula pendiente
+  // Extraer desde la data la inscripción si existe en el primer detalle pendiente
   const dataWithAlumno = useMemo(() => {
     if (query.data) {
-      let { alumnoId: debtAlumnoId, alumnoNombre } = query.data;
-      if (!debtAlumnoId && query.data.matriculaPendiente?.alumnoId) {
-        debtAlumnoId = query.data.matriculaPendiente.alumnoId;
-        // Aquí podrías definir también un valor por defecto para alumnoNombre si tienes esa información en otro lado
-        alumnoNombre = alumnoNombre || "Alumno desconocido";
-      }
-      return { ...query.data, alumnoId: debtAlumnoId, alumnoNombre };
+      const { alumnoId: debtAlumnoId, alumnoNombre, detallePagosPendientes } = query.data;
+      const inscripcion = detallePagosPendientes && detallePagosPendientes.length > 0 
+        ? detallePagosPendientes[0].inscripcion 
+        : null;
+      return {
+        ...query.data,
+        alumnoId: debtAlumnoId,
+        alumnoNombre,
+        inscripcion,
+      };
     }
     return query.data;
   }, [query.data]);
 
-  return { ...query, data: dataWithAlumno };
+  // Si necesitas un estado local para la inscripción (opcional)
+  const [inscripcion, setInscripcion] = useState<InscripcionResponse | null>(
+    dataWithAlumno?.inscripcion || null
+  );
+
+  useEffect(() => {
+    if (dataWithAlumno?.detallePagosPendientes && dataWithAlumno.detallePagosPendientes.length > 0) {
+      setInscripcion(dataWithAlumno.detallePagosPendientes[0].inscripcion);
+    }
+  }, [dataWithAlumno]);
+
+  // Se devuelve la data ya enriquecida, y opcionalmente la inscripción separada
+  return { ...query, data: dataWithAlumno, inscripcion };
 };

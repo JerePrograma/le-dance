@@ -118,7 +118,6 @@ public class InscripcionServicio implements IInscripcionServicio {
         return inscripcionMapper.toDTO(guardada);
     }
 
-
     // Logica de cálculo trasladada al servicio (sin utilizar el mapper)
     private Double calcularCosto(Inscripcion inscripcion) {
         Disciplina d = inscripcion.getDisciplina();

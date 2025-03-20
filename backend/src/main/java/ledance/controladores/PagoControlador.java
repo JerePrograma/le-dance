@@ -35,7 +35,6 @@ public class PagoControlador {
 
     @PostMapping
     public ResponseEntity<PagoResponse> registrarPago(@RequestBody @Validated PagoRegistroRequest request) {
-        log.info("[PagoControlador] Registrando pago para inscriptionId: {}", request.inscripcion().id());
         log.info("[PagoControlador] Payload recibido: {}", request);
         PagoResponse response = pagoServicio.registrarPago(request);
         log.info("[PagoControlador] Respuesta del registro/actualizacion: {}", response);

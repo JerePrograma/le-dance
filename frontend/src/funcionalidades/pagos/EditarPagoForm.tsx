@@ -71,27 +71,6 @@ export const inscripcionDummy: InscripcionRegistroRequest = {
     fechaInscripcion: "",
 };
 
-// Función para normalizar una inscripción (InscripcionResponse → InscripcionRegistroRequest)
-export const normalizeInscripcion = (insc: InscripcionResponse): InscripcionRegistroRequest => ({
-    id: insc.id,
-    alumnoId: insc.alumno.id,
-    disciplina: {
-        id: insc.disciplina.id,
-        nombre: insc.disciplina.nombre,
-        frecuenciaSemanal: 0,
-        salonId: 0,
-        profesorId: 0,
-        recargoId: 0,
-        valorCuota: insc.disciplina.valorCuota,
-        matricula: 0,
-        claseSuelta: insc.disciplina.claseSuelta,
-        clasePrueba: insc.disciplina.clasePrueba,
-        horarios: [],
-    },
-    bonificacionId: insc.bonificacion ? insc.bonificacion.id : undefined,
-    fechaInscripcion: insc.fechaInscripcion,
-});
-
 // Valores por defecto para el formulario (no se utilizará para creación, solo como fallback)
 const defaultValues: CobranzasFormValues = {
     id: 0,

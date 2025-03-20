@@ -359,67 +359,37 @@ export interface DisciplinaListadoResponse {
 // INSCRIPCIÓN
 // ==========================================
 
+// Tipo para la solicitud de inscripción
 export interface InscripcionRegistroRequest {
-  id?: number; // opcional en creación
-  alumno: AlumnoRegistroRequest;
+  // Si en creación el id no se envía, puede ser opcional o null
+  id?: number | null;
+  alumno: {
+    id: number,
+    nombre?: string,
+    apellido?: string,
+  };
   disciplina: DisciplinaRegistroRequest;
-  bonificacionId?: number;
-  fechaInscripcion?: string; // ISO string, ej. "2025-03-10"
-  costoParticular?: number;
-  fechaBaja?: string; // string ISO, opcional
-  activo?: boolean;
-  estado?: string; // Por ejemplo: "ACTIVA" | "BAJA"
-}
-
-// ==========================================
-// BONIFICACIÓN
-// ==========================================
-// inscripcionTypes.ts
-
-export interface InscripcionRequest {
-  alumnoId: number;
-  disciplinaId: number;
-  bonificacionId?: number;
+  bonificacionId?: number | null;
+  // Se espera una cadena ISO (por ejemplo, "2025-03-10")
   fechaInscripcion: string;
-  fechaBaja?: string;         // Opcional, para actualización
-  costoParticular?: number;   // Opcional, para actualización
+  // La fecha de baja puede ser opcional
+  fechaBaja?: string;
+  // El costo particular es opcional (en caso de que se envíe)
+  costoParticular?: number;
 }
-
-// Para el formulario, agregamos opcionalmente el id (para edición)
-export interface InscripcionFormData extends InscripcionRequest {
-  id?: number;
-}
-
-// La respuesta se mantiene igual (o se ajusta según convenga)
-
+// Tipo para la respuesta de inscripción
 export interface InscripcionResponse {
   id: number;
-  alumno: {
-    fechaNacimiento: string;
-    fechaIncorporacion: string;
-    id: number;
-    nombre: string;
-    apellido: string;
-    // otros campos relevantes
-  };
-  disciplina: {
-    id: number;
-    nombre: string;
-    valorCuota: number;
-    claseSuelta: number;
-    clasePrueba: number;
-    // otros campos si es necesario
-  };
+  alumno: AlumnoListadoResponse;
+  disciplina: DisciplinaListadoResponse;
+  // Fechas en formato ISO string
   fechaInscripcion: string;
-  estado: string; // por ejemplo "ACTIVA" o "BAJA"
+  // Puedes definir un enum o unión para el estado, por ejemplo:
+  estado: "ACTIVA" | "BAJA" | string;
   costoCalculado: number;
-  bonificacion?: {
-    id: number;
-    descripcion: string;
-    valorFijo: number;
-    porcentajeDescuento: number;
-  };
-  mensualidadEstado: string; // Por ejemplo "PAGADO" o "PENDIENTE"
+  bonificacion?: BonificacionResponse;
+  // Este campo se deriva o se calcula; se mantiene como string
+  mensualidadEstado: string;
 }
 
 export interface BonificacionRegistroRequest {
@@ -754,7 +724,7 @@ export interface PagoRegistroRequest {
   fecha: string;
   fechaVencimiento: string;
   monto: number;
-  inscripcion: InscripcionRegistroRequest;
+  inscripcion?: InscripcionRegistroRequest | null;
   metodoPagoId: number;
   recargoAplicado?: boolean;
   bonificacionAplicada?: boolean;
@@ -847,7 +817,7 @@ export interface CobranzasFormValues {
   totalACobrar: number;
   reciboNro: string;
   alumno: string;
-  inscripcion: InscripcionRegistroRequest;
+  inscripcion: InscripcionRegistroRequest | null;
   inscripcionId?: number;
   alumnoId?: string;
   fecha: string;
@@ -885,7 +855,6 @@ export interface CobranzasFormValues {
   matriculaRemoved: boolean;
   periodoMensual: string;
   autoRemoved: number[];
-  // Campo para el monto del abono parcial general:
   pagoParcial: number;
 }
 

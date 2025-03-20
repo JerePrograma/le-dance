@@ -17,4 +17,7 @@ public interface MatriculaRepositorio extends JpaRepository<Matricula, Long> {
     Optional<Matricula> findFirstByAlumnoIdAndPagadaFalseOrderByIdAsc(Long alumnoId);
 
     List<Matricula> findByAlumnoIdAndPagadaFalse(Long alumnoId);
+
+    // Busca una matrícula para un alumno en un año determinado que aún no esté pagada.
+    Optional<Matricula> findByAlumnoIdAndAnioAndPagadaFalse(Long alumnoId, int anio);
 }

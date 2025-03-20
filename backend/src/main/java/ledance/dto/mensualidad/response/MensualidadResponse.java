@@ -13,6 +13,7 @@ public record MensualidadResponse(
         String estado,
         Long inscripcionId,
         Double importeInicial,  // Nuevo campo agregado
-        String descripcion
+        String descripcion,
+        Double importePendiente
 ) {
 }

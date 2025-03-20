@@ -132,6 +132,7 @@ public class MensualidadServicio implements IMensualidadService {
         totalPagar = redondear(totalPagar);
         mensualidad.setImporteInicial(totalPagar);
         log.info("Total a pagar (fijo) calculado: {}", totalPagar);
+        mensualidad.setImportePendiente(totalPagar);
     }
 
     /**
@@ -280,23 +281,32 @@ public class MensualidadServicio implements IMensualidadService {
             log.warn("La fecha de inscripcion ({}) no coincide con el mes/anio especificados ({}-{}). Se usará la fecha de inscripcion.",
                     fechaMensualidad, mes, anio);
         }
+
         Mensualidad mensualidad = new Mensualidad();
         mensualidad.setInscripcion(inscripcion);
         mensualidad.setFechaCuota(fechaMensualidad);
         mensualidad.setFechaGeneracion(fechaMensualidad);
+        // Valor base obtenido de la disciplina (valor de la cuota)
         mensualidad.setValorBase(inscripcion.getDisciplina().getValorCuota());
         mensualidad.setBonificacion(inscripcion.getBonificacion());
-        mensualidad.setRecargo(null);
+        mensualidad.setRecargo(null); // Si no hay recargo, se entiende como 0.0 en el cálculo
         mensualidad.setMontoAbonado(0.0);
+
+        // Calcular importeInicial según: valorBase + recargo - bonificacion
         calcularImporteInicial(mensualidad);
+        // Calcular importePendiente: importeInicial - aCobrar (en el primer pago aCobrar es 0.0)
         recalcularImportePendiente(mensualidad);
+
         mensualidad.setEstado(EstadoMensualidad.PENDIENTE);
         asignarDescripcion(mensualidad);
+
         mensualidad = mensualidadRepositorio.save(mensualidad);
-        log.info("Cuota generada: id={} para inscripcion id {} con importe pendiente = {}",
+        log.info("Cuota generada: id={} para inscripcion id {} con importe inicial = {}",
                 mensualidad.getId(), inscripcionId, mensualidad.getImporteInicial());
 
+        // Registrar el detalle de pago para esta mensualidad, copiando los valores calculados
         registrarDetallePagoMensualidad(mensualidad);
+
         return mensualidadMapper.toDTO(mensualidad);
     }
 
@@ -304,23 +314,30 @@ public class MensualidadServicio implements IMensualidadService {
     public DetallePago registrarDetallePagoMensualidad(Mensualidad mensualidad) {
         DetallePago detalle = new DetallePago();
         detalle.setAlumno(mensualidad.getInscripcion().getAlumno());
-        // Asumimos que para la mensualidad se utiliza la descripción y los valores calculados
+        // Se utiliza la descripción asignada a la mensualidad
         detalle.setDescripcionConcepto(mensualidad.getDescripcion());
-        detalle.setMontoOriginal(mensualidad.getValorBase()); // O el que corresponda
+
+        // Se asigna el valor original de la cuota
+        detalle.setMontoOriginal(mensualidad.getValorBase());
+
+        // Se asignan los importes calculados en la mensualidad:
+        // importeInicial = valorBase + recargo - bonificacion
         detalle.setImporteInicial(mensualidad.getImporteInicial());
-        // Inicialmente, el importe pendiente es igual al importe inicial
-        detalle.setImportePendiente(mensualidad.getImporteInicial());
-        // Al crearlo, aCobrar se asigna 0, ya que no se va a cobrar de inmediato
+        // En el primer registro, aCobrar es 0.0, por lo que:
         detalle.setaCobrar(0.0);
-        detalle.setCobrado(false);
+        detalle.setImportePendiente(mensualidad.getImporteInicial() - detalle.getaCobrar());
+
+        detalle.setCobrado(detalle.getImportePendiente() == 0);
         detalle.setTipo(TipoDetallePago.MENSUALIDAD);
         detalle.setFechaRegistro(LocalDate.now());
-        // Relacionamos la mensualidad
+
+        // Relacionamos la mensualidad con el detalle de pago
         detalle.setMensualidad(mensualidad);
-        // Si es necesario, se pueden asignar otras relaciones (por ejemplo, inscripción o alumno)
+
+        // Se podrían asignar otras relaciones si es necesario (por ejemplo, inscripción)
         detallePagoRepositorio.save(detalle);
-        log.info("DetallePago para Mensualidad id={} creado con importeInicial={}",
-                mensualidad.getId(), mensualidad.getImporteInicial());
+        log.info("DetallePago para Mensualidad id={} creado con importeInicial={} y importePendiente={}",
+                mensualidad.getId(), mensualidad.getImporteInicial(), detalle.getImportePendiente());
         return detalle;
     }
 
@@ -522,4 +539,73 @@ public class MensualidadServicio implements IMensualidadService {
         log.info("Mensualidad id {} actualizada. Monto abonado acumulado: {}, importe pendiente: {}, estado: {}",
                 id, mensualidad.getMontoAbonado(), mensualidad.getImporteInicial(), mensualidad.getEstado());
     }
+
+    public boolean existeMensualidadConDescripcion(Long alumnoId, String descripcionConcepto) {
+        // Se asume que el repositorio de mensualidades permite consultar mensualidades pendientes o activas
+        // que tengan una descripción (o período) determinado para un alumno.
+        // Por ejemplo:
+        Optional<Mensualidad> mensualidadOpt = mensualidadRepositorio.findByInscripcionAlumnoIdAndDescripcion(alumnoId, descripcionConcepto);
+        return mensualidadOpt.isPresent();
+    }
+
+    /**
+     * Busca una mensualidad para el alumno (a través de su inscripción) con la descripción indicada.
+     * Si existe y no se encuentra en estado PENDIENTE, actualiza su estado.
+     * Si no existe, crea una nueva mensualidad en estado PENDIENTE.
+     *
+     * @param alumnoId            El id del alumno (usado en la propiedad anidada inscripcion.alumno.id)
+     * @param descripcionConcepto La descripción del concepto de la mensualidad (p.ej., "Danza - CUOTA - MARZO DE 2025")
+     * @return MensualidadResponse con los datos de la mensualidad en estado pendiente
+     */
+    public MensualidadResponse obtenerOMarcarPendiente(Long alumnoId, String descripcionConcepto) {
+        // Buscar la mensualidad usando el id del alumno en la inscripción y la descripción del concepto.
+        Optional<Mensualidad> optionalMensualidad = mensualidadRepositorio
+                .findByInscripcionAlumnoIdAndDescripcion(alumnoId, descripcionConcepto);
+
+        Mensualidad mensualidad;
+        if (optionalMensualidad.isPresent()) {
+            mensualidad = optionalMensualidad.get();
+            // Si la mensualidad no está en estado PENDIENTE, se actualiza
+            if (!mensualidad.getEstado().equals(EstadoMensualidad.PENDIENTE)) {
+                mensualidad.setEstado(EstadoMensualidad.PENDIENTE);
+                mensualidad = mensualidadRepositorio.save(mensualidad);
+            }
+        } else {
+            // Si no se encontró, se crea una nueva mensualidad
+            mensualidad = new Mensualidad();
+            // Es necesario asignar la inscripción al alumno; en este ejemplo se asume que la entidad Mensualidad tiene una propiedad
+            // "inscripcion" ya cargada o se asigna posteriormente.
+            // mensualidad.setInscripcion(inscripcion); // Se debe obtener previamente la inscripción activa.
+            mensualidad.setDescripcion(descripcionConcepto);
+            mensualidad.setEstado(EstadoMensualidad.PENDIENTE);
+            // Se pueden asignar otros campos necesarios, como fecha, monto original, etc.
+            mensualidad = mensualidadRepositorio.save(mensualidad);
+        }
+
+        return mensualidadMapper.toDTO(mensualidad);
+    }
+
+    public Mensualidad toEntity(MensualidadResponse mensualidadResp) {
+        if (mensualidadResp == null) {
+            return null;
+        }
+        Mensualidad entidad = new Mensualidad();
+        entidad.setId(mensualidadResp.id());
+        entidad.setDescripcion(mensualidadResp.descripcion());
+        entidad.setEstado(EstadoMensualidad.valueOf(mensualidadResp.estado()));
+
+        // Si MensualidadResponse contiene otros campos, se asignan a la entidad
+        // Por ejemplo:
+        // entidad.setFechaVencimiento(mensualidadResp.getFechaVencimiento());
+        // entidad.setMontoOriginal(mensualidadResp.getMontoOriginal());
+
+        // Si existe una relación con Inscripcion, se debe mapear también
+        // Suponiendo que mensualidadResp tiene un objeto InscripcionResponse
+        // if (mensualidadResp.getInscripcion() != null) {
+        //     entidad.setInscripcion(inscripcionMapper.toEntity(mensualidadResp.getInscripcion()));
+        // }
+
+        return entidad;
+    }
+
 }

@@ -23,8 +23,6 @@ const obtenerPagoPorId = async (id: number): Promise<PagoResponse> => {
   return data;
 };
 
-// ... (otros endpoints existentes)
-
 const obtenerCobranzaPorAlumno = async (
   alumnoId: number
 ): Promise<CobranzaDTO> => {
