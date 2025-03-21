@@ -6,6 +6,7 @@ import java.time.LocalDate;
 
 public record DetallePagoResponse(
         Long id,
+        Long version,
         String descripcionConcepto,
         String cuotaOCantidad,
         Double valorBase,
