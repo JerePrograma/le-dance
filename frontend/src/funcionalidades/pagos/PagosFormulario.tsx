@@ -14,27 +14,23 @@ import pagosApi from "../../api/pagosApi";
 import matriculasApi from "../../api/matriculasApi";
 import { useCobranzasData } from "../../hooks/useCobranzasData";
 import { useAlumnoData } from "../../hooks/useAlumnoData";
-import { useInscripcionesActivas } from "../../hooks/useInscripcionesActivas";
 import type {
   CobranzasFormValues,
   DetallePagoRegistroRequest,
+  DetallePagoRegistroRequestExt,
   ConceptoResponse,
   DisciplinaDetalleResponse,
-  DeudasPendientesResponse,
   MetodoPagoResponse,
   MatriculaResponse,
-  StockResponse,
   AlumnoRegistroRequest,
-  InscripcionRegistroRequest,
   AlumnoResponse,
   PagoRegistroRequest,
-  DetallePagoRegistroRequestExt,
 } from "../../types/types";
 import ResponsiveContainer from "../../componentes/comunes/ResponsiveContainer";
 import FormHeader from "../../componentes/FormHeader";
 import { PaymentIdUpdater } from "../../componentes/PaymentUpdater";
 import { useSyncDetalles } from "../../hooks/context/useSyncDetalles";
-import { normalizeInscripcion } from "../../funcionalidades/pagos/NormalizeInscripcion";
+import { normalizeInscripcion } from "./normalizeInscripcion";
 
 // ----- Utilidades -----
 const getMesVigente = (): string => {
@@ -70,7 +66,6 @@ const generatePeriodos = (numMeses = 12): string[] => {
 };
 
 // Valores iniciales para el formulario.
-// Se asigna inscripcion e inscripcionId como null ya que ya no se usan a nivel de Pago.
 const defaultValues: CobranzasFormValues = {
   id: 0,
   reciboNro: "AUTO-001",
@@ -90,6 +85,7 @@ const defaultValues: CobranzasFormValues = {
     autorizadoParaSalirSolo: false,
     otrasNotas: "",
     cuotaTotal: 0,
+    // Con la nueva estructura no se requiere enviar inscripciones
     inscripciones: [],
   } as unknown as AlumnoRegistroRequest,
   alumnoId: 0,
@@ -114,8 +110,7 @@ const defaultValues: CobranzasFormValues = {
 // ----- Subcomponentes -----
 
 /**
- * TotalsUpdater: Recalcula los totales a cobrar y cobrado.
- * Se suma "valorBase" (más recargo, si corresponde) y "aCobrar" de cada detalle.
+ * TotalsUpdater: Recalcula totales en base a los detalles.
  */
 const TotalsUpdater: React.FC<{ metodosPago: MetodoPagoResponse[] }> = ({
   metodosPago,
@@ -158,11 +153,10 @@ const TotalsUpdater: React.FC<{ metodosPago: MetodoPagoResponse[] }> = ({
 
 /**
  * ConceptosSection: Sección para seleccionar disciplina, tarifa, concepto y stock.
- * Dado que la inscripción se gestiona en el backend, aquí solo se selecciona la disciplina, tarifa y se generan detalles.
  */
 interface ConceptosSectionProps {
   disciplinas: DisciplinaDetalleResponse[];
-  stocks: StockResponse[];
+  stocks: any[]; // Ajusta el tipo según tu definición real de StockResponse
   conceptos: ConceptoResponse[];
   values: CobranzasFormValues;
   setFieldValue: (field: string, value: any) => void;
@@ -287,7 +281,6 @@ const ConceptosSection: React.FC<ConceptosSectionProps> = ({
 
 /**
  * DetallesTable: Renderiza la tabla de detalles usando FieldArray.
- * Se utilizan los nuevos nombres (por ejemplo, "cuotaOCantidad" y "valorBase") y se eliminan campos obsoletos.
  */
 const DetallesTable: React.FC = () => (
   <FieldArray name="detallePagos">
@@ -414,7 +407,9 @@ const DetallesTable: React.FC = () => (
   </FieldArray>
 );
 
-// ----- Componente Principal -----
+//
+// Componente Principal: CobranzasForm
+//
 const CobranzasForm: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -425,12 +420,13 @@ const CobranzasForm: React.FC = () => {
   const [selectedAlumnoId, setSelectedAlumnoId] = useState<number>(0);
   const [, setMatricula] = useState<MatriculaResponse | null>(null);
 
-  // Datos unificados de cobranzas y alumno
+  // Datos generales de cobranzas
   const { alumnos, disciplinas, stocks, metodosPago, conceptos } =
     useCobranzasData();
+  // Usamos el nuevo hook que obtiene el AlumnoDataResponse unificado
   const { data: alumnoData } = useAlumnoData(selectedAlumnoId);
 
-  // Normalización de disciplinas (si es necesario)
+  // Normalización de disciplinas si es necesario
   const mappedDisciplinas: DisciplinaDetalleResponse[] = disciplinas.map(
     (disc) => ({
       ...disc,
@@ -444,20 +440,16 @@ const CobranzasForm: React.FC = () => {
     })
   );
 
-  // Hook para sincronizar los detalles (detallePagos)
-  const SyncDetalles: React.FC<{
-    deudaData: DeudasPendientesResponse;
-    ultimoPago: any;
-  }> = ({ deudaData, ultimoPago }) => {
-    useSyncDetalles(deudaData, ultimoPago);
+  // Actualizamos los detalles usando el hook de sincronización, ahora basado en alumnoData.detallePagosPendientes
+  // Solo se sincroniza si existe la data y contiene la propiedad detallePagosPendientes.
+  const SyncDetalles: React.FC = () => {
+    if (alumnoData && alumnoData.detallePagosPendientes) {
+      useSyncDetalles(alumnoData);
+    }
     return null;
   };
 
-  /**
-   * Manejo del cambio de alumno.
-   * Se utiliza la data completa de alumno si está disponible (a través de useAlumnoData),
-   * y en caso contrario se asignan valores por defecto para cumplir con AlumnoRegistroRequest.
-   */
+  // Manejo del cambio de alumno.
   const handleAlumnoChange = useCallback(
     async (
       alumnoIdStr: string,
@@ -472,11 +464,11 @@ const CobranzasForm: React.FC = () => {
       await setFieldValue("alumnoId", id, true);
       setSelectedAlumnoId(id);
       await setFieldValue("matriculaRemoved", false, true);
-      // Si se dispone de data completa del alumno, se asigna; de lo contrario, se asignan valores por defecto.
-      if (alumnoData) {
-        await setFieldValue("alumno", alumnoData, true);
+      // Si disponemos de data completa del alumno, se asigna el objeto AlumnoResponse recibido.
+      if (alumnoData && alumnoData.alumno) {
+        await setFieldValue("alumno", alumnoData.alumno, true);
       } else {
-        // Valores por defecto
+        // Valores por defecto si no se tiene data aun.
         await setFieldValue(
           "alumno",
           {
@@ -533,7 +525,6 @@ const CobranzasForm: React.FC = () => {
       activo: alumno.activo,
       otrasNotas: alumno.otrasNotas,
       cuotaTotal: alumno.cuotaTotal,
-      // Se normaliza cada inscripcion usando la función normalizeInscripcion
       inscripciones: alumno.inscripciones.map(normalizeInscripcion),
     };
   }
@@ -549,15 +540,14 @@ const CobranzasForm: React.FC = () => {
             ...defaultValues,
             id: pagoData.id,
             reciboNro: pagoData.id.toString(),
-            // Normalizamos el alumno recibido (que es AlumnoResponse) a AlumnoRegistroRequest
             alumno: pagoData.alumno
               ? normalizeAlumno(pagoData.alumno)
               : defaultValues.alumno,
-            // Eliminamos la asignación de inscripción, ya que se obtiene desde DetallePago/Mensualidad
             alumnoId: pagoData.alumno.id,
             fecha: pagoData.fecha || new Date().toISOString().split("T")[0],
             detallePagos: pagoData.detallePagos.map((detalle: any) => ({
               id: detalle.id,
+              version: detalle.version,
               descripcionConcepto: detalle.descripcionConcepto ?? "",
               conceptoId: detalle.conceptoId ?? null,
               subConceptoId: detalle.subConceptoId ?? null,
@@ -567,8 +557,8 @@ const CobranzasForm: React.FC = () => {
                 ? detalle.bonificacion.id
                 : null,
               recargoId: detalle.recargo ? detalle.recargo.id : null,
-              aCobrar: detalle.importePendiente, // Se utiliza importePendiente para aCobrar
-              importePendiente: detalle.importePendiente, // Agregado para visualización
+              aCobrar: detalle.importePendiente,
+              importePendiente: detalle.importePendiente,
               cobrado: detalle.cobrado,
               mensualidadId: detalle.mensualidadId ?? null,
               matriculaId: detalle.matriculaId ?? null,
@@ -595,7 +585,7 @@ const CobranzasForm: React.FC = () => {
     }
   }, [searchParams]);
 
-  // Función para agregar detalle
+  // Función para agregar detalle (se mantiene la lógica de agregar basado en concepto, disciplina y stock)
   const handleAgregarDetalle = useCallback(
     (
       values: CobranzasFormValues,
@@ -611,7 +601,6 @@ const CobranzasForm: React.FC = () => {
           (det) => det.descripcionConcepto.trim() === desc.trim()
         );
 
-      // Agregar detalle basado en concepto seleccionado
       if (values.conceptoSeleccionado) {
         const selectedConcept = conceptos.find(
           (c: ConceptoResponse) =>
@@ -641,7 +630,6 @@ const CobranzasForm: React.FC = () => {
           }
         }
       }
-      // Agregar detalle basado en disciplina/tarifa
       if (values.disciplina && values.tarifa) {
         const selectedDisciplina = mappedDisciplinas.find(
           (disc) => disc.nombre === values.disciplina
@@ -685,10 +673,9 @@ const CobranzasForm: React.FC = () => {
           }
         }
       }
-      // Agregar detalle basado en stock seleccionado
       if (values.stockSeleccionado) {
         const selectedStock = stocks.find(
-          (s: StockResponse) => s.id.toString() === values.stockSeleccionado
+          (s) => s.id.toString() === values.stockSeleccionado
         );
         if (selectedStock) {
           const cantidad = Number(values.cantidad) || 1;
@@ -717,7 +704,6 @@ const CobranzasForm: React.FC = () => {
           }
         }
       }
-
       if (added) {
         setFieldValue("detallePagos", newDetails);
         const totalCobrado = newDetails.reduce(
@@ -740,23 +726,23 @@ const CobranzasForm: React.FC = () => {
   );
 
   // onSubmit: Mapea los valores y envía el registro al backend.
-  // Se elimina la inscripción ya que ya no se asigna en Pago.
   const onSubmit = async (values: CobranzasFormValues, actions: any) => {
     try {
       const detallesFiltrados = values.detallePagos.filter(
         (detalle) => Number(detalle.aCobrar) !== 0
       );
       const pagoRegistroRequest: PagoRegistroRequest = {
-        alumno: values.alumno, // Se envía el objeto completo de alumno
+        alumno: values.alumno,
         fecha: values.fecha,
         fechaVencimiento: values.fecha,
         monto: Number(values.totalACobrar),
-        importeInicial: Number(values.totalACobrar), // Se asigna el total a cobrar
+        importeInicial: Number(values.totalACobrar),
         metodoPagoId: Number(values.metodoPagoId) || 0,
         activo: true,
         detallePagos: detallesFiltrados.map<DetallePagoRegistroRequest>(
           (d) => ({
             id: d.id,
+            version: d.version,
             descripcionConcepto: d.descripcionConcepto,
             conceptoId: d.conceptoId ?? null,
             subConceptoId: d.subConceptoId ?? null,
@@ -791,14 +777,6 @@ const CobranzasForm: React.FC = () => {
       <h1 className="page-title text-2xl font-bold mb-4">
         Gestión de Cobranzas
       </h1>
-      {alumnoData?.ultimoPago && (
-        <div className="mb-4 p-2 border">
-          <p>
-            Último pago registrado: <strong>{alumnoData.ultimoPago.id}</strong>
-          </p>
-          <p>Monto: {alumnoData.ultimoPago.monto}</p>
-        </div>
-      )}
       <Formik
         key={location.key}
         initialValues={initialValues}
@@ -808,14 +786,9 @@ const CobranzasForm: React.FC = () => {
         {({ values, setFieldValue }) => (
           <Form className="w-full">
             <TotalsUpdater metodosPago={metodosPago} />
-            <PaymentIdUpdater
-              ultimoPago={alumnoData?.ultimoPago ?? undefined}
-            />
-            {alumnoData?.deudas && (
-              <SyncDetalles
-                deudaData={alumnoData.deudas}
-                ultimoPago={alumnoData.ultimoPago}
-              />
+            {/* Sincronizamos los detalles si existen en la data unificada */}
+            {alumnoData && alumnoData.detallePagosPendientes && (
+              <SyncDetalles />
             )}
             <FormHeader
               alumnos={alumnos}

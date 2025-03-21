@@ -25,7 +25,8 @@ public interface DetallePagoMapper {
     @Mapping(target = "cuotaOCantidad", source = "cuotaOCantidad")
     DetallePago toEntity(DetallePagoRegistroRequest request);
 
-    // Mapeo de Entity a DTO de respuesta
+    // Mapeo de Entity a DTO de respuesta, incluyendo el campo version
+    @Mapping(target = "version", source = "version")
     @Mapping(target = "bonificacionId", expression = "java(detallePago.getBonificacion() != null ? detallePago.getBonificacion().getId() : null)")
     @Mapping(target = "recargoId", expression = "java(detallePago.getRecargo() != null ? detallePago.getRecargo().getId() : null)")
     @Mapping(target = "importeInicial", source = "importeInicial")

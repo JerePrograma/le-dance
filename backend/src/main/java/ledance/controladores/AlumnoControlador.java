@@ -86,7 +86,7 @@ public class AlumnoControlador {
 
     @GetMapping("/{id}/datos")
     public ResponseEntity<AlumnoDataResponse> obtenerDatosAlumno(@PathVariable Long id) {
-        AlumnoDataResponse response = alumnoServicio.obtenerDatosAlumno(id);
+        AlumnoDataResponse response = alumnoServicio.obtenerAlumnoData(id);
         return ResponseEntity.ok(response);
     }
 

@@ -202,6 +202,7 @@ public class DetallePagoServicio {
 
         return new DetallePagoResponse(
                 detalle.getId(),
+                detalle.getVersion(),
                 conceptoDesc,
                 detalle.getCuotaOCantidad(),
                 detalle.getValorBase(),

@@ -105,14 +105,14 @@ public class PaymentProcessor {
     public Pago processFirstPayment(Pago pago) {
         log.info("[processFirstPayment] Iniciando procesamiento de primer pago, ID temporal={}", pago.getId());
 
-        // Se obtiene la instancia gestionada del pago
-        log.info("[processFirstPayment] Realizando merge del pago.");
+        // 1. Merge del pago para obtener la entidad gestionada
         Pago pagoManaged = entityManager.merge(pago);
         log.info("[processFirstPayment] Pago mergeado. ID gestionado={}, Fecha={}", pagoManaged.getId(), pagoManaged.getFecha());
 
         List<DetallePago> detalles = pagoManaged.getDetallePagos();
         log.info("[processFirstPayment] Detalles asociados al pago (cantidad={}): {}",
                 (detalles != null ? detalles.size() : 0), detalles);
+
         if (detalles == null || detalles.isEmpty()) {
             log.info("[processFirstPayment] No se encontraron detalles en el pago. Asignando montoPagado y saldoRestante a 0.");
             pagoManaged.setMontoPagado(0.0);
@@ -120,116 +120,102 @@ public class PaymentProcessor {
             return pagoManaged;
         }
 
-        // Procesamiento de cada detalle
+        // 2. Para cada detalle, se obtiene y actualiza el registro persistido a través del helper
         List<DetallePago> nuevosDetalles = new ArrayList<>();
         for (DetallePago detalle : detalles) {
-            log.info("[processFirstPayment] Procesando detalle con id provisional: {}", detalle.getId());
-            DetallePago detalleActualizado = null;
-            if (detalle.getId() != null) {
-                log.info("[processFirstPayment] Buscando DetallePago con id={} usando entityManager.find()", detalle.getId());
-                detalleActualizado = entityManager.find(DetallePago.class, detalle.getId());
-                if (detalleActualizado == null) {
-                    log.info("[processFirstPayment] entityManager.find() devolvió null. Se intenta con JPQL.");
-                    detalleActualizado = detallePagoRepositorio.buscarPorIdJPQL(detalle.getId());
-                }
-                if (detalleActualizado == null) {
-                    log.error("[processFirstPayment] No se encontró detalle con id={} en la base de datos.", detalle.getId());
-                    throw new IllegalStateException("El detalle con id=" + detalle.getId() + " no se encontró en la base de datos");
-                }
-                log.info("[processFirstPayment] Detalle encontrado y gestionado: id={}, version={}",
-                        detalleActualizado.getId(), detalleActualizado.getVersion());
-            } else {
-                log.error("[processFirstPayment] El detalle no tiene ID asignado.");
-                throw new IllegalStateException("Se esperaba que todos los detalles a transferir tuvieran ID asignado");
-            }
-
-            // Actualizar campos necesarios con logs en cada asignación
-            log.info("[processFirstPayment] Actualizando campo descripcionConcepto: valor anterior='{}', nuevo='{}'",
-                    detalleActualizado.getDescripcionConcepto(), detalle.getDescripcionConcepto());
-            detalleActualizado.setDescripcionConcepto(detalle.getDescripcionConcepto());
-
-            log.info("[processFirstPayment] Actualizando campo cuotaOCantidad: valor anterior='{}', nuevo='{}'",
-                    detalleActualizado.getCuotaOCantidad(), detalle.getCuotaOCantidad());
-            detalleActualizado.setCuotaOCantidad(detalle.getCuotaOCantidad());
-
-            log.info("[processFirstPayment] Actualizando campo valorBase: valor anterior='{}', nuevo='{}'",
-                    detalleActualizado.getValorBase(), detalle.getValorBase());
-            detalleActualizado.setValorBase(detalle.getValorBase());
-
-            log.info("[processFirstPayment] Actualizando campo bonificacion: valor anterior='{}', nuevo='{}'",
-                    detalleActualizado.getBonificacion(), detalle.getBonificacion());
-            detalleActualizado.setBonificacion(detalle.getBonificacion());
-
-            log.info("[processFirstPayment] Actualizando campo recargo: valor anterior='{}', nuevo='{}'",
-                    detalleActualizado.getRecargo(), detalle.getRecargo());
-            detalleActualizado.setRecargo(detalle.getRecargo());
-
-            // Reasociar el detalle a la entidad Pago gestionada y al Alumno
-            log.info("[processFirstPayment] Reasociando detalle al pago gestionado (id={}) y al alumno (id={}).",
-                    pagoManaged.getId(), pago.getAlumno() != null ? pago.getAlumno().getId() : "null");
-            detalleActualizado.setPago(pagoManaged);
-            detalleActualizado.setAlumno(pago.getAlumno());
-
-            // Cálculo de importes...
-            if (detalleActualizado.getImporteInicial() == null) {
-                log.info("[processFirstPayment] Detalle id={} sin importeInicial. Se ejecuta calcularImporte().", detalleActualizado.getId());
-                calcularImporte(detalleActualizado);
-                log.info("[processFirstPayment] Tras calcularImporte(), importeInicial={} en detalle id={}",
-                        detalleActualizado.getImporteInicial(), detalleActualizado.getId());
-            } else {
-                log.info("[processFirstPayment] Detalle id={} ya tiene importeInicial={}",
-                        detalleActualizado.getId(), detalleActualizado.getImporteInicial());
-            }
-            if (detalleActualizado.getImportePendiente() == null) {
-                double aCobrar = Optional.ofNullable(detalleActualizado.getaCobrar()).orElse(0.0);
-                double nuevoPendiente = detalleActualizado.getImporteInicial() - aCobrar;
-                log.info("[processFirstPayment] Calculando importePendiente para detalle id={}: importeInicial={} - aCobrar={} = nuevoPendiente={}",
-                        detalleActualizado.getId(), detalleActualizado.getImporteInicial(), aCobrar, nuevoPendiente);
-                detalleActualizado.setImportePendiente(nuevoPendiente);
-            } else {
-                log.info("[processFirstPayment] Detalle id={} ya tiene importePendiente={}",
-                        detalleActualizado.getId(), detalleActualizado.getImportePendiente());
-            }
-
-            // Actualizar estados relacionados
-            log.info("[processFirstPayment] Actualizando estados relacionados para detalle id={}", detalleActualizado.getId());
-            actualizarEstadosRelacionados(detalleActualizado, pago.getFecha());
-            log.info("[processFirstPayment] Estado de detalle id={} tras actualizarEstadosRelacionados: cobrado={}, tipo={}",
-                    detalleActualizado.getId(), detalleActualizado.getCobrado(), detalleActualizado.getTipo());
-
-            nuevosDetalles.add(detalleActualizado);
+            DetallePago detallePersistido = obtenerYActualizarDetallePago(detalle, pagoManaged, pago.getAlumno());
+            nuevosDetalles.add(detallePersistido);
         }
 
-        // Actualizar la lista de detalles del pago gestionado
-        log.info("[processFirstPayment] Actualizando lista de detalles en el pago gestionado. Cantidad nuevos detalles={}", nuevosDetalles.size());
+        // 3. Se actualiza la lista de detalles del pago gestionado
         pagoManaged.setDetallePagos(nuevosDetalles);
 
-        // Actualizar totales: monto, montoPagado y saldoRestante
+        // 4. Actualizar totales: monto, montoPagado y saldoRestante
         log.info("[processFirstPayment] Actualizando totales del pago.");
         actualizarImportesTotalesPago(pagoManaged);
         log.info("[processFirstPayment] Totales tras actualizarImportesTotalesPago: monto={}, montoPagado={}, saldoRestante={}",
                 pagoManaged.getMonto(), pagoManaged.getMontoPagado(), pagoManaged.getSaldoRestante());
 
-        // Lógica adicional de verificación o ajuste del saldo
+        // 5. Verificar saldo restante y validar que no sea null
         verificarSaldoRestante(pagoManaged);
         log.info("[processFirstPayment] Totales tras verificarSaldoRestante: saldoRestante={}", pagoManaged.getSaldoRestante());
-
-        // Validar que saldoRestante tenga un valor
         if (pagoManaged.getSaldoRestante() == null) {
             log.error("[processFirstPayment] El saldoRestante es null tras las actualizaciones.");
             throw new IllegalStateException("El saldoRestante no se ha calculado correctamente.");
         }
 
-        log.info("[processFirstPayment] Pago procesado: montoPagado={}, saldoRestante={}",
-                pagoManaged.getMontoPagado(), pagoManaged.getSaldoRestante());
-
-        // Forzar flush para sincronizar la entidad con la base de datos
+        // 6. Sincronizar cambios con la base de datos
         log.info("[processFirstPayment] Ejecutando entityManager.flush() para sincronización con la BD.");
         entityManager.flush();
         log.info("[processFirstPayment] Pago final persistido: id={}, monto={}, saldoRestante={}",
                 pagoManaged.getId(), pagoManaged.getMonto(), pagoManaged.getSaldoRestante());
 
         return pagoManaged;
+    }
+
+    /**
+     * Obtiene el registro de DetallePago persistido para el detalle recibido,
+     * actualizando sus campos con la información proveniente del objeto 'detalle'
+     * que forma parte del objeto 'pago' recibido en el proceso.
+     */
+    private DetallePago obtenerYActualizarDetallePago(DetallePago detalle, Pago pagoManaged, Alumno alumno) {
+        // Verificar que el detalle tenga asignado un ID
+        if (detalle.getId() == null) {
+            log.error("[obtenerYActualizarDetallePago] El detalle no tiene ID asignado.");
+            throw new IllegalStateException("Se esperaba que todos los detalles a transferir tuvieran ID asignado");
+        }
+
+        // Buscar el registro persistido a través del entityManager o mediante JPQL
+        DetallePago detallePersistido = entityManager.find(DetallePago.class, detalle.getId());
+        if (detallePersistido == null) {
+            log.info("[obtenerYActualizarDetallePago] entityManager.find() devolvió null. Se intenta con JPQL para id={}", detalle.getId());
+            detallePersistido = detallePagoRepositorio.buscarPorIdJPQL(detalle.getId());
+        }
+        if (detallePersistido == null) {
+            log.error("[obtenerYActualizarDetallePago] No se encontró detalle con id={} en la base de datos.", detalle.getId());
+            throw new IllegalStateException("El detalle con id=" + detalle.getId() + " no se encontró en la base de datos");
+        }
+        log.info("[obtenerYActualizarDetallePago] Detalle encontrado y gestionado: id={}, version={}",
+                detallePersistido.getId(), detallePersistido.getVersion());
+
+        // Actualización de campos comunes
+        detallePersistido.setDescripcionConcepto(detalle.getDescripcionConcepto());
+        detallePersistido.setCuotaOCantidad(detalle.getCuotaOCantidad());
+        detallePersistido.setValorBase(detalle.getValorBase());
+        detallePersistido.setBonificacion(detalle.getBonificacion());
+        detallePersistido.setRecargo(detalle.getRecargo());
+
+        // Reasociar el detalle al pago gestionado y al alumno
+        detallePersistido.setPago(pagoManaged);
+        detallePersistido.setAlumno(alumno);
+
+        // Cálculo de importes: se verifica y calcula importeInicial e importePendiente si es necesario
+        if (detallePersistido.getImporteInicial() == null) {
+            log.info("[obtenerYActualizarDetallePago] Detalle id={} sin importeInicial. Se ejecuta calcularImporte().", detallePersistido.getId());
+            calcularImporte(detallePersistido);
+            log.info("[obtenerYActualizarDetallePago] Tras calcularImporte(), importeInicial={} en detalle id={}",
+                    detallePersistido.getImporteInicial(), detallePersistido.getId());
+        } else {
+            log.info("[obtenerYActualizarDetallePago] Detalle id={} ya tiene importeInicial={}",
+                    detallePersistido.getId(), detallePersistido.getImporteInicial());
+        }
+        if (detallePersistido.getImportePendiente() == null) {
+            double aCobrar = Optional.ofNullable(detallePersistido.getaCobrar()).orElse(0.0);
+            double nuevoPendiente = detallePersistido.getImporteInicial() - aCobrar;
+            log.info("[obtenerYActualizarDetallePago] Calculando importePendiente para detalle id={}: importeInicial={} - aCobrar={} = nuevoPendiente={}",
+                    detallePersistido.getId(), detallePersistido.getImporteInicial(), aCobrar, nuevoPendiente);
+            detallePersistido.setImportePendiente(nuevoPendiente);
+        } else {
+            log.info("[obtenerYActualizarDetallePago] Detalle id={} ya tiene importePendiente={}",
+                    detallePersistido.getId(), detallePersistido.getImportePendiente());
+        }
+
+        // Actualizar estados relacionados (por ejemplo, cobrado, tipo, etc.) según la fecha del pago
+        actualizarEstadosRelacionados(detallePersistido, pagoManaged.getFecha());
+        log.info("[obtenerYActualizarDetallePago] Estado de detalle id={} tras actualizarEstadosRelacionados: cobrado={}, tipo={}",
+                detallePersistido.getId(), detallePersistido.getCobrado(), detallePersistido.getTipo());
+
+        return detallePersistido;
     }
 
     // -------------------------------------------------------------------------------------------

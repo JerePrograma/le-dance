@@ -2,38 +2,21 @@
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "react-toastify";
-import alumnosApi from "../api/alumnosApi";
 import type { AlumnoDataResponse } from "../types/types";
+import alumnosApi from "../api/alumnosApi";
 
-/**
- * Se asume que AlumnoDataResponse tiene la siguiente estructura:
- * {
- *   alumno: AlumnoDetalleResponse,
- *   deudas: DeudasPendientesResponse,
- * }
- */
 export const useAlumnoData = (alumnoId: number) => {
-  const isAlumnoValid = alumnoId > 0;
-
-  const alumnoDataQuery = useQuery<AlumnoDataResponse, Error>({
+  const query = useQuery<AlumnoDataResponse, Error>({
     queryKey: ["alumnoData", alumnoId],
     queryFn: () => alumnosApi.obtenerDatosAlumno(alumnoId),
-    enabled: isAlumnoValid,
-    staleTime: Infinity,
-    refetchOnWindowFocus: false,
+    enabled: Boolean(alumnoId),
   });
 
   useEffect(() => {
-    if (alumnoDataQuery.error) {
-      toast.error(
-        alumnoDataQuery.error.message || "Error al cargar los datos del alumno"
-      );
+    if (query.error) {
+      toast.error(query.error.message || "Error al cargar datos del alumno");
     }
-  }, [alumnoDataQuery.error]);
+  }, [query.error]);
 
-  return {
-    data: alumnoDataQuery.data,
-    isLoading: alumnoDataQuery.isLoading,
-    error: alumnoDataQuery.error,
-  };
+  return query;
 };

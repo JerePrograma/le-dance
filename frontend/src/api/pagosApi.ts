@@ -4,11 +4,11 @@ import type {
   PagoRegistroRequest,
   PagoResponse,
   StockResponse,
-  AlumnoListadoResponse,
   CobranzaDTO,
   DisciplinaDetalleResponse,
   PagoParcialRequest,
   DetallePagoResponse,
+  AlumnoResponse,
 } from "../types/types";
 
 const registrarPago = async (
@@ -46,8 +46,8 @@ const listarStocksBasicos = async (): Promise<StockResponse[]> => {
   return data;
 };
 
-const listarAlumnosBasicos = async (): Promise<AlumnoListadoResponse[]> => {
-  const { data } = await api.get<AlumnoListadoResponse[]>("/alumnos/listado");
+const listarAlumnosBasicos = async (): Promise<AlumnoResponse[]> => {
+  const { data } = await api.get<AlumnoResponse[]>("/alumnos/listado");
   return data;
 };
 

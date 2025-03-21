@@ -364,7 +364,7 @@ export interface InscripcionRegistroRequest {
 // Tipo para la respuesta de inscripción
 export interface InscripcionResponse {
   id: number;
-  alumno: AlumnoListadoResponse;
+  alumno: AlumnoResponse;
   disciplina: DisciplinaListadoResponse;
   fechaInscripcion: string;
   estado: "ACTIVA" | "BAJA" | string;
@@ -730,6 +730,7 @@ export interface PagoResponse {
 
 export interface DetallePagoResponse {
   id: number;
+  version: number;
   descripcionConcepto: string;
   cuotaOCantidad: string;
   valorBase: number;
@@ -750,6 +751,7 @@ export interface DetallePagoResponse {
 
 export interface DetallePagoRegistroRequest {
   id?: number;
+  version: number;
   descripcionConcepto: string;
   cuotaOCantidad?: string;
   valorBase: number;
@@ -833,8 +835,6 @@ export interface MensualidadResponse {
   inscripcionId: number;
   importeInicial: number;
 }
-import { AlumnoResponse } from "./types";
-
 export interface MatriculaRegistroRequest {
   alumnoId: number;
   anio: number;
@@ -903,7 +903,7 @@ export interface AlumnoDataResponse {
 }
 
 export interface CobranzasDataResponse {
-  alumnos: AlumnoListadoResponse[];
+  alumnos: AlumnoResponse[];
   disciplinas: DisciplinaListadoResponse[];
   stocks: StockResponse[];
   metodosPago: MetodoPagoResponse[];
