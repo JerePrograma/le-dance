@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -51,12 +52,13 @@ public class Alumno {
     private Boolean activo = true;
 
     // Relacion con inscripciones (ya definida)
-    @OneToMany(mappedBy = "alumno", cascade = CascadeType.ALL, orphanRemoval = true)
+    @EqualsAndHashCode.Exclude
+    @OneToMany(mappedBy = "alumno", cascade = CascadeType.ALL)
     @JsonIgnore
     private List<Inscripcion> inscripciones;
 
     // Nueva relacion con matrículas para que se eliminen en cascada
-    @OneToMany(mappedBy = "alumno", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "alumno", cascade = CascadeType.ALL)
     @JsonIgnore
     private List<Matricula> matriculas;
 }

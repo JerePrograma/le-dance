@@ -6,8 +6,8 @@ import jakarta.validation.constraints.NotNull;
 public record DetallePagoRegistroRequest(
         Long id,
         String descripcionConcepto,
-        String cuota,
-        @NotNull @Min(0) Double montoOriginal,
+        String cuotaOCantidad,
+        @NotNull @Min(0) Double valorBase,
         Long bonificacionId,
         Long recargoId,
         @NotNull @Min(0) Double aCobrar,

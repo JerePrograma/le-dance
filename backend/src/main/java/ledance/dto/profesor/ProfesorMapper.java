@@ -2,9 +2,9 @@ package ledance.dto.profesor;
 
 import ledance.dto.profesor.request.ProfesorRegistroRequest;
 import ledance.dto.profesor.request.ProfesorModificacionRequest;
-import ledance.dto.profesor.response.ProfesorDetalleResponse;
-import ledance.dto.profesor.response.ProfesorListadoResponse;
+import ledance.dto.profesor.response.ProfesorResponse;
 import ledance.entidades.Profesor;
+import ledance.entidades.Salon;
 import org.mapstruct.*;
 
 @Mapper(componentModel = "spring")
@@ -25,11 +25,17 @@ public interface ProfesorMapper {
     @Mapping(target = "telefono", source = "telefono")
     void updateEntityFromRequest(ProfesorModificacionRequest request, @MappingTarget Profesor profesor);
 
-    ProfesorDetalleResponse toDetalleResponse(Profesor profesor);
-
     @Mapping(target = "id", source = "id")
-    ProfesorListadoResponse toListadoResponse(Profesor profesor);
+    @Mapping(target = "nombre", source = "nombre")
+    ProfesorResponse toResponse(Profesor profesor);
 
-
+    default String mapSalonToString(Salon salon) {
+        if (salon == null) {
+            return null;
+        }
+        // Ajusta según la propiedad que quieras usar
+        // Por ejemplo, si tu Salon tiene un campo "nombre" o "descripcion":
+        return salon.getNombre();
+    }
 }
 

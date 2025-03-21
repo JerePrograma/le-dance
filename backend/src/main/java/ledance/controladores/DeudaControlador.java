@@ -1,10 +1,8 @@
 package ledance.controladores;
 
-import ledance.dto.deudas.DeudasPendientesResponse;
 import ledance.servicios.pago.PagoServicio;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -18,11 +16,11 @@ public class DeudaControlador {
         this.pagoServicio = pagoServicio;
     }
 
-    @GetMapping("/alumno/{alumnoId}")
-    public ResponseEntity<DeudasPendientesResponse> obtenerDeudasPendientes(@PathVariable Long alumnoId) {
-        log.info("Consultando deudas pendientes para alumno id: {}", alumnoId);
-        DeudasPendientesResponse respuesta = pagoServicio.listarDeudasPendientesPorAlumno(alumnoId);
-        return ResponseEntity.ok(respuesta);
-    }
+//    @GetMapping("/alumno/{alumnoId}")
+//    public ResponseEntity<DeudasPendientesResponse> obtenerDeudasPendientes(@PathVariable Long alumnoId) {
+//        log.info("Consultando deudas pendientes para alumno id: {}", alumnoId);
+//        DeudasPendientesResponse respuesta = pagoServicio.listarDeudasPendientesPorAlumno(alumnoId);
+//        return ResponseEntity.ok(respuesta);
+//    }
 
 }

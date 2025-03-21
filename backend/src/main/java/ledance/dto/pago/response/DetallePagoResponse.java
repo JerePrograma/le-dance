@@ -1,15 +1,16 @@
 package ledance.dto.pago.response;
 
+import ledance.entidades.TipoDetallePago;
+
 import java.time.LocalDate;
 
 public record DetallePagoResponse(
         Long id,
         String descripcionConcepto,
-        String cuota,
-        Double montoOriginal,
+        String cuotaOCantidad,
+        Double valorBase,
         Long bonificacionId,
         Long recargoId,
-        Double aFavor,
         Double aCobrar,
         Boolean cobrado,
         Long conceptoId,
@@ -19,6 +20,6 @@ public record DetallePagoResponse(
         Long stockId,
         Double importeInicial,
         Double importePendiente,
-        String tipo,           // Nuevo campo para indicar el tipo (MENSUALIDAD, MATRICULA, etc.)
-        LocalDate fechaRegistro  // Nuevo campo para la fecha de registro
+        TipoDetallePago tipo,
+        LocalDate fechaRegistro
 ) {}

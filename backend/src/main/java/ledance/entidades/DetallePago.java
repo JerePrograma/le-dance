@@ -1,7 +1,6 @@
 package ledance.entidades;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -20,6 +19,10 @@ public class DetallePago {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Campo de versión para control optimista
+    @Version
+    private Long version = 0L;
+
     // Usamos descripcionConcepto para registrar el nombre o descripción
     @Column(name = "descripcion_concepto")
     private String descripcionConcepto;
@@ -32,7 +35,8 @@ public class DetallePago {
     @JoinColumn(name = "subconcepto_id", nullable = true)
     private SubConcepto subConcepto;
 
-    private String cuota;
+    @Column(name = "cuota_o_cantidad")
+    private String cuotaOCantidad;
 
     @ManyToOne
     @JoinColumn(name = "bonificacion_id")
@@ -42,12 +46,8 @@ public class DetallePago {
     @JoinColumn(name = "recargo_id")
     private Recargo recargo;
 
-    // Monto abonado a favor (créditos, etc.)
-    private Double aFavor = 0.0;
-
     // Monto original del concepto.
-    @NotNull
-    private Double montoOriginal;
+    private Double valorBase;
 
     // Importe inicial calculado en el momento de creación.
     private Double importeInicial;
@@ -104,12 +104,11 @@ public class DetallePago {
 
     public DetallePago clonarConPendiente(Pago nuevoPago) {
         DetallePago clon = new DetallePago();
-        clon.setAlumno(this.getAlumno()); // O alternativamente: clon.setAlumno(nuevoPago.getAlumno());
+        clon.setAlumno(this.getAlumno());
         clon.setDescripcionConcepto(this.getDescripcionConcepto());
         clon.setConcepto(this.getConcepto());
         clon.setSubConcepto(this.getSubConcepto());
-        clon.setCuota(this.getCuota());
-        clon.setMontoOriginal(this.getMontoOriginal());
+        clon.setValorBase(this.getValorBase());
         clon.setImporteInicial(this.getImportePendiente());
         clon.setaCobrar(0.0);
         clon.setImportePendiente(this.getImportePendiente());
@@ -120,6 +119,13 @@ public class DetallePago {
         clon.setFechaRegistro(LocalDate.now());
         clon.setPago(nuevoPago);
         return clon;
+    }
+
+    @PrePersist
+    public void prePersist() {
+        if (this.fechaRegistro == null) {
+            this.fechaRegistro = LocalDate.now();
+        }
     }
 
 }

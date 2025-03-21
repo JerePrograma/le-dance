@@ -109,32 +109,36 @@ public class MensualidadServicio implements IMensualidadService {
     private void calcularImporteInicial(Mensualidad mensualidad) {
         double valorBase = mensualidad.getValorBase();
 
-        // Descuentos
-        double descuentoFijo = 0.0;
-        double descuentoPorcentaje = 0.0;
-        if (mensualidad.getBonificacion() != null) {
-            descuentoFijo = mensualidad.getBonificacion().getValorFijo();
-            descuentoPorcentaje = (mensualidad.getBonificacion().getPorcentajeDescuento() / 100.0) * valorBase;
-        }
-        double totalDescuento = descuentoFijo + descuentoPorcentaje;
+        // Calcular descuentos y recargos, controlando valores nulos
+        double totalDescuento = calcularDescuento(valorBase, mensualidad.getBonificacion());
+        double totalRecargo = calcularRecargo(valorBase, mensualidad.getRecargo());
 
-        // Recargos
-        double recargoFijo = 0.0;
-        double recargoPorcentaje = 0.0;
-        if (mensualidad.getRecargo() != null) {
-            recargoFijo = mensualidad.getRecargo().getValorFijo();
-            recargoPorcentaje = (mensualidad.getRecargo().getPorcentaje() / 100.0) * valorBase;
-        }
-        double totalRecargo = recargoFijo + recargoPorcentaje;
+        // Calcular el total a pagar y redondear para evitar discrepancias decimales
+        double totalPagar = redondear((valorBase + totalRecargo) - totalDescuento);
 
-        double totalPagar = (valorBase + totalRecargo) - totalDescuento;
-        // Redondeamos el importeInicial para evitar discrepancias decimales
-        totalPagar = redondear(totalPagar);
         mensualidad.setImporteInicial(totalPagar);
-        log.info("Total a pagar (fijo) calculado: {}", totalPagar);
         mensualidad.setImportePendiente(totalPagar);
+
+        log.info("Total a pagar (fijo) calculado: {}", totalPagar);
     }
 
+    private double calcularDescuento(double valorBase, Bonificacion bonificacion) {
+        if (bonificacion == null) {
+            return 0.0;
+        }
+        double descuentoFijo = bonificacion.getValorFijo();
+        double descuentoPorcentaje = (bonificacion.getPorcentajeDescuento() / 100.0) * valorBase;
+        return descuentoFijo + descuentoPorcentaje;
+    }
+
+    private double calcularRecargo(double valorBase, Recargo recargo) {
+        if (recargo == null) {
+            return 0.0;
+        }
+        double recargoFijo = recargo.getValorFijo();
+        double recargoPorcentaje = (recargo.getPorcentaje() / 100.0) * valorBase;
+        return recargoFijo + recargoPorcentaje;
+    }
     /**
      * Recalcula el importe pendiente (saldo) en base al importeInicial fijo y al montoAbonado acumulado.
      * Actualiza el estado: si importePendiente es 0 (redondeado), se marca como PAGADO, en caso contrario PENDIENTE.
@@ -184,7 +188,7 @@ public class MensualidadServicio implements IMensualidadService {
                 Mensualidad mensualidadExistente = optMensualidad.get();
                 log.info("Mensualidad existente encontrada para inscripcion id {}: mensualidad id {}",
                         inscripcion.getId(), mensualidadExistente.getId());
-                // Actualizamos la cuota (por ejemplo, si el valor base o bonificacion han cambiado)
+                // Actualizamos la cuotaOCantidad (por ejemplo, si el valor base o bonificacion han cambiado)
                 mensualidadExistente.setValorBase(inscripcion.getDisciplina().getValorCuota());
                 mensualidadExistente.setBonificacion(inscripcion.getBonificacion());
                 Recargo recargo = determinarRecargoAutomatico(inicioMes.getDayOfMonth());
@@ -222,7 +226,7 @@ public class MensualidadServicio implements IMensualidadService {
     }
 
     private Recargo determinarRecargoAutomatico(int diaCuota) {
-        log.info("Determinando recargo automático para el día de cuota: {}", diaCuota);
+        log.info("Determinando recargo automático para el día de cuotaOCantidad: {}", diaCuota);
         Recargo recargo = recargoRepositorio.findAll().stream()
                 .filter(r -> diaCuota > r.getDiaDelMesAplicacion())
                 .max(Comparator.comparing(Recargo::getDiaDelMesAplicacion))
@@ -230,7 +234,7 @@ public class MensualidadServicio implements IMensualidadService {
         if (recargo != null) {
             log.info("Recargo determinado automáticamente: id={}, diaAplicacion={}", recargo.getId(), recargo.getDiaDelMesAplicacion());
         } else {
-            log.info("No se determino recargo para el día de cuota: {}", diaCuota);
+            log.info("No se determino recargo para el día de cuotaOCantidad: {}", diaCuota);
         }
         return recargo;
     }
@@ -273,7 +277,7 @@ public class MensualidadServicio implements IMensualidadService {
     }
 
     public MensualidadResponse generarCuota(Long inscripcionId, int mes, int anio) {
-        log.info("Generando cuota para inscripcion id: {} para {}/{}", inscripcionId, mes, anio);
+        log.info("Generando cuotaOCantidad para inscripcion id: {} para {}/{}", inscripcionId, mes, anio);
         Inscripcion inscripcion = inscripcionRepositorio.findById(inscripcionId)
                 .orElseThrow(() -> new IllegalArgumentException("Inscripcion no encontrada"));
         LocalDate fechaMensualidad = inscripcion.getFechaInscripcion();
@@ -286,7 +290,7 @@ public class MensualidadServicio implements IMensualidadService {
         mensualidad.setInscripcion(inscripcion);
         mensualidad.setFechaCuota(fechaMensualidad);
         mensualidad.setFechaGeneracion(fechaMensualidad);
-        // Valor base obtenido de la disciplina (valor de la cuota)
+        // Valor base obtenido de la disciplina (valor de la cuotaOCantidad)
         mensualidad.setValorBase(inscripcion.getDisciplina().getValorCuota());
         mensualidad.setBonificacion(inscripcion.getBonificacion());
         mensualidad.setRecargo(null); // Si no hay recargo, se entiende como 0.0 en el cálculo
@@ -313,31 +317,38 @@ public class MensualidadServicio implements IMensualidadService {
     @Transactional
     public DetallePago registrarDetallePagoMensualidad(Mensualidad mensualidad) {
         DetallePago detalle = new DetallePago();
-        detalle.setAlumno(mensualidad.getInscripcion().getAlumno());
-        // Se utiliza la descripción asignada a la mensualidad
+
+        // Asignar alumno y descripción a partir de la mensualidad
+        Alumno alumno = mensualidad.getInscripcion().getAlumno();
+        detalle.setAlumno(alumno);
         detalle.setDescripcionConcepto(mensualidad.getDescripcion());
 
-        // Se asigna el valor original de la cuota
-        detalle.setMontoOriginal(mensualidad.getValorBase());
+        // Asignar el valor base proveniente de la mensualidad
+        detalle.setValorBase(mensualidad.getValorBase());
 
-        // Se asignan los importes calculados en la mensualidad:
-        // importeInicial = valorBase + recargo - bonificacion
-        detalle.setImporteInicial(mensualidad.getImporteInicial());
-        // En el primer registro, aCobrar es 0.0, por lo que:
-        detalle.setaCobrar(0.0);
-        detalle.setImportePendiente(mensualidad.getImporteInicial() - detalle.getaCobrar());
+        // Usar el importe calculado en la mensualidad para los importes inicial y pendiente
+        double importeInicial = mensualidad.getImporteInicial();
+        detalle.setImporteInicial(importeInicial);
 
-        detalle.setCobrado(detalle.getImportePendiente() == 0);
+        // En el primer registro, aCobrar es 0.0
+        double aCobrar = 0.0;
+        detalle.setaCobrar(aCobrar);
+
+        // Calcular importe pendiente y estado de cobro
+        double importePendiente = importeInicial - aCobrar;
+        detalle.setImportePendiente(importePendiente);
+        detalle.setCobrado(importePendiente == 0);
+
         detalle.setTipo(TipoDetallePago.MENSUALIDAD);
         detalle.setFechaRegistro(LocalDate.now());
 
-        // Relacionamos la mensualidad con el detalle de pago
+        // Relacionar la mensualidad con el detalle de pago
         detalle.setMensualidad(mensualidad);
 
-        // Se podrían asignar otras relaciones si es necesario (por ejemplo, inscripción)
         detallePagoRepositorio.save(detalle);
         log.info("DetallePago para Mensualidad id={} creado con importeInicial={} y importePendiente={}",
-                mensualidad.getId(), mensualidad.getImporteInicial(), detalle.getImportePendiente());
+                mensualidad.getId(), importeInicial, importePendiente);
+
         return detalle;
     }
 

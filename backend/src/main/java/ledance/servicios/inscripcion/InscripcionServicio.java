@@ -61,7 +61,7 @@ public class InscripcionServicio implements IInscripcionServicio {
 
     /**
      * Registrar una nueva inscripcion.
-     * Se genera automáticamente una cuota para el mes vigente y se incorpora al alumno a la planilla de asistencia (por disciplina).
+     * Se genera automáticamente una cuotaOCantidad para el mes vigente y se incorpora al alumno a la planilla de asistencia (por disciplina).
      */
     @Transactional
     public InscripcionResponse crearInscripcion(InscripcionRegistroRequest request) {
@@ -100,10 +100,10 @@ public class InscripcionServicio implements IInscripcionServicio {
             int mesActual = LocalDate.now().getMonthValue();
             int anioActual = LocalDate.now().getYear();
             MensualidadResponse cuotaGenerada = mensualidadServicio.generarCuota(guardada.getId(), mesActual, anioActual);
-            log.info("Cuota generada automáticamente para inscripción id: {} con cuota id: {}",
+            log.info("Cuota generada automáticamente para inscripción id: {} con cuotaOCantidad id: {}",
                     guardada.getId(), cuotaGenerada.id());
         } catch (IllegalStateException e) {
-            log.warn("No se generó cuota automática para la inscripción id {}: {}", guardada.getId(), e.getMessage());
+            log.warn("No se generó cuotaOCantidad automática para la inscripción id {}: {}", guardada.getId(), e.getMessage());
         }
 
         int mes = LocalDate.now().getMonthValue();

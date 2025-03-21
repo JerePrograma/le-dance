@@ -3,11 +3,11 @@ package ledance.servicios.disciplina;
 import ledance.dto.disciplina.request.DisciplinaModificacionRequest;
 import ledance.dto.disciplina.request.DisciplinaRegistroRequest;
 import ledance.dto.disciplina.request.DisciplinaHorarioRequest;
-import ledance.dto.disciplina.response.DisciplinaDetalleResponse;
-import ledance.dto.disciplina.response.DisciplinaListadoResponse;
+import ledance.dto.disciplina.response.DisciplinaResponse;
+import ledance.dto.disciplina.response.DisciplinaResponse;
 import ledance.dto.disciplina.response.DisciplinaHorarioResponse;
-import ledance.dto.profesor.response.ProfesorListadoResponse;
-import ledance.dto.alumno.response.AlumnoListadoResponse;
+import ledance.dto.profesor.response.ProfesorResponse;
+import ledance.dto.alumno.response.AlumnoResponse;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -18,27 +18,27 @@ public interface IDisciplinaServicio {
     /**
      * ✅ Registrar una nueva disciplina con horarios por día.
      */
-    DisciplinaDetalleResponse crearDisciplina(DisciplinaRegistroRequest requestDTO);
+    DisciplinaResponse crearDisciplina(DisciplinaRegistroRequest requestDTO);
 
     /**
      * ✅ Listar TODAS las disciplinas con detalles completos.
      */
-    List<DisciplinaDetalleResponse> listarDisciplinas();
+    List<DisciplinaResponse> listarDisciplinas();
 
     /**
      * ✅ Listar disciplinas en formato simplificado sin horarios detallados.
      */
-    List<DisciplinaListadoResponse> listarDisciplinasSimplificadas();
+    List<DisciplinaResponse> listarDisciplinasSimplificadas();
 
     /**
      * ✅ Obtener una disciplina por ID con detalles completos.
      */
-    DisciplinaDetalleResponse obtenerDisciplinaPorId(Long id);
+    DisciplinaResponse obtenerDisciplinaPorId(Long id);
 
     /**
      * ✅ Actualizar una disciplina existente y sus horarios.
      */
-    DisciplinaDetalleResponse actualizarDisciplina(Long id, DisciplinaModificacionRequest requestDTO);
+    DisciplinaResponse actualizarDisciplina(Long id, DisciplinaModificacionRequest requestDTO);
 
     /**
      * ✅ Dar de baja (baja logica) a una disciplina.
@@ -49,27 +49,27 @@ public interface IDisciplinaServicio {
      * ✅ Obtener disciplinas activas según una fecha específica.
      * ⚠️ Ahora funciona con horarios múltiples por día.
      */
-    List<DisciplinaListadoResponse> obtenerDisciplinasPorFecha(String fecha);
+    List<DisciplinaResponse> obtenerDisciplinasPorFecha(String fecha);
 
     /**
      * ✅ Obtener disciplinas activas según su horario de inicio.
      */
-    List<DisciplinaListadoResponse> obtenerDisciplinasPorHorario(LocalTime horarioInicio);
+    List<DisciplinaResponse> obtenerDisciplinasPorHorario(LocalTime horarioInicio);
 
     /**
      * ✅ Obtener alumnos de una disciplina específica.
      */
-    List<AlumnoListadoResponse> obtenerAlumnosDeDisciplina(Long disciplinaId);
+    List<AlumnoResponse> obtenerAlumnosDeDisciplina(Long disciplinaId);
 
     /**
      * ✅ Obtener el profesor de una disciplina específica.
      */
-    ProfesorListadoResponse obtenerProfesorDeDisciplina(Long disciplinaId);
+    ProfesorResponse obtenerProfesorDeDisciplina(Long disciplinaId);
 
     /**
      * ✅ Buscar disciplinas por nombre.
      */
-    List<DisciplinaListadoResponse> buscarPorNombre(String nombre);
+    List<DisciplinaResponse> buscarPorNombre(String nombre);
 
     /**
      * ✅ Obtener los días de clase de una disciplina en un mes y año específicos.

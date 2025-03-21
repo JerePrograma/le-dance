@@ -1,5 +1,7 @@
 package ledance.dto.asistencia.response;
 
+import ledance.dto.disciplina.response.DisciplinaResponse;
+
 import java.util.List;
 
 public record AsistenciaMensualDetalleResponse(

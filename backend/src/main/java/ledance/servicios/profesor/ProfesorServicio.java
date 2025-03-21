@@ -1,12 +1,12 @@
 package ledance.servicios.profesor;
 
-import ledance.dto.alumno.response.AlumnoListadoResponse;
+import ledance.dto.alumno.response.AlumnoResponse;
+import ledance.dto.disciplina.DisciplinaMapper;
 import ledance.dto.profesor.ProfesorMapper;
 import ledance.dto.profesor.request.ProfesorModificacionRequest;
 import ledance.dto.profesor.request.ProfesorRegistroRequest;
-import ledance.dto.disciplina.response.DisciplinaListadoResponse;
-import ledance.dto.profesor.response.ProfesorDetalleResponse;
-import ledance.dto.profesor.response.ProfesorListadoResponse;
+import ledance.dto.disciplina.response.DisciplinaResponse;
+import ledance.dto.profesor.response.ProfesorResponse;
 import ledance.entidades.Disciplina;
 import ledance.entidades.DisciplinaHorario;
 import ledance.entidades.Profesor;
@@ -32,11 +32,13 @@ public class ProfesorServicio implements IProfesorServicio {
     private final ProfesorRepositorio profesorRepositorio;
     private final ProfesorMapper profesorMapper;
     private final DisciplinaHorarioRepositorio disciplinaHorarioRepositorio;
+    private final DisciplinaMapper disciplinaMapper;
 
-    public ProfesorServicio(ProfesorRepositorio profesorRepositorio, ProfesorMapper profesorMapper, DisciplinaHorarioRepositorio disciplinaHorarioRepositorio) {
+    public ProfesorServicio(ProfesorRepositorio profesorRepositorio, ProfesorMapper profesorMapper, DisciplinaHorarioRepositorio disciplinaHorarioRepositorio, DisciplinaMapper disciplinaMapper) {
         this.profesorRepositorio = profesorRepositorio;
         this.profesorMapper = profesorMapper;
         this.disciplinaHorarioRepositorio = disciplinaHorarioRepositorio;
+        this.disciplinaMapper = disciplinaMapper;
     }
 
     /**
@@ -44,7 +46,7 @@ public class ProfesorServicio implements IProfesorServicio {
      */
     @Override
     @Transactional
-    public ProfesorDetalleResponse registrarProfesor(ProfesorRegistroRequest request) {
+    public ProfesorResponse registrarProfesor(ProfesorRegistroRequest request) {
         log.info("Registrando profesor: {} {}", request.nombre(), request.apellido());
         log.info("Fecha de nacimiento: {}, Telefono: {}", request.fechaNacimiento(), request.telefono());
         log.info("Datos completos del profesor a registrar: {}", request); // Agregamos este log para depuracion
@@ -52,12 +54,12 @@ public class ProfesorServicio implements IProfesorServicio {
         Profesor profesor = profesorMapper.toEntity(request);
         profesor.setEdad(calcularEdad(request.fechaNacimiento()));
         Profesor guardado = profesorRepositorio.save(profesor);
-        return profesorMapper.toDetalleResponse(guardado);
+        return profesorMapper.toResponse(guardado);
     }
 
     @Override
     @Transactional
-    public ProfesorDetalleResponse actualizarProfesor(Long id, ProfesorModificacionRequest request) {
+    public ProfesorResponse actualizarProfesor(Long id, ProfesorModificacionRequest request) {
         log.info("Actualizando profesor con id: {}", id);
         log.info("Fecha de nacimiento: {}, Telefono: {}", request.fechaNacimiento(), request.telefono()); // Agregamos este log para depuracion
         log.info("Datos completos del profesor a actualizar: {}", request); // Agregamos este log para depuracion
@@ -68,26 +70,26 @@ public class ProfesorServicio implements IProfesorServicio {
         profesorMapper.updateEntityFromRequest(request, profesor);
         profesor.setEdad(calcularEdad(request.fechaNacimiento()));
         Profesor actualizado = profesorRepositorio.save(profesor);
-        return profesorMapper.toDetalleResponse(actualizado);
+        return profesorMapper.toResponse(actualizado);
     }
 
     /**
      * ✅ Obtener un profesor por ID.
      */
     @Override
-    public ProfesorDetalleResponse obtenerProfesorPorId(Long id) {
+    public ProfesorResponse obtenerProfesorPorId(Long id) {
         Profesor profesor = profesorRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Profesor no encontrado."));
-        return profesorMapper.toDetalleResponse(profesor);
+        return profesorMapper.toResponse(profesor);
     }
 
     /**
      * ✅ Listar todos los profesores.
      */
     @Override
-    public List<ProfesorListadoResponse> listarProfesores() {
+    public List<ProfesorResponse> listarProfesores() {
         return profesorRepositorio.findAll().stream()
-                .map(profesorMapper::toListadoResponse)
+                .map(profesorMapper::toResponse)
                 .collect(Collectors.toList());
     }
 
@@ -95,9 +97,9 @@ public class ProfesorServicio implements IProfesorServicio {
      * ✅ Listar profesores activos.
      */
     @Override
-    public List<ProfesorListadoResponse> listarProfesoresActivos() {
+    public List<ProfesorResponse> listarProfesoresActivos() {
         return profesorRepositorio.findByActivoTrue().stream()
-                .map(profesorMapper::toListadoResponse)
+                .map(profesorMapper::toResponse)
                 .collect(Collectors.toList());
     }
 
@@ -126,38 +128,19 @@ public class ProfesorServicio implements IProfesorServicio {
         return 0;
     }
 
-    public List<DisciplinaListadoResponse> obtenerDisciplinasDeProfesor(Long profesorId) {
+    public List<DisciplinaResponse> obtenerDisciplinasDeProfesor(Long profesorId) {
         Profesor profesor = profesorRepositorio.findById(profesorId)
                 .orElseThrow(() -> new TratadorDeErrores.RecursoNoEncontradoException("Profesor no encontrado con id: " + profesorId));
 
         return profesor.getDisciplinas().stream()
-                .map(this::toListadoResponse)
+                .map(disciplinaMapper::toResponse)
                 .collect(Collectors.toList());
     }
 
-    // Ejemplo simplificado en el metodo toListadoResponse:
-    public DisciplinaListadoResponse toListadoResponse(Disciplina disciplina) {
-        // Obtener el primer horario de la disciplina (si existe)
-        Optional<DisciplinaHorario> primerHorario = disciplinaHorarioRepositorio.findByDisciplinaId(disciplina.getId())
-                .stream()
-                .findFirst(); // Obtiene el primer horario disponible
-
-        return new DisciplinaListadoResponse(
-                disciplina.getId(),
-                disciplina.getNombre(),
-                disciplina.getActivo(),
-                disciplina.getProfesor().getId(),
-                disciplina.getProfesor().getNombre(),
-                disciplina.getClaseSuelta(),
-                disciplina.getClasePrueba(),
-                disciplina.getValorCuota()
-        );
-    }
-
     @Override
-    public List<ProfesorListadoResponse> buscarPorNombre(String nombre) {
+    public List<ProfesorResponse> buscarPorNombre(String nombre) {
         return profesorRepositorio.buscarPorNombreCompleto(nombre).stream()
-                .map(profesorMapper::toListadoResponse)
+                .map(profesorMapper::toResponse)
                 .collect(Collectors.toList());
     }
 }

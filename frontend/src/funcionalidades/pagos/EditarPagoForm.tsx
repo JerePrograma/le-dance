@@ -605,28 +605,27 @@ const EditarPagoForm: React.FC = () => {
             );
 
             const pagoRegistroRequest: PagoRegistroRequest = {
-                alumno: {
-                    id: Number(values.alumnoId),
-                    nombre: values.alumno,
-                },
+                alumno: values.alumno, // Se envía el objeto completo de alumno
                 fecha: values.fecha,
                 fechaVencimiento: values.fecha,
                 monto: Number(values.totalACobrar),
-                inscripcion: values.inscripcion,
-                metodoPagoId: values.metodoPagoId ? Number(values.metodoPagoId) : undefined,
-                recargoAplicado: false,
-                bonificacionAplicada: false,
-                pagoMatricula: false,
+                importeInicial: Number(values.totalACobrar), // Agregado: se asigna el total a cobrar
+                metodoPagoId: Number(values.metodoPagoId) || 0,
                 activo: true,
-                detallePagos: detallesFiltrados.map((d) => ({
+                detallePagos: detallesFiltrados.map<DetallePagoRegistroRequest>((d) => ({
                     id: d.id,
-                    codigoConcepto: d.codigoConcepto ? String(d.codigoConcepto) : undefined,
-                    concepto: d.concepto,
-                    cuota: d.cuota,
+                    descripcionConcepto: d.descripcionConcepto,
+                    conceptoId: d.conceptoId ?? null,
+                    subConceptoId: d.subConceptoId ?? null,
+                    cuotaOCantidad: d.cuotaOCantidad,
                     valorBase: d.valorBase,
-                    bonificacionId: d.bonificacionId ? Number(d.bonificacionId) : undefined,
-                    recargoId: d.recargoId ? Number(d.recargoId) : undefined,
+                    bonificacionId: d.bonificacionId ? Number(d.bonificacionId) : null,
+                    recargoId: d.recargoId ? Number(d.recargoId) : null,
                     aCobrar: d.aCobrar,
+                    cobrado: d.cobrado,
+                    mensualidadId: d.mensualidadId ?? null,
+                    matriculaId: d.matriculaId ?? null,
+                    stockId: d.stockId ?? null,
                 })),
                 pagoMedios: [],
             };

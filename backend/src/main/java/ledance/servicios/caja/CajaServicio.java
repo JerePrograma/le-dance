@@ -1,12 +1,12 @@
 package ledance.servicios.caja;
 
-import ledance.dto.alumno.response.AlumnoListadoResponse;
+import ledance.dto.alumno.response.AlumnoResponse;
 import ledance.dto.caja.CajaDetalleDTO;
 import ledance.dto.caja.CajaDiariaDTO;
 import ledance.dto.caja.RendicionDTO;
 import ledance.dto.caja.response.CobranzasDataResponse;
 import ledance.dto.concepto.response.ConceptoResponse;
-import ledance.dto.disciplina.response.DisciplinaListadoResponse;
+import ledance.dto.disciplina.response.DisciplinaResponse;
 import ledance.dto.egreso.request.EgresoRegistroRequest;
 import ledance.dto.egreso.response.EgresoResponse;
 import ledance.dto.egreso.EgresoMapper;
@@ -244,10 +244,10 @@ public class CajaServicio {
 
     public CobranzasDataResponse obtenerDatosCobranzas() {
         // 1. Obtener listado simplificado de alumnos.
-        List<AlumnoListadoResponse> alumnos = alumnoServicio.listarAlumnosSimplificado();
+        List<AlumnoResponse> alumnos = alumnoServicio.listarAlumnosSimplificado();
 
         // 2. Obtener listado básico de disciplinas.
-        List<DisciplinaListadoResponse> disciplinas = disciplinaServicio.listarDisciplinasSimplificadas();
+        List<DisciplinaResponse> disciplinas = disciplinaServicio.listarDisciplinasSimplificadas();
 
         // 3. Obtener listado de stocks.
         List<StockResponse> stocks = stockServicio.listarStocksActivos();

@@ -3,15 +3,13 @@ package ledance.servicios.disciplina;
 import ledance.dto.alumno.AlumnoMapper;
 import ledance.dto.disciplina.DisciplinaHorarioMapper;
 import ledance.dto.disciplina.DisciplinaMapper;
-import ledance.dto.disciplina.request.DisciplinaHorarioModificacionRequest;
 import ledance.dto.profesor.ProfesorMapper;
 import ledance.dto.disciplina.request.DisciplinaModificacionRequest;
 import ledance.dto.disciplina.request.DisciplinaRegistroRequest;
-import ledance.dto.alumno.response.AlumnoListadoResponse;
-import ledance.dto.disciplina.response.DisciplinaDetalleResponse;
-import ledance.dto.disciplina.response.DisciplinaListadoResponse;
+import ledance.dto.alumno.response.AlumnoResponse;
+import ledance.dto.disciplina.response.DisciplinaResponse;
 import ledance.dto.disciplina.response.DisciplinaHorarioResponse;
-import ledance.dto.profesor.response.ProfesorListadoResponse;
+import ledance.dto.profesor.response.ProfesorResponse;
 import ledance.entidades.Disciplina;
 import ledance.entidades.DisciplinaHorario;
 import ledance.entidades.Profesor;
@@ -63,7 +61,7 @@ public class DisciplinaServicio implements IDisciplinaServicio {
      */
     @Override
     @Transactional
-    public DisciplinaDetalleResponse crearDisciplina(DisciplinaRegistroRequest request) {
+    public DisciplinaResponse crearDisciplina(DisciplinaRegistroRequest request) {
         log.info("Iniciando creacion de disciplina con nombre: {}", request.nombre());
 
         log.info("Buscando profesor con id: {}", request.profesorId());
@@ -97,7 +95,7 @@ public class DisciplinaServicio implements IDisciplinaServicio {
         } else {
             log.info("No se recibieron horarios para la disciplina id: {}", nuevaDisciplina.getId());
         }
-        DisciplinaDetalleResponse response = disciplinaMapper.toDetalleResponse(nuevaDisciplina);
+        DisciplinaResponse response = disciplinaMapper.toResponse(nuevaDisciplina);
         log.info("Respuesta de creacion de disciplina preparada: {}", response);
         return response;
     }
@@ -108,7 +106,7 @@ public class DisciplinaServicio implements IDisciplinaServicio {
     // DisciplinaServicio.java (método actualizarDisciplina)
     @Override
     @Transactional
-    public DisciplinaDetalleResponse actualizarDisciplina(Long id, DisciplinaModificacionRequest request) {
+    public DisciplinaResponse actualizarDisciplina(Long id, DisciplinaModificacionRequest request) {
         log.info("Iniciando actualizacion de disciplina con id: {}", id);
 
         // Recupera la disciplina existente
@@ -136,7 +134,7 @@ public class DisciplinaServicio implements IDisciplinaServicio {
         Disciplina disciplinaActualizada = disciplinaRepositorio.save(existente);
         log.info("Disciplina actualizada correctamente con id: {}", disciplinaActualizada.getId());
 
-        return disciplinaMapper.toDetalleResponse(disciplinaActualizada);
+        return disciplinaMapper.toResponse(disciplinaActualizada);
     }
 
     /**
@@ -156,11 +154,11 @@ public class DisciplinaServicio implements IDisciplinaServicio {
      * Recupera el detalle de una disciplina por su ID.
      */
     @Override
-    public DisciplinaDetalleResponse obtenerDisciplinaPorId(Long id) {
+    public DisciplinaResponse obtenerDisciplinaPorId(Long id) {
         log.info("Obteniendo detalle de la disciplina con id: {}", id);
         Disciplina disciplina = disciplinaRepositorio.findById(id)
                 .orElseThrow(() -> new TratadorDeErrores.DisciplinaNotFoundException(id));
-        DisciplinaDetalleResponse response = disciplinaMapper.toDetalleResponse(disciplina);
+        DisciplinaResponse response = disciplinaMapper.toResponse(disciplina);
         log.info("Detalle obtenido: {}", response);
         return response;
     }
@@ -169,7 +167,7 @@ public class DisciplinaServicio implements IDisciplinaServicio {
      * Obtiene las disciplinas que tienen clase en la fecha especificada.
      */
     @Override
-    public List<DisciplinaListadoResponse> obtenerDisciplinasPorFecha(String fecha) {
+    public List<DisciplinaResponse> obtenerDisciplinasPorFecha(String fecha) {
         log.info("Obteniendo disciplinas para la fecha: {}", fecha);
         LocalDate targetDate = LocalDate.parse(fecha);
         DayOfWeek dayOfWeek = targetDate.getDayOfWeek();
@@ -196,8 +194,8 @@ public class DisciplinaServicio implements IDisciplinaServicio {
                 .collect(Collectors.toList());
         log.info("Total de disciplinas encontradas: {}", disciplinas.size());
 
-        List<DisciplinaListadoResponse> response = disciplinas.stream()
-                .map(disciplinaMapper::toListadoResponse)
+        List<DisciplinaResponse> response = disciplinas.stream()
+                .map(disciplinaMapper::toResponse)
                 .collect(Collectors.toList());
         log.info("Respuesta obtenida: {}", response);
         return response;
@@ -207,7 +205,7 @@ public class DisciplinaServicio implements IDisciplinaServicio {
      * Método aún no implementado para obtener disciplinas por un horario de inicio específico.
      */
     @Override
-    public List<DisciplinaListadoResponse> obtenerDisciplinasPorHorario(LocalTime horarioInicio) {
+    public List<DisciplinaResponse> obtenerDisciplinasPorHorario(LocalTime horarioInicio) {
         log.warn("El método obtenerDisciplinasPorHorario no está implementado.");
         return List.of();
     }
@@ -216,10 +214,10 @@ public class DisciplinaServicio implements IDisciplinaServicio {
      * Retorna los alumnos inscritos en una disciplina.
      */
     @Override
-    public List<AlumnoListadoResponse> obtenerAlumnosDeDisciplina(Long disciplinaId) {
+    public List<AlumnoResponse> obtenerAlumnosDeDisciplina(Long disciplinaId) {
         log.info("Obteniendo alumnos inscritos para la disciplina con id: {}", disciplinaId);
-        List<AlumnoListadoResponse> response = disciplinaRepositorio.findAlumnosPorDisciplina(disciplinaId).stream()
-                .map(alumnoMapper::toListadoResponse)
+        List<AlumnoResponse> response = disciplinaRepositorio.findAlumnosPorDisciplina(disciplinaId).stream()
+                .map(alumnoMapper::toResponse)
                 .collect(Collectors.toList());
         log.info("Se encontraron {} alumnos inscritos", response.size());
         return response;
@@ -229,11 +227,11 @@ public class DisciplinaServicio implements IDisciplinaServicio {
      * Retorna el profesor asignado a una disciplina.
      */
     @Override
-    public ProfesorListadoResponse obtenerProfesorDeDisciplina(Long disciplinaId) {
+    public ProfesorResponse obtenerProfesorDeDisciplina(Long disciplinaId) {
         log.info("Obteniendo profesor para la disciplina con id: {}", disciplinaId);
         Profesor profesor = disciplinaRepositorio.findProfesorPorDisciplina(disciplinaId)
                 .orElseThrow(() -> new TratadorDeErrores.DisciplinaNotFoundException(disciplinaId));
-        ProfesorListadoResponse response = profesorMapper.toListadoResponse(profesor);
+        ProfesorResponse response = profesorMapper.toResponse(profesor);
         log.info("Profesor obtenido: {} {}", response.nombre(), response.apellido());
         return response;
     }
@@ -271,10 +269,10 @@ public class DisciplinaServicio implements IDisciplinaServicio {
      * Lista todas las disciplinas activas con detalle completo.
      */
     @Override
-    public List<DisciplinaDetalleResponse> listarDisciplinas() {
+    public List<DisciplinaResponse> listarDisciplinas() {
         log.info("Listando todas las disciplinas activas (detalle completo)");
-        List<DisciplinaDetalleResponse> response = disciplinaRepositorio.findByActivoTrue().stream()
-                .map(disciplinaMapper::toDetalleResponse)
+        List<DisciplinaResponse> response = disciplinaRepositorio.findByActivoTrue().stream()
+                .map(disciplinaMapper::toResponse)
                 .collect(Collectors.toList());
         log.info("Total de disciplinas activas encontradas: {}", response.size());
         return response;
@@ -284,10 +282,10 @@ public class DisciplinaServicio implements IDisciplinaServicio {
      * Lista las disciplinas activas de forma simplificada.
      */
     @Override
-    public List<DisciplinaListadoResponse> listarDisciplinasSimplificadas() {
+    public List<DisciplinaResponse> listarDisciplinasSimplificadas() {
         log.info("Listando todas las disciplinas activas (formato listado)");
-        List<DisciplinaListadoResponse> response = disciplinaRepositorio.findByActivoTrue().stream()
-                .map(disciplinaMapper::toListadoResponse)
+        List<DisciplinaResponse> response = disciplinaRepositorio.findByActivoTrue().stream()
+                .map(disciplinaMapper::toResponse)
                 .collect(Collectors.toList());
         log.info("Total de disciplinas activas encontradas: {}", response.size());
         return response;
@@ -297,12 +295,12 @@ public class DisciplinaServicio implements IDisciplinaServicio {
      * Busca disciplinas por nombre (parcial o completo) y retorna los resultados en formato listado.
      */
     @Override
-    public List<DisciplinaListadoResponse> buscarPorNombre(String nombre) {
+    public List<DisciplinaResponse> buscarPorNombre(String nombre) {
         log.info("Buscando disciplinas por nombre: {}", nombre);
         List<Disciplina> resultado = disciplinaRepositorio.buscarPorNombre(nombre);
         log.info("Se encontraron {} disciplinas para el término: {}", resultado.size(), nombre);
-        List<DisciplinaListadoResponse> response = resultado.stream()
-                .map(disciplinaMapper::toListadoResponse)
+        List<DisciplinaResponse> response = resultado.stream()
+                .map(disciplinaMapper::toResponse)
                 .collect(Collectors.toList());
         return response;
     }

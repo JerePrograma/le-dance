@@ -1,5 +1,6 @@
 package ledance.servicios.concepto;
 
+import jakarta.persistence.EntityNotFoundException;
 import ledance.dto.concepto.request.ConceptoRegistroRequest;
 import ledance.dto.concepto.response.ConceptoResponse;
 import ledance.dto.concepto.ConceptoMapper;
@@ -36,6 +37,10 @@ public class ConceptoServicio {
     @Transactional
     public ConceptoResponse crearConcepto(ConceptoRegistroRequest request) {
         Concepto concepto = conceptoMapper.toEntity(request);
+        SubConcepto subConcepto = subConceptoRepositorio
+                .findById(request.subConcepto().id())
+                .orElseThrow(() -> new EntityNotFoundException("SubConcepto no encontrado"));
+        concepto.setSubConcepto(subConcepto);
         Concepto saved = conceptoRepositorio.save(concepto);
         return conceptoMapper.toResponse(saved);
     }

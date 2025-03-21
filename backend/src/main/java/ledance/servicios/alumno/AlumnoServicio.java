@@ -1,16 +1,12 @@
 package ledance.servicios.alumno;
 
 import ledance.dto.alumno.AlumnoMapper;
-import ledance.dto.alumno.response.AlumnoDataResponse;
-import ledance.dto.deudas.DeudasPendientesResponse;
-import ledance.dto.disciplina.DisciplinaMapper;
-import ledance.dto.alumno.request.AlumnoModificacionRequest;
 import ledance.dto.alumno.request.AlumnoRegistroRequest;
-import ledance.dto.alumno.response.AlumnoDetalleResponse;
-import ledance.dto.alumno.response.AlumnoListadoResponse;
-import ledance.dto.disciplina.response.DisciplinaListadoResponse;
-import ledance.dto.inscripcion.response.InscripcionResponse;
-import ledance.dto.pago.response.PagoResponse;
+import ledance.dto.alumno.response.AlumnoDataResponse;
+import ledance.dto.alumno.response.AlumnoResponse;
+import ledance.dto.disciplina.DisciplinaMapper;
+import ledance.dto.disciplina.response.DisciplinaResponse;
+import ledance.dto.pago.response.DetallePagoResponse;
 import ledance.entidades.Alumno;
 import ledance.infra.errores.TratadorDeErrores;
 import ledance.repositorios.AlumnoRepositorio;
@@ -47,7 +43,7 @@ public class AlumnoServicio implements IAlumnoServicio {
 
     @Override
     @Transactional
-    public AlumnoDetalleResponse registrarAlumno(AlumnoRegistroRequest requestDTO) {
+    public AlumnoResponse registrarAlumno(AlumnoRegistroRequest requestDTO) {
         log.info("Registrando alumno: {}", requestDTO.nombre());
 
         Alumno alumno = alumnoMapper.toEntity(requestDTO);
@@ -59,26 +55,26 @@ public class AlumnoServicio implements IAlumnoServicio {
 
         // Guardar el alumno
         Alumno alumnoGuardado = alumnoRepositorio.save(alumno);
-        return alumnoMapper.toDetalleResponse(alumnoGuardado);
+        return alumnoMapper.toResponse(alumnoGuardado);
     }
 
     @Override
-    public AlumnoDetalleResponse obtenerAlumnoPorId(Long id) {
+    public AlumnoResponse obtenerAlumnoPorId(Long id) {
         Alumno alumno = alumnoRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Alumno no encontrado."));
-        return alumnoMapper.toDetalleResponse(alumno);
+        return alumnoMapper.toResponse(alumno);
     }
 
     @Override
-    public List<AlumnoListadoResponse> listarAlumnos() {
+    public List<AlumnoResponse> listarAlumnos() {
         return alumnoRepositorio.findAll().stream()
-                .map(alumnoMapper::toListadoResponse)
+                .map(alumnoMapper::toResponse)
                 .collect(Collectors.toList());
     }
 
     @Override
     @Transactional
-    public AlumnoDetalleResponse actualizarAlumno(Long id, AlumnoModificacionRequest requestDTO) {
+    public AlumnoResponse actualizarAlumno(Long id, AlumnoRegistroRequest requestDTO) {
         log.info("Actualizando alumno con id: {}", id);
         Alumno alumno = alumnoRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Alumno no encontrado."));
@@ -91,7 +87,7 @@ public class AlumnoServicio implements IAlumnoServicio {
         }
 
         Alumno alumnoActualizado = alumnoRepositorio.save(alumno);
-        return alumnoMapper.toDetalleResponse(alumnoActualizado);
+        return alumnoMapper.toResponse(alumnoActualizado);
     }
 
     @Override
@@ -107,25 +103,25 @@ public class AlumnoServicio implements IAlumnoServicio {
     }
 
     @Override
-    public List<AlumnoListadoResponse> listarAlumnosSimplificado() {
+    public List<AlumnoResponse> listarAlumnosSimplificado() {
         return alumnoRepositorio.findByActivoTrue().stream()
-                .map(alumnoMapper::toListadoResponse)
+                .map(alumnoMapper::toResponse)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public List<AlumnoListadoResponse> buscarPorNombre(String nombre) {
+    public List<AlumnoResponse> buscarPorNombre(String nombre) {
         return alumnoRepositorio.buscarPorNombreCompleto(nombre).stream()
-                .map(alumnoMapper::toListadoResponse)
+                .map(alumnoMapper::toResponse)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public List<DisciplinaListadoResponse> obtenerDisciplinasDeAlumno(Long alumnoId) {
+    public List<DisciplinaResponse> obtenerDisciplinasDeAlumno(Long alumnoId) {
         Alumno alumno = alumnoRepositorio.findById(alumnoId)
                 .orElseThrow(() -> new IllegalArgumentException("Alumno no encontrado."));
         return alumno.getInscripciones().stream()
-                .map(inscripcion -> disciplinaMapper.toListadoResponse(inscripcion.getDisciplina())) // ✅ Uso correcto del mapper
+                .map(inscripcion -> disciplinaMapper.toResponse(inscripcion.getDisciplina())) // ✅ Uso correcto del mapper
                 .collect(Collectors.toList());
     }
 
@@ -150,19 +146,14 @@ public class AlumnoServicio implements IAlumnoServicio {
         Alumno alumno = alumnoRepositorio.findById(id)
                 .orElseThrow(() -> new TratadorDeErrores.ResourceNotFoundException("Alumno no encontrado con id: " + id));
 
-        // 2. Convertir la entidad Alumno a un DTO de detalle.
-        AlumnoDetalleResponse alumnoDetalle = alumnoMapper.toDetalleResponse(alumno);
+        // 2. Convertir la entidad Alumno a un DTO básico.
+        AlumnoResponse alumnoResponse = alumnoMapper.toResponse(alumno);
 
-        // 3. Consultar inscripciones activas para este alumno.
-        List<InscripcionResponse> inscripcionesActivas = inscripcionServicio.listarPorAlumno(id);
+        // 3. Obtener la lista unificada de DetallePagoResponse con las deudas pendientes.
+        List<DetallePagoResponse> detallePagosPendientes = pagoServicio.listarDetallePagosPendientesPorAlumno(id);
 
-        // 4. Consultar deudas pendientes del alumno (por ejemplo, consolidando detalles de pagos)
-        DeudasPendientesResponse deudas = pagoServicio.listarDeudasPendientesPorAlumno(id);
-
-        // 5. Consultar el último pago (o el pago pendiente activo) del alumno.
-        PagoResponse ultimoPago = pagoServicio.obtenerUltimoPagoPorAlumno(id);
-
-        // 6. Armar el DTO unificado y retornarlo.
-        return new AlumnoDataResponse(alumnoDetalle, inscripcionesActivas, deudas, ultimoPago);
+        // 4. Armar y retornar el DTO unificado.
+        return new AlumnoDataResponse(alumnoResponse, detallePagosPendientes);
     }
+
 }

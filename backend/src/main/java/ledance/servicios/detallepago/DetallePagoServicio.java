@@ -34,29 +34,26 @@ public class DetallePagoServicio {
      * importe = totalAjustado - aCobrar (acumulado)
      */
     public void calcularImporte(DetallePago detalle) {
-        // Usar el campo unificado en lugar de la relación con Concepto
+        // Usar el campo unificado para la descripción del concepto
         String conceptoDesc = (detalle.getDescripcionConcepto() != null)
                 ? detalle.getDescripcionConcepto()
                 : "N/A";
         log.info("[calcularImporte] Iniciando cálculo para DetallePago id={} (Concepto: '{}')",
                 detalle.getId(), conceptoDesc);
 
-        double base = Optional.ofNullable(detalle.getMontoOriginal()).orElse(0.0);
+        double base = Optional.ofNullable(detalle.getValorBase()).orElse(0.0);
         log.info("[calcularImporte] Base para DetallePago id={} es {}", detalle.getId(), base);
 
         double descuento;
+        // Ahora se utiliza la bonificación asignada directamente en el DetallePago
         if (TipoDetallePago.MENSUALIDAD.equals(detalle.getTipo())
-                && detalle.getPago() != null
-                && detalle.getPago().getInscripcion() != null
-                && detalle.getPago().getInscripcion().getBonificacion() != null) {
-            double descuentoFijo = detalle.getPago().getInscripcion().getBonificacion().getValorFijo() != null
-                    ? detalle.getPago().getInscripcion().getBonificacion().getValorFijo()
-                    : 0.0;
-            double descuentoPorcentaje = detalle.getPago().getInscripcion().getBonificacion().getPorcentajeDescuento() != null
-                    ? (detalle.getPago().getInscripcion().getBonificacion().getPorcentajeDescuento() / 100.0 * base)
-                    : 0.0;
+                && detalle.getBonificacion() != null) {
+            double descuentoFijo = (detalle.getBonificacion().getValorFijo() != null)
+                    ? detalle.getBonificacion().getValorFijo() : 0.0;
+            double descuentoPorcentaje = (detalle.getBonificacion().getPorcentajeDescuento() != null)
+                    ? (detalle.getBonificacion().getPorcentajeDescuento() / 100.0 * base) : 0.0;
             descuento = descuentoFijo + descuentoPorcentaje;
-            log.info("[calcularImporte] Detalle id={} (Mensualidad): Descuento calculado basado en inscripción = {}",
+            log.info("[calcularImporte] Detalle id={} (Mensualidad): Descuento calculado basado en bonificación = {}",
                     detalle.getId(), descuento);
         } else {
             descuento = calcularDescuento(detalle, base);
@@ -206,11 +203,10 @@ public class DetallePagoServicio {
         return new DetallePagoResponse(
                 detalle.getId(),
                 conceptoDesc,
-                detalle.getCuota(),
-                detalle.getMontoOriginal(),
+                detalle.getCuotaOCantidad(),
+                detalle.getValorBase(),
                 detalle.getBonificacion() != null ? detalle.getBonificacion().getId() : null,
                 detalle.getRecargo() != null ? detalle.getRecargo().getId() : null,
-                detalle.getAFavor(),  // O detalle.getaFavor() según el getter definido en la entidad
                 detalle.getaCobrar(),
                 detalle.getCobrado(),
                 detalle.getConcepto() != null ? detalle.getConcepto().getId() : null,
@@ -220,7 +216,7 @@ public class DetallePagoServicio {
                 detalle.getStock() != null ? detalle.getStock().getId() : null,
                 detalle.getImporteInicial(),
                 detalle.getImportePendiente(),
-                detalle.getTipo() != null ? detalle.getTipo().name() : null,
+                detalle.getTipo(),
                 detalle.getFechaRegistro()
         );
     }

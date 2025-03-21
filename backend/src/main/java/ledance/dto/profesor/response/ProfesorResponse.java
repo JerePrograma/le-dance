@@ -1,11 +1,11 @@
 package ledance.dto.profesor.response;
 
-import ledance.dto.disciplina.response.DisciplinaListadoResponse;
+import ledance.dto.disciplina.response.DisciplinaResponse;
 
 import java.time.LocalDate;
 import java.util.List;
 
-public record ProfesorDetalleResponse(
+public record ProfesorResponse(
         Long id,
         String nombre,
         String apellido,
@@ -13,6 +13,6 @@ public record ProfesorDetalleResponse(
         Integer edad, // ✅ Se calcula automaticamente
         String telefono, // ✅ NUEVO
         Boolean activo,
-        List<DisciplinaListadoResponse> disciplinas // ✅ Lista de disciplinas que imparte
+        List<DisciplinaResponse> disciplinas // ✅ Lista de disciplinas que imparte
 ) {
 }

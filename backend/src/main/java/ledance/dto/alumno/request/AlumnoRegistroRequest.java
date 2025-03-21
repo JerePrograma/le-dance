@@ -20,14 +20,17 @@ public record AlumnoRegistroRequest(
         @NotBlank String apellido,
         LocalDate fechaNacimiento,
         @NotNull LocalDate fechaIncorporacion,
+        Integer edad,
         String celular1,
         String celular2,
         @Email String email1,
         @Email String email2,
         String documento,
-        String cuit,
+        LocalDate fechaDeBaja,
+        Boolean deudaPendiente,
         String nombrePadres,
         Boolean autorizadoParaSalirSolo,
+        Boolean activo,  // <-- Agregado aquí
         String otrasNotas,
         Double cuotaTotal,
         List<InscripcionRegistroRequest> inscripciones // ✅ Relacion con disciplinas y bonificaciones

@@ -2,7 +2,7 @@ package ledance.dto.disciplina.response;
 
 import java.util.List;
 
-public record DisciplinaDetalleResponse(
+public record DisciplinaResponse(
         Long id,
         String nombre,
         String salon,

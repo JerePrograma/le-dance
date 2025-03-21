@@ -17,14 +17,14 @@ public class NotificacionService implements INotificacionService {
         // Implementar logica de notificacion (por correo y notificacion interna)
         // Por ahora, solo se registra el evento en el log.
         log.info("Notificacion: Pago proximo a vencer para inscripcionId: {} (pago id: {})",
-                pago.getInscripcion().getId(), pago.getId());
+                pago.getId(), pago.getId());
     }
 
     @Override
     public void notificarPagoVencido(Pago pago) {
         // Logica de notificacion para pagos vencidos
         log.info("Notificacion: Pago vencido para inscripcionId: {} (pago id: {})",
-                pago.getInscripcion().getId(), pago.getId());
+                pago.getId(), pago.getId());
     }
 
     @Override

@@ -5,6 +5,7 @@ import ledance.dto.asistencia.request.AsistenciaMensualModificacionRequest;
 import ledance.dto.asistencia.response.*;
 import ledance.entidades.AsistenciaMensual;
 import ledance.entidades.AsistenciaAlumnoMensual;
+import ledance.entidades.Salon;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
@@ -14,11 +15,15 @@ import java.util.List;
 @Mapper(componentModel = "spring", uses = {AsistenciaDiariaMapper.class})
 public interface AsistenciaMensualMapper {
 
-    // Mapea la entidad AsistenciaMensual a su respuesta detallada, anidando la informacion de disciplina y alumnos.
     @Mapping(target = "disciplina", source = "disciplina")
     @Mapping(target = "profesor", source = "disciplina.profesor.nombre")
     @Mapping(target = "alumnos", source = "asistenciasAlumnoMensual")
     AsistenciaMensualDetalleResponse toDetalleDTO(AsistenciaMensual asistenciaMensual);
+
+    // Método de mapeo para convertir Salon a String (su nombre)
+    default String map(Salon salon) {
+        return (salon != null) ? salon.getNombre() : null;
+    }
 
     // Mapea para listado; en este caso se utiliza un objeto anidado para la disciplina.
     @Mapping(target = "disciplina", source = "disciplina")
@@ -51,18 +56,7 @@ public interface AsistenciaMensualMapper {
     @Mapping(target = "observacion", source = "observacion")
     @Mapping(target = "asistenciaMensualId", source = "asistenciaMensual.id")
     @Mapping(target = "asistenciasDiarias", source = "asistenciasDiarias")
-    @Mapping(target = "alumno", expression = "java(mapAlumno(alumno))")
+    @Mapping(target = "alumno", source = "alumno")
     AsistenciaAlumnoMensualDetalleResponse toAlumnoDetalleDTO(AsistenciaAlumnoMensual alumno);
-
-    default AlumnoResponse mapAlumno(AsistenciaAlumnoMensual aam) {
-        if(aam.getInscripcion() != null && aam.getInscripcion().getAlumno() != null) {
-            return new AlumnoResponse(
-                    aam.getInscripcion().getAlumno().getId(),
-                    aam.getInscripcion().getAlumno().getNombre(),
-                    aam.getInscripcion().getAlumno().getApellido()
-            );
-        }
-        return null;
-    }
 
 }

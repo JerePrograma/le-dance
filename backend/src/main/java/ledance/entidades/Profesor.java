@@ -1,6 +1,5 @@
 package ledance.entidades;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
@@ -41,9 +40,6 @@ public class Profesor {
     private Integer edad;
 
     @OneToMany(mappedBy = "profesor")
-    @JsonIgnore
-    @EqualsAndHashCode.Exclude
-    @ToString.Exclude // ⬅️ Añadir aquí
     private List<Disciplina> disciplinas;
 
     @OneToOne

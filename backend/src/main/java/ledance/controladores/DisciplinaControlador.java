@@ -2,10 +2,10 @@ package ledance.controladores;
 
 import ledance.dto.disciplina.request.DisciplinaModificacionRequest;
 import ledance.dto.disciplina.request.DisciplinaRegistroRequest;
-import ledance.dto.alumno.response.AlumnoListadoResponse;
-import ledance.dto.disciplina.response.DisciplinaDetalleResponse;
-import ledance.dto.disciplina.response.DisciplinaListadoResponse;
-import ledance.dto.profesor.response.ProfesorListadoResponse;
+import ledance.dto.alumno.response.AlumnoResponse;
+import ledance.dto.disciplina.response.DisciplinaResponse;
+import ledance.dto.disciplina.response.DisciplinaResponse;
+import ledance.dto.profesor.response.ProfesorResponse;
 import jakarta.validation.Valid;
 import ledance.servicios.disciplina.DisciplinaServicio;
 import org.slf4j.Logger;
@@ -33,9 +33,9 @@ public class DisciplinaControlador {
      * ✅ Registrar una nueva disciplina.
      */
     @PostMapping
-    public ResponseEntity<DisciplinaDetalleResponse> registrarDisciplina(@Valid @RequestBody DisciplinaRegistroRequest requestDTO) {
+    public ResponseEntity<DisciplinaResponse> registrarDisciplina(@Valid @RequestBody DisciplinaRegistroRequest requestDTO) {
         log.info("Registrando disciplina: {}", requestDTO.nombre());
-        DisciplinaDetalleResponse response = disciplinaServicio.crearDisciplina(requestDTO);
+        DisciplinaResponse response = disciplinaServicio.crearDisciplina(requestDTO);
         return ResponseEntity.ok(response);
     }
 
@@ -43,8 +43,8 @@ public class DisciplinaControlador {
      * ✅ Listar TODAS las disciplinas con detalles completos.
      */
     @GetMapping
-    public ResponseEntity<List<DisciplinaDetalleResponse>> listarDisciplinas() {
-        List<DisciplinaDetalleResponse> disciplinas = disciplinaServicio.listarDisciplinas();
+    public ResponseEntity<List<DisciplinaResponse>> listarDisciplinas() {
+        List<DisciplinaResponse> disciplinas = disciplinaServicio.listarDisciplinas();
         return ResponseEntity.ok(disciplinas);
     }
 
@@ -52,8 +52,8 @@ public class DisciplinaControlador {
      * ✅ Obtener una disciplina por ID con detalles completos.
      */
     @GetMapping("/{id}")
-    public ResponseEntity<DisciplinaDetalleResponse> obtenerDisciplinaPorId(@PathVariable Long id) {
-        DisciplinaDetalleResponse disciplina = disciplinaServicio.obtenerDisciplinaPorId(id);
+    public ResponseEntity<DisciplinaResponse> obtenerDisciplinaPorId(@PathVariable Long id) {
+        DisciplinaResponse disciplina = disciplinaServicio.obtenerDisciplinaPorId(id);
         return ResponseEntity.ok(disciplina);
     }
 
@@ -61,10 +61,10 @@ public class DisciplinaControlador {
      * ✅ Actualizar una disciplina por ID.
      */
     @PutMapping("/{id}")
-    public ResponseEntity<DisciplinaDetalleResponse> actualizarDisciplina(@PathVariable Long id,
+    public ResponseEntity<DisciplinaResponse> actualizarDisciplina(@PathVariable Long id,
                                                                           @Valid @RequestBody DisciplinaModificacionRequest requestDTO) {
         log.info("Actualizando disciplina con id: {}", id);
-        DisciplinaDetalleResponse disciplinaActualizada = disciplinaServicio.actualizarDisciplina(id, requestDTO);
+        DisciplinaResponse disciplinaActualizada = disciplinaServicio.actualizarDisciplina(id, requestDTO);
         return ResponseEntity.ok(disciplinaActualizada);
     }
 
@@ -89,8 +89,8 @@ public class DisciplinaControlador {
      * ✅ Listar disciplinas activas en formato simplificado.
      */
     @GetMapping("/listado")
-    public ResponseEntity<List<DisciplinaListadoResponse>> listarDisciplinasSimplificadas() {
-        List<DisciplinaListadoResponse> disciplinas = disciplinaServicio.listarDisciplinasSimplificadas();
+    public ResponseEntity<List<DisciplinaResponse>> listarDisciplinasSimplificadas() {
+        List<DisciplinaResponse> disciplinas = disciplinaServicio.listarDisciplinasSimplificadas();
         return disciplinas.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(disciplinas);
     }
 
@@ -98,8 +98,8 @@ public class DisciplinaControlador {
      * ✅ Obtener disciplinas activas segun una fecha especifica.
      */
     @GetMapping("/por-fecha")
-    public ResponseEntity<List<DisciplinaListadoResponse>> obtenerDisciplinasPorFecha(@RequestParam String fecha) {
-        List<DisciplinaListadoResponse> disciplinas = disciplinaServicio.obtenerDisciplinasPorFecha(fecha);
+    public ResponseEntity<List<DisciplinaResponse>> obtenerDisciplinasPorFecha(@RequestParam String fecha) {
+        List<DisciplinaResponse> disciplinas = disciplinaServicio.obtenerDisciplinasPorFecha(fecha);
         return ResponseEntity.ok(disciplinas);
     }
 
@@ -107,8 +107,8 @@ public class DisciplinaControlador {
      * ✅ Obtener alumnos de una disciplina especifica.
      */
     @GetMapping("/{disciplinaId}/alumnos")
-    public ResponseEntity<List<AlumnoListadoResponse>> obtenerAlumnosDeDisciplina(@PathVariable Long disciplinaId) {
-        List<AlumnoListadoResponse> alumnos = disciplinaServicio.obtenerAlumnosDeDisciplina(disciplinaId);
+    public ResponseEntity<List<AlumnoResponse>> obtenerAlumnosDeDisciplina(@PathVariable Long disciplinaId) {
+        List<AlumnoResponse> alumnos = disciplinaServicio.obtenerAlumnosDeDisciplina(disciplinaId);
         return ResponseEntity.ok(alumnos);
     }
 
@@ -116,15 +116,15 @@ public class DisciplinaControlador {
      * ✅ Obtener el profesor de una disciplina especifica.
      */
     @GetMapping("/{disciplinaId}/profesor")
-    public ResponseEntity<ProfesorListadoResponse> obtenerProfesorDeDisciplina(@PathVariable Long disciplinaId) {
-        ProfesorListadoResponse profesor = disciplinaServicio.obtenerProfesorDeDisciplina(disciplinaId);
+    public ResponseEntity<ProfesorResponse> obtenerProfesorDeDisciplina(@PathVariable Long disciplinaId) {
+        ProfesorResponse profesor = disciplinaServicio.obtenerProfesorDeDisciplina(disciplinaId);
         return ResponseEntity.ok(profesor);
     }
 
     @GetMapping("/por-horario")
-    public ResponseEntity<List<DisciplinaListadoResponse>> obtenerDisciplinasPorHorario(@RequestParam String horario) {
+    public ResponseEntity<List<DisciplinaResponse>> obtenerDisciplinasPorHorario(@RequestParam String horario) {
         LocalTime horarioInicio = LocalTime.parse(horario);
-        List<DisciplinaListadoResponse> disciplinas = disciplinaServicio.obtenerDisciplinasPorHorario(horarioInicio);
+        List<DisciplinaResponse> disciplinas = disciplinaServicio.obtenerDisciplinasPorHorario(horarioInicio);
         return ResponseEntity.ok(disciplinas);
     }
 

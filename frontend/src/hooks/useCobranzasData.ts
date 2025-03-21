@@ -7,16 +7,6 @@ import type {
   CobranzasDataResponse,
 } from "../types/types";
 
-/**
- * Se asume que el endpoint devuelve un objeto con la siguiente estructura:
- * {
- *   alumnos: AlumnoListadoResponse[],
- *   disciplinas: DisciplinaListadoResponse[],
- *   stocks: StockResponse[],
- *   metodosPago: MetodoPagoResponse[],
- *   conceptos: ConceptoResponse[]
- * }
- */
 export const useCobranzasData = () => {
   const cobranzasQuery = useQuery<CobranzasDataResponse, Error>({
     queryKey: ["cobranzasData"],

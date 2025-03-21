@@ -41,23 +41,48 @@ export interface PageResponse<T> {
 // ==========================================
 // ALUMNO
 // ==========================================
+export interface AlumnoResponse {
+  id: number;
+  nombre: string;
+  apellido: string;
+  fechaNacimiento: string; // formato ISO (ej. "2023-08-30")
+  fechaIncorporacion: string; // formato ISO
+  edad: number;
+  celular1: string;
+  celular2: string;
+  email1: string;
+  email2: string;
+  documento: string;
+  fechaDeBaja: string | null; // puede ser null si no se dio de baja
+  deudaPendiente: boolean;
+  nombrePadres: string;
+  autorizadoParaSalirSolo: boolean;
+  activo: boolean;
+  otrasNotas: string;
+  cuotaTotal: number;
+  inscripciones: InscripcionResponse[]; // Asegúrate de que InscripcionResponse esté definido según tu DTO
+}
+
 export interface AlumnoRegistroRequest {
   id?: number;
   nombre: string;
   apellido: string;
-  fechaNacimiento: string;
-  fechaIncorporacion: string;
+  fechaNacimiento: string; // en formato ISO, ej. "2023-08-30"
+  fechaIncorporacion: string; // en formato ISO
+  edad: number;
   celular1?: string;
   celular2?: string;
   email1?: string;
   email2?: string;
   documento?: string;
-  cuit?: string;
+  fechaDeBaja?: string | null;
+  deudaPendiente?: boolean;
   nombrePadres?: string;
   autorizadoParaSalirSolo?: boolean;
+  activo: boolean;
   otrasNotas?: string;
   cuotaTotal?: number;
-  inscripciones: InscripcionRegistroRequest[];
+  inscripciones: InscripcionRegistroRequest[]; // Asegúrate de que InscripcionRegistroRequest esté definido según tu DTO
 }
 
 export interface AlumnoModificacionRequest {
@@ -78,40 +103,6 @@ export interface AlumnoModificacionRequest {
   activo: boolean;
   // Ahora se utiliza 'inscripciones' (tipo InscripcionRegistroRequest) en lugar de 'disciplinas'
   inscripciones: InscripcionRegistroRequest[];
-}
-
-export interface AlumnoDetalleResponse {
-  id: number;
-  nombre: string;
-  apellido: string;
-  fechaNacimiento?: string;
-  edad?: number;
-  celular1?: string;
-  celular2?: string;
-  email1?: string;
-  email2?: string;
-  documento?: string;
-  cuit?: string;
-  fechaIncorporacion?: string;
-  nombrePadres?: string;
-  autorizadoParaSalirSolo?: boolean;
-  activo?: boolean;
-  otrasNotas?: string;
-  cuotaTotal?: number;
-  disciplinas: { id: number; nombre: string }[];
-}
-
-export interface AlumnoListadoResponse {
-  id: number;
-  nombre: string;
-  apellido: string;
-  activo?: boolean;
-}
-
-export interface Alumno {
-  id: number;
-  nombre: string;
-  apellido: string;
 }
 
 // ==========================================
@@ -265,13 +256,6 @@ export interface AsistenciaDiariaRegistroRequest {
   observacion?: string;
 }
 
-// Representación del alumno (extraído de la inscripción)
-export interface AlumnoResponse {
-  id: number;
-  nombre: string;
-  apellido: string;
-}
-
 // Response de una asistencia diaria, ahora con un objeto "alumno"
 export interface AsistenciaDiariaResponse {
   id: number;
@@ -382,13 +366,10 @@ export interface InscripcionResponse {
   id: number;
   alumno: AlumnoListadoResponse;
   disciplina: DisciplinaListadoResponse;
-  // Fechas en formato ISO string
   fechaInscripcion: string;
-  // Puedes definir un enum o unión para el estado, por ejemplo:
   estado: "ACTIVA" | "BAJA" | string;
   costoCalculado: number;
   bonificacion?: BonificacionResponse;
-  // Este campo se deriva o se calcula; se mantiene como string
   mensualidadEstado: string;
 }
 
@@ -716,22 +697,21 @@ export interface RendicionDTO {
 // PAGO Y MÉTODOS DE PAGO
 // ==========================================
 
+// Normalized Types for Frontend based on Backend DTOs
+
 export interface PagoRegistroRequest {
-  alumno: {
-    id: number;
-    nombre: string;
-  };
+  id?: number;
   fecha: string;
   fechaVencimiento: string;
   monto: number;
-  inscripcion?: InscripcionRegistroRequest | null;
+  importeInicial: number;
+  valorBase?: number;
   metodoPagoId: number;
-  recargoAplicado?: boolean;
-  bonificacionAplicada?: boolean;
-  pagoMatricula: boolean;
-  activo: boolean;
-  detallePagos: DetallePagoRegistroRequest[]; // Ahora usa el nuevo interface
+  alumno: AlumnoRegistroRequest;
+  observaciones?: string;
+  detallePagos: DetallePagoRegistroRequest[];
   pagoMedios?: PagoMedioRegistroRequest[];
+  activo: boolean;
 }
 
 export interface PagoResponse {
@@ -739,64 +719,58 @@ export interface PagoResponse {
   fecha: string;
   fechaVencimiento: string;
   monto: number;
-  // Nuevo campo: monto original asignado al pago.
-  montoBasePago: number;
-  // Ahora es una descripción
-  metodoPago: MetodoPagoResponse;
-  recargoAplicado: boolean;
-  bonificacionAplicada: boolean;
+  valorBase: number;
+  importeInicial: number;
+  montoPagado: number;
   saldoRestante: number;
-  saldoAFavor: number;
-  activo: boolean;
-  // Ejemplo: "ACTIVO", "HISTÓRICO", etc.
   estadoPago: string;
-  inscripcion: InscripcionResponse;
-  alumnoId: number;
+  alumno: AlumnoResponse;
+  metodoPago: MetodoPagoResponse;
   observaciones: string;
   detallePagos: DetallePagoResponse[];
   pagoMedios: PagoMedioResponse[];
-  /**
-   * Indica el origen del pago: "SUBSCRIPTION" para pagos con inscripción o "GENERAL" para pagos independientes.
-   */
-  tipoPago: string;
 }
 
 export interface DetallePagoResponse {
-  subConceptoId?: number | null;
-  conceptoId?: number | null;
   id: number;
   descripcionConcepto: string;
-  cuota?: string;
-  montoOriginal: number;
-  aFavor: number;
-  importeInicial: number;
-  importePendiente: number;
-  inscripcion: InscripcionResponse;
-  aCobrar: number;
+  cuotaOCantidad: string;
+  valorBase: number;
   bonificacionId?: number | null;
   recargoId?: number | null;
+  aCobrar: number;
+  cobrado: boolean;
+  conceptoId?: number | null;
+  subConceptoId?: number | null;
   mensualidadId?: number | null;
   matriculaId?: number | null;
   stockId?: number | null;
-  cobrado: boolean;
-  tipo?: string;
+  importeInicial: number;
+  importePendiente: number;
+  tipo: string;
+  fechaRegistro: string;
 }
 
 export interface DetallePagoRegistroRequest {
-  id: number;
-  descripcionConcepto: string;      // Campo para enviar la descripción unificada del concepto
-  conceptoId?: number | null;
-  subConceptoId?: number | null;
-  cuota?: string;
-  montoOriginal: number;
+  id?: number;
+  descripcionConcepto: string;
+  cuotaOCantidad?: string;
+  valorBase: number;
   aCobrar: number;
   bonificacionId?: number | null;
   recargoId?: number | null;
   cobrado?: boolean;
+  conceptoId?: number | null;
+  subConceptoId?: number | null;
+  importePendiente: number | null;
   mensualidadId?: number | null;
   matriculaId?: number | null;
   stockId?: number | null;
 }
+
+export type DetallePagoRegistroRequestExt = DetallePagoRegistroRequest & {
+  autoGenerated: boolean;
+};
 
 // PETICIÓN DE REGISTRO DE PAGO MEDIO (para abonos parciales)
 export interface PagoMedioRegistroRequest {
@@ -813,35 +787,14 @@ export interface PagoMedioResponse {
 // --- Valores para el formulario de cobranza ---
 // Estos son los valores que usará el formulario para la UI.
 export interface CobranzasFormValues {
-  id: number;
+  id?: number;
   totalACobrar: number;
   reciboNro: string;
-  alumno: string;
-  inscripcion: InscripcionRegistroRequest | null;
-  inscripcionId?: number;
-  alumnoId?: string;
+  alumno: AlumnoRegistroRequest;
+  alumnoId?: number;
   fecha: string;
-  detallePagos: Array<{
-    id: number;
-    importePendiente: any;
-    descripcionConcepto: string;
-    conceptoId?: number | null;
-    subConceptoId?: number | null;
-    cuota?: string;
-    montoOriginal: number;
-    aCobrar: number;
-    bonificacionId?: number | null;
-    recargoId?: number | null;
-    cobrado?: boolean;
-    mensualidadId?: number | null;
-    matriculaId?: number | null;
-    stockId: number | null;
-    aFavor: number;
-    autoGenerated?: boolean;
-    abono?: number;
-    _tempId?: number;
-  }>;
-  mensualidadId?: string;
+  detallePagos: DetallePagoRegistroRequest[];
+  mensualidadId?: number;
   disciplina: string;
   tarifa: string;
   claseSuelta?: number;
@@ -882,7 +835,8 @@ export interface MensualidadResponse {
   estado: string;
   inscripcionId: number;
   importeInicial: number;
-}
+}import { AlumnoResponse } from './types';
+
 
 export interface MatriculaRegistroRequest {
   alumnoId: number;
@@ -956,10 +910,8 @@ export interface CobranzaDTO {
 }
 
 export interface AlumnoDataResponse {
-  alumno: AlumnoDetalleResponse;
-  inscripcionesActivas: InscripcionResponse[];
-  deudas: DeudasPendientesResponse;
-  ultimoPago: PagoResponse | null;
+  alumno: AlumnoResponse;
+  detallePagosPendientes: DetallePagoResponse[];
 }
 
 export interface CobranzasDataResponse {

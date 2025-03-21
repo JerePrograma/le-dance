@@ -1,14 +1,7 @@
 // src/forms/CobranzasForm.tsx
 import React, { useState, useCallback, useEffect } from "react";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
-import {
-  Formik,
-  Form,
-  Field,
-  FieldArray,
-  useFormikContext,
-  FormikErrors,
-} from "formik";
+import { Formik, Form, Field, FieldArray, useFormikContext, FormikErrors } from "formik";
 import { toast } from "react-toastify";
 import pagosApi from "../../api/pagosApi";
 import matriculasApi from "../../api/matriculasApi";
@@ -20,20 +13,24 @@ import type {
   DetallePagoRegistroRequest,
   ConceptoResponse,
   DisciplinaDetalleResponse,
-  InscripcionResponse,
   DeudasPendientesResponse,
   MetodoPagoResponse,
   MatriculaResponse,
   StockResponse,
+  AlumnoRegistroRequest,
+  InscripcionRegistroRequest,
+  AlumnoResponse,
+  PagoRegistroRequest,
+  DetallePagoRegistroRequestExt,
 } from "../../types/types";
 import ResponsiveContainer from "../../componentes/comunes/ResponsiveContainer";
 import FormHeader from "../../componentes/FormHeader";
 import { PaymentIdUpdater } from "../../componentes/PaymentUpdater";
 import { useSyncDetalles } from "../../hooks/context/useSyncDetalles";
-import { normalizeInscripcion } from "./NormalizeInscripcion";
+import { normalizeInscripcion } from "../../funcionalidades/pagos/NormalizeInscripcion";
 
 // ----- Utilidades -----
-const getMesVigente = () => {
+const getMesVigente = (): string => {
   return new Date()
     .toLocaleString("default", {
       month: "long",
@@ -65,14 +62,30 @@ const generatePeriodos = (numMeses = 12): string[] => {
   return periodos;
 };
 
-// Valores iniciales para el formulario (sin dummy en inscripcion)
+// Valores iniciales para el formulario. 
+// Se asigna inscripcion e inscripcionId como null ya que ya no se usan a nivel de Pago.
 const defaultValues: CobranzasFormValues = {
   id: 0,
   reciboNro: "AUTO-001",
-  alumno: "",
-  alumnoId: "",
-  inscripcion: null, // Se inicia en null
-  inscripcionId: 0,
+  alumno: {
+    id: 0,
+    nombre: "",
+    apellido: "",
+    fechaNacimiento: new Date().toISOString().split("T")[0],
+    fechaIncorporacion: new Date().toISOString().split("T")[0],
+    celular1: "",
+    celular2: "",
+    email1: "",
+    email2: "",
+    documento: "",
+    cuit: "",
+    nombrePadres: "",
+    autorizadoParaSalirSolo: false,
+    otrasNotas: "",
+    cuotaTotal: 0,
+    inscripciones: [],
+  } as unknown as AlumnoRegistroRequest,
+  alumnoId: 0,
   fecha: new Date().toISOString().split("T")[0],
   detallePagos: [],
   disciplina: "",
@@ -85,15 +98,17 @@ const defaultValues: CobranzasFormValues = {
   metodoPagoId: 0,
   observaciones: "",
   matriculaRemoved: false,
-  mensualidadId: "",
+  mensualidadId: 0,
   periodoMensual: getMesVigente(),
   autoRemoved: [],
   pagoParcial: 0,
 };
+
 // ----- Subcomponentes -----
 
 /**
- * TotalsUpdater recalcula totales según detalles y método de pago
+ * TotalsUpdater: Recalcula los totales a cobrar y cobrado.
+ * Se suma "valorBase" (más recargo, si corresponde) y "aCobrar" de cada detalle.
  */
 const TotalsUpdater: React.FC<{ metodosPago: MetodoPagoResponse[] }> = ({
   metodosPago,
@@ -102,7 +117,7 @@ const TotalsUpdater: React.FC<{ metodosPago: MetodoPagoResponse[] }> = ({
 
   useEffect(() => {
     const baseTotal = values.detallePagos.reduce(
-      (total, item) => total + Number(item.importePendiente || 0),
+      (total, item) => total + Number(item.valorBase || 0),
       0
     );
     let recargoValue = 0;
@@ -135,10 +150,10 @@ const TotalsUpdater: React.FC<{ metodosPago: MetodoPagoResponse[] }> = ({
 };
 
 /**
- * ConceptosSection: Muestra selectores para disciplina, tarifa, concepto y stock.
+ * ConceptosSection: Sección para seleccionar disciplina, tarifa, concepto y stock.
+ * Dado que la inscripción se gestiona en el backend, aquí solo se selecciona la disciplina, tarifa y se generan detalles.
  */
 interface ConceptosSectionProps {
-  inscripcionesData?: InscripcionResponse[];
   disciplinas: DisciplinaDetalleResponse[];
   stocks: StockResponse[];
   conceptos: ConceptoResponse[];
@@ -150,7 +165,6 @@ interface ConceptosSectionProps {
   ) => void;
 }
 const ConceptosSection: React.FC<ConceptosSectionProps> = ({
-  inscripcionesData,
   disciplinas,
   stocks,
   conceptos,
@@ -164,51 +178,22 @@ const ConceptosSection: React.FC<ConceptosSectionProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">
         <div className="sm:col-span-2">
           <label className="block font-medium">Disciplina:</label>
-          {inscripcionesData && inscripcionesData.length > 0 ? (
-            <Field
-              as="select"
-              name="inscripcionId"
-              className="border p-2 w-full"
-              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-                const selectedId = Number(e.target.value);
-                setFieldValue("inscripcionId", selectedId);
-                const insc = inscripcionesData.find(
-                  (ins) => ins.id === selectedId
-                );
-                if (insc) {
-                  // Actualizamos la inscripción con datos reales
-                  setFieldValue("inscripcion", normalizeInscripcion(insc));
-                  setFieldValue("disciplina", insc.disciplina.nombre);
-                } else {
-                  setFieldValue("inscripcion", null);
-                }
-              }}
-            >
-              <option value="">Seleccione una disciplina</option>
-              {inscripcionesData.map((insc) => (
-                <option key={insc.id} value={insc.id}>
-                  {insc.disciplina.nombre}
-                </option>
-              ))}
-            </Field>
-          ) : (
-            <Field
-              as="select"
-              name="disciplina"
-              className="border p-2 w-full"
-              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-                setFieldValue("disciplina", e.target.value);
-                setFieldValue("tarifa", "");
-              }}
-            >
-              <option value="">Seleccione una disciplina</option>
-              {disciplinas.map((disc) => (
-                <option key={disc.id} value={disc.id.toString()}>
-                  {disc.nombre}
-                </option>
-              ))}
-            </Field>
-          )}
+          <Field
+            as="select"
+            name="disciplina"
+            className="border p-2 w-full"
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+              setFieldValue("disciplina", e.target.value);
+              setFieldValue("tarifa", "");
+            }}
+          >
+            <option value="">Seleccione una disciplina</option>
+            {disciplinas.map((disc) => (
+              <option key={disc.id} value={disc.nombre}>
+                {disc.nombre}
+              </option>
+            ))}
+          </Field>
         </div>
         <div>
           <label className="block font-medium">Tarifa:</label>
@@ -294,7 +279,8 @@ const ConceptosSection: React.FC<ConceptosSectionProps> = ({
 };
 
 /**
- * DetallesTable: Renderiza la tabla de detalles utilizando FieldArray.
+ * DetallesTable: Renderiza la tabla de detalles usando FieldArray.
+ * Se utilizan los nuevos nombres (por ejemplo, "cuotaOCantidad" y "valorBase") y se eliminan campos obsoletos.
  */
 const DetallesTable: React.FC = () => (
   <FieldArray name="detallePagos">
@@ -312,13 +298,13 @@ const DetallesTable: React.FC = () => (
               <th className="border p-2 text-center text-sm font-medium text-gray-700 min-w-[100px]">
                 Valor Base
               </th>
-              <th className="border p-2 text-center text-sm font-medium text-gray-700 min-w-[100px]">
+              <th className="border p-2 text-center text-sm font-medium text-gray-700 min-w-[80px]">
                 Bonificación
               </th>
               <th className="border p-2 text-center text-sm font-medium text-gray-700 min-w-[80px]">
                 Recargo
               </th>
-              <th className="border p-2 text-center text-sm font-medium text-gray-700 min-w-[80px]">
+              <th className="border p-2 text-center text-sm font-medium text-gray-700 min-w-[100px]">
                 Importe
               </th>
               <th className="border p-2 text-center text-sm font-medium text-gray-700 min-w-[80px]">
@@ -343,7 +329,7 @@ const DetallesTable: React.FC = () => (
                   </td>
                   <td className="border p-2 text-center text-sm">
                     <Field
-                      name={`detallePagos.${index}.cuota`}
+                      name={`detallePagos.${index}.cuotaOCantidad`}
                       type="text"
                       className="w-full px-2 py-1 border rounded text-center"
                       readOnly
@@ -351,7 +337,7 @@ const DetallesTable: React.FC = () => (
                   </td>
                   <td className="border p-2 text-center text-sm">
                     <Field
-                      name={`detallePagos.${index}.montoOriginal`}
+                      name={`detallePagos.${index}.valorBase`}
                       type="number"
                       className="w-full px-2 py-1 border rounded text-center"
                       readOnly
@@ -359,7 +345,7 @@ const DetallesTable: React.FC = () => (
                   </td>
                   <td className="border p-2 text-center text-sm">
                     <Field
-                      name={`detallePagos.${index}.montoBonificacion`}
+                      name={`detallePagos.${index}.bonificacionId`}
                       type="number"
                       className="w-full px-2 py-1 border rounded text-center"
                       readOnly
@@ -379,8 +365,8 @@ const DetallesTable: React.FC = () => (
                         <input
                           type="number"
                           {...field}
-                          className="w-full px-2 py-1 border rounded text-center"
                           readOnly
+                          className="w-full px-2 py-1 border rounded text-center"
                         />
                       )}
                     </Field>
@@ -400,9 +386,7 @@ const DetallesTable: React.FC = () => (
                     <button
                       type="button"
                       className="bg-red-500 hover:bg-red-600 text-white p-1 rounded text-xs transition-colors mx-auto block"
-                      onClick={() => {
-                        remove(index);
-                      }}
+                      onClick={() => remove(index)}
                     >
                       Eliminar
                     </button>
@@ -411,7 +395,7 @@ const DetallesTable: React.FC = () => (
               ))
             ) : (
               <tr>
-                <td colSpan={8} className="text-center text-sm p-2">
+                <td colSpan={7} className="text-center text-sm p-2">
                   No hay datos
                 </td>
               </tr>
@@ -434,13 +418,12 @@ const CobranzasForm: React.FC = () => {
   const [selectedAlumnoId, setSelectedAlumnoId] = useState<number>(0);
   const [, setMatricula] = useState<MatriculaResponse | null>(null);
 
-  // Obtener datos unificados de cobranzas y alumno
+  // Datos unificados de cobranzas y alumno
   const { alumnos, disciplinas, stocks, metodosPago, conceptos } =
     useCobranzasData();
-  const inscripcionesQuery = useInscripcionesActivas(selectedAlumnoId);
   const { data: alumnoData } = useAlumnoData(selectedAlumnoId);
 
-  // Actualiza las disciplinas al formato esperado
+  // Normalización de disciplinas (si es necesario)
   const mappedDisciplinas: DisciplinaDetalleResponse[] = disciplinas.map(
     (disc) => ({
       ...disc,
@@ -454,7 +437,7 @@ const CobranzasForm: React.FC = () => {
     })
   );
 
-  // Wrapper para sincronizar detalles (sin cambios significativos aquí)
+  // Hook para sincronizar los detalles (detallePagos)
   const SyncDetalles: React.FC<{
     deudaData: DeudasPendientesResponse;
     ultimoPago: any;
@@ -463,21 +446,49 @@ const CobranzasForm: React.FC = () => {
     return null;
   };
 
-  // Manejo del cambio de alumno
+  /**
+   * Manejo del cambio de alumno.
+   * Se utiliza la data completa de alumno si está disponible (a través de useAlumnoData),
+   * y en caso contrario se asignan valores por defecto para cumplir con AlumnoRegistroRequest.
+   */
   const handleAlumnoChange = useCallback(
     async (
       alumnoIdStr: string,
-      _currentValues: CobranzasFormValues,
+      currentValues: CobranzasFormValues,
       setFieldValue: (
         field: string,
-        value: any
+        value: any,
+        shouldValidate?: boolean
       ) => Promise<void | FormikErrors<CobranzasFormValues>>
     ) => {
-      await setFieldValue("alumno", alumnoIdStr);
-      await setFieldValue("alumnoId", alumnoIdStr);
       const id = Number(alumnoIdStr);
+      await setFieldValue("alumnoId", id, true);
       setSelectedAlumnoId(id);
-      await setFieldValue("matriculaRemoved", false);
+      await setFieldValue("matriculaRemoved", false, true);
+      // Si se dispone de data completa del alumno, se asigna; de lo contrario, se asignan valores por defecto.
+      if (alumnoData) {
+        await setFieldValue("alumno", alumnoData, true);
+      } else {
+        // Valores por defecto
+        await setFieldValue("alumno", {
+          id,
+          nombre: "",
+          apellido: "",
+          fechaNacimiento: new Date().toISOString().split("T")[0],
+          fechaIncorporacion: new Date().toISOString().split("T")[0],
+          celular1: "",
+          celular2: "",
+          email1: "",
+          email2: "",
+          documento: "",
+          cuit: "",
+          nombrePadres: "",
+          autorizadoParaSalirSolo: false,
+          otrasNotas: "",
+          cuotaTotal: 0,
+          inscripciones: [],
+        }, true);
+      }
       if (id > 0) {
         try {
           const response = await matriculasApi.obtenerMatricula(id);
@@ -487,8 +498,34 @@ const CobranzasForm: React.FC = () => {
         }
       }
     },
-    []
+    [alumnoData]
   );
+
+  // Helper para normalizar AlumnoResponse a AlumnoRegistroRequest
+  function normalizeAlumno(alumno: AlumnoResponse): AlumnoRegistroRequest {
+    return {
+      id: alumno.id,
+      nombre: alumno.nombre,
+      apellido: alumno.apellido,
+      fechaNacimiento: alumno.fechaNacimiento,
+      fechaIncorporacion: alumno.fechaIncorporacion,
+      edad: alumno.edad,
+      celular1: alumno.celular1,
+      celular2: alumno.celular2,
+      email1: alumno.email1,
+      email2: alumno.email2,
+      documento: alumno.documento,
+      fechaDeBaja: alumno.fechaDeBaja,
+      deudaPendiente: alumno.deudaPendiente,
+      nombrePadres: alumno.nombrePadres,
+      autorizadoParaSalirSolo: alumno.autorizadoParaSalirSolo,
+      activo: alumno.activo,
+      otrasNotas: alumno.otrasNotas,
+      cuotaTotal: alumno.cuotaTotal,
+      // Se normaliza cada inscripcion usando la función normalizeInscripcion
+      inscripciones: alumno.inscripciones.map(normalizeInscripcion),
+    };
+  }
 
   // Cargar datos de pago si se pasa "id" en los query params
   useEffect(() => {
@@ -499,43 +536,35 @@ const CobranzasForm: React.FC = () => {
         .then((pagoData) => {
           setInitialValues({
             ...defaultValues,
-            id: 0,
+            id: pagoData.id,
             reciboNro: pagoData.id.toString(),
-            alumno: pagoData.alumnoId ? pagoData.alumnoId.toString() : "",
-            // Si la inscripción es válida, normalizarla; de lo contrario, dejar en null
-            inscripcion:
-              pagoData.inscripcion && pagoData.inscripcion.id > 0
-                ? normalizeInscripcion(pagoData.inscripcion)
-                : null,
-            inscripcionId: pagoData.inscripcion ? pagoData.inscripcion.id : -1,
-            alumnoId: pagoData.alumnoId ? pagoData.alumnoId.toString() : "",
+            // Normalizamos el alumno recibido (que es AlumnoResponse) a AlumnoRegistroRequest
+            alumno: pagoData.alumno
+              ? normalizeAlumno(pagoData.alumno)
+              : defaultValues.alumno,
+            // Eliminamos la asignación de inscripción, ya que se obtiene desde DetallePago/Mensualidad
+            alumnoId: pagoData.alumno.id,
             fecha: pagoData.fecha || new Date().toISOString().split("T")[0],
             detallePagos: pagoData.detallePagos.map((detalle: any) => ({
               id: detalle.id,
               descripcionConcepto: detalle.descripcionConcepto ?? "",
               conceptoId: detalle.conceptoId ?? null,
               subConceptoId: detalle.subConceptoId ?? null,
-              cuota: detalle.cuota,
-              montoOriginal: detalle.montoOriginal,
-              stockId: detalle.stockId,
-              bonificacionId: detalle.bonificacion
-                ? detalle.bonificacion.id
-                : null,
+              cuotaOCantidad: detalle.cuotaOCantidad || "1",
+              valorBase: detalle.valorBase ?? detalle.valorBase,
+              bonificacionId: detalle.bonificacion ? detalle.bonificacion.id : null,
               recargoId: detalle.recargo ? detalle.recargo.id : null,
-              importePendiente: detalle.importePendiente,
-              aCobrar: detalle.importePendiente,
-              aFavor: detalle.aFavor != null ? detalle.aFavor : 0,
+              aCobrar: detalle.importePendiente, // Se utiliza importePendiente para aCobrar
+              importePendiente: detalle.importePendiente, // Agregado para visualización
               cobrado: detalle.cobrado,
               mensualidadId: detalle.mensualidadId ?? null,
               matriculaId: detalle.matriculaId ?? null,
+              stockId: detalle.stockId ?? null,
               autoGenerated: true,
             })),
             totalCobrado: pagoData.detallePagos.reduce(
               (sum: number, detalle: any) =>
-                sum +
-                (Number(detalle.aCobrar) ||
-                  Number(detalle.importePendiente) ||
-                  0),
+                sum + (Number(detalle.importePendiente) || 0),
               0
             ),
             totalACobrar: pagoData.detallePagos.reduce(
@@ -543,7 +572,7 @@ const CobranzasForm: React.FC = () => {
                 sum + (Number(detalle.importePendiente) || 0),
               0
             ),
-            metodoPagoId: pagoData.metodoPago.id ? pagoData.metodoPago.id : 0,
+            metodoPagoId: pagoData.metodoPago?.id || 0,
             observaciones: pagoData.observaciones || "",
           });
         })
@@ -565,13 +594,14 @@ const CobranzasForm: React.FC = () => {
       const isDuplicate = (concept: number) =>
         newDetails.some((detalle) => detalle.conceptoId === concept);
       const isDuplicateString = (desc: string) =>
-        newDetails.some((det) => det.descripcionConcepto === desc);
+        newDetails.some(
+          (det) => det.descripcionConcepto.trim() === desc.trim()
+        );
 
       // Agregar detalle basado en concepto seleccionado
       if (values.conceptoSeleccionado) {
         const selectedConcept = conceptos.find(
-          (c: ConceptoResponse) =>
-            c.id.toString() === values.conceptoSeleccionado
+          (c: ConceptoResponse) => c.id.toString() === values.conceptoSeleccionado
         );
         if (selectedConcept) {
           if (isDuplicate(selectedConcept.id)) {
@@ -580,67 +610,63 @@ const CobranzasForm: React.FC = () => {
             newDetails.push({
               id: 0,
               descripcionConcepto: String(selectedConcept.descripcion),
+              conceptoId: selectedConcept.id,
               subConceptoId: null,
-              cuota: "1",
-              montoOriginal: selectedConcept.precio,
+              cuotaOCantidad: "1",
+              valorBase: selectedConcept.precio,
               bonificacionId: null,
               recargoId: null,
-              importePendiente: selectedConcept.precio,
               aCobrar: selectedConcept.precio,
               cobrado: false,
               mensualidadId: null,
               matriculaId: null,
-              conceptoId: null,
-              autoGenerated: false,
-              aFavor: 0,
               stockId: null,
-            });
+              autoGenerated: false,
+            } as DetallePagoRegistroRequestExt);
             added = true;
           }
         }
       }
       // Agregar detalle basado en disciplina/tarifa
-      if ((values.inscripcion || values.disciplina) && values.tarifa) {
-        const inscSeleccionada = inscripcionesQuery.data?.find(
-          (insc) => insc.id === values.inscripcion?.id
+      if (values.disciplina && values.tarifa) {
+        const selectedDisciplina = mappedDisciplinas.find(
+          (disc) => disc.nombre === values.disciplina
         );
-        if (inscSeleccionada) {
+        if (selectedDisciplina) {
           let precio = 0;
           let tarifaLabel = "";
           if (values.tarifa === "CUOTA") {
-            precio = inscSeleccionada.disciplina.valorCuota;
+            precio = selectedDisciplina.valorCuota;
             tarifaLabel = "CUOTA";
           } else if (values.tarifa === "CLASE_SUELTA") {
-            precio = inscSeleccionada.disciplina.claseSuelta || 0;
+            precio = selectedDisciplina.claseSuelta || 0;
             tarifaLabel = "CLASE SUELTA";
           } else if (values.tarifa === "CLASE_PRUEBA") {
-            precio = inscSeleccionada.disciplina.clasePrueba || 0;
+            precio = selectedDisciplina.clasePrueba || 0;
             tarifaLabel = "CLASE DE PRUEBA";
           }
           const cantidad = Number(values.cantidad) || 1;
           const total = precio * cantidad;
-          const conceptoDetalle = `${inscSeleccionada.disciplina.nombre} - ${tarifaLabel} - ${values.periodoMensual}`;
+          const conceptoDetalle = `${selectedDisciplina.nombre} - ${tarifaLabel} - ${values.periodoMensual}`;
           if (isDuplicateString(conceptoDetalle)) {
             toast.error("Concepto ya se encuentra agregado");
           } else {
             newDetails.push({
               id: 0,
               descripcionConcepto: conceptoDetalle,
-              conceptoId: inscSeleccionada.disciplina.id,
+              conceptoId: selectedDisciplina.id,
               subConceptoId: null,
-              cuota: cantidad.toString(),
-              montoOriginal: total,
+              cuotaOCantidad: cantidad.toString(),
+              valorBase: total,
               bonificacionId: null,
               recargoId: null,
-              importePendiente: total,
               aCobrar: total,
               cobrado: false,
               mensualidadId: null,
               matriculaId: null,
               stockId: null,
               autoGenerated: false,
-              aFavor: 0,
-            });
+            } as DetallePagoRegistroRequestExt);
             added = true;
           }
         }
@@ -662,23 +688,22 @@ const CobranzasForm: React.FC = () => {
               descripcionConcepto: stockDesc,
               conceptoId: null,
               subConceptoId: null,
-              cuota: cantidad.toString(),
-              montoOriginal: total,
+              cuotaOCantidad: cantidad.toString(),
+              valorBase: total,
               bonificacionId: null,
               recargoId: null,
-              importePendiente: total,
               aCobrar: total,
               cobrado: false,
               mensualidadId: null,
               matriculaId: null,
               stockId: selectedStock.id,
               autoGenerated: false,
-              aFavor: 0,
-            });
+            } as DetallePagoRegistroRequestExt);
             added = true;
           }
         }
       }
+
       if (added) {
         setFieldValue("detallePagos", newDetails);
         const totalCobrado = newDetails.reduce(
@@ -691,53 +716,46 @@ const CobranzasForm: React.FC = () => {
         setFieldValue("cantidad", 1);
       } else if (
         !values.conceptoSeleccionado &&
-        !(values.inscripcion || values.disciplina) &&
+        !values.disciplina &&
         !values.stockSeleccionado
       ) {
         toast.error("Seleccione al menos un conjunto de campos para agregar");
       }
     },
-    [conceptos, inscripcionesQuery.data, stocks]
+    [conceptos, mappedDisciplinas, stocks]
   );
 
-  // onSubmit: Mapea los valores y envía el registro al backend
+  // onSubmit: Mapea los valores y envía el registro al backend.
+  // Se elimina la inscripción ya que ya no se asigna en Pago.
   const onSubmit = async (values: CobranzasFormValues, actions: any) => {
-    // Validar que la inscripción sea válida
     try {
       const detallesFiltrados = values.detallePagos.filter(
-        (detalle) => Number(detalle.importePendiente) !== 0
+        (detalle) => Number(detalle.aCobrar) !== 0
       );
-      const pagoRegistroRequest = {
-        alumno: {
-          id: Number(values.alumnoId),
-          nombre: values.alumno,
-        },
+      const pagoRegistroRequest: PagoRegistroRequest = {
+        alumno: values.alumno, // Se envía el objeto completo de alumno
         fecha: values.fecha,
         fechaVencimiento: values.fecha,
         monto: Number(values.totalACobrar),
-        inscripcion: values.inscripcion, // Se envía la inscripción actualizada
-        metodoPagoId: values.metodoPagoId ? Number(values.metodoPagoId) : 0,
-        recargoAplicado: false,
-        bonificacionAplicada: false,
-        pagoMatricula: false,
+        importeInicial: Number(values.totalACobrar), // Se asigna el total a cobrar
+        metodoPagoId: Number(values.metodoPagoId) || 0,
         activo: true,
-        detallePagos: detallesFiltrados.map<DetallePagoRegistroRequest>(
-          (d) => ({
-            id: d.id,
-            descripcionConcepto: d.descripcionConcepto,
-            conceptoId: d.conceptoId ?? null,
-            subConceptoId: d.subConceptoId ?? null,
-            cuota: d.cuota,
-            montoOriginal: d.montoOriginal,
-            bonificacionId: d.bonificacionId ? Number(d.bonificacionId) : null,
-            recargoId: d.recargoId ? Number(d.recargoId) : null,
-            aCobrar: d.aCobrar,
-            importePendiente: d.importePendiente,
-            cobrado: d.cobrado,
-            mensualidadId: d.mensualidadId ?? null,
-            matriculaId: d.matriculaId ?? null,
-          })
-        ),
+        detallePagos: detallesFiltrados.map<DetallePagoRegistroRequest>((d) => ({
+          id: d.id,
+          descripcionConcepto: d.descripcionConcepto,
+          conceptoId: d.conceptoId ?? null,
+          subConceptoId: d.subConceptoId ?? null,
+          importePendiente: d.importePendiente,
+          cuotaOCantidad: d.cuotaOCantidad,
+          valorBase: d.valorBase,
+          bonificacionId: d.bonificacionId ? Number(d.bonificacionId) : null,
+          recargoId: d.recargoId ? Number(d.recargoId) : null,
+          aCobrar: d.aCobrar,
+          cobrado: d.cobrado,
+          mensualidadId: d.mensualidadId ?? null,
+          matriculaId: d.matriculaId ?? null,
+          stockId: d.stockId ?? null,
+        })),
         pagoMedios: [],
       };
 
@@ -788,7 +806,6 @@ const CobranzasForm: React.FC = () => {
               handleAlumnoChange={handleAlumnoChange}
             />
             <ConceptosSection
-              inscripcionesData={inscripcionesQuery.data}
               disciplinas={mappedDisciplinas}
               stocks={stocks}
               conceptos={conceptos}
@@ -819,8 +836,7 @@ const CobranzasForm: React.FC = () => {
                         selectedMetodo.descripcion.toUpperCase() === "DEBITO";
                       return isDebit ? (
                         <p className="text-sm text-info">
-                          Se ha agregado un recargo de ${selectedMetodo.recargo}{" "}
-                          por DEBITO.
+                          Se ha agregado un recargo de ${selectedMetodo.recargo} por DEBITO.
                         </p>
                       ) : null;
                     })()}
@@ -833,8 +849,8 @@ const CobranzasForm: React.FC = () => {
                     className="border p-2 w-full"
                   />
                   <small className="text-gray-500">
-                    Se autocompleta sumando el valor de A Cobrar de cada
-                    detalle, pero puedes modificarlo.
+                    Se autocompleta sumando el valor de A Cobrar de cada detalle,
+                    pero puedes modificarlo.
                   </small>
                 </div>
                 <div>

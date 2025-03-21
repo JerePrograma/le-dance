@@ -18,5 +18,5 @@ export const normalizeInscripcion = (insc: InscripcionResponse): InscripcionRegi
     },
     bonificacionId: insc.bonificacion ? insc.bonificacion.id : undefined,
     fechaInscripcion: insc.fechaInscripcion,
-    alumno: {id: insc.alumno.id, nombre: insc.alumno.nombre, apellido: insc.alumno.apellido}
+    alumno: { id: insc.alumno.id, nombre: insc.alumno.nombre, apellido: insc.alumno.apellido }
 });

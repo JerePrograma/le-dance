@@ -1,5 +1,6 @@
 package ledance.dto.asistencia.response;
 
+import ledance.dto.alumno.response.AlumnoResponse;
 import ledance.entidades.EstadoAsistencia;
 import java.time.LocalDate;
 

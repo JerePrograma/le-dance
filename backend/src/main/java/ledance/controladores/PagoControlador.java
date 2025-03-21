@@ -88,13 +88,6 @@ public class PagoControlador {
         return facturas.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(facturas);
     }
 
-    @GetMapping("/inscripcion/{inscripcionId}")
-    public ResponseEntity<List<PagoResponse>> listarPagosPorInscripcion(@PathVariable Long inscripcionId) {
-        log.info("Listando pagos para inscripcionId: {}", inscripcionId);
-        List<PagoResponse> pagos = pagoServicio.listarPagosPorInscripcion(inscripcionId);
-        return pagos.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(pagos);
-    }
-
     @GetMapping("/vencidos")
     public ResponseEntity<List<PagoResponse>> listarPagosVencidos() {
         log.info("Listando pagos vencidos");

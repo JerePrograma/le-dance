@@ -1,27 +1,25 @@
 package ledance.servicios.alumno;
 
-import ledance.dto.alumno.request.AlumnoModificacionRequest;
 import ledance.dto.alumno.request.AlumnoRegistroRequest;
-import ledance.dto.alumno.response.AlumnoDetalleResponse;
-import ledance.dto.alumno.response.AlumnoListadoResponse;
-import ledance.dto.disciplina.response.DisciplinaListadoResponse;
+import ledance.dto.alumno.response.AlumnoResponse;
+import ledance.dto.disciplina.response.DisciplinaResponse;
 
 import java.util.List;
 
 public interface IAlumnoServicio {
-    AlumnoDetalleResponse registrarAlumno(AlumnoRegistroRequest requestDTO);
+    AlumnoResponse registrarAlumno(AlumnoRegistroRequest requestDTO);
 
-    AlumnoDetalleResponse obtenerAlumnoPorId(Long id);
+    AlumnoResponse obtenerAlumnoPorId(Long id);
 
-    List<AlumnoListadoResponse> listarAlumnos();
+    List<AlumnoResponse> listarAlumnos();
 
-    AlumnoDetalleResponse actualizarAlumno(Long id, AlumnoModificacionRequest requestDTO);
+    AlumnoResponse actualizarAlumno(Long id, AlumnoRegistroRequest requestDTO);
 
     void darBajaAlumno(Long id);
 
-    List<AlumnoListadoResponse> listarAlumnosSimplificado();
+    List<AlumnoResponse> listarAlumnosSimplificado();
 
-    List<AlumnoListadoResponse> buscarPorNombre(String nombre);
+    List<AlumnoResponse> buscarPorNombre(String nombre);
 
-    List<DisciplinaListadoResponse> obtenerDisciplinasDeAlumno(Long alumnoId);
+    List<DisciplinaResponse> obtenerDisciplinasDeAlumno(Long alumnoId);
 }

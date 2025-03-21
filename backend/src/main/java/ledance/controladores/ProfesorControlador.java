@@ -1,11 +1,11 @@
 package ledance.controladores;
 
-import ledance.dto.alumno.response.AlumnoListadoResponse;
+import ledance.dto.alumno.response.AlumnoResponse;
 import ledance.dto.profesor.request.ProfesorModificacionRequest;
 import ledance.dto.profesor.request.ProfesorRegistroRequest;
-import ledance.dto.disciplina.response.DisciplinaListadoResponse;
-import ledance.dto.profesor.response.ProfesorDetalleResponse;
-import ledance.dto.profesor.response.ProfesorListadoResponse;
+import ledance.dto.disciplina.response.DisciplinaResponse;
+import ledance.dto.profesor.response.ProfesorResponse;
+import ledance.dto.profesor.response.ProfesorResponse;
 import ledance.servicios.profesor.ProfesorServicio;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,9 +31,9 @@ public class ProfesorControlador {
      * ✅ Registrar un nuevo profesor.
      */
     @PostMapping
-    public ResponseEntity<ProfesorDetalleResponse> registrarProfesor(@RequestBody @Validated ProfesorRegistroRequest request) {
+    public ResponseEntity<ProfesorResponse> registrarProfesor(@RequestBody @Validated ProfesorRegistroRequest request) {
         log.info("Registrando profesor: {} {}", request.nombre(), request.apellido());
-        ProfesorDetalleResponse response = profesorServicio.registrarProfesor(request);
+        ProfesorResponse response = profesorServicio.registrarProfesor(request);
         return ResponseEntity.ok(response);
     }
 
@@ -41,8 +41,8 @@ public class ProfesorControlador {
      * ✅ Obtener un profesor por ID.
      */
     @GetMapping("/{id}")
-    public ResponseEntity<ProfesorDetalleResponse> obtenerProfesorPorId(@PathVariable Long id) {
-        ProfesorDetalleResponse response = profesorServicio.obtenerProfesorPorId(id);
+    public ResponseEntity<ProfesorResponse> obtenerProfesorPorId(@PathVariable Long id) {
+        ProfesorResponse response = profesorServicio.obtenerProfesorPorId(id);
         return ResponseEntity.ok(response);
     }
 
@@ -50,8 +50,8 @@ public class ProfesorControlador {
      * ✅ Listar todos los profesores.
      */
     @GetMapping
-    public ResponseEntity<List<ProfesorListadoResponse>> listarProfesores() {
-        List<ProfesorListadoResponse> profesores = profesorServicio.listarProfesores();
+    public ResponseEntity<List<ProfesorResponse>> listarProfesores() {
+        List<ProfesorResponse> profesores = profesorServicio.listarProfesores();
         return ResponseEntity.ok(profesores);
     }
 
@@ -59,8 +59,8 @@ public class ProfesorControlador {
      * ✅ Listar profesores activos.
      */
     @GetMapping("/activos")
-    public ResponseEntity<List<ProfesorListadoResponse>> listarProfesoresActivos() {
-        List<ProfesorListadoResponse> profesores = profesorServicio.listarProfesoresActivos();
+    public ResponseEntity<List<ProfesorResponse>> listarProfesoresActivos() {
+        List<ProfesorResponse> profesores = profesorServicio.listarProfesoresActivos();
         return ResponseEntity.ok(profesores);
     }
 
@@ -68,10 +68,10 @@ public class ProfesorControlador {
      * ✅ Actualizar un profesor.
      */
     @PutMapping("/{id}")
-    public ResponseEntity<ProfesorDetalleResponse> actualizarProfesor(@PathVariable Long id,
+    public ResponseEntity<ProfesorResponse> actualizarProfesor(@PathVariable Long id,
                                                                       @RequestBody @Validated ProfesorModificacionRequest request) {
         log.info("Actualizando profesor con id: {}", id);
-        ProfesorDetalleResponse response = profesorServicio.actualizarProfesor(id, request);
+        ProfesorResponse response = profesorServicio.actualizarProfesor(id, request);
         return ResponseEntity.ok(response);
     }
 
@@ -86,14 +86,14 @@ public class ProfesorControlador {
     }
 
     @GetMapping("/{profesorId}/disciplinas")
-    public ResponseEntity<List<DisciplinaListadoResponse>> obtenerDisciplinasDeProfesor(@PathVariable Long profesorId) {
-        List<DisciplinaListadoResponse> disciplinas = profesorServicio.obtenerDisciplinasDeProfesor(profesorId);
+    public ResponseEntity<List<DisciplinaResponse>> obtenerDisciplinasDeProfesor(@PathVariable Long profesorId) {
+        List<DisciplinaResponse> disciplinas = profesorServicio.obtenerDisciplinasDeProfesor(profesorId);
         return ResponseEntity.ok(disciplinas);
     }
 
     @GetMapping("/buscar")
-    public ResponseEntity<List<ProfesorListadoResponse>> buscarPorNombre(@RequestParam String nombre) {
-        List<ProfesorListadoResponse> resultado = profesorServicio.buscarPorNombre(nombre);
+    public ResponseEntity<List<ProfesorResponse>> buscarPorNombre(@RequestParam String nombre) {
+        List<ProfesorResponse> resultado = profesorServicio.buscarPorNombre(nombre);
         return ResponseEntity.ok(resultado);
     }
 }

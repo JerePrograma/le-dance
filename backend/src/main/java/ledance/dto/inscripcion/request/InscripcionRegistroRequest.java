@@ -1,8 +1,9 @@
 package ledance.dto.inscripcion.request;
 
 import jakarta.validation.constraints.PastOrPresent;
-import ledance.dto.disciplina.request.DisciplinaRegistroRequest;
 import ledance.dto.alumno.request.AlumnoRegistroRequest;
+import ledance.dto.disciplina.request.DisciplinaRegistroRequest;
+
 import java.time.LocalDate;
 
 public record InscripcionRegistroRequest(
