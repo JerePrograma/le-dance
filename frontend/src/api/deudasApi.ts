@@ -1,11 +1,11 @@
-// src/deudasApi.ts
+/*// src/deudasApi.ts
 import api from "./axiosConfig";
 import type { DeudasPendientesResponse } from "../types/types";
 
 /**
  * Obtiene la deuda consolidada del alumno, agrupando pagos, mensualidades y matrícula pendiente.
  */
-const obtenerDeudasPendientes = async (
+/*const obtenerDeudasPendientes = async (
     alumnoId: number
 ): Promise<DeudasPendientesResponse> => {
     const { data } = await api.get<DeudasPendientesResponse>(`/deudas/alumno/${alumnoId}`);
@@ -13,7 +13,8 @@ const obtenerDeudasPendientes = async (
 };
 
 const deudasApi = {
-    obtenerDeudasPendientes,
+  obtenerDeudasPendientes,
 };
 
 export default deudasApi;
+*/
