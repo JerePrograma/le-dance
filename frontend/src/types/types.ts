@@ -348,9 +348,9 @@ export interface InscripcionRegistroRequest {
   // Si en creación el id no se envía, puede ser opcional o null
   id?: number | null;
   alumno: {
-    id: number,
-    nombre?: string,
-    apellido?: string,
+    id: number;
+    nombre?: string;
+    apellido?: string;
   };
   disciplina: DisciplinaRegistroRequest;
   bonificacionId?: number | null;
@@ -444,7 +444,7 @@ export interface RecargoRegistroRequest {
 
 /** Request para actualizar un recargo */
 export interface RecargoModificacionRequest
-  extends Partial<RecargoRegistroRequest> { }
+  extends Partial<RecargoRegistroRequest> {}
 
 /** Respuesta del backend al obtener un recargo */
 export interface RecargoResponse {
@@ -587,7 +587,6 @@ export interface SubConceptoResponse {
   descripcion: string;
 }
 
-
 // --- Metodos de Pago ---
 // Interfaces actualizadas
 
@@ -652,8 +651,6 @@ export interface SalonResponse {
 }
 
 ///CAJAS
-
-
 
 export interface AlumnoMin {
   id: number;
@@ -835,8 +832,8 @@ export interface MensualidadResponse {
   estado: string;
   inscripcionId: number;
   importeInicial: number;
-}import { AlumnoResponse } from './types';
-
+}
+import { AlumnoResponse } from "./types";
 
 export interface MatriculaRegistroRequest {
   alumnoId: number;
@@ -856,13 +853,6 @@ export interface MatriculaResponse {
   fechaPago?: string;
   alumnoId: number;
   valor: number;
-}
-
-export interface DeudasPendientesResponse {
-  alumnoId: number;
-  alumnoNombre: string;
-  detallePagosPendientes: DetallePagoResponse[];
-  totalDeuda: number;
 }
 
 export interface PagoParcialRequest {
@@ -891,7 +881,7 @@ export interface EgresoResponse {
 
 export interface CobranzaDetalleDTO {
   id?: number;
-  tipo: 'INSCRIPCION' | 'MENSUALIDAD' | 'STOCK' | 'CONCEPTO';
+  tipo: "INSCRIPCION" | "MENSUALIDAD" | "STOCK" | "CONCEPTO";
   descripcion?: string;
   monto: number;
   inscripcionId?: number;
@@ -899,8 +889,6 @@ export interface CobranzaDetalleDTO {
   stockId?: number;
   conceptoId?: number;
 }
-
-
 
 export interface CobranzaDTO {
   alumnoId: number;

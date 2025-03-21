@@ -386,12 +386,6 @@ const EditarPagoForm: React.FC = () => {
     const inscripcionesQuery = useInscripcionesActivas(selectedAlumnoId || 0);
     // const { deudas } = useAlumnoData(selectedAlumnoId || 0);
 
-    // Wrapper para sincronizar detalles
-    /*  const SyncDetalles: React.FC<{ deudaData: DeudasPendientesResponse }> = ({ deudaData }) => {
-          useSyncDetalles(deudaData);
-          return null;
-      };
-  */
     // Aunque en modo edición no se debería cambiar el alumno, se mantiene esta función
     const handleAlumnoChange = useCallback(
         async (

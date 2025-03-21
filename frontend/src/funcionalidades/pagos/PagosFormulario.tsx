@@ -1,7 +1,14 @@
 // src/forms/CobranzasForm.tsx
 import React, { useState, useCallback, useEffect } from "react";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
-import { Formik, Form, Field, FieldArray, useFormikContext, FormikErrors } from "formik";
+import {
+  Formik,
+  Form,
+  Field,
+  FieldArray,
+  useFormikContext,
+  FormikErrors,
+} from "formik";
 import { toast } from "react-toastify";
 import pagosApi from "../../api/pagosApi";
 import matriculasApi from "../../api/matriculasApi";
@@ -62,7 +69,7 @@ const generatePeriodos = (numMeses = 12): string[] => {
   return periodos;
 };
 
-// Valores iniciales para el formulario. 
+// Valores iniciales para el formulario.
 // Se asigna inscripcion e inscripcionId como null ya que ya no se usan a nivel de Pago.
 const defaultValues: CobranzasFormValues = {
   id: 0,
@@ -470,24 +477,28 @@ const CobranzasForm: React.FC = () => {
         await setFieldValue("alumno", alumnoData, true);
       } else {
         // Valores por defecto
-        await setFieldValue("alumno", {
-          id,
-          nombre: "",
-          apellido: "",
-          fechaNacimiento: new Date().toISOString().split("T")[0],
-          fechaIncorporacion: new Date().toISOString().split("T")[0],
-          celular1: "",
-          celular2: "",
-          email1: "",
-          email2: "",
-          documento: "",
-          cuit: "",
-          nombrePadres: "",
-          autorizadoParaSalirSolo: false,
-          otrasNotas: "",
-          cuotaTotal: 0,
-          inscripciones: [],
-        }, true);
+        await setFieldValue(
+          "alumno",
+          {
+            id,
+            nombre: "",
+            apellido: "",
+            fechaNacimiento: new Date().toISOString().split("T")[0],
+            fechaIncorporacion: new Date().toISOString().split("T")[0],
+            celular1: "",
+            celular2: "",
+            email1: "",
+            email2: "",
+            documento: "",
+            cuit: "",
+            nombrePadres: "",
+            autorizadoParaSalirSolo: false,
+            otrasNotas: "",
+            cuotaTotal: 0,
+            inscripciones: [],
+          },
+          true
+        );
       }
       if (id > 0) {
         try {
@@ -552,7 +563,9 @@ const CobranzasForm: React.FC = () => {
               subConceptoId: detalle.subConceptoId ?? null,
               cuotaOCantidad: detalle.cuotaOCantidad || "1",
               valorBase: detalle.valorBase ?? detalle.valorBase,
-              bonificacionId: detalle.bonificacion ? detalle.bonificacion.id : null,
+              bonificacionId: detalle.bonificacion
+                ? detalle.bonificacion.id
+                : null,
               recargoId: detalle.recargo ? detalle.recargo.id : null,
               aCobrar: detalle.importePendiente, // Se utiliza importePendiente para aCobrar
               importePendiente: detalle.importePendiente, // Agregado para visualización
@@ -601,7 +614,8 @@ const CobranzasForm: React.FC = () => {
       // Agregar detalle basado en concepto seleccionado
       if (values.conceptoSeleccionado) {
         const selectedConcept = conceptos.find(
-          (c: ConceptoResponse) => c.id.toString() === values.conceptoSeleccionado
+          (c: ConceptoResponse) =>
+            c.id.toString() === values.conceptoSeleccionado
         );
         if (selectedConcept) {
           if (isDuplicate(selectedConcept.id)) {
@@ -740,22 +754,24 @@ const CobranzasForm: React.FC = () => {
         importeInicial: Number(values.totalACobrar), // Se asigna el total a cobrar
         metodoPagoId: Number(values.metodoPagoId) || 0,
         activo: true,
-        detallePagos: detallesFiltrados.map<DetallePagoRegistroRequest>((d) => ({
-          id: d.id,
-          descripcionConcepto: d.descripcionConcepto,
-          conceptoId: d.conceptoId ?? null,
-          subConceptoId: d.subConceptoId ?? null,
-          importePendiente: d.importePendiente,
-          cuotaOCantidad: d.cuotaOCantidad,
-          valorBase: d.valorBase,
-          bonificacionId: d.bonificacionId ? Number(d.bonificacionId) : null,
-          recargoId: d.recargoId ? Number(d.recargoId) : null,
-          aCobrar: d.aCobrar,
-          cobrado: d.cobrado,
-          mensualidadId: d.mensualidadId ?? null,
-          matriculaId: d.matriculaId ?? null,
-          stockId: d.stockId ?? null,
-        })),
+        detallePagos: detallesFiltrados.map<DetallePagoRegistroRequest>(
+          (d) => ({
+            id: d.id,
+            descripcionConcepto: d.descripcionConcepto,
+            conceptoId: d.conceptoId ?? null,
+            subConceptoId: d.subConceptoId ?? null,
+            importePendiente: d.importePendiente,
+            cuotaOCantidad: d.cuotaOCantidad,
+            valorBase: d.valorBase,
+            bonificacionId: d.bonificacionId ? Number(d.bonificacionId) : null,
+            recargoId: d.recargoId ? Number(d.recargoId) : null,
+            aCobrar: d.aCobrar,
+            cobrado: d.cobrado,
+            mensualidadId: d.mensualidadId ?? null,
+            matriculaId: d.matriculaId ?? null,
+            stockId: d.stockId ?? null,
+          })
+        ),
         pagoMedios: [],
       };
 
@@ -836,7 +852,8 @@ const CobranzasForm: React.FC = () => {
                         selectedMetodo.descripcion.toUpperCase() === "DEBITO";
                       return isDebit ? (
                         <p className="text-sm text-info">
-                          Se ha agregado un recargo de ${selectedMetodo.recargo} por DEBITO.
+                          Se ha agregado un recargo de ${selectedMetodo.recargo}{" "}
+                          por DEBITO.
                         </p>
                       ) : null;
                     })()}
@@ -849,8 +866,8 @@ const CobranzasForm: React.FC = () => {
                     className="border p-2 w-full"
                   />
                   <small className="text-gray-500">
-                    Se autocompleta sumando el valor de A Cobrar de cada detalle,
-                    pero puedes modificarlo.
+                    Se autocompleta sumando el valor de A Cobrar de cada
+                    detalle, pero puedes modificarlo.
                   </small>
                 </div>
                 <div>

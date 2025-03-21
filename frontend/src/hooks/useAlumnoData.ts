@@ -9,33 +9,31 @@ import type { AlumnoDataResponse } from "../types/types";
  * Se asume que AlumnoDataResponse tiene la siguiente estructura:
  * {
  *   alumno: AlumnoDetalleResponse,
- *   inscripcionesActivas: InscripcionResponse[],
  *   deudas: DeudasPendientesResponse,
- *   ultimoPago: PagoResponse | null
  * }
  */
 export const useAlumnoData = (alumnoId: number) => {
-    const isAlumnoValid = alumnoId > 0;
+  const isAlumnoValid = alumnoId > 0;
 
-    const alumnoDataQuery = useQuery<AlumnoDataResponse, Error>({
-        queryKey: ["alumnoData", alumnoId],
-        queryFn: () => alumnosApi.obtenerDatosAlumno(alumnoId),
-        enabled: isAlumnoValid,
-        staleTime: Infinity,
-        refetchOnWindowFocus: false,
-    });
+  const alumnoDataQuery = useQuery<AlumnoDataResponse, Error>({
+    queryKey: ["alumnoData", alumnoId],
+    queryFn: () => alumnosApi.obtenerDatosAlumno(alumnoId),
+    enabled: isAlumnoValid,
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+  });
 
-    useEffect(() => {
-        if (alumnoDataQuery.error) {
-            toast.error(
-                alumnoDataQuery.error.message || "Error al cargar los datos del alumno"
-            );
-        }
-    }, [alumnoDataQuery.error]);
+  useEffect(() => {
+    if (alumnoDataQuery.error) {
+      toast.error(
+        alumnoDataQuery.error.message || "Error al cargar los datos del alumno"
+      );
+    }
+  }, [alumnoDataQuery.error]);
 
-    return {
-        data: alumnoDataQuery.data,
-        isLoading: alumnoDataQuery.isLoading,
-        error: alumnoDataQuery.error,
-    };
+  return {
+    data: alumnoDataQuery.data,
+    isLoading: alumnoDataQuery.isLoading,
+    error: alumnoDataQuery.error,
+  };
 };

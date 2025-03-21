@@ -3,7 +3,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import deudasApi from "../api/deudasApi";
 import { toast } from "react-toastify";
-import type { DeudasPendientesResponse, InscripcionResponse } from "../types/types";
+import type {
+  DeudasPendientesResponse,
+  InscripcionResponse,
+} from "../types/types";
 
 export const useAlumnoDeudas = (alumnoId: number) => {
   const query = useQuery<DeudasPendientesResponse, Error>({
@@ -21,10 +24,15 @@ export const useAlumnoDeudas = (alumnoId: number) => {
   // Extraer desde la data la inscripción si existe en el primer detalle pendiente
   const dataWithAlumno = useMemo(() => {
     if (query.data) {
-      const { alumnoId: debtAlumnoId, alumnoNombre, detallePagosPendientes } = query.data;
-      const inscripcion = detallePagosPendientes && detallePagosPendientes.length > 0 
-        ? detallePagosPendientes[0].inscripcion 
-        : null;
+      const {
+        alumnoId: debtAlumnoId,
+        alumnoNombre,
+        detallePagosPendientes,
+      } = query.data;
+      const inscripcion =
+        detallePagosPendientes && detallePagosPendientes.length > 0
+          ? detallePagosPendientes[0].inscripcion
+          : null;
       return {
         ...query.data,
         alumnoId: debtAlumnoId,
@@ -41,7 +49,10 @@ export const useAlumnoDeudas = (alumnoId: number) => {
   );
 
   useEffect(() => {
-    if (dataWithAlumno?.detallePagosPendientes && dataWithAlumno.detallePagosPendientes.length > 0) {
+    if (
+      dataWithAlumno?.detallePagosPendientes &&
+      dataWithAlumno.detallePagosPendientes.length > 0
+    ) {
       setInscripcion(dataWithAlumno.detallePagosPendientes[0].inscripcion);
     }
   }, [dataWithAlumno]);
