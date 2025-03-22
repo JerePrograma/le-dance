@@ -8,7 +8,6 @@ import ledance.entidades.Salon;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
-
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -16,8 +15,8 @@ import java.util.stream.Collectors;
 public interface PagoMapper {
 
     @Mapping(target = "id", ignore = true)
-    // Eliminar o comentar la línea que ignora detallePagos:
-    // @Mapping(target = "detallePagos", ignore = true)
+    // Mapear la lista de detalles usando el DetallePagoMapper
+    @Mapping(target = "detallePagos", source = "detallePagos")
     @Mapping(target = "pagoMedios", ignore = true)
     @Mapping(target = "saldoRestante", ignore = true)
     @Mapping(target = "estadoPago", ignore = true)
@@ -29,7 +28,6 @@ public interface PagoMapper {
     PagoResponse toDTO(Pago pago);
 
     // Actualización de una entidad existente con datos del request.
-    // Se ignoran los campos que se gestionan desde el servicio.
     @Mapping(target = "metodoPago", ignore = true)
     @Mapping(target = "detallePagos", ignore = true)
     @Mapping(target = "pagoMedios", ignore = true)
@@ -38,8 +36,6 @@ public interface PagoMapper {
     @Mapping(target = "montoPagado", ignore = true)
     void updateEntityFromRequest(PagoRegistroRequest request, @MappingTarget Pago pago);
 
-    // Método para mapear un objeto Salon a String (por ejemplo, se utiliza el nombre del salón).
-    // Esto soluciona el error de MapStruct al mapear Salon a String en DTOs.
     default String map(Salon salon) {
         return salon == null ? null : salon.getNombre();
     }
@@ -49,5 +45,4 @@ public interface PagoMapper {
                 .map(this::toDTO)
                 .collect(Collectors.toList());
     }
-
 }

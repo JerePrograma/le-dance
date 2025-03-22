@@ -1,21 +1,19 @@
 // src/alumnosApi.ts
 import api from "./axiosConfig";
 import type {
-  AlumnoListadoResponse,
   AlumnoRegistroRequest,
-  AlumnoModificacionRequest,
-  AlumnoDetalleResponse,
   AlumnoDataResponse,
   DisciplinaListadoResponse,
+  AlumnoResponse,
 } from "../types/types";
 
 const alumnosApi = {
-  listar: async (): Promise<AlumnoListadoResponse[]> => {
+  listar: async (): Promise<AlumnoResponse[]> => {
     const response = await api.get("/alumnos");
     return response.data;
   },
 
-  obtenerPorId: async (id: number): Promise<AlumnoDetalleResponse> => {
+  obtenerPorId: async (id: number): Promise<AlumnoResponse> => {
     const response = await api.get(`/alumnos/${id}`);
     return response.data;
   },
@@ -28,15 +26,15 @@ const alumnosApi = {
 
   registrar: async (
     alumno: AlumnoRegistroRequest
-  ): Promise<AlumnoDetalleResponse> => {
+  ): Promise<AlumnoResponse> => {
     const response = await api.post("/alumnos", alumno);
     return response.data;
   },
 
   actualizar: async (
     id: number,
-    alumno: AlumnoModificacionRequest
-  ): Promise<AlumnoDetalleResponse> => {
+    alumno: AlumnoRegistroRequest
+  ): Promise<AlumnoResponse> => {
     const response = await api.put(`/alumnos/${id}`, alumno);
     return response.data;
   },
@@ -49,12 +47,12 @@ const alumnosApi = {
     await api.delete(`/alumnos/${id}`);
   },
 
-  obtenerListadoSimplificado: async (): Promise<AlumnoListadoResponse[]> => {
+  obtenerListadoSimplificado: async (): Promise<AlumnoResponse[]> => {
     const response = await api.get("/alumnos/listado");
     return response.data;
   },
 
-  buscarPorNombre: async (nombre: string): Promise<AlumnoListadoResponse[]> => {
+  buscarPorNombre: async (nombre: string): Promise<AlumnoResponse[]> => {
     const response = await api.get(
       `/alumnos/buscar?nombre=${encodeURIComponent(nombre)}`
     );

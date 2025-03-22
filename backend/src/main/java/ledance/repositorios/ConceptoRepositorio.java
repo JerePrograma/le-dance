@@ -12,5 +12,4 @@ public interface ConceptoRepositorio extends JpaRepository<Concepto, Long> {
     List<Concepto> findBySubConceptoId(Long subConceptoId);
 
     Optional<Concepto> findByDescripcionIgnoreCase(String descripcion);
-
 }

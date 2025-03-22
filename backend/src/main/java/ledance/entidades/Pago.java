@@ -31,20 +31,18 @@ public class Pago {
     @NotNull
     private LocalDate fechaVencimiento;
 
-    // Monto total calculado (suma de aCobrar de cada detalle)
     @NotNull
     @Min(value = 0, message = "El monto debe ser mayor o igual a 0")
     private Double monto;
 
     private Double valorBase;
 
-    // Nuevo campo: importe inicial de este pago, es decir, el importe inicial que se esperaba cobrar en este registro.
     @NotNull
     @Min(value = 0, message = "El monto base no puede ser negativo")
     private Double importeInicial;
 
     @ManyToOne
-    @JoinColumn(name = "alumno_id", nullable = false) // Asegúrate que esté así.
+    @JoinColumn(name = "alumno_id", nullable = false)
     private Alumno alumno;
 
     @ManyToOne
@@ -52,7 +50,6 @@ public class Pago {
     @OnDelete(action = OnDeleteAction.SET_NULL)
     private MetodoPago metodoPago;
 
-    // Saldo restante a cobrar (se actualiza conforme se realizan pagos parciales)
     @NotNull
     private Double saldoRestante = 0.0;
 
@@ -63,7 +60,9 @@ public class Pago {
 
     private String observaciones;
 
-    @OneToMany(mappedBy = "pago", cascade = CascadeType.ALL, orphanRemoval = true)
+    // Aquí usamos un conjunto de cascadas que NO incluya PERSIST,
+    // de modo que si algún detalle ya existe se actualizará con merge.
+    @OneToMany(mappedBy = "pago", cascade = { CascadeType.MERGE, CascadeType.REMOVE, CascadeType.REFRESH }, orphanRemoval = true)
     @JsonIgnore
     private List<DetallePago> detallePagos = new ArrayList<>();
 
@@ -71,7 +70,6 @@ public class Pago {
     @JsonIgnore
     private List<PagoMedio> pagoMedios;
 
-    // Monto total abonado a lo largo del tiempo en este pago
     @NotNull
     @Column(name = "monto_pagado", nullable = false)
     @Min(value = 0, message = "El monto pagado no puede ser negativo")
@@ -84,4 +82,5 @@ public class Pago {
         }
     }
 
+    // Getters, setters, equals, hashCode y toString (según Lombok)
 }

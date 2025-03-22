@@ -2,9 +2,12 @@ package ledance.dto.pago.request;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
+import ledance.dto.alumno.request.AlumnoRegistroRequest;
 
 public record DetallePagoRegistroRequest(
         Long id,
+        Long version,
+        AlumnoRegistroRequest alumno,
         String descripcionConcepto,
         String cuotaOCantidad,
         @NotNull @Min(0) Double valorBase,
@@ -19,7 +22,6 @@ public record DetallePagoRegistroRequest(
         Long stockId
 ) {
     public DetallePagoRegistroRequest {
-        // Asignamos false por defecto si viene null
         if (cobrado == null) {
             cobrado = false;
         }

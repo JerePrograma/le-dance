@@ -471,11 +471,15 @@ const CobranzasForm: React.FC = () => {
       await setFieldValue("alumnoId", id, true);
       setSelectedAlumnoId(id);
       await setFieldValue("matriculaRemoved", false, true);
-      // Si se dispone de data completa del alumno, se asigna; de lo contrario, se asignan valores por defecto.
+
+      // Si se dispone de data completa del alumno, se asigna; de lo contrario, se asigna un objeto básico.
       if (alumnoData) {
+        console.log(
+          "[handleAlumnoChange] Asignando data completa del alumno:",
+          alumnoData
+        );
         await setFieldValue("alumno", alumnoData, true);
       } else {
-        // Valores por defecto
         await setFieldValue(
           "alumno",
           {
@@ -498,14 +502,6 @@ const CobranzasForm: React.FC = () => {
           },
           true
         );
-      }
-      if (id > 0) {
-        try {
-          const response = await matriculasApi.obtenerMatricula(id);
-          setMatricula(response);
-        } catch (error) {
-          toast.error("Error al cargar matrícula");
-        }
       }
     },
     [alumnoData]

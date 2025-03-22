@@ -1,7 +1,6 @@
 package ledance.dto.pago.response;
 
 import ledance.entidades.TipoDetallePago;
-
 import java.time.LocalDate;
 
 public record DetallePagoResponse(
@@ -23,4 +22,4 @@ public record DetallePagoResponse(
         Double importePendiente,
         TipoDetallePago tipo,
         LocalDate fechaRegistro
-) {}
+) { }
