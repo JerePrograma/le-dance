@@ -215,6 +215,4 @@ public class AlumnoServicio implements IAlumnoServicio {
                 detallePagosDTO
         );
     }
-
-
 }

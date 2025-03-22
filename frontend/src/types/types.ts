@@ -482,6 +482,7 @@ export interface StockModificacionRequest {
 }
 
 export interface StockResponse {
+  version: number;
   id: number;
   nombre: string;
   precio: number;
@@ -567,6 +568,7 @@ export interface ConceptoRegistroRequest {
 }
 
 export interface ConceptoResponse {
+  version: number;
   id: number;
   descripcion: string;
   precio: number;
@@ -898,6 +900,7 @@ export interface CobranzaDTO {
 }
 
 export interface AlumnoDataResponse {
+  ultimoPago: any;
   alumno: AlumnoResponse;
   detallePagosPendientes: DetallePagoResponse[];
 }

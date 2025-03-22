@@ -5,7 +5,7 @@ import java.time.LocalDate;
 
 public record DetallePagoResponse(
         Long id,
-        Long version, // Campo agregado para version
+        Long version,
         String descripcionConcepto,
         String cuotaOCantidad,
         Double valorBase,
@@ -22,4 +22,4 @@ public record DetallePagoResponse(
         Double importePendiente,
         TipoDetallePago tipo,
         LocalDate fechaRegistro
-) {}
+) { }

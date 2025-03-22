@@ -1,10 +1,9 @@
 package ledance.dto.pago.response;
 
-import java.time.LocalDate;
-import java.util.List;
-
 import ledance.dto.alumno.response.AlumnoResponse;
 import ledance.dto.metodopago.response.MetodoPagoResponse;
+import java.time.LocalDate;
+import java.util.List;
 
 public record PagoResponse(
         Long id,
@@ -21,5 +20,4 @@ public record PagoResponse(
         String observaciones,
         List<DetallePagoResponse> detallePagos,
         List<PagoMedioResponse> pagoMedios
-) {
-}
+) { }
