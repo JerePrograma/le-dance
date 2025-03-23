@@ -44,38 +44,47 @@ public class MatriculaServicio {
      * Si no existe, se crea una nueva pendiente y se registra su DetallePago.
      */
     @Transactional
-    public MatriculaResponse obtenerOMarcarPendiente(Long alumnoId) {
-        int anioActual = Year.now().getValue();
-        // Buscar la matrícula del año actual que no esté pagada. Si no existe, se crea una nueva.
-        Matricula matricula = matriculaRepositorio.findByAlumnoIdAndAnio(alumnoId, anioActual)
+    public Matricula obtenerOMarcarPendienteMatricula(Long alumnoId, int anio) {
+        log.info("[obtenerOMarcarPendiente] Iniciando búsqueda de matrícula pendiente para alumnoId={}, anio={}", alumnoId, anio);
+
+        Matricula matricula = matriculaRepositorio.findByAlumnoIdAndAnio(alumnoId, anio)
                 .stream()
                 .filter(m -> !m.getPagada())
                 .findFirst()
                 .orElseGet(() -> {
+                    log.info("[obtenerOMarcarPendiente] No se encontró matrícula no pagada. Creando nueva.");
                     Alumno alumno = alumnoRepositorio.findById(alumnoId)
                             .orElseThrow(() -> new IllegalArgumentException("Alumno no encontrado."));
+                    log.info("[obtenerOMarcarPendiente] Alumno encontrado: id={}, nombre={}", alumno.getId(), alumno.getNombre());
+
                     Matricula nueva = new Matricula();
                     nueva.setAlumno(alumno);
-                    nueva.setAnio(anioActual);
+                    log.info("[obtenerOMarcarPendiente] Asignado alumno a matrícula.");
+
+                    nueva.setAnio(anio);
+                    log.info("[obtenerOMarcarPendiente] Asignado año a matrícula: {}", anio);
+
                     nueva.setPagada(false);
+                    log.info("[obtenerOMarcarPendiente] Marcada matrícula como no pagada.");
+
                     nueva = matriculaRepositorio.save(nueva);
-                    log.info("[obtenerOMarcarPendiente] Se creó nueva Matrícula id={} para alumnoId {} en anio {}",
-                            nueva.getId(), alumnoId, anioActual);
+                    log.info("[obtenerOMarcarPendiente] Matrícula creada y guardada: id={}", nueva.getId());
+
                     return nueva;
                 });
 
-        log.info("[obtenerOMarcarPendiente] Matrícula obtenida: id={} para alumnoId {} en anio {}",
-                matricula.getId(), alumnoId, anioActual);
+        log.info("[obtenerOMarcarPendiente] Matrícula obtenida: id={}, pagada={}, alumnoId={}",
+                matricula.getId(), matricula.getPagada(), alumnoId);
 
-        // Registrar el DetallePago para la matrícula si aún no existe
         if (!detallePagoRepositorio.existsByMatriculaId(matricula.getId())) {
+            log.info("[obtenerOMarcarPendiente] No existe DetallePago. Se procede a registrar uno nuevo.");
             registrarDetallePagoMatricula(matricula);
             log.info("[obtenerOMarcarPendiente] DetallePago para Matrícula id={} creado.", matricula.getId());
         } else {
-            log.info("[obtenerOMarcarPendiente] Ya existe un DetallePago para la Matrícula id={}. No se crea duplicado.", matricula.getId());
+            log.info("[obtenerOMarcarPendiente] Ya existe un DetallePago para la Matrícula id={}.", matricula.getId());
         }
 
-        return matriculaMapper.toResponse(matricula);
+        return matricula;
     }
 
     @Transactional
@@ -155,4 +164,13 @@ public class MatriculaServicio {
         return inscripcionRepositorio.findByAlumnoIdAndEstado(alumnoId, EstadoInscripcion.ACTIVA)
                 .orElseThrow(() -> new EntityNotFoundException("No se encontró inscripción activa para alumno id: " + alumnoId));
     }
+
+    public void obtenerOMarcarPendienteAutomatica(Long alumnoId) {
+        log.info("[MatriculaAutoService] Iniciando proceso automático de matrícula para alumno id={}", alumnoId);
+        int anio = LocalDate.now().getYear();
+        log.info("[MatriculaAutoService] Año actual determinado: {}", anio);
+        obtenerOMarcarPendienteMatricula(alumnoId, anio);
+        log.info("[MatriculaAutoService] Proceso automático de matrícula completado para alumno id={}", alumnoId);
+    }
+
 }

@@ -56,6 +56,7 @@ public class DetallePago {
 
     @ManyToOne
     @JoinColumn(name = "mensualidad_id", nullable = true)
+    @ToString.Exclude // Evita recursividad con Mensualidad
     private Mensualidad mensualidad;
 
     @ManyToOne
@@ -80,6 +81,7 @@ public class DetallePago {
     @Column(name = "fecha_registro", nullable = false)
     private LocalDate fechaRegistro;
 
+    // Getters y Setters para aCobrar (u otros métodos personalizados)
     public Double getaCobrar() {
         return aCobrar;
     }
