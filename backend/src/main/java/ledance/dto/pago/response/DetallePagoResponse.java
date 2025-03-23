@@ -21,5 +21,6 @@ public record DetallePagoResponse(
         Double importeInicial,
         Double importePendiente,
         TipoDetallePago tipo,
-        LocalDate fechaRegistro
+        LocalDate fechaRegistro,
+        Long pagoId
 ) { }

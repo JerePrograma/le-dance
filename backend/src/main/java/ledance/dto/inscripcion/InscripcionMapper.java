@@ -21,7 +21,7 @@ public interface InscripcionMapper {
     @Mapping(target = "fechaInscripcion", source = "fechaInscripcion")
     @Mapping(target = "estado", source = "estado")
     @Mapping(target = "disciplina", source = "disciplina")
-    @Mapping(target = "alumno", ignore = true) // Rompe la recursividad
+    @Mapping(target = "alumno", source = "alumno") // Rompe la recursividad
     InscripcionResponse toDTO(Inscripcion inscripcion);
 
     // Versión simple para listas (puedes definirla como default)

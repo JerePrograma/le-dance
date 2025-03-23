@@ -65,57 +65,76 @@ public class InscripcionServicio implements IInscripcionServicio {
      */
     @Transactional
     public InscripcionResponse crearInscripcion(InscripcionRegistroRequest request) {
-        log.info("Registrando inscripción para alumnoId: {} en disciplinaId: {}",
+        log.info("[crearInscripcion] Iniciando creación de inscripción para alumnoId={}, disciplinaId={}",
                 request.alumno().id(), request.disciplina().id());
 
         Alumno alumno = alumnoRepositorio.findById(request.alumno().id())
                 .orElseThrow(() -> new IllegalArgumentException("Alumno no encontrado."));
+        log.info("[crearInscripcion] Alumno encontrado: id={}, nombre={}", alumno.getId(), alumno.getNombre());
+
         Disciplina disciplina = disciplinaRepositorio.findById(request.disciplina().id())
                 .orElseThrow(() -> new IllegalArgumentException("Disciplina no encontrada."));
+        log.info("[crearInscripcion] Disciplina encontrada: id={}, nombre={}", disciplina.getId(), disciplina.getNombre());
+
         if (disciplina.getProfesor() == null) {
+            log.warn("[crearInscripcion] La disciplina id={} no tiene profesor asignado.", disciplina.getId());
             throw new IllegalStateException("La disciplina indicada no tiene profesor asignado.");
         }
+
         Bonificacion bonificacion = null;
         if (request.bonificacionId() != null) {
             bonificacion = bonificacionRepositorio.findById(request.bonificacionId())
                     .orElse(null);
+            if (bonificacion != null) {
+                log.info("[crearInscripcion] Bonificación encontrada: id={}, descripcion={}", bonificacion.getId(), bonificacion.getDescripcion());
+            } else {
+                log.info("[crearInscripcion] No se encontró bonificación con id={}", request.bonificacionId());
+            }
         }
 
-        // Convertimos el DTO a entidad Inscripción y asignamos relaciones
         Inscripcion inscripcion = inscripcionMapper.toEntity(request);
+        log.info("[crearInscripcion] Inscripción mapeada desde DTO.");
+
         inscripcion.setAlumno(alumno);
+        log.info("[crearInscripcion] Asignado alumno a inscripción.");
+
         inscripcion.setDisciplina(disciplina);
+        log.info("[crearInscripcion] Asignada disciplina a inscripción.");
+
         inscripcion.setBonificacion(bonificacion);
-        inscripcion.setFechaInscripcion(request.fechaInscripcion() == null ? LocalDate.now() : request.fechaInscripcion());
+        log.info("[crearInscripcion] Asignada bonificación a inscripción.");
 
-        // Guardamos la inscripción
-        Inscripcion guardada = inscripcionRepositorio.save(inscripcion);
-        log.info("Inscripción guardada con ID: {}", guardada.getId());
+        LocalDate fecha = request.fechaInscripcion() != null ? request.fechaInscripcion() : LocalDate.now();
+        inscripcion.setFechaInscripcion(fecha);
+        log.info("[crearInscripcion] Asignada fecha de inscripción: {}", fecha);
 
-        // Calcular el costo utilizando la lógica de negocio
-        Double costoCalculado = calcularCosto(guardada);
-        log.info("Costo calculado para inscripción id {}: {}", guardada.getId(), costoCalculado);
+        Inscripcion inscripcionGuardada = inscripcionRepositorio.save(inscripcion);
+        log.info("[crearInscripcion] Inscripción guardada con ID: {}", inscripcionGuardada.getId());
 
         try {
-            int mesActual = LocalDate.now().getMonthValue();
-            int anioActual = LocalDate.now().getYear();
-            MensualidadResponse cuotaGenerada = mensualidadServicio.generarCuota(guardada.getId(), mesActual, anioActual);
-            log.info("Cuota generada automáticamente para inscripción id: {} con cuotaOCantidad id: {}",
-                    guardada.getId(), cuotaGenerada.id());
-        } catch (IllegalStateException e) {
-            log.warn("No se generó cuotaOCantidad automática para la inscripción id {}: {}", guardada.getId(), e.getMessage());
+            mensualidadServicio.generarCuotaAutomatica(inscripcionGuardada);
+            log.info("[crearInscripcion] Cuota automática generada para inscripción id={}", inscripcionGuardada.getId());
+        } catch (Exception e) {
+            log.warn("[crearInscripcion] Error al generar cuota automática: {}", e.getMessage());
         }
 
-        int mes = LocalDate.now().getMonthValue();
-        int anio = LocalDate.now().getYear();
-        log.info("Incorporando alumno a la planilla de asistencia para {}/{}.", mes, anio);
-        asistenciaMensualServicio.agregarAlumnoAPlanilla(guardada.getId(), mes, anio);
+        try {
+            matriculaServicio.obtenerOMarcarPendienteAutomatica(alumno.getId());
+            log.info("[crearInscripcion] Matrícula verificada o creada automáticamente para alumno id={}", alumno.getId());
+        } catch (Exception e) {
+            log.warn("[crearInscripcion] Error al obtener o marcar matrícula pendiente: {}", e.getMessage());
+        }
 
-        // Verificar o crear la matrícula para el año vigente utilizando el servicio correspondiente
-        MatriculaResponse matriculaResponse = matriculaServicio.obtenerOMarcarPendiente(alumno.getId());
-        log.info("Matrícula obtenida o creada para el alumno id {}: {}", alumno.getId(), matriculaResponse);
+        int mesActual = LocalDate.now().getMonthValue();
+        int anioActual = LocalDate.now().getYear();
+        log.info("[crearInscripcion] Agregando alumno a planilla de asistencia para mes={}, año={}", mesActual, anioActual);
 
-        return inscripcionMapper.toDTO(guardada);
+        asistenciaMensualServicio.agregarAlumnoAPlanilla(inscripcionGuardada.getId(), mesActual, anioActual);
+
+        log.info("[crearInscripcion] Inscripción finalizada exitosamente para alumno id={}", alumno.getId());
+        log.info("[crearInscripcion] Inscripción finalizada exitosamente para alumno={}", alumno);
+
+        return inscripcionMapper.toDTO(inscripcionGuardada);
     }
 
     // Logica de cálculo trasladada al servicio (sin utilizar el mapper)

@@ -27,4 +27,6 @@ public interface DetallePagoRepositorio extends JpaRepository<DetallePago, Long>
     Optional<DetallePago> findByMatriculaIdAndAlumnoIdAndCobradoFalse(Long id, Long alumnoId);
 
     Optional<DetallePago> findByDescripcionConceptoAndAlumnoIdAndCobradoFalse(String upperCase, Long alumnoId);
+
+    boolean existsByMensualidadId(Long id);
 }

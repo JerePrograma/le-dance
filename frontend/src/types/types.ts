@@ -482,6 +482,7 @@ export interface StockModificacionRequest {
 }
 
 export interface StockResponse {
+  version: number;
   id: number;
   nombre: string;
   precio: number;
@@ -567,6 +568,7 @@ export interface ConceptoRegistroRequest {
 }
 
 export interface ConceptoResponse {
+  version: number;
   id: number;
   descripcion: string;
   precio: number;
@@ -727,7 +729,7 @@ export interface PagoResponse {
   detallePagos: DetallePagoResponse[];
   pagoMedios: PagoMedioResponse[];
 }
-
+// DetallePagoResponse.ts
 export interface DetallePagoResponse {
   id: number;
   version: number;
@@ -747,8 +749,10 @@ export interface DetallePagoResponse {
   importePendiente: number;
   tipo: string;
   fechaRegistro: string;
+  pagoId?: number | null; // <-- Nuevo atributo
 }
 
+// DetallePagoRegistroRequest.ts
 export interface DetallePagoRegistroRequest {
   id?: number;
   version: number;
@@ -765,6 +769,7 @@ export interface DetallePagoRegistroRequest {
   mensualidadId?: number | null;
   matriculaId?: number | null;
   stockId?: number | null;
+  pagoId?: number | null; // <-- Nuevo atributo
 }
 
 export type DetallePagoRegistroRequestExt = DetallePagoRegistroRequest & {
@@ -898,6 +903,7 @@ export interface CobranzaDTO {
 }
 
 export interface AlumnoDataResponse {
+  ultimoPago: any;
   alumno: AlumnoResponse;
   detallePagosPendientes: DetallePagoResponse[];
 }

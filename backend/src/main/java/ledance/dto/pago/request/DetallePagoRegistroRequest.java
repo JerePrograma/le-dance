@@ -19,7 +19,8 @@ public record DetallePagoRegistroRequest(
         Long subConceptoId,
         Long mensualidadId,
         Long matriculaId,
-        Long stockId
+        Long stockId,
+        Long pagoId   // <-- Nuevo campo: ID del Pago asociado (opcional)
 ) {
     public DetallePagoRegistroRequest {
         if (cobrado == null) {

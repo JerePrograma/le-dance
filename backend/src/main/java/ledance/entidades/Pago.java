@@ -60,9 +60,7 @@ public class Pago {
 
     private String observaciones;
 
-    // Aquí usamos un conjunto de cascadas que NO incluya PERSIST,
-    // de modo que si algún detalle ya existe se actualizará con merge.
-    @OneToMany(mappedBy = "pago", cascade = { CascadeType.MERGE, CascadeType.REMOVE, CascadeType.REFRESH }, orphanRemoval = true)
+    @OneToMany(mappedBy = "pago", cascade = { CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE, CascadeType.REFRESH }, orphanRemoval = true)
     @JsonIgnore
     private List<DetallePago> detallePagos = new ArrayList<>();
 
@@ -82,5 +80,9 @@ public class Pago {
         }
     }
 
-    // Getters, setters, equals, hashCode y toString (según Lombok)
+    public void addDetallePago(DetallePago detalle) {
+        detalle.setPago(this);
+        this.detallePagos.add(detalle);
+    }
+
 }

@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -27,7 +28,7 @@ public class Mensualidad {
     @NotNull
     private LocalDate fechaCuota;
 
-    // Fecha en la que se realizo el pago (null si aún no se paga)
+    // Fecha en la que se realizó el pago (null si aún no se paga)
     private LocalDate fechaPago;
 
     @NotNull
@@ -61,6 +62,7 @@ public class Mensualidad {
     private Double montoAbonado = 0.0;
 
     @OneToMany(mappedBy = "mensualidad", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ToString.Exclude // Evita la recursividad
     private List<DetallePago> detallePagos;
 
     private Double importePendiente;

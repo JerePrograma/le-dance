@@ -218,7 +218,8 @@ public class DetallePagoServicio {
                 detalle.getImporteInicial(),
                 detalle.getImportePendiente(),
                 detalle.getTipo(),
-                detalle.getFechaRegistro()
+                detalle.getFechaRegistro(),
+                detalle.getPago().getId()
         );
     }
 
