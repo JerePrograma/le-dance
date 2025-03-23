@@ -66,13 +66,10 @@ public class PagoServicio {
                         DetallePagoMapper detallePagoMapper,
                         MensualidadServicio mensualidadServicio,
                         RecargoRepositorio recargoRepositorio,
-                        BonificacionRepositorio bonificacionRepositorio, PaymentCalculationServicio paymentCalculationServicio,
-                        DetallePagoRepositorio detallePagoRepositorio,
-                        MetodoPagoMapper metodoPagoMapper, MatriculaRepositorio matriculaRepositorio, MensualidadRepositorio mensualidadRepositorio,
+                        BonificacionRepositorio bonificacionRepositorio,
+                        PaymentCalculationServicio paymentCalculationServicio,
                         DetallePagoServicio detallePagoServicio,
                         PaymentProcessor paymentProcessor,
-                        PagoMedioMapper pagoMedioMapper,
-                        InscripcionMapper inscripcionMapper,
                         SubConceptoRepositorio subConceptoRepositorio,
                         ConceptoRepositorio conceptoRepositorio, AlumnoMapper alumnoMapper) {
         this.alumnoRepositorio = alumnoRepositorio;
@@ -187,20 +184,31 @@ public class PagoServicio {
         List<DetallePago> detallesProcesados = new ArrayList<>();
 
         for (DetallePago detalle : detallesFront) {
-            // Reatachar asociaciones comunes (por ejemplo, vincular inscripción, etc.)
+            // Reatachar asociaciones comunes
             paymentProcessor.reatacharAsociaciones(detalle, pagoManaged);
             detalle.setPago(pagoManaged);
 
-            // Si estamos en abono parcial y ya existe un detalle similar, omitirlo
-            if (false && paymentProcessor.existeDetalleDuplicado(detalle, pagoManaged.getAlumno().getId())) {
-                log.info("[processDetallesPago] Detalle duplicado omitido: id={}", detalle.getId());
+            boolean duplicado = false;
+            // Verificar duplicados si se trata de matrícula
+            if (detalle.getMatricula() != null && detalle.getMatricula().getId() != null) {
+                duplicado = paymentProcessor.existeDetalleDuplicado(detalle, pagoManaged.getAlumno().getId());
+            }
+            // Verificar duplicados si se trata de mensualidad
+            if (!duplicado && detalle.getMensualidad() != null && detalle.getMensualidad().getId() != null) {
+                duplicado = paymentProcessor.existeDetalleDuplicado(detalle, pagoManaged.getAlumno().getId());
+            }
+
+            if (duplicado) {
+                log.info("[processDetallesPago] Se detectó duplicado para la asociación correspondiente (matrícula o mensualidad).");
+                // Opción: actualizar el detalle existente en lugar de agregar un nuevo clone.
                 continue;
             }
 
-            // Procesar y calcular cada detalle (incluye: importeInicial, importePendiente, abono, estado cobrado)
+            // Si no hay duplicado, "limpiamos" el estado para que sea tratado como nuevo.
+            detalle.setId(null);
+
+            // Procesar y calcular el detalle
             paymentCalculationServicio.procesarYCalcularDetalle(pagoManaged, detalle, paymentProcessor.obtenerInscripcion(detalle));
-            // Eliminar el merge explícito:
-            // entityManager.merge(detalle);
             detallesProcesados.add(detalle);
         }
 

@@ -57,15 +57,11 @@ public class PaymentProcessor {
     private final PagoRepositorio pagoRepositorio;
 
     // Mappers
-    private final DetallePagoMapper detallePagoMapper;
-    private final AlumnoMapper alumnoMapper;
-    private final PagoMapper pagoMapper;
 
     // Servicios auxiliares
     private final MatriculaServicio matriculaServicio;
     private final MensualidadServicio mensualidadServicio;
     private final StockServicio stockServicio;
-    private final DetallePagoServicio detallePagoServicio;
 
     public PaymentProcessor(PagoRepositorio pagoRepositorio,
                             PaymentCalculationServicio calculationServicio,
@@ -78,13 +74,9 @@ public class PaymentProcessor {
                             PagoMapper pagoMapper,
                             DetallePagoRepositorio detallePagoRepositorio, PaymentCalculationServicio paymentCalculationServicio, DetallePagoMapper detallePagoMapper, DetallePagoMapper detallePagoMapper1) {
         this.pagoRepositorio = pagoRepositorio;
-        this.detallePagoMapper = detallePagoMapper;
         this.matriculaServicio = matriculaServicio;
         this.mensualidadServicio = mensualidadServicio;
         this.stockServicio = stockServicio;
-        this.detallePagoServicio = detallePagoServicio;
-        this.alumnoMapper = alumnoMapper;
-        this.pagoMapper = pagoMapper;
         this.detallePagoRepositorio = detallePagoRepositorio;
         this.paymentCalculationServicio = paymentCalculationServicio;
     }
@@ -479,12 +471,16 @@ public class PaymentProcessor {
                 nuevoDetalle.setaCobrar(detalle.getaCobrar());
                 nuevoDetalle.setImportePendiente(detalle.getImportePendiente());
                 nuevoDetalle.setTipo(detalle.getTipo());
-                // Clonar otras asociaciones según sea necesario (p.ej., IDs de mensualidad, matrícula, etc.)
+                // <== Aquí asignamos la asociación de forma correcta:
+                nuevoDetalle.setPago(nuevoPago);
                 nuevoPago.getDetallePagos().add(nuevoDetalle);
+                nuevoPago.addDetallePago(nuevoDetalle);
+
                 log.info("[clonarDetallesConPendiente] Detalle clonado: id antiguo={}, importePendiente={}",
                         detalle.getId(), detalle.getImportePendiente());
             }
         }
+
         recalcularTotales(nuevoPago);
         nuevoPago = pagoRepositorio.save(nuevoPago);
         log.info("[clonarDetallesConPendiente] Nuevo pago creado con id={} y {} detalles pendientes",

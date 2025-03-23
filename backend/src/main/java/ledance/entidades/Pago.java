@@ -60,7 +60,7 @@ public class Pago {
 
     private String observaciones;
 
-    @OneToMany(mappedBy = "pago", cascade = { CascadeType.MERGE, CascadeType.REMOVE, CascadeType.REFRESH }, orphanRemoval = true)
+    @OneToMany(mappedBy = "pago", cascade = { CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE, CascadeType.REFRESH }, orphanRemoval = true)
     @JsonIgnore
     private List<DetallePago> detallePagos = new ArrayList<>();
 
@@ -80,5 +80,9 @@ public class Pago {
         }
     }
 
-    // Getters, setters, equals, hashCode y toString (según Lombok)
+    public void addDetallePago(DetallePago detalle) {
+        detalle.setPago(this);
+        this.detallePagos.add(detalle);
+    }
+
 }
