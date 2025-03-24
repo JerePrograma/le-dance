@@ -4,7 +4,42 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="ccb8f120-972c-4a18-b18b-4ae7da723dfa" name="Changes" comment="" />
+    <list default="true" id="ccb8f120-972c-4a18-b18b-4ae7da723dfa" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/db/migration/V10__alter-table-asistencias.sql" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/db/migration/V10__alter-table-asistencias.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/db/migration/V12__alter-table-mensualidades.sql" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/db/migration/V12__alter-table-mensualidades.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/db/migration/V13__alter-tables-asistencias.sql" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/db/migration/V13__alter-tables-asistencias.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/db/migration/V14__alter-table-asistencias.sql" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/db/migration/V14__alter-table-asistencias.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/db/migration/V15__alter-table-mensualidad.sql" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/db/migration/V15__alter-table-mensualidad.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/db/migration/V16__alter-table-mensualidades.sql" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/db/migration/V16__alter-table-mensualidades.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/db/migration/V17__alter-table-mensualidades-inscripciones.sql" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/db/migration/V17__alter-table-mensualidades-inscripciones.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/db/migration/V18__alter-table-pagos.sql" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/db/migration/V18__alter-table-pagos.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/db/migration/V1__initial_schema.sql" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/db/migration/V1__initial_schema.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/db/migration/V21__alter-table-detalles-pagos-drop-column.sql" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/db/migration/V21__alter-table-detalles-pagos-drop-column.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/db/migration/V22__alter-table-mensualidades.sql" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/db/migration/V22__alter-table-mensualidades.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/db/migration/V23__alter-table-detalles-pagos-tipo.sql" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/db/migration/V23__alter-table-detalles-pagos-tipo.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/db/migration/V24__drop-table-tipo-stock.sql" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/db/migration/V24__drop-table-tipo-stock.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/db/migration/V25__alter-tables-pagos-y-detalles-pagos.sql" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/db/migration/V25__alter-tables-pagos-y-detalles-pagos.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/db/migration/V26__alter-table-pagos.sql" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/db/migration/V26__alter-table-pagos.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/db/migration/V27__alter-table-pagos-colunm-estado.sql" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/db/migration/V27__alter-table-pagos-colunm-estado.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/db/migration/V28__alter-table-detalles-pagos.sql" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/db/migration/V28__alter-table-detalles-pagos.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/db/migration/V2__drop-table-recargo-detalle.sql" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/db/migration/V2__drop-table-recargo-detalle.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/db/migration/V30__alter-table-detalles-pagos.sql" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/db/migration/V30__alter-table-detalles-pagos.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/db/migration/V31__alter-table-detalles-pagos-relaciones.sql" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/db/migration/V31__alter-table-detalles-pagos-relaciones.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/db/migration/V32__alter-table-detalle-pagos-drop-column.sql" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/db/migration/V32__alter-table-detalle-pagos-drop-column.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/db/migration/V33__alter-table-detalles-column-stocks.sql" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/db/migration/V33__alter-table-detalles-column-stocks.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/db/migration/V37__alter-table-detalles-pagos-alumno-id.sql" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/db/migration/V37__alter-table-detalles-pagos-alumno-id.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/db/migration/V39__alter-table-pagos-y-detalles.sql" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/db/migration/V39__alter-table-pagos-y-detalles.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/db/migration/V3__alter-table-recargos.sql" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/db/migration/V3__alter-table-recargos.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/db/migration/V40__alter-table-detalles-pagos-id-pagos.sql" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/db/migration/V40__alter-table-detalles-pagos-id-pagos.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/db/migration/V42__alter-table-detalle-pagos-colunm-version.sql" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/db/migration/V42__alter-table-detalle-pagos-colunm-version.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/db/migration/V43__alter-table-detalle-version.sql" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/db/migration/V43__alter-table-detalle-version.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/db/migration/V44__alter-table-matricula.sql" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/db/migration/V44__alter-table-matricula.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/db/migration/V4__alter-table-mensualidades.sql" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/db/migration/V4__alter-table-mensualidades.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/db/migration/V6__initial-tables.sql" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/db/migration/V6__initial-tables.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/db/migration/V7__create-table_dias_horarios.sql" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/db/migration/V7__create-table_dias_horarios.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/db/migration/V9__alter-table-disciplinas.sql" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/db/migration/V9__alter-table-disciplinas.sql" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -134,7 +169,8 @@
       <workItem from="1742756798541" duration="598000" />
       <workItem from="1742770715408" duration="56000" />
       <workItem from="1742770882950" duration="594000" />
-      <workItem from="1742773430246" duration="35834000" />
+      <workItem from="1742773430246" duration="36053000" />
+      <workItem from="1742818045585" duration="914000" />
     </task>
     <servers />
   </component>

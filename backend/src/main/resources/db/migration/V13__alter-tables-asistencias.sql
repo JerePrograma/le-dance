@@ -14,14 +14,14 @@ WHERE i.id = am.inscripcion_id;
 ALTER TABLE asistencias_mensuales
     ALTER COLUMN disciplina_id SET NOT NULL;
 
--- Paso 4: Eliminar la restriccion antigua (si sigue existiendo) y la columna inscripcion_id
+-- Paso 4: Eliminar la restricción antigua (si sigue existiendo) y la columna inscripcion_id
 ALTER TABLE asistencias_mensuales
     DROP CONSTRAINT IF EXISTS fk_inscripcion;
 
 ALTER TABLE asistencias_mensuales
     DROP COLUMN IF EXISTS inscripcion_id;
 
--- Paso 5: Agregar la nueva restriccion de clave foranea
+-- Paso 5: Agregar la nueva restricción de clave foránea
 ALTER TABLE asistencias_mensuales
     ADD CONSTRAINT fk_disciplina
         FOREIGN KEY (disciplina_id) REFERENCES disciplinas (id);
