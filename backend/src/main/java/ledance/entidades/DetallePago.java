@@ -2,6 +2,7 @@ package ledance.entidades;
 
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.time.LocalDate;
 
 @Entity
@@ -92,6 +93,9 @@ public class DetallePago {
 
     @PrePersist
     public void prePersist() {
+        if (this.descripcionConcepto != null) {
+            this.descripcionConcepto = this.descripcionConcepto.toUpperCase();
+        }
         if (this.fechaRegistro == null) {
             this.fechaRegistro = LocalDate.now();
         }
@@ -102,9 +106,13 @@ public class DetallePago {
 
     @PreUpdate
     public void preUpdate() {
+        if (this.descripcionConcepto != null) {
+            this.descripcionConcepto = this.descripcionConcepto.toUpperCase();
+        }
         if (this.matricula != null && (this.descripcionConcepto == null || this.descripcionConcepto.trim().isEmpty())) {
             this.descripcionConcepto = "MATRICULA " + LocalDate.now().getYear();
         }
     }
+
 
 }

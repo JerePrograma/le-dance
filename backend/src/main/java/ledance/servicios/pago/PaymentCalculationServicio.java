@@ -141,7 +141,7 @@ public class PaymentCalculationServicio {
             throw new IllegalArgumentException("El monto del abono no puede ser negativo.");
         }
 
-        // Asignar importeInicial si aún no está definido
+        // Si aún no se asignó el importeInicial, se asigna; de lo contrario, se mantiene el valor histórico.
         if (detalle.getImporteInicial() == null && importeInicialCalculado != null) {
             detalle.setImporteInicial(importeInicialCalculado);
             log.info("[procesarAbono] Se asigna importeInicial={} para DetallePago id={}", importeInicialCalculado, detalle.getId());
@@ -154,7 +154,7 @@ public class PaymentCalculationServicio {
                 : detalle.getImporteInicial();
         log.info("[procesarAbono] DetallePago id={} - Importe pendiente actual antes de abono: {}", detalle.getId(), importePendienteActual);
 
-        // Limitar el abono para no exceder el importe pendiente
+        // Se aplica el abono sin exceder el importe pendiente
         double abonoAplicado = Math.min(montoAbono, importePendienteActual);
         detalle.setaCobrar(abonoAplicado);
         log.info("[procesarAbono] DetallePago id={} - Abono aplicado: {}", detalle.getId(), abonoAplicado);

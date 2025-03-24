@@ -6,6 +6,7 @@ import ledance.dto.pago.response.DetallePagoResponse;
 import ledance.entidades.*;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
 import org.mapstruct.Named;
 
 import java.util.List;
@@ -21,14 +22,33 @@ public interface DetallePagoMapper {
     @Mapping(target = "subConcepto", ignore = true)
     @Mapping(target = "bonificacion", ignore = true)
     @Mapping(target = "recargo", ignore = true)
-    // Ahora mapeamos la relación con Pago: si se envía pagoId, se crea una instancia con ese id.
     @Mapping(target = "pago", source = "pagoId", qualifiedByName = "mapPago")
-    @Mapping(target = "importeInicial", ignore = true)
-    @Mapping(target = "importePendiente", ignore = true)
-    @Mapping(target = "descripcionConcepto", expression = "java(request.descripcionConcepto() != null ? request.descripcionConcepto().trim().toUpperCase() : null)")
+    @Mapping(target = "descripcionConcepto", expression = "java( request.descripcionConcepto() != null ? request.descripcionConcepto().trim().toUpperCase() : null )")
     @Mapping(target = "valorBase", source = "valorBase")
     @Mapping(target = "cuotaOCantidad", source = "cuotaOCantidad")
+    // Asignar el tipo en función de las asociaciones
+    @Mapping(target = "tipo", expression = "java( determineTipo(request) )")
     DetallePago toEntity(DetallePagoRegistroRequest request);
+
+    // Método para actualizar una entidad existente con los datos del DTO
+    @Mapping(target = "alumno", source = "alumno")
+    @Mapping(target = "mensualidad", source = "mensualidadId", qualifiedByName = "mapMensualidad")
+    @Mapping(target = "matricula", source = "matriculaId", qualifiedByName = "mapMatricula")
+    @Mapping(target = "stock", source = "stockId", qualifiedByName = "mapStock")
+    @Mapping(target = "descripcionConcepto", expression = "java( request.descripcionConcepto() != null ? request.descripcionConcepto().trim().toUpperCase() : null )")
+    @Mapping(target = "valorBase", source = "valorBase")
+    @Mapping(target = "cuotaOCantidad", source = "cuotaOCantidad")
+    @Mapping(target = "tipo", expression = "java( determineTipo(request) )")
+    void updateDetallePagoFromDTO(DetallePagoRegistroRequest request, @MappingTarget DetallePago detallePago);
+
+    default TipoDetallePago determineTipo(DetallePagoRegistroRequest request) {
+        if (request.mensualidadId() != null) {
+            return TipoDetallePago.MENSUALIDAD;
+        } else if (request.matriculaId() != null) {
+            return TipoDetallePago.MATRICULA;
+        }
+        throw new IllegalArgumentException("No se pudo determinar el tipo de DetallePago. Se requiere mensualidadId o matriculaId.");
+    }
 
     List<DetallePago> toEntity(List<DetallePagoRegistroRequest> requests);
 
@@ -53,39 +73,7 @@ public interface DetallePagoMapper {
     @Mapping(target = "pagoId", expression = "java(detallePago.getPago() != null ? detallePago.getPago().getId() : null)")
     DetallePagoResponse toDTO(DetallePago detallePago);
 
-    // Métodos helper para crear instancias de las asociaciones a partir de su id.
-
-    @Named("mapConcepto")
-    default Concepto mapConcepto(Long id) {
-        if (id == null) return null;
-        Concepto c = new Concepto();
-        c.setId(id);
-        return c;
-    }
-
-    @Named("mapSubConcepto")
-    default SubConcepto mapSubConcepto(Long id) {
-        if (id == null) return null;
-        SubConcepto sc = new SubConcepto();
-        sc.setId(id);
-        return sc;
-    }
-
-    @Named("mapBonificacion")
-    default Bonificacion mapBonificacion(Long id) {
-        if (id == null) return null;
-        Bonificacion b = new Bonificacion();
-        b.setId(id);
-        return b;
-    }
-
-    @Named("mapRecargo")
-    default Recargo mapRecargo(Long id) {
-        if (id == null) return null;
-        Recargo r = new Recargo();
-        r.setId(id);
-        return r;
-    }
+    // Métodos helper para las asociaciones
 
     @Named("mapMensualidad")
     default Mensualidad mapMensualidad(Long id) {
@@ -113,9 +101,7 @@ public interface DetallePagoMapper {
 
     @Named("mapPago")
     default Pago mapPago(Long id) {
-        if (id == null) {
-            return null;
-        }
+        if (id == null) return null;
         Pago p = new Pago();
         p.setId(id);
         return p;

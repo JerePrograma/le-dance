@@ -2,7 +2,9 @@ package ledance.servicios.pago;
 
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.TypedQuery;
 import jakarta.transaction.Transactional;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import ledance.dto.alumno.AlumnoMapper;
 import ledance.dto.matricula.MatriculaMapper;
@@ -81,11 +83,17 @@ public class PaymentProcessor {
         this.paymentCalculationServicio = paymentCalculationServicio;
     }
 
-    // 3. Reatachar asociaciones (manteniendo la idea original)
-    void reatacharAsociaciones(DetallePago detalle, Pago pago) {
+    /**
+     * Reatacha las asociaciones de un DetallePago (alumno, mensualidad, matrícula, stock)
+     * para garantizar que las entidades estén en estado managed y evitar errores de detached.
+     *
+     * @param detalle el objeto DetallePago a reatachar.
+     * @param pago    el objeto Pago asociado.
+     */
+    public void reatacharAsociaciones(DetallePago detalle, Pago pago) {
         if (detalle.getAlumno() == null && pago.getAlumno() != null) {
             detalle.setAlumno(pago.getAlumno());
-            log.info("[reatacharAsociaciones] Alumno asignado: id={} al DetallePago id={}",
+            log.info("[reatacharAsociaciones] Alumno asignado: ID {} al DetallePago ID {}",
                     pago.getAlumno().getId(), detalle.getId());
         }
         if (detalle.getMensualidad() != null && detalle.getMensualidad().getId() != null) {
@@ -108,16 +116,20 @@ public class PaymentProcessor {
         }
     }
 
-    // 7. Recalcular totales: sumar aCobrar e importePendiente de cada detalle activo
-    void recalcularTotales(Pago pago) {
-        log.info("[recalcularTotales] Iniciando recálculo de totales para Pago id={}", pago.getId());
+    /**
+     * Recalcula los totales del pago a partir de los detalles procesados.
+     *
+     * @param pago el objeto Pago al cual se recalcularán sus totales.
+     */
+    public void recalcularTotales(Pago pago) {
+        log.info("[recalcularTotales] Recalculando totales para Pago ID: {}", pago.getId());
         BigDecimal montoTotalAbonado = BigDecimal.ZERO;
         BigDecimal saldoTotal = BigDecimal.ZERO;
 
         for (DetallePago detalle : pago.getDetallePagos()) {
-            // Se calcula el abono aplicado como la diferencia entre el importeInicial y el importePendiente.
+            // Se calcula el abono aplicado: diferencia entre importeInicial e importePendiente
             double abonoAplicado = detalle.getImporteInicial() - detalle.getImportePendiente();
-            log.info("[recalcularTotales] Procesando DetallePago id={} - Abono aplicado: {}, Importe pendiente: {}",
+            log.info("[recalcularTotales] Procesando DetallePago ID: {} - Abono aplicado: {}, Importe pendiente: {}",
                     detalle.getId(), abonoAplicado, detalle.getImportePendiente());
             montoTotalAbonado = montoTotalAbonado.add(BigDecimal.valueOf(abonoAplicado));
             saldoTotal = saldoTotal.add(BigDecimal.valueOf(detalle.getImportePendiente()));
@@ -126,24 +138,33 @@ public class PaymentProcessor {
         pago.setMonto(montoTotalAbonado.doubleValue());
         pago.setMontoPagado(montoTotalAbonado.doubleValue());
         pago.setSaldoRestante(saldoTotal.doubleValue());
-        log.info("[recalcularTotales] Totales actualizados para Pago id={}: Monto total abonado={}, Saldo restante={}",
+        log.info("[recalcularTotales] Totales actualizados para Pago ID: {} - Monto total abonado: {}, Saldo restante: {}",
                 pago.getId(), pago.getMonto(), pago.getSaldoRestante());
     }
 
     /**
-     * Método auxiliar para obtener la inscripción a partir del detalle (si corresponde).
+     * Obtiene la inscripción asociada al detalle, si aplica.
+     *
+     * @param detalle el objeto DetallePago.
+     * @return la Inscripcion asociada o null.
      */
-    Inscripcion obtenerInscripcion(DetallePago detalle) {
+    public Inscripcion obtenerInscripcion(DetallePago detalle) {
         if (detalle.getMensualidad() != null && detalle.getMensualidad().getInscripcion() != null) {
             return detalle.getMensualidad().getInscripcion();
         }
         return null;
     }
 
-    Pago loadAndUpdatePago(Pago pago) {
+    /**
+     * Carga el pago existente desde la base de datos y actualiza sus campos básicos.
+     *
+     * @param pago el objeto Pago recibido.
+     * @return el objeto Pago gestionado (managed).
+     */
+    public Pago loadAndUpdatePago(Pago pago) {
         Pago pagoManaged = entityManager.find(Pago.class, pago.getId());
         if (pagoManaged == null) {
-            throw new EntityNotFoundException("Pago no encontrado para id: " + pago.getId());
+            throw new EntityNotFoundException("Pago no encontrado para ID: " + pago.getId());
         }
         pagoManaged.setFecha(pago.getFecha());
         pagoManaged.setFechaVencimiento(pago.getFechaVencimiento());
@@ -420,59 +441,31 @@ public class PaymentProcessor {
         return conceptoNorm.contains("STOCK") || conceptoNorm.contains("PRODUCTO");
     }
 
-    public boolean existeDetalleDuplicado(DetallePago detalle, Long alumnoId) {
-        // Consulta para buscar detalles con:
-        // - mismo alumno (a través de su pago)
-        // - misma descripción normalizada (se asume que ya se normalizó)
-        // - mismo tipo de detalle
-        // - que no estén marcados como cobrado (es decir, con importePendiente > 0)
-        String jpql = "SELECT COUNT(dp) FROM DetallePago dp " +
-                "WHERE dp.pago.alumno.id = :alumnoId " +
-                "AND dp.descripcionConcepto = :descripcion " +
-                "AND dp.tipo = :tipo " +
-                "AND dp.cobrado = false";
-        Long count = entityManager.createQuery(jpql, Long.class)
-                .setParameter("alumnoId", alumnoId)
-                .setParameter("descripcion", detalle.getDescripcionConcepto())
-                .setParameter("tipo", detalle.getTipo())
-                .getSingleResult();
-
-        return count > 0;
-    }
-
     @Transactional
     public Pago actualizarPagoHistoricoConAbonos(Pago pagoHistorico, PagoRegistroRequest request) {
-        log.info("[actualizarPagoHistoricoConAbonos] Iniciando actualización del pago histórico id={} con abonos", pagoHistorico.getId());
+        log.info("[actualizarPagoHistoricoConAbonos] Iniciando actualización del pago id={} con abonos", pagoHistorico.getId());
 
-        // Procesamos cada detalle enviado en el request
+        // Procesar cada detalle recibido en el request
         for (DetallePagoRegistroRequest detalleReq : request.detallePagos()) {
-            // Usar equalsIgnoreCase y trim para comparar la descripción
             Optional<DetallePago> detalleOpt = pagoHistorico.getDetallePagos().stream()
                     .filter(d -> d.getDescripcionConcepto() != null &&
                             d.getDescripcionConcepto().trim().equalsIgnoreCase(detalleReq.descripcionConcepto().trim()))
                     .findFirst();
             if (detalleOpt.isPresent()) {
                 DetallePago detalle = detalleOpt.get();
-                log.info("[actualizarPagoHistoricoConAbonos] Detalle encontrado para clave '{}': id={}",
-                        detalleReq.descripcionConcepto(), detalle.getId());
-                // Aplicar el abono sin eliminar el detalle, incluso si queda saldado
+                log.info("[actualizarPagoHistoricoConAbonos] Procesando detalle id={} para '{}'", detalle.getId(), detalleReq.descripcionConcepto());
                 paymentCalculationServicio.procesarAbono(detalle, detalleReq.aCobrar(), detalle.getImporteInicial());
             } else {
-                log.warn("[actualizarPagoHistoricoConAbonos] No se encontró detalle para clave '{}'", detalleReq.descripcionConcepto());
+                log.warn("[actualizarPagoHistoricoConAbonos] No se encontró detalle para '{}'", detalleReq.descripcionConcepto());
             }
         }
 
-        // Recalcular totales tomando en cuenta TODOS los detalles, incluso los saldados
+        // Recalcular totales tomando en cuenta TODOS los detalles
         recalcularTotales(pagoHistorico);
 
-        // Si el saldo restante es 0 o negativo, se marca el pago como HISTÓRICO
-        if (pagoHistorico.getSaldoRestante() <= 0.0) {
-            pagoHistorico.setEstadoPago(EstadoPago.HISTORICO);
-            log.info("[actualizarPagoHistoricoConAbonos] Pago histórico id={} marcado como HISTÓRICO", pagoHistorico.getId());
-        }
-
+        // Se persiste el pago actualizado sin marcarlo como HISTÓRICO (esto se hará en el flujo de abono parcial)
         pagoHistorico = pagoRepositorio.save(pagoHistorico);
-        log.info("[actualizarPagoHistoricoConAbonos] Pago histórico id={} actualizado. Totales: monto={}, saldoRestante={}",
+        log.info("[actualizarPagoHistoricoConAbonos] Pago id={} actualizado. Totales: monto={}, saldoRestante={}",
                 pagoHistorico.getId(), pagoHistorico.getMonto(), pagoHistorico.getSaldoRestante());
         return pagoHistorico;
     }
@@ -502,11 +495,25 @@ public class PaymentProcessor {
 
         // Recalcular totales para el nuevo pago antes de persistir
         recalcularTotales(nuevoPago);
+        nuevoPago.setImporteInicial(calcularImporteInicialDesdeDetalles(nuevoPago.getDetallePagos()));
         nuevoPago = pagoRepositorio.save(nuevoPago);
         log.info("[clonarDetallesConPendiente] Nuevo pago creado con id={} y {} detalles pendientes",
                 nuevoPago.getId(), nuevoPago.getDetallePagos().size());
 
         return nuevoPago;
+    }
+
+    private @NotNull @Min(value = 0, message = "El monto base no puede ser negativo") Double calcularImporteInicialDesdeDetalles(List<DetallePago> detallePagos) {
+        if (detallePagos == null || detallePagos.isEmpty()) {
+            return 0.0;
+        }
+
+        double total = detallePagos.stream()
+                .filter(Objects::nonNull)
+                .mapToDouble(detalle -> Optional.ofNullable(detalle.getImporteInicial()).orElse(0.0))
+                .sum();
+
+        return Math.max(0.0, total); // Asegura que no sea negativo
     }
 
     /**
@@ -515,7 +522,7 @@ public class PaymentProcessor {
      */
     private DetallePago clonarDetallePago(DetallePago original, Pago nuevoPago) {
         DetallePago clone = new DetallePago();
-        // No copiamos id ni version, para que se trate como nueva entidad.
+        // Copiamos las propiedades básicas y de asociación
         clone.setDescripcionConcepto(original.getDescripcionConcepto());
         clone.setConcepto(original.getConcepto());
         clone.setSubConcepto(original.getSubConcepto());
@@ -523,24 +530,75 @@ public class PaymentProcessor {
         clone.setBonificacion(original.getBonificacion());
         clone.setRecargo(original.getRecargo());
         clone.setValorBase(original.getValorBase());
-        clone.setImporteInicial(original.getImporteInicial());
-        clone.setImportePendiente(original.getImportePendiente());
-        clone.setaCobrar(original.getaCobrar());
         clone.setTipo(original.getTipo());
         clone.setFechaRegistro(original.getFechaRegistro());
 
-        // Importante: asignamos el alumno proveniente del nuevo pago.
+        // IMPORTANTE: Ajuste de importes
+        // Se toma el importe pendiente actual del detalle original y se usa para iniciar el nuevo detalle.
+        double pendiente = (original.getImportePendiente() != null) ? original.getImportePendiente() : 0.0;
+        clone.setImporteInicial(pendiente);
+        clone.setImportePendiente(pendiente);
+
+        // Se asigna el alumno del nuevo pago
         clone.setAlumno(nuevoPago.getAlumno());
 
-        // Asociaciones: copiamos las demás referencias
+        // Copiamos las asociaciones restantes
         clone.setMensualidad(original.getMensualidad());
         clone.setMatricula(original.getMatricula());
         clone.setStock(original.getStock());
-        clone.setCobrado(original.getCobrado());
 
-        // Asignamos el nuevo pago al clon.
+        // El nuevo detalle siempre inicia sin estar cobrado
+        clone.setCobrado(false);
+
+        // Se asigna el nuevo pago al clon
         clone.setPago(nuevoPago);
+
         return clone;
+    }
+
+    /**
+     * Busca un DetallePago existente en base a criterios únicos:
+     * - Alumno (a través del pago)
+     * - Descripción normalizada
+     * - Tipo (MENSUALIDAD o MATRICULA)
+     * - Asociación con matrícula o mensualidad (según corresponda)
+     * - Estado: cobrado = false
+     *
+     * @param detalle  el detalle de pago a evaluar.
+     * @param alumnoId el ID del alumno asociado.
+     * @return el DetallePago encontrado o null si no existe.
+     */
+    public DetallePago findDetallePagoByCriteria(DetallePago detalle, Long alumnoId) {
+        // Se utiliza la descripción tal como se guarda en la BD (normalizada en la entidad)
+        String descripcion = (detalle.getDescripcionConcepto() != null)
+                ? detalle.getDescripcionConcepto().trim()
+                : null;
+
+        Long matriculaId = (detalle.getMatricula() != null) ? detalle.getMatricula().getId() : null;
+        Long mensualidadId = (detalle.getMensualidad() != null) ? detalle.getMensualidad().getId() : null;
+        TipoDetallePago tipo = detalle.getTipo();
+
+        log.info("Buscando DetallePago para alumnoId={}, descripcion='{}', tipo={}, matriculaId={}, mensualidadId={}",
+                alumnoId, descripcion, tipo,
+                (matriculaId != null ? matriculaId : "null"),
+                (mensualidadId != null ? mensualidadId : "null"));
+
+        if (matriculaId != null) {
+            return detallePagoRepositorio
+                    .findByPago_Alumno_IdAndDescripcionConceptoIgnoreCaseAndTipoAndCobradoFalseAndMatricula_Id(
+                            alumnoId, descripcion, tipo, matriculaId)
+                    .orElse(null);
+        } else if (mensualidadId != null) {
+            return detallePagoRepositorio
+                    .findByPago_Alumno_IdAndDescripcionConceptoIgnoreCaseAndTipoAndCobradoFalseAndMensualidad_Id(
+                            alumnoId, descripcion, tipo, mensualidadId)
+                    .orElse(null);
+        } else {
+            return detallePagoRepositorio
+                    .findByPago_Alumno_IdAndDescripcionConceptoIgnoreCaseAndTipoAndCobradoFalse(
+                            alumnoId, descripcion, tipo)
+                    .orElse(null);
+        }
     }
 
 }
