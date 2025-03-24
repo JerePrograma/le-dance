@@ -1,4 +1,4 @@
-// src/forms/EditarPagoForm.tsx
+/* src/forms/EditarPagoForm.tsx
 import React, { useState, useCallback, useEffect } from "react";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { Formik, Form, Field, FieldArray, useFormikContext, FormikErrors } from "formik";
@@ -754,3 +754,4 @@ const EditarPagoForm: React.FC = () => {
 };
 
 export default EditarPagoForm;
+*/

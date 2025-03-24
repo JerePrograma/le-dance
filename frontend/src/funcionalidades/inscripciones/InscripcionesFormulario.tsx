@@ -17,7 +17,6 @@ import type {
   BonificacionResponse,
   DisciplinaDetalleResponse,
   InscripcionRegistroRequest,
-  AlumnoRegistroRequest,
 } from "../../types/types";
 
 // Esquema de validación
@@ -28,9 +27,11 @@ interface InscripcionFormData extends InscripcionRegistroRequest {
   id?: number;
 }
 
-const obtenerFechaGTM3 = () => {
-  // Usamos 'en-CA' que genera el formato YYYY-MM-DD
-  return new Date().toLocaleDateString("en-CA", { timeZone: "America/Argentina/Buenos_Aires" });
+// Función para obtener la fecha en formato YYYY-MM-DD con GMT-3
+const obtenerFechaGTM3 = (): string => {
+  return new Date().toLocaleDateString("en-CA", {
+    timeZone: "America/Argentina/Buenos_Aires",
+  });
 };
 
 // Valor inicial para una inscripción nueva
@@ -39,11 +40,8 @@ const initialInscripcion: InscripcionFormData = {
     id: 0,
     nombre: "",
     apellido: "",
-    fechaNacimiento: "",
-    fechaIncorporacion: "",
-    inscripciones: [],
-  } as AlumnoRegistroRequest,
-  // Inicialmente no se selecciona ninguna disciplina (id = 0)
+  },
+  // Se asigna una disciplina "vacía"; ignoramos horarios asignando un arreglo vacío
   disciplina: {
     id: 0,
     nombre: "",
@@ -62,17 +60,24 @@ const InscripcionesFormulario: React.FC = () => {
   const [searchParams] = useSearchParams();
 
   // Listados de catálogos
-  const [disciplinas, setDisciplinas] = useState<DisciplinaDetalleResponse[]>([]);
-  const [bonificaciones, setBonificaciones] = useState<BonificacionResponse[]>([]);
+  const [disciplinas, setDisciplinas] = useState<DisciplinaDetalleResponse[]>(
+    []
+  );
+  const [bonificaciones, setBonificaciones] = useState<BonificacionResponse[]>(
+    []
+  );
 
   // Guardamos el id del alumno obtenido de la URL
   const [alumnoId, setAlumnoId] = useState<number>(0);
 
   // Lista dinámica de inscripciones a agregar/editar (inicialmente vacía)
-  const [inscripcionesList, setInscripcionesList] = useState<InscripcionFormData[]>([]);
-
+  const [inscripcionesList, setInscripcionesList] = useState<
+    InscripcionFormData[]
+  >([]);
   // Lista de inscripciones previas (ya guardadas) del alumno
-  const [prevInscripciones, setPrevInscripciones] = useState<InscripcionResponse[]>([]);
+  const [prevInscripciones, setPrevInscripciones] = useState<
+    InscripcionResponse[]
+  >([]);
 
   // Cargar catálogos de disciplinas y bonificaciones
   useEffect(() => {
@@ -128,7 +133,9 @@ const InscripcionesFormulario: React.FC = () => {
   const fetchPrevInscripciones = useCallback(async () => {
     if (alumnoId) {
       try {
-        const lista: InscripcionResponse[] = await inscripcionesApi.listar(alumnoId);
+        const lista: InscripcionResponse[] = await inscripcionesApi.listar(
+          alumnoId
+        );
         setPrevInscripciones(lista);
       } catch (error) {
         toast.error("Error al cargar inscripciones previas.");
@@ -182,21 +189,21 @@ const InscripcionesFormulario: React.FC = () => {
 
   // Cargar inscripción previa en el formulario para editar
   const handleEditarInscripcion = (ins: InscripcionResponse) => {
-    const disciplinaEncontrada = disciplinas.find((d) => d.id === ins.disciplina.id);
+    const disciplinaEncontrada = disciplinas.find(
+      (d) => d.id === ins.disciplina.id
+    );
     if (!disciplinaEncontrada) {
       toast.error("La inscripción seleccionada no tiene disciplina asignada.");
       return;
     }
 
+    // Ignoramos el atributo horarios (asignamos un arreglo vacío)
     const formData: InscripcionFormData = {
-      id: ins.id,
+      id: ins.id ?? null,
       alumno: {
-        id: ins.alumno.id,
+        id: ins.alumno.id ?? 0,
         nombre: ins.alumno.nombre || "",
         apellido: ins.alumno.apellido || "",
-        inscripciones: [],
-        fechaNacimiento: "",
-        fechaIncorporacion: ""
       },
       disciplina: {
         id: disciplinaEncontrada.id,
@@ -205,11 +212,10 @@ const InscripcionesFormulario: React.FC = () => {
         profesorId: disciplinaEncontrada.profesorId,
         valorCuota: disciplinaEncontrada.valorCuota,
         matricula: disciplinaEncontrada.matricula,
-        horarios: [], // O, si se requiere, mapear horarios según sea necesario
+        horarios: [], // Se ignora el tema de horarios
       },
-      bonificacionId: ins.bonificacion?.id,
-      fechaInscripcion:
-        ins.fechaInscripcion || new Date().toISOString().split("T")[0],
+      bonificacionId: ins.bonificacion?.id ?? null,
+      fechaInscripcion: ins.fechaInscripcion || obtenerFechaGTM3(),
     };
 
     setInscripcionesList((prev) => {
@@ -228,8 +234,12 @@ const InscripcionesFormulario: React.FC = () => {
     values: InscripcionFormData,
     _resetForm: () => void
   ) => {
-    // Validamos que se haya asignado un alumno (a través de alumno.id) y una disciplina
-    if (!values.alumno?.id || values.alumno.id === 0 || !values.disciplina?.id || values.disciplina.id === 0) {
+    if (
+      !values.alumno?.id ||
+      values.alumno.id === 0 ||
+      !values.disciplina?.id ||
+      values.disciplina.id === 0
+    ) {
       toast.error("Debes asignar un alumno y una disciplina.");
       return;
     }
@@ -239,7 +249,7 @@ const InscripcionesFormulario: React.FC = () => {
         alumno: values.alumno,
         disciplina: values.disciplina,
         bonificacionId: values.bonificacionId,
-        fechaInscripcion: ""
+        fechaInscripcion: values.fechaInscripcion,
       };
 
       if (values.id) {
@@ -276,21 +286,32 @@ const InscripcionesFormulario: React.FC = () => {
                 <tr>
                   <th className="px-4 py-2 border border-border">ID</th>
                   <th className="px-4 py-2 border border-border">Disciplina</th>
-                  <th className="px-4 py-2 border border-border">Fecha Inscripción</th>
-                  <th className="px-4 py-2 border border-border">Estado Cuota</th>
+                  <th className="px-4 py-2 border border-border">
+                    Fecha Inscripción
+                  </th>
+                  <th className="px-4 py-2 border border-border">
+                    Estado Cuota
+                  </th>
                   <th className="px-4 py-2 border border-border">Cuota</th>
-                  <th className="px-4 py-2 border border-border">Bonificación (%)</th>
-                  <th className="px-4 py-2 border border-border">Bonificación (monto)</th>
+                  <th className="px-4 py-2 border border-border">
+                    Bonificación (%)
+                  </th>
+                  <th className="px-4 py-2 border border-border">
+                    Bonificación (monto)
+                  </th>
                   <th className="px-4 py-2 border border-border">Total</th>
                   <th className="px-4 py-2 border border-border">Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {prevInscripciones.map((ins) => {
-                  const { cuota, bonifPct, bonifMonto, total } = calcularValores(ins);
+                  const { cuota, bonifPct, bonifMonto, total } =
+                    calcularValores(ins);
                   return (
                     <tr key={ins.id} className="border-t border-border">
-                      <td className="px-4 py-2 border border-border">{ins.id}</td>
+                      <td className="px-4 py-2 border border-border">
+                        {ins.id}
+                      </td>
                       <td className="px-4 py-2 border border-border">
                         {ins.disciplina?.nombre || "N/A"}
                       </td>
@@ -374,12 +395,14 @@ const InscripcionesFormulario: React.FC = () => {
             initialValues={inscripcion}
             validationSchema={inscripcionEsquema}
             onSubmit={(values, actions) => {
-              handleGuardarInscripcion(values, actions.resetForm).finally(() => {
-                actions.setSubmitting(false);
-              });
+              handleGuardarInscripcion(values, actions.resetForm).finally(
+                () => {
+                  actions.setSubmitting(false);
+                }
+              );
             }}
           >
-            {({ isSubmitting, values, setFieldValue, errors, touched }) => {
+            {({ isSubmitting, values, setFieldValue, errors }) => {
               const selectedDiscipline = disciplinas.find(
                 (d) => d.id === Number(values.disciplina.id)
               );
@@ -387,14 +410,16 @@ const InscripcionesFormulario: React.FC = () => {
               const selectedBonification = bonificaciones.find(
                 (b) => b.id === Number(values.bonificacionId)
               );
-              const bonificacionPorcentaje = selectedBonification?.porcentajeDescuento ?? 0;
+              const bonificacionPorcentaje =
+                selectedBonification?.porcentajeDescuento ?? 0;
               const bonificacionValor = selectedBonification?.valorFijo ?? 0;
               const total =
-                cuota - bonificacionValor - (cuota * bonificacionPorcentaje) / 100;
+                cuota -
+                bonificacionValor -
+                (cuota * bonificacionPorcentaje) / 100;
 
               return (
                 <Form className="space-y-6">
-                  {/* Mostrar errores de validación para depurar */}
                   {Object.keys(errors).length > 0 && (
                     <div className="text-red-600 text-sm">
                       <pre>{JSON.stringify(errors, null, 2)}</pre>
@@ -402,7 +427,6 @@ const InscripcionesFormulario: React.FC = () => {
                   )}
 
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-6 border-b pb-4">
-                    {/* Campo para seleccionar disciplina */}
                     <div className="space-y-2">
                       <label
                         htmlFor="disciplina.id"
@@ -420,6 +444,7 @@ const InscripcionesFormulario: React.FC = () => {
                           const found = disciplinas.find(
                             (d) => d.id === selectedId
                           );
+                          // Ignoramos horarios asignando arreglo vacío
                           if (found) {
                             setFieldValue("disciplina", {
                               id: found.id,
@@ -428,7 +453,7 @@ const InscripcionesFormulario: React.FC = () => {
                               profesorId: found.profesorId,
                               valorCuota: found.valorCuota,
                               matricula: found.matricula,
-                              horarios: found.horarios,
+                              horarios: [],
                             });
                           } else {
                             setFieldValue("disciplina", {
@@ -457,7 +482,6 @@ const InscripcionesFormulario: React.FC = () => {
                       />
                     </div>
 
-                    {/* Campo para bonificación */}
                     <div className="space-y-2">
                       <label
                         htmlFor="bonificacionId"
@@ -490,7 +514,6 @@ const InscripcionesFormulario: React.FC = () => {
                       />
                     </div>
 
-                    {/* Campo para fecha de inscripción */}
                     <div className="space-y-2">
                       <label
                         htmlFor="fechaInscripcion"
@@ -531,7 +554,9 @@ const InscripcionesFormulario: React.FC = () => {
                       />
                     </div>
                     <div className="space-y-1 text-sm">
-                      <label className="font-medium">Bonificación (monto)</label>
+                      <label className="font-medium">
+                        Bonificación (monto)
+                      </label>
                       <input
                         type="number"
                         value={bonificacionValor}
@@ -575,7 +600,7 @@ const InscripcionesFormulario: React.FC = () => {
 
       <div className="flex gap-4">
         <Boton
-          onClick={() => agregarInscripcion()}
+          onClick={agregarInscripcion}
           className="inline-flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
         >
           Agregar Inscripción

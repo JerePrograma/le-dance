@@ -7,9 +7,8 @@ import alumnosApi from "../../api/alumnosApi";
 import inscripcionesApi from "../../api/inscripcionesApi";
 import { toast } from "react-toastify";
 import type {
-  AlumnoListadoResponse,
+  AlumnoResponse,
   AlumnoRegistroRequest,
-  AlumnoModificacionRequest,
   InscripcionResponse,
 } from "../../types/types";
 import useDebounce from "../../hooks/useDebounce";
@@ -17,17 +16,13 @@ import Boton from "../../componentes/comunes/Boton";
 import Tabla from "../../componentes/comunes/Tabla";
 import { Search, X } from "lucide-react";
 import { Button } from "../../componentes/ui/button";
-import {
-  convertToAlumnoRegistroRequest,
-  convertToAlumnoModificacionRequest,
-} from "../../utilidades/alumnoUtils";
+import { convertToAlumnoRegistroRequest } from "../../utilidades/alumnoUtils";
 import ResponsiveContainer from "../../componentes/comunes/ResponsiveContainer";
 
 // Pre-cargamos la fecha de incorporación con la fecha actual (formato "yyyy-MM-dd")
 const today = new Date().toISOString().split("T")[0];
 
-const initialAlumnoValues: AlumnoRegistroRequest &
-  Partial<AlumnoModificacionRequest> = {
+const initialAlumnoValues: AlumnoRegistroRequest = {
   nombre: "",
   apellido: "",
   fechaNacimiento: "",
@@ -36,13 +31,13 @@ const initialAlumnoValues: AlumnoRegistroRequest &
   celular2: "",
   email1: "",
   documento: "",
-  cuit: "",
   nombrePadres: "",
   autorizadoParaSalirSolo: false,
   otrasNotas: "",
   cuotaTotal: 0,
   inscripciones: [],
   activo: true,
+  edad: 0,
 };
 
 const AlumnosFormulario: React.FC = () => {
@@ -54,15 +49,17 @@ const AlumnosFormulario: React.FC = () => {
   const [mensaje, setMensaje] = useState("");
   const [idBusqueda, setIdBusqueda] = useState("");
   const [nombreBusqueda, setNombreBusqueda] = useState("");
-  const [sugerenciasAlumnos, setSugerenciasAlumnos] = useState<AlumnoListadoResponse[]>([]);
+  const [sugerenciasAlumnos, setSugerenciasAlumnos] = useState<
+    AlumnoResponse[]
+  >([]);
   // Estado para el índice de sugerencia activa
-  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState<number>(-1);
+  const [activeSuggestionIndex, setActiveSuggestionIndex] =
+    useState<number>(-1);
   // Estado para controlar la visibilidad de las sugerencias
   const [showSuggestions, setShowSuggestions] = useState(false);
 
-  const [formValues, setFormValues] = useState<
-    AlumnoRegistroRequest & Partial<AlumnoModificacionRequest>
-  >(initialAlumnoValues);
+  const [formValues, setFormValues] =
+    useState<AlumnoRegistroRequest>(initialAlumnoValues);
 
   // Ref para detectar clicks fuera del bloque de búsqueda
   const searchWrapperRef = useRef<HTMLDivElement>(null);
@@ -144,7 +141,10 @@ const AlumnosFormulario: React.FC = () => {
   );
 
   // Manejar selección de alumno desde las sugerencias
-  const handleSeleccionarAlumno = async (id: number, nombreCompleto: string) => {
+  const handleSeleccionarAlumno = async (
+    id: number,
+    nombreCompleto: string
+  ) => {
     try {
       resetearFormulario();
       setIdBusqueda(String(id));
@@ -166,15 +166,17 @@ const AlumnosFormulario: React.FC = () => {
   };
 
   const handleGuardarAlumno = async (
-    values: AlumnoRegistroRequest & Partial<AlumnoModificacionRequest>,
-    { setSubmitting }: FormikHelpers<AlumnoRegistroRequest & Partial<AlumnoModificacionRequest>>
+    values: AlumnoRegistroRequest,
+    { setSubmitting }: FormikHelpers<AlumnoRegistroRequest>
   ) => {
     try {
       if (!alumnoId) {
         const alumnoDuplicado = sugerenciasAlumnos.find(
           (a) =>
-            a.nombre.trim().toLowerCase() === values.nombre.trim().toLowerCase() &&
-            a.apellido.trim().toLowerCase() === values.apellido.trim().toLowerCase()
+            a.nombre.trim().toLowerCase() ===
+              values.nombre.trim().toLowerCase() &&
+            a.apellido.trim().toLowerCase() ===
+              values.apellido.trim().toLowerCase()
         );
         if (alumnoDuplicado) {
           const mensajeError = "Ya existe un alumno con ese nombre y apellido.";
@@ -187,13 +189,12 @@ const AlumnosFormulario: React.FC = () => {
 
       let successMsg: string;
       if (alumnoId) {
-        await alumnosApi.actualizar(
-          alumnoId,
-          convertToAlumnoModificacionRequest(values as AlumnoModificacionRequest)
-        );
+        await alumnosApi.actualizar(alumnoId, values as AlumnoRegistroRequest);
         successMsg = "Alumno actualizado correctamente";
       } else {
-        const nuevoAlumno = await alumnosApi.registrar(values as AlumnoRegistroRequest);
+        const nuevoAlumno = await alumnosApi.registrar(
+          values as AlumnoRegistroRequest
+        );
         setAlumnoId(nuevoAlumno.id);
         setIdBusqueda(String(nuevoAlumno.id));
         successMsg = "Alumno creado correctamente";
@@ -203,7 +204,9 @@ const AlumnosFormulario: React.FC = () => {
     } catch (error: any) {
       const errorMessage =
         error.response?.data?.message ||
-        (error.response?.status === 404 ? "Alumno no encontrado" : "Error al guardar el alumno");
+        (error.response?.status === 404
+          ? "Alumno no encontrado"
+          : "Error al guardar el alumno");
       setMensaje(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -212,7 +215,8 @@ const AlumnosFormulario: React.FC = () => {
   };
 
   useEffect(() => {
-    const alumnoIdParam = searchParams.get("alumnoId") || searchParams.get("id");
+    const alumnoIdParam =
+      searchParams.get("alumnoId") || searchParams.get("id");
     if (alumnoIdParam) {
       handleBuscar(alumnoIdParam);
     }
@@ -225,7 +229,9 @@ const AlumnosFormulario: React.FC = () => {
         setSugerenciasAlumnos(sugerencias);
         setActiveSuggestionIndex(-1);
       } else {
-        const sugerencias = await alumnosApi.buscarPorNombre(debouncedNombreBusqueda);
+        const sugerencias = await alumnosApi.buscarPorNombre(
+          debouncedNombreBusqueda
+        );
         setSugerenciasAlumnos(sugerencias);
         setActiveSuggestionIndex(-1);
       }
@@ -246,7 +252,10 @@ const AlumnosFormulario: React.FC = () => {
           prev > 0 ? prev - 1 : sugerenciasAlumnos.length - 1
         );
       } else if (e.key === "Enter" || e.key === "Tab") {
-        if (activeSuggestionIndex >= 0 && activeSuggestionIndex < sugerenciasAlumnos.length) {
+        if (
+          activeSuggestionIndex >= 0 &&
+          activeSuggestionIndex < sugerenciasAlumnos.length
+        ) {
           e.preventDefault();
           const alumnoSeleccionado = sugerenciasAlumnos[activeSuggestionIndex];
           handleSeleccionarAlumno(
@@ -263,7 +272,10 @@ const AlumnosFormulario: React.FC = () => {
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (searchWrapperRef.current && !searchWrapperRef.current.contains(e.target as Node)) {
+      if (
+        searchWrapperRef.current &&
+        !searchWrapperRef.current.contains(e.target as Node)
+      ) {
         setShowSuggestions(false);
       }
     };
@@ -304,7 +316,10 @@ const AlumnosFormulario: React.FC = () => {
                       className="form-input flex-grow"
                       readOnly={alumnoId !== null}
                     />
-                    <Boton onClick={() => handleBuscar(idBusqueda)} className="page-button">
+                    <Boton
+                      onClick={() => handleBuscar(idBusqueda)}
+                      className="page-button"
+                    >
                       <Search className="w-5 h-5 mr-2" />
                       Buscar
                     </Boton>
@@ -354,8 +369,11 @@ const AlumnosFormulario: React.FC = () => {
                               )
                             }
                             onMouseEnter={() => setActiveSuggestionIndex(index)}
-                            className={`sugerencia-item p-2 cursor-pointer ${index === activeSuggestionIndex ? "bg-[hsl(var(--muted))]" : ""
-                              }`}
+                            className={`sugerencia-item p-2 cursor-pointer ${
+                              index === activeSuggestionIndex
+                                ? "bg-[hsl(var(--muted))]"
+                                : ""
+                            }`}
                           >
                             <strong>{alumno.nombre}</strong> {alumno.apellido}
                           </li>
@@ -375,7 +393,11 @@ const AlumnosFormulario: React.FC = () => {
                       {label}:
                     </label>
                     <Field name={name} className="form-input" id={name} />
-                    <ErrorMessage name={name} component="div" className="auth-error" />
+                    <ErrorMessage
+                      name={name}
+                      component="div"
+                      className="auth-error"
+                    />
                   </div>
                 ))}
 
@@ -384,8 +406,17 @@ const AlumnosFormulario: React.FC = () => {
                   <label htmlFor="fechaNacimiento" className="auth-label">
                     Fecha de Nacimiento:
                   </label>
-                  <Field name="fechaNacimiento" type="date" className="form-input" id="fechaNacimiento" />
-                  <ErrorMessage name="fechaNacimiento" component="div" className="auth-error" />
+                  <Field
+                    name="fechaNacimiento"
+                    type="date"
+                    className="form-input"
+                    id="fechaNacimiento"
+                  />
+                  <ErrorMessage
+                    name="fechaNacimiento"
+                    component="div"
+                    className="auth-error"
+                  />
                   {formValues.fechaNacimiento && (
                     <div className="text-sm mt-1">
                       Edad: {calcularEdad(formValues.fechaNacimiento)} años
@@ -398,8 +429,17 @@ const AlumnosFormulario: React.FC = () => {
                   <label htmlFor="fechaIncorporacion" className="auth-label">
                     Fecha de Incorporación:
                   </label>
-                  <Field name="fechaIncorporacion" type="date" className="form-input" id="fechaIncorporacion" />
-                  <ErrorMessage name="fechaIncorporacion" component="div" className="auth-error" />
+                  <Field
+                    name="fechaIncorporacion"
+                    type="date"
+                    className="form-input"
+                    id="fechaIncorporacion"
+                  />
+                  <ErrorMessage
+                    name="fechaIncorporacion"
+                    component="div"
+                    className="auth-error"
+                  />
                 </div>
 
                 {[
@@ -413,15 +453,28 @@ const AlumnosFormulario: React.FC = () => {
                     <label htmlFor={name} className="auth-label">
                       {label}:
                     </label>
-                    <Field name={name} type={type} className="form-input" id={name} />
-                    <ErrorMessage name={name} component="div" className="auth-error" />
+                    <Field
+                      name={name}
+                      type={type}
+                      className="form-input"
+                      id={name}
+                    />
+                    <ErrorMessage
+                      name={name}
+                      component="div"
+                      className="auth-error"
+                    />
                   </div>
                 ))}
 
                 {/* Checkbox: Autorizado para salir solo */}
                 <div className="mb-4 col-span-full">
                   <label className="flex items-center space-x-2">
-                    <Field name="autorizadoParaSalirSolo" type="checkbox" className="form-checkbox" />
+                    <Field
+                      name="autorizadoParaSalirSolo"
+                      type="checkbox"
+                      className="form-checkbox"
+                    />
                     <span>Autorizado para salir solo</span>
                   </label>
                 </div>
@@ -436,7 +489,9 @@ const AlumnosFormulario: React.FC = () => {
                             type="checkbox"
                             {...field}
                             checked={field.value === true}
-                            onChange={(e) => setFieldValue(field.name, e.target.checked)}
+                            onChange={(e) =>
+                              setFieldValue(field.name, e.target.checked)
+                            }
                           />
                         )}
                       </Field>
@@ -450,13 +505,26 @@ const AlumnosFormulario: React.FC = () => {
                   <label htmlFor="otrasNotas" className="auth-label">
                     Otras Notas:
                   </label>
-                  <Field as="textarea" name="otrasNotas" id="otrasNotas" className="form-input h-24" />
-                  <ErrorMessage name="otrasNotas" component="div" className="auth-error" />
+                  <Field
+                    as="textarea"
+                    name="otrasNotas"
+                    id="otrasNotas"
+                    className="form-input h-24"
+                  />
+                  <ErrorMessage
+                    name="otrasNotas"
+                    component="div"
+                    className="auth-error"
+                  />
                 </div>
               </div>
 
               <div className="form-acciones">
-                <Button type="submit" disabled={isSubmitting} className="page-button">
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="page-button"
+                >
                   Guardar Alumno
                 </Button>
                 <Button
@@ -476,8 +544,11 @@ const AlumnosFormulario: React.FC = () => {
 
               {mensaje && (
                 <p
-                  className={`form-mensaje ${mensaje.includes("correctamente") ? "form-mensaje-success" : "form-mensaje-error"
-                    }`}
+                  className={`form-mensaje ${
+                    mensaje.includes("correctamente")
+                      ? "form-mensaje-success"
+                      : "form-mensaje-error"
+                  }`}
                 >
                   {mensaje}
                 </p>
@@ -492,7 +563,11 @@ const AlumnosFormulario: React.FC = () => {
                   <>
                     <div className="page-button-group flex justify-end mb-4">
                       <Boton
-                        onClick={() => navigate(`/inscripciones/formulario?alumnoId=${alumnoId}`)}
+                        onClick={() =>
+                          navigate(
+                            `/inscripciones/formulario?alumnoId=${alumnoId}`
+                          )
+                        }
                         className="page-button"
                       >
                         Agregar Disciplina
@@ -513,34 +588,61 @@ const AlumnosFormulario: React.FC = () => {
                         customRender={(fila: any) => {
                           if (fila._totals) {
                             return [
-                              <span key="totales" className="font-bold text-center">
+                              <span
+                                key="totales"
+                                className="font-bold text-center"
+                              >
                                 Totales
                               </span>,
                               "",
                               inscripciones
-                                .reduce((sum, ins) => sum + (ins.disciplina?.valorCuota || 0), 0)
+                                .reduce(
+                                  (sum, ins) =>
+                                    sum + (ins.disciplina?.valorCuota || 0),
+                                  0
+                                )
                                 .toFixed(2),
                               inscripciones
-                                .reduce((sum, ins) => sum + (ins.bonificacion?.porcentajeDescuento || 0), 0)
+                                .reduce(
+                                  (sum, ins) =>
+                                    sum +
+                                    (ins.bonificacion?.porcentajeDescuento ||
+                                      0),
+                                  0
+                                )
                                 .toFixed(2),
                               inscripciones
-                                .reduce((sum, ins) => sum + (ins.bonificacion?.valorFijo || 0), 0)
+                                .reduce(
+                                  (sum, ins) =>
+                                    sum + (ins.bonificacion?.valorFijo || 0),
+                                  0
+                                )
                                 .toFixed(2),
                               inscripciones
                                 .reduce((sum, ins) => {
                                   const cuota = ins.disciplina?.valorCuota || 0;
-                                  const bonifPct = ins.bonificacion?.porcentajeDescuento || 0;
-                                  const bonifMonto = ins.bonificacion?.valorFijo || 0;
-                                  return sum + (cuota - bonifMonto - (cuota * bonifPct) / 100);
+                                  const bonifPct =
+                                    ins.bonificacion?.porcentajeDescuento || 0;
+                                  const bonifMonto =
+                                    ins.bonificacion?.valorFijo || 0;
+                                  return (
+                                    sum +
+                                    (cuota -
+                                      bonifMonto -
+                                      (cuota * bonifPct) / 100)
+                                  );
                                 }, 0)
                                 .toFixed(2),
                               "",
                             ];
                           } else {
                             const cuota = fila.disciplina?.valorCuota || 0;
-                            const bonifPct = fila.bonificacion?.porcentajeDescuento || 0;
-                            const bonifMonto = fila.bonificacion?.valorFijo || 0;
-                            const total = cuota - bonifMonto - (cuota * bonifPct) / 100;
+                            const bonifPct =
+                              fila.bonificacion?.porcentajeDescuento || 0;
+                            const bonifMonto =
+                              fila.bonificacion?.valorFijo || 0;
+                            const total =
+                              cuota - bonifMonto - (cuota * bonifPct) / 100;
                             return [
                               fila.id,
                               fila.disciplina?.nombre ?? "Sin Disciplina",
@@ -556,13 +658,19 @@ const AlumnosFormulario: React.FC = () => {
                           return (
                             <div className="flex gap-2">
                               <Boton
-                                onClick={() => navigate(`/inscripciones/formulario?id=${fila.id}`)}
+                                onClick={() =>
+                                  navigate(
+                                    `/inscripciones/formulario?id=${fila.id}`
+                                  )
+                                }
                                 className="page-button-group flex justify-end mb-4"
                               >
                                 Editar
                               </Boton>
                               <Boton
-                                onClick={() => handleEliminarInscripcion(fila.id)}
+                                onClick={() =>
+                                  handleEliminarInscripcion(fila.id)
+                                }
                                 className="bg-accent text-white hover:bg-accent/90"
                               >
                                 Eliminar
@@ -575,7 +683,8 @@ const AlumnosFormulario: React.FC = () => {
                   </>
                 ) : (
                   <p className="text-gray-500 text-sm mt-4">
-                    No se pueden gestionar inscripciones hasta que <strong>se guarde</strong> un alumno.
+                    No se pueden gestionar inscripciones hasta que{" "}
+                    <strong>se guarde</strong> un alumno.
                   </p>
                 )}
               </fieldset>

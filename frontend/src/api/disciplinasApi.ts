@@ -4,7 +4,7 @@ import type {
   DisciplinaModificacionRequest,
   DisciplinaDetalleResponse,
   DisciplinaListadoResponse,
-  AlumnoListadoResponse,
+  AlumnoResponse,
   ProfesorListadoResponse,
 } from "../types/types";
 
@@ -62,7 +62,7 @@ const disciplinasApi = {
 
   obtenerAlumnosDeDisciplina: async (
     disciplinaId: number
-  ): Promise<AlumnoListadoResponse[]> => {
+  ): Promise<AlumnoResponse[]> => {
     const response = await api.get(`/disciplinas/${disciplinaId}/alumnos`);
     return response.data;
   },

@@ -1,8 +1,8 @@
 import { Field, FormikErrors, useFormikContext } from "formik";
-import { AlumnoListadoResponse, CobranzasFormValues } from "../types/types";
+import { AlumnoResponse, CobranzasFormValues } from "../types/types";
 
 const FormHeader: React.FC<{
-    alumnos: AlumnoListadoResponse[];
+    alumnos: AlumnoResponse[];
     handleAlumnoChange: (
         alumnoIdStr: string,
         currentValues: CobranzasFormValues,
@@ -30,7 +30,7 @@ const FormHeader: React.FC<{
                         }}
                     >
                         <option value="">Seleccione un alumno</option>
-                        {alumnos.map((alumno: AlumnoListadoResponse) => (
+                        {alumnos.map((alumno: AlumnoResponse) => (
                             <option key={alumno.id} value={alumno.id}>
                                 {alumno.nombre} {alumno.apellido}
                             </option>

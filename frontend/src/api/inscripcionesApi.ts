@@ -2,7 +2,6 @@
 import api from "./axiosConfig";
 import type {
   InscripcionRegistroRequest,
-  InscripcionRegistroRequest,
   InscripcionResponse,
 } from "../types/types";
 

@@ -256,7 +256,7 @@ const ReporteDetallePago: React.FC = () => {
                             item.mensualidadId,
                             item.alumno.nombre,
                             item.cuota,
-                            item.importe,
+                            item.importePendiente,
                             item.bonificacion.porcentajeDescuento,
                             item.bonificacion.valorFijo,
                             item.total,

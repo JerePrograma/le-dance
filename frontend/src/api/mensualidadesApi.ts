@@ -2,7 +2,6 @@
 import api from "./axiosConfig";
 import type {
   MensualidadRegistroRequest,
-  MensualidadModificacionRequest,
   MensualidadResponse,
 } from "../types/types";
 
@@ -19,7 +18,7 @@ const crearMensualidad = async (request: MensualidadRegistroRequest): Promise<Me
  */
 const actualizarMensualidad = async (
   id: number,
-  request: MensualidadModificacionRequest
+  request: MensualidadRegistroRequest
 ): Promise<MensualidadResponse> => {
   const { data } = await api.put<MensualidadResponse>(`/mensualidades/${id}`, request);
   return data;
