@@ -6,9 +6,8 @@
   <component name="ChangeListManager">
     <list default="true" id="ccb8f120-972c-4a18-b18b-4ae7da723dfa" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/entidades/Mensualidad.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/entidades/Mensualidad.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/repositorios/AsistenciaMensualRepositorio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/repositorios/AsistenciaMensualRepositorio.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/disciplina/DisciplinaServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/disciplina/DisciplinaServicio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/repositorios/PagoRepositorio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/repositorios/PagoRepositorio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/alumno/AlumnoServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/alumno/AlumnoServicio.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -145,7 +144,8 @@
       <workItem from="1742820598976" duration="878000" />
       <workItem from="1742823279869" duration="970000" />
       <workItem from="1742824337524" duration="2837000" />
-      <workItem from="1742827636088" duration="650000" />
+      <workItem from="1742827636088" duration="850000" />
+      <workItem from="1742832041337" duration="2741000" />
     </task>
     <servers />
   </component>

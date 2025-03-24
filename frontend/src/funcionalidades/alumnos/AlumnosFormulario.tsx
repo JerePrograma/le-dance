@@ -16,71 +16,61 @@ import Boton from "../../componentes/comunes/Boton";
 import Tabla from "../../componentes/comunes/Tabla";
 import { Search, X } from "lucide-react";
 import { Button } from "../../componentes/ui/button";
-import { convertToAlumnoRegistroRequest } from "../../utilidades/alumnoUtils";
 import ResponsiveContainer from "../../componentes/comunes/ResponsiveContainer";
 
 // Pre-cargamos la fecha de incorporación con la fecha actual (formato "yyyy-MM-dd")
 const today = new Date().toISOString().split("T")[0];
 
 const initialAlumnoValues: AlumnoRegistroRequest = {
+  id: 0,
   nombre: "",
   apellido: "",
   fechaNacimiento: "",
   fechaIncorporacion: today,
+  edad: 0,
   celular1: "",
   celular2: "",
   email1: "",
+  email2: "",
   documento: "",
+  fechaDeBaja: null,
+  deudaPendiente: false,
   nombrePadres: "",
   autorizadoParaSalirSolo: false,
+  activo: true,
   otrasNotas: "",
   cuotaTotal: 0,
   inscripciones: [],
-  activo: true,
-  edad: 0,
 };
 
 const AlumnosFormulario: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
+  // Estados para alumno e inscripciones
   const [alumnoId, setAlumnoId] = useState<number | null>(null);
   const [inscripciones, setInscripciones] = useState<InscripcionResponse[]>([]);
   const [mensaje, setMensaje] = useState("");
+  // Estado para el input de búsqueda por ID (se usará para mostrar el número de alumno)
   const [idBusqueda, setIdBusqueda] = useState("");
+  // Estados para la búsqueda por nombre y sugerencias
   const [nombreBusqueda, setNombreBusqueda] = useState("");
   const [sugerenciasAlumnos, setSugerenciasAlumnos] = useState<
     AlumnoResponse[]
   >([]);
-  // Estado para el índice de sugerencia activa
   const [activeSuggestionIndex, setActiveSuggestionIndex] =
     useState<number>(-1);
-  // Estado para controlar la visibilidad de las sugerencias
   const [showSuggestions, setShowSuggestions] = useState(false);
-
+  // Estado del formulario
   const [formValues, setFormValues] =
     useState<AlumnoRegistroRequest>(initialAlumnoValues);
 
   // Ref para detectar clicks fuera del bloque de búsqueda
   const searchWrapperRef = useRef<HTMLDivElement>(null);
-
   const debouncedNombreBusqueda = useDebounce(nombreBusqueda, 300);
 
-  // Función para eliminar inscripción y recargar el listado
-  const handleEliminarInscripcion = async (id: number) => {
-    try {
-      await inscripcionesApi.eliminar(id);
-      toast.success("Inscripción eliminada correctamente.");
-      if (alumnoId) {
-        await cargarInscripciones(alumnoId);
-      }
-    } catch (error) {
-      toast.error("Error al eliminar inscripción.");
-    }
-  };
-
   // Función para calcular la edad a partir de la fecha de nacimiento
-  const calcularEdad = (fecha: string) => {
+  const calcularEdad = (fecha: string): number => {
     const hoy = new Date();
     const nacimiento = new Date(fecha);
     let edad = hoy.getFullYear() - nacimiento.getFullYear();
@@ -113,19 +103,21 @@ const AlumnosFormulario: React.FC = () => {
     }
   }, []);
 
-  // Manejar cambio de alumno (buscado por ID)
+  // Manejar búsqueda por ID (se activa al hacer clic en "Buscar")
   const handleBuscar = useCallback(
     async (id: string) => {
       try {
         if (id) {
           const alumno = await alumnosApi.obtenerPorId(Number(id));
-          const convertedAlumno = {
-            ...convertToAlumnoRegistroRequest(alumno),
+          // Creamos el objeto alumnoForm, asignando inscripciones como un array vacío
+          const alumnoForm: AlumnoRegistroRequest = {
+            ...alumno,
             activo: alumno.activo ?? true,
+            inscripciones: [], // O bien, convertir cada inscripción si se requiere conservar información
           };
-          setFormValues(convertedAlumno);
-          setAlumnoId(alumno.id);
+          setFormValues(alumnoForm);
           setIdBusqueda(String(alumno.id));
+          setAlumnoId(alumno.id);
           cargarInscripciones(alumno.id);
           setMensaje("");
         } else {
@@ -149,11 +141,11 @@ const AlumnosFormulario: React.FC = () => {
       resetearFormulario();
       setIdBusqueda(String(id));
       const alumno = await alumnosApi.obtenerPorId(id);
-      const convertedAlumno = {
-        ...convertToAlumnoRegistroRequest(alumno),
+      const alumnoForm = {
+        ...alumno,
         activo: alumno.activo ?? true,
       };
-      setFormValues(convertedAlumno);
+      setFormValues(alumnoForm);
       setAlumnoId(alumno.id);
       setNombreBusqueda(nombreCompleto);
       cargarInscripciones(alumno.id);
@@ -165,11 +157,13 @@ const AlumnosFormulario: React.FC = () => {
     }
   };
 
+  // Manejar envío del formulario (guardar o actualizar)
   const handleGuardarAlumno = async (
     values: AlumnoRegistroRequest,
     { setSubmitting }: FormikHelpers<AlumnoRegistroRequest>
   ) => {
     try {
+      // Evitar duplicados al crear un nuevo alumno
       if (!alumnoId) {
         const alumnoDuplicado = sugerenciasAlumnos.find(
           (a) =>
@@ -189,12 +183,10 @@ const AlumnosFormulario: React.FC = () => {
 
       let successMsg: string;
       if (alumnoId) {
-        await alumnosApi.actualizar(alumnoId, values as AlumnoRegistroRequest);
+        await alumnosApi.actualizar(alumnoId, values);
         successMsg = "Alumno actualizado correctamente";
       } else {
-        const nuevoAlumno = await alumnosApi.registrar(
-          values as AlumnoRegistroRequest
-        );
+        const nuevoAlumno = await alumnosApi.registrar(values);
         setAlumnoId(nuevoAlumno.id);
         setIdBusqueda(String(nuevoAlumno.id));
         successMsg = "Alumno creado correctamente";
@@ -214,6 +206,20 @@ const AlumnosFormulario: React.FC = () => {
     }
   };
 
+  // Función para eliminar inscripción y recargar el listado
+  const handleEliminarInscripcion = async (id: number) => {
+    try {
+      await inscripcionesApi.eliminar(id);
+      toast.success("Inscripción eliminada correctamente.");
+      if (alumnoId) {
+        await cargarInscripciones(alumnoId);
+      }
+    } catch (error) {
+      toast.error("Error al eliminar inscripción.");
+    }
+  };
+
+  // Cargar alumno si viene en query params
   useEffect(() => {
     const alumnoIdParam =
       searchParams.get("alumnoId") || searchParams.get("id");
@@ -222,23 +228,18 @@ const AlumnosFormulario: React.FC = () => {
     }
   }, [searchParams, handleBuscar]);
 
+  // Buscar sugerencias por nombre (con debounce)
   useEffect(() => {
     const buscarSugerencias = async () => {
-      if (debouncedNombreBusqueda.trim() === "") {
-        const sugerencias = await alumnosApi.buscarPorNombre("");
-        setSugerenciasAlumnos(sugerencias);
-        setActiveSuggestionIndex(-1);
-      } else {
-        const sugerencias = await alumnosApi.buscarPorNombre(
-          debouncedNombreBusqueda
-        );
-        setSugerenciasAlumnos(sugerencias);
-        setActiveSuggestionIndex(-1);
-      }
+      const query = debouncedNombreBusqueda.trim();
+      const sugerencias = await alumnosApi.buscarPorNombre(query);
+      setSugerenciasAlumnos(sugerencias);
+      setActiveSuggestionIndex(-1);
     };
     buscarSugerencias();
   }, [debouncedNombreBusqueda]);
 
+  // Manejo de teclas para navegación en sugerencias
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (sugerenciasAlumnos.length > 0) {
       if (e.key === "ArrowDown") {
@@ -270,6 +271,7 @@ const AlumnosFormulario: React.FC = () => {
     }
   };
 
+  // Ocultar sugerencias al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (
@@ -280,9 +282,7 @@ const AlumnosFormulario: React.FC = () => {
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   return (
@@ -297,6 +297,9 @@ const AlumnosFormulario: React.FC = () => {
         >
           {({ isSubmitting, setFieldValue, resetForm }) => (
             <Form className="formulario max-w-4xl mx-auto">
+              {/* Campo oculto para enviar el ID */}
+              <Field name="id" type="hidden" />
+
               <div className="form-grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {/* Búsqueda por ID */}
                 <div className="col-span-full mb-4">
@@ -309,9 +312,7 @@ const AlumnosFormulario: React.FC = () => {
                       id="idBusqueda"
                       value={idBusqueda}
                       onChange={(e) => {
-                        if (!alumnoId) {
-                          setIdBusqueda(e.target.value);
-                        }
+                        if (!alumnoId) setIdBusqueda(e.target.value);
                       }}
                       className="form-input flex-grow"
                       readOnly={alumnoId !== null}
@@ -554,7 +555,7 @@ const AlumnosFormulario: React.FC = () => {
                 </p>
               )}
 
-              {/* Inscripciones del Alumno */}
+              {/* Sección de Inscripciones del Alumno */}
               <fieldset className="form-fieldset mt-8">
                 <legend className="form-legend text-xl font-semibold">
                   Inscripciones del Alumno

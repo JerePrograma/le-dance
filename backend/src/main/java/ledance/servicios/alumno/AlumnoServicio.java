@@ -12,10 +12,8 @@ import ledance.dto.pago.DetallePagoMapper;
 import ledance.dto.pago.response.DetallePagoResponse;
 import ledance.entidades.*;
 import ledance.infra.errores.TratadorDeErrores;
-import ledance.repositorios.AlumnoRepositorio;
+import ledance.repositorios.*;
 import jakarta.transaction.Transactional;
-import ledance.repositorios.DetallePagoRepositorio;
-import ledance.repositorios.MensualidadRepositorio;
 import ledance.servicios.inscripcion.InscripcionServicio;
 import ledance.servicios.pago.PagoServicio;
 import org.slf4j.Logger;
@@ -25,6 +23,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -39,14 +38,20 @@ public class AlumnoServicio implements IAlumnoServicio {
     private final DisciplinaMapper disciplinaMapper;
     private final DetallePagoRepositorio detallePagoRepositorio;
     private final DetallePagoMapper detallePagoMapper;
+    private final InscripcionRepositorio inscripcionRepositorio;
+    private final MatriculaRepositorio matriculaRepositorio;
+    private final PagoRepositorio pagoRepositorio;
 
     public AlumnoServicio(AlumnoRepositorio alumnoRepositorio, AlumnoMapper alumnoMapper, DisciplinaMapper disciplinaMapper,
-                          DetallePagoRepositorio detallePagoRepositorio, DetallePagoMapper detallePagoMapper, MensualidadRepositorio mensualidadRepositorio) {
+                          DetallePagoRepositorio detallePagoRepositorio, DetallePagoMapper detallePagoMapper, MensualidadRepositorio mensualidadRepositorio, InscripcionRepositorio inscripcionRepositorio, MatriculaRepositorio matriculaRepositorio, PagoRepositorio pagoRepositorio) {
         this.alumnoRepositorio = alumnoRepositorio;
         this.alumnoMapper = alumnoMapper;
         this.disciplinaMapper = disciplinaMapper;
         this.detallePagoRepositorio = detallePagoRepositorio;
         this.detallePagoMapper = detallePagoMapper;
+        this.inscripcionRepositorio = inscripcionRepositorio;
+        this.matriculaRepositorio = matriculaRepositorio;
+        this.pagoRepositorio = pagoRepositorio;
     }
 
     @Override
@@ -55,7 +60,9 @@ public class AlumnoServicio implements IAlumnoServicio {
         log.info("Registrando alumno: {}", requestDTO.nombre());
 
         Alumno alumno = alumnoMapper.toEntity(requestDTO);
-
+        if (alumno.getId() == 0) {
+            alumno.setId(null);
+        }
         // Calcular edad automaticamente
         if (alumno.getFechaNacimiento() != null) {
             alumno.setEdad(calcularEdad(requestDTO.fechaNacimiento()));
@@ -143,10 +150,46 @@ public class AlumnoServicio implements IAlumnoServicio {
     @Transactional
     public void eliminarAlumno(Long id) {
         log.info("Eliminando al alumno con id: {}", id);
-        Alumno alumno = alumnoRepositorio.findById(id)
+        // Recuperamos la instancia persistente del alumno
+        Alumno alumnoPersistente = alumnoRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Alumno no encontrado."));
 
-        alumnoRepositorio.delete(alumno);
+        // 1. Eliminar las inscripciones asociadas
+        if (alumnoPersistente.getInscripciones() != null && !alumnoPersistente.getInscripciones().isEmpty()) {
+            // Copiamos la lista para evitar ConcurrentModificationException
+            List<Inscripcion> inscripciones = new ArrayList<>(alumnoPersistente.getInscripciones());
+            for (Inscripcion inscripcion : inscripciones) {
+                // Forzamos que la inscripción refiera al mismo objeto alumnoPersistente
+                inscripcion.setAlumno(alumnoPersistente);
+            }
+            inscripcionRepositorio.deleteAll(inscripciones);
+            inscripcionRepositorio.flush();
+        }
+
+        // 2. Eliminar las matrículas asociadas
+        if (alumnoPersistente.getMatriculas() != null && !alumnoPersistente.getMatriculas().isEmpty()) {
+            List<Matricula> matriculas = new ArrayList<>(alumnoPersistente.getMatriculas());
+            for (Matricula matricula : matriculas) {
+                matricula.setAlumno(alumnoPersistente);
+            }
+            matriculaRepositorio.deleteAll(matriculas);
+            matriculaRepositorio.flush();
+        }
+
+        // 3. Eliminar los pagos asociados al alumno
+        // Al eliminar cada pago se eliminarán en cascada los detallePagos y pagoMedios (según el mapeo con cascade y orphanRemoval)
+        List<Pago> pagos = pagoRepositorio.findByAlumnoId(alumnoPersistente.getId());
+        if (pagos != null && !pagos.isEmpty()) {
+            // Opcionalmente, podrías iterar y forzar que cada pago use la instancia persistente del alumno
+            for (Pago pago : pagos) {
+                pago.setAlumno(alumnoPersistente);
+            }
+            pagoRepositorio.deleteAll(pagos);
+            pagoRepositorio.flush();
+        }
+
+        // 4. Finalmente, eliminar el alumno
+        alumnoRepositorio.delete(alumnoPersistente);
     }
 
     @Transactional

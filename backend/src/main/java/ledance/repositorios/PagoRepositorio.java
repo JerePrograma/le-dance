@@ -41,4 +41,6 @@ public interface PagoRepositorio extends JpaRepository<Pago, Long> {
     List<Pago> findByAlumnoIdAndEstadoPagoOrderByFechaDesc(Long alumnoId, EstadoPago estadoPago);
 
     List<Pago> findByAlumnoIdAndEstadoPagoNotOrderByFechaDesc(Long alumnoId, EstadoPago estado);
+
+    List<Pago> findByAlumnoId(Long id);
 }
