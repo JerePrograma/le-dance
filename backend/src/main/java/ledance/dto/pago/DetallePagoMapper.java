@@ -14,6 +14,8 @@ import java.util.List;
 @Mapper(componentModel = "spring", uses = {AlumnoMapper.class})
 public interface DetallePagoMapper {
 
+    @Mapping(target = "id", expression = "java( (request.id() != null && request.id() == 0) ? null : request.id() )")
+    @Mapping(target = "version", ignore = true) // o puedes omitirlo para que quede null
     @Mapping(target = "alumno", source = "alumno")
     @Mapping(target = "mensualidad", source = "mensualidadId", qualifiedByName = "mapMensualidad")
     @Mapping(target = "matricula", source = "matriculaId", qualifiedByName = "mapMatricula")
@@ -26,11 +28,12 @@ public interface DetallePagoMapper {
     @Mapping(target = "descripcionConcepto", expression = "java( request.descripcionConcepto() != null ? request.descripcionConcepto().trim().toUpperCase() : null )")
     @Mapping(target = "valorBase", source = "valorBase")
     @Mapping(target = "cuotaOCantidad", source = "cuotaOCantidad")
-    // Asignar el tipo en función de las asociaciones
     @Mapping(target = "tipo", expression = "java( determineTipo(request) )")
     DetallePago toEntity(DetallePagoRegistroRequest request);
 
-    // Método para actualizar una entidad existente con los datos del DTO
+    // Actualización de entidad existente
+    @Mapping(target = "id", expression = "java( (request.id() != null && request.id() == 0) ? null : request.id() )")
+    @Mapping(target = "version", ignore = true)
     @Mapping(target = "alumno", source = "alumno")
     @Mapping(target = "mensualidad", source = "mensualidadId", qualifiedByName = "mapMensualidad")
     @Mapping(target = "matricula", source = "matriculaId", qualifiedByName = "mapMatricula")
@@ -46,12 +49,16 @@ public interface DetallePagoMapper {
             return TipoDetallePago.MENSUALIDAD;
         } else if (request.matriculaId() != null) {
             return TipoDetallePago.MATRICULA;
+        } else if (request.stockId() != null) {
+            return TipoDetallePago.STOCK;
+        } else {
+            return TipoDetallePago.CONCEPTO;
         }
-        throw new IllegalArgumentException("No se pudo determinar el tipo de DetallePago. Se requiere mensualidadId o matriculaId.");
     }
 
     List<DetallePago> toEntity(List<DetallePagoRegistroRequest> requests);
 
+    // Mapeos para DTO de salida
     @Mapping(target = "id", source = "id")
     @Mapping(target = "version", source = "version")
     @Mapping(target = "descripcionConcepto", source = "descripcionConcepto")
@@ -73,7 +80,7 @@ public interface DetallePagoMapper {
     @Mapping(target = "pagoId", expression = "java(detallePago.getPago() != null ? detallePago.getPago().getId() : null)")
     DetallePagoResponse toDTO(DetallePago detallePago);
 
-    // Métodos helper para las asociaciones
+    // Métodos helper para asociaciones
 
     @Named("mapMensualidad")
     default Mensualidad mapMensualidad(Long id) {

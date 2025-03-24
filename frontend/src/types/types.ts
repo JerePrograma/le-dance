@@ -63,6 +63,27 @@ export interface AlumnoResponse {
   inscripciones: InscripcionResponse[]; // Asegúrate de que InscripcionResponse esté definido según tu DTO
 }
 
+export interface AlumnoListadoResponse {
+  id: number;
+  nombre: string;
+  apellido: string;
+  fechaNacimiento: string; // formato ISO (ej. "2023-08-30")
+  fechaIncorporacion: string; // formato ISO
+  edad: number;
+  celular1: string;
+  celular2: string;
+  email1: string;
+  email2: string;
+  documento: string;
+  fechaDeBaja: string | null; // puede ser null si no se dio de baja
+  deudaPendiente: boolean;
+  nombrePadres: string;
+  autorizadoParaSalirSolo: boolean;
+  activo: boolean;
+  otrasNotas: string;
+  cuotaTotal: number;
+}
+
 export interface AlumnoRegistroRequest {
   id?: number;
   nombre: string;
@@ -903,8 +924,7 @@ export interface CobranzaDTO {
 }
 
 export interface AlumnoDataResponse {
-  ultimoPago: any;
-  alumno: AlumnoResponse;
+  alumno: AlumnoListadoResponse;
   detallePagosPendientes: DetallePagoResponse[];
 }
 

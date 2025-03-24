@@ -1,6 +1,7 @@
 package ledance.servicios.pago;
 
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.transaction.Transactional;
 import ledance.dto.concepto.ConceptoMapper;
 import ledance.dto.matricula.MatriculaMapper;
 import ledance.dto.matricula.request.MatriculaRegistroRequest;
@@ -141,7 +142,7 @@ public class PaymentCalculationServicio {
             throw new IllegalArgumentException("El monto del abono no puede ser negativo.");
         }
 
-        // Si aún no se asignó el importeInicial, se asigna; de lo contrario, se mantiene el valor histórico.
+        // Si no se ha asignado el importeInicial, se asigna el calculado; de lo contrario se conserva el valor existente
         if (detalle.getImporteInicial() == null && importeInicialCalculado != null) {
             detalle.setImporteInicial(importeInicialCalculado);
             log.info("[procesarAbono] Se asigna importeInicial={} para DetallePago id={}", importeInicialCalculado, detalle.getId());
@@ -152,9 +153,10 @@ public class PaymentCalculationServicio {
         double importePendienteActual = (detalle.getImportePendiente() != null)
                 ? detalle.getImportePendiente()
                 : detalle.getImporteInicial();
-        log.info("[procesarAbono] DetallePago id={} - Importe pendiente actual antes de abono: {}", detalle.getId(), importePendienteActual);
+        log.info("[procesarAbono] DetallePago id={} - Importe pendiente actual antes de abono: {}",
+                detalle.getId(), importePendienteActual);
 
-        // Se aplica el abono sin exceder el importe pendiente
+        // Aplicar el abono sin exceder el importe pendiente
         double abonoAplicado = Math.min(montoAbono, importePendienteActual);
         detalle.setaCobrar(abonoAplicado);
         log.info("[procesarAbono] DetallePago id={} - Abono aplicado: {}", detalle.getId(), abonoAplicado);
@@ -203,6 +205,7 @@ public class PaymentCalculationServicio {
                 calcularMatricula(detalle, pago);
                 break;
             case STOCK:
+                // Para STOCK se encapsula el cálculo y el abono dentro de calcularStock
                 calcularStock(detalle);
                 break;
             default:
@@ -211,16 +214,22 @@ public class PaymentCalculationServicio {
         }
         log.info("[procesarYCalcularDetalle] Detalle id={} - Cálculo específico finalizado.", detalle.getId());
 
-        // Procesar de forma centralizada el abono para todos los tipos
-        log.info("[procesarYCalcularDetalle] Detalle id={} - Iniciando procesamiento de abono centralizado. aCobrar: {}, importeInicial: {}",
-                detalle.getId(), detalle.getaCobrar(), detalle.getImporteInicial());
-        procesarAbono(detalle, detalle.getaCobrar(), detalle.getImporteInicial());
+        // Para tipos que NO sean STOCK, procesar el abono de forma centralizada.
+        // (Para STOCK, la lógica ya se ejecutó en calcularStock)
+        if (tipo != TipoDetallePago.STOCK) {
+            log.info("[procesarYCalcularDetalle] Detalle id={} - Iniciando procesamiento de abono centralizado. aCobrar: {}, importeInicial: {}",
+                    detalle.getId(), detalle.getaCobrar(), detalle.getImporteInicial());
+            procesarAbono(detalle, detalle.getaCobrar(), detalle.getImporteInicial());
+        } else {
+            log.info("[procesarYCalcularDetalle] Detalle id={} - Tipo STOCK: se omite el abono central porque ya fue procesado en calcularStock.", detalle.getId());
+        }
 
         // Para el tipo MENSUALIDAD, actualizar la entidad Mensualidad usando el detalle actualizado
         if (tipo == TipoDetallePago.MENSUALIDAD) {
             Mensualidad mensualidad = mensualidadServicio.obtenerOMarcarPendienteMensualidad(
                     pago.getAlumno().getId(), detalle.getDescripcionConcepto());
             mensualidad = mensualidadServicio.procesarAbonoMensualidad(mensualidad, detalle);
+            log.info("[procesarYCalcularDetalle] Detalle id={} - Mensualidad actualizada.", detalle.getId());
         }
 
         // Verificar y marcar como cobrado si corresponde
@@ -277,15 +286,35 @@ public class PaymentCalculationServicio {
         log.info("[calcularMatricula] Detalle id={} - Finalizado procesamiento de matrícula.", detalle.getId());
     }
 
-    /**
-     * Calcula el detalle de tipo STOCK.
-     * No se aplican descuentos ni recargos.
-     */
-    void calcularStock(DetallePago detalle) {
+    @Transactional
+    public void calcularStock(DetallePago detalle) {
+        log.info("[calcularStock] Iniciando cálculo para DetallePago id={} de tipo STOCK", detalle.getId());
+
+        // Calcular el importe inicial basado en la lógica específica para STOCK
         double importeInicialCalculado = calcularImporteInicial(detalle, null, false);
+        log.info("[calcularStock] Detalle id={} - Importe Inicial Calculado: {}", detalle.getId(), importeInicialCalculado);
+
+        // Procesar abono para el detalle STOCK (única llamada para este tipo)
+        log.info("[calcularStock] Detalle id={} - Procesando abono para STOCK. aCobrar: {}, importeInicialCalculado: {}",
+                detalle.getId(), detalle.getaCobrar(), importeInicialCalculado);
         procesarAbono(detalle, detalle.getaCobrar(), importeInicialCalculado);
-        detalle.setCobrado(detalle.getImportePendiente() == 0.0);
-        procesarStock(detalle);
+
+        // Marcar como procesado (podrías setear una bandera en el detalle, por ejemplo, detalle.setAbonoProcesado(true))
+        // Aquí usamos el hecho de que el detalle ya está cobrado y su importe pendiente es 0.
+        boolean estaCobrado = (detalle.getImportePendiente() != null && detalle.getImportePendiente() == 0.0);
+        detalle.setCobrado(estaCobrado);
+        log.info("[calcularStock] Detalle id={} - Estado luego de abono: Cobrado={}, Importe pendiente: {}",
+                detalle.getId(), estaCobrado, detalle.getImportePendiente());
+
+        // Procesar reducción de stock
+        procesarStockInterno(detalle);
+    }
+
+    private void procesarStockInterno(DetallePago detalle) {
+        log.info("[procesarStockInterno] Procesando reducción de stock para DetallePago id={}", detalle.getId());
+        int cantidad = parseCantidad(detalle.getCuotaOCantidad());
+        log.info("[procesarStockInterno] Detalle id={} - Cantidad a reducir del stock: {}", detalle.getId(), cantidad);
+        stockServicio.reducirStock(detalle.getDescripcionConcepto(), cantidad);
     }
 
     /**
@@ -394,15 +423,6 @@ public class PaymentCalculationServicio {
             throw new IllegalArgumentException("La mensualidad para '" + descNormalizado + "' ya está pagada.");
         }
         return mensualidadResp;
-    }
-
-    /**
-     * Procesa el stock asociado al detalle, reduciendo la cantidad según el valor en cuotaOCantidad.
-     */
-    private void procesarStock(DetallePago detalle) {
-        log.info("[procesarStock] Procesando detalle id={} para Stock", detalle.getId());
-        int cantidad = parseCantidad(detalle.getCuotaOCantidad());
-        stockServicio.reducirStock(detalle.getDescripcionConcepto(), cantidad);
     }
 
     /**
