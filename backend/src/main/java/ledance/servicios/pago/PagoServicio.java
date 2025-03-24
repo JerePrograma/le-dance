@@ -3,15 +3,11 @@ package ledance.servicios.pago;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import ledance.dto.alumno.AlumnoMapper;
-import ledance.dto.inscripcion.InscripcionMapper;
 import ledance.dto.matricula.request.MatriculaRegistroRequest;
 import ledance.dto.mensualidad.response.MensualidadResponse;
-import ledance.dto.metodopago.MetodoPagoMapper;
 import ledance.dto.pago.DetallePagoMapper;
 import ledance.dto.pago.PagoMapper;
-import ledance.dto.pago.PagoMedioMapper;
 import ledance.dto.pago.request.DetallePagoRegistroRequest;
-import ledance.dto.pago.request.PagoMedioRegistroRequest;
 import ledance.dto.pago.request.PagoRegistroRequest;
 import ledance.dto.pago.response.PagoResponse;
 import ledance.dto.cobranza.CobranzaDTO;
@@ -92,71 +88,106 @@ public class PagoServicio {
 
     @Transactional
     public PagoResponse registrarPago(PagoRegistroRequest request) {
-        log.info("[registrarPago] Proceso iniciado para el registro de pago. Payload: {}", request);
-        try {
-            // 1. Mapear el alumno
-            Alumno alumno = alumnoMapper.toEntity(request.alumno());
-            log.info("[registrarPago] Alumno mapeado: {}", alumno);
+        log.info("[registrarPago] Iniciando registro de pago. Payload: {}", request);
 
-            // 2. Consultar el último pago activo (si existe)
-            Pago ultimoPagoActivo = paymentProcessor.obtenerUltimoPagoPendienteEntidad(alumno.getId());
-            Pago pagoFinal;
+        // 1. Mapear el alumno
+        Alumno alumno = alumnoMapper.toEntity(request.alumno());
+        log.info("[registrarPago] Alumno mapeado: {}", alumno);
 
-            // 3. Verificar si se trata de un abono parcial, es decir:
-            //    - Existe un pago activo
-            //    - Tiene saldo pendiente mayor a 0
-            //    - Se cumple la lógica de elegibilidad para migración a histórico
-            boolean esAbonoParcial = (ultimoPagoActivo != null
-                    && ultimoPagoActivo.getSaldoRestante() > 0
-                    && paymentProcessor.esPagoHistoricoAplicable(ultimoPagoActivo, request));
+        Pago pagoFinal;
+        // 2. Consultar el último pago activo (si existe)
+        Pago ultimoPagoActivo = paymentProcessor.obtenerUltimoPagoPendienteEntidad(alumno.getId());
 
-            if (esAbonoParcial) {
-                log.info("[registrarPago] Abono parcial detectado para alumno id={}", alumno.getId());
-                // Actualizar el pago activo con los abonos del request
-                ultimoPagoActivo = paymentProcessor.actualizarPagoHistoricoConAbonos(ultimoPagoActivo, request);
+        // 3. Validar si se trata de un abono parcial
+        if (esAbonoParcial(ultimoPagoActivo, request)) {
+            pagoFinal = procesarAbonoParcial(ultimoPagoActivo, request);
+        } else {
+            log.info("[registrarPago] Registro inicial. Creando un nuevo pago para alumno id={}", alumno.getId());
+            pagoFinal = crearNuevoPago(alumno, request);
+        }
 
-                // Clonar los detalles pendientes para generar el nuevo pago (solo se clonan los que tienen saldo pendiente)
-                Pago nuevoPago = paymentProcessor.clonarDetallesConPendiente(ultimoPagoActivo);
-                log.info("[registrarPago] Nuevo pago generado (con detalles pendientes): {}", nuevoPago);
-                pagoFinal = nuevoPago;
+        // 4. Asignar el método de pago y recalcular totales
+        pagoFinal = asignarMetodoYPersistir(pagoFinal, request.metodoPagoId());
 
-                // Ahora migrar el pago activo a HISTÓRICO:
-                ultimoPagoActivo.setEstadoPago(EstadoPago.HISTORICO);
-                ultimoPagoActivo.setSaldoRestante(0.0);
-                for (DetallePago dp : ultimoPagoActivo.getDetallePagos()) {
-                    dp.setCobrado(true);
-                    dp.setImportePendiente(0.0);
-                    entityManager.merge(dp);
-                }
-                entityManager.merge(ultimoPagoActivo);
-                entityManager.flush();
-            } else {
-                log.info("[registrarPago] Registro inicial. Creando un nuevo pago para alumno id={}", alumno.getId());
-                pagoFinal = crearNuevoPago(alumno, request);
-            }
+        // 5. Limpiar asociaciones innecesarias para la respuesta (ej. inscripciones)
+        limpiarAsociacionesParaRespuesta(pagoFinal);
 
-            // 4. Procesar medios de pago y recalcular totales
-            pagoFinal = marcarDetallesConImportePendienteCero(pagoFinal);
-            Optional<MetodoPago> metodoPago = metodoPagoRepositorio.findById(request.metodoPagoId());
-            if (metodoPago.isPresent()) {
-                pagoFinal.setMetodoPago(metodoPago.get());
-            }
-            paymentProcessor.recalcularTotales(pagoFinal);
+        PagoResponse response = pagoMapper.toDTO(pagoFinal);
+        log.info("[registrarPago] Pago registrado con éxito. Respuesta final: {}", response);
+        return response;
+    }
 
-            // 5. Limpiar asociaciones innecesarias para la respuesta (por ejemplo, inscripciones)
-            if (pagoFinal.getAlumno() != null) {
-                pagoFinal.getAlumno().getInscripciones().clear();
-            }
-
-            PagoResponse response = pagoMapper.toDTO(pagoFinal);
-            log.info("[registrarPago] Pago registrado con éxito. Respuesta final: {}", response);
-            return response;
-        } catch (Exception e) {
-            log.error("[registrarPago] Error en el registro de pago: ", e);
-            throw e;
+    /**
+     * Limpia asociaciones innecesarias para la respuesta (por ejemplo, las inscripciones del alumno).
+     */
+    private void limpiarAsociacionesParaRespuesta(Pago pago) {
+        if (pago.getAlumno() != null && pago.getAlumno().getInscripciones() != null) {
+            pago.getAlumno().getInscripciones().clear();
         }
     }
 
+    /**
+     * Asigna el método de pago al pago, recalcula totales y retorna el pago actualizado.
+     */
+    private Pago asignarMetodoYPersistir(Pago pago, Long metodoPagoId) {
+        Optional<MetodoPago> metodoPagoOpt = metodoPagoRepositorio.findById(metodoPagoId);
+        metodoPagoOpt.ifPresent(pago::setMetodoPago);
+        paymentProcessor.recalcularTotales(pago);
+        return pago;
+    }
+
+    /**
+     * Procesa el abono parcial:
+     * 1. Actualiza el pago activo con los abonos.
+     * 2. Clona los detalles pendientes en un nuevo pago.
+     * 3. Marca el pago activo como HISTÓRICO.
+     * Retorna el nuevo pago (con los detalles pendientes) que representa el abono en curso.
+     */
+    private Pago procesarAbonoParcial(Pago pagoActivo, PagoRegistroRequest request) {
+        // Actualizar el pago activo con los abonos del request (sin marcarlo como HISTÓRICO aún)
+        Pago pagoActualizado = paymentProcessor.actualizarPagoHistoricoConAbonos(pagoActivo, request);
+
+        // Clonar los detalles pendientes antes de modificar el pago activo
+        Pago nuevoPago = paymentProcessor.clonarDetallesConPendiente(pagoActualizado);
+        log.info("[procesarAbonoParcial] Nuevo pago generado (con detalles pendientes): {}", nuevoPago);
+
+        // Marcar el pago activo como HISTÓRICO y ajustar sus detalles
+        marcarPagoComoHistorico(pagoActualizado);
+
+        return nuevoPago;
+    }
+
+    /**
+     * Marca un pago como HISTÓRICO:
+     * - Se fija su estado a HISTÓRICO.
+     * - Se ajusta su saldo a 0.
+     * - Se recorren sus DetallePago para:
+     *     - Marcar cada uno como 'cobrado'.
+     *     - Fijar su importe pendiente en 0.
+     * Se persisten los cambios.
+     */
+    private void marcarPagoComoHistorico(Pago pago) {
+        pago.setEstadoPago(EstadoPago.HISTORICO);
+        pago.setSaldoRestante(0.0);
+        for (DetallePago dp : pago.getDetallePagos()) {
+            dp.setCobrado(true);
+            dp.setImportePendiente(0.0);
+            entityManager.merge(dp);
+        }
+        entityManager.merge(pago);
+        entityManager.flush();
+        log.info("[marcarPagoComoHistorico] Pago id={} marcado como HISTÓRICO", pago.getId());
+    }
+
+    /**
+     * Valida que exista un pago activo con saldo pendiente y que se cumpla la lógica de migración.
+     */
+    private boolean esAbonoParcial(Pago ultimoPagoActivo, PagoRegistroRequest request) {
+        return (ultimoPagoActivo != null
+                && ultimoPagoActivo.getSaldoRestante() > 0
+                && paymentProcessor.esPagoHistoricoAplicable(ultimoPagoActivo, request));
+    }
+    
     /**
      * Crea un nuevo pago y procesa los detalles enviados en el request.
      * Se asume que en el registro inicial no se debe verificar duplicados.
@@ -177,52 +208,63 @@ public class PagoServicio {
 
     /**
      * Método unificado para procesar los detalles de pago.
-     * En el flujo de abono parcial se debe clonar (o filtrar) únicamente los detalles con saldo pendiente.
+     * Se actualizan los detalles existentes o se crean nuevos según corresponda.
      *
-     * @param pago          el objeto Pago a actualizar
-     * @param detallesFront lista de DetallePago provenientes del request
-     * @return el objeto Pago actualizado y persistido con totales recalculados.
+     * @param pago          el objeto Pago a actualizar o persistir.
+     * @param detallesFront lista de DetallePago provenientes del request.
+     * @return el objeto Pago actualizado y persistido.
      */
-    private Pago processDetallesPago(Pago pago, List<DetallePago> detallesFront) {
-        // Si el pago ya existe en la base de datos se obtiene el objeto gestionado
-        Pago pagoManaged = (pago.getId() != null) ? paymentProcessor.loadAndUpdatePago(pago) : pago;
+    public Pago processDetallesPago(Pago pago, List<DetallePago> detallesFront) {
+        // Si el pago ya existe en la BD, se carga y actualiza; en caso contrario, se utiliza el objeto recibido.
+        Pago pagoManaged = (pago.getId() != null)
+                ? paymentProcessor.loadAndUpdatePago(pago)
+                : pago;
+
         List<DetallePago> detallesProcesados = new ArrayList<>();
+        Long alumnoId = pagoManaged.getAlumno().getId();
 
+        // Procesamos cada detalle recibido desde el front
         for (DetallePago detalle : detallesFront) {
-            // Reatachar asociaciones comunes y asignar el pago
+            // Reatachar asociaciones (alumno, mensualidad, matrícula, etc.)
             paymentProcessor.reatacharAsociaciones(detalle, pagoManaged);
-            detalle.setPago(pagoManaged);
 
-            boolean duplicado = false;
-            // Verificar duplicados para matrícula o mensualidad
-            if (detalle.getMatricula() != null && detalle.getMatricula().getId() != null) {
-                duplicado = paymentProcessor.existeDetalleDuplicado(detalle, pagoManaged.getAlumno().getId());
-            }
-            if (!duplicado && detalle.getMensualidad() != null && detalle.getMensualidad().getId() != null) {
-                duplicado = paymentProcessor.existeDetalleDuplicado(detalle, pagoManaged.getAlumno().getId());
+            // Aseguramos que el detalle tenga asignado el pago actual
+            if (detalle.getPago() == null || detalle.getPago().getId() == null) {
+                detalle.setPago(pagoManaged);
             }
 
-            if (duplicado) {
-                log.info("[processDetallesPago] Se detectó duplicado para la asociación correspondiente (matrícula o mensualidad).");
-                // En este caso se omite el detalle duplicado o se podría actualizar el existente
-                continue;
+            // Buscamos un detalle existente con los criterios únicos
+            DetallePago detalleExistente = paymentProcessor.findDetallePagoByCriteria(detalle, alumnoId);
+
+            if (detalleExistente != null) {
+                log.info("[processDetallesPago] DetallePago existente encontrado para '{}' (ID: {})",
+                        detalle.getDescripcionConcepto(), detalleExistente.getId());
+                // Se actualiza el detalle existente con los nuevos datos y cálculos
+                paymentCalculationServicio.procesarYCalcularDetalle(
+                        pagoManaged,
+                        detalleExistente,
+                        paymentProcessor.obtenerInscripcion(detalle)
+                );
+                detallesProcesados.add(detalleExistente);
+            } else {
+                log.info("[processDetallesPago] No se encontró DetallePago para '{}'. Se creará uno nuevo.",
+                        detalle.getDescripcionConcepto());
+                // Se reinicializa el ID para forzar la persistencia de un nuevo registro
+                detalle.setId(null);
+                paymentCalculationServicio.procesarYCalcularDetalle(
+                        pagoManaged,
+                        detalle,
+                        paymentProcessor.obtenerInscripcion(detalle)
+                );
+                detallesProcesados.add(detalle);
             }
-
-            // Reinicializar el ID para tratarlo como nuevo
-            detalle.setId(null);
-
-            // Procesar y calcular el detalle (aplicando cálculo de importe inicial, abono, etc.)
-            paymentCalculationServicio.procesarYCalcularDetalle(pagoManaged, detalle, paymentProcessor.obtenerInscripcion(detalle));
-            detallesProcesados.add(detalle);
         }
 
-        // Asignar TODOS los detalles procesados al pago (en caso de abono parcial, se espera que paymentProcessor.clonarDetallesConPendiente ya filtre lo no pendiente)
+        // Se asigna la lista de detalles procesados al pago y se recalculan los totales
         pagoManaged.setDetallePagos(detallesProcesados);
-
-        // Recalcular totales
         paymentProcessor.recalcularTotales(pagoManaged);
 
-        // Persistir el pago; el merge propagará en cascade los cambios a los DetallePago
+        // Se persiste o se actualiza el pago según corresponda
         if (pagoManaged.getId() == null) {
             log.info("[processDetallesPago] Persistiendo nuevo pago.");
             entityManager.persist(pagoManaged);
@@ -230,9 +272,11 @@ public class PagoServicio {
             log.info("[processDetallesPago] Actualizando pago existente.");
             pagoManaged = entityManager.merge(pagoManaged);
         }
+
         entityManager.flush();
-        log.info("[processDetallesPago] Pago persistido: id={}, monto={}, saldoRestante={}",
+        log.info("[processDetallesPago] Pago persistido: ID={}, Monto={}, SaldoRestante={}",
                 pagoManaged.getId(), pagoManaged.getMonto(), pagoManaged.getSaldoRestante());
+
         return pagoManaged;
     }
 

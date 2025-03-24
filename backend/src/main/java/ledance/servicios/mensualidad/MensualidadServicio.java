@@ -281,6 +281,60 @@ public class MensualidadServicio implements IMensualidadService {
         return mensualidadMapper.toDTO(mensualidad);
     }
 
+    public DetallePago generarCuota(Long inscripcionId, int mes, int anio, Pago pagoPendiente) {
+        log.info("[generarCuota] Generando cuota para inscripción id: {} para {}/{} y asociando pago id: {}",
+                inscripcionId, mes, anio, pagoPendiente.getId());
+        Inscripcion inscripcion = inscripcionRepositorio.findById(inscripcionId)
+                .orElseThrow(() -> new IllegalArgumentException("Inscripción no encontrada"));
+
+        // Calcular el rango del mes: primer y último día
+        LocalDate inicio = LocalDate.of(anio, mes, 1);
+        LocalDate fin = inicio.with(TemporalAdjusters.lastDayOfMonth());
+
+        // Verificar si ya existe una mensualidad para este período
+        Optional<Mensualidad> optMensualidad = mensualidadRepositorio.findByInscripcionIdAndFechaCuotaBetween(inscripcionId, inicio, fin);
+        if (optMensualidad.isPresent()) {
+            log.info("[generarCuota] Mensualidad ya existe para inscripción id: {} para {}/{}", inscripcionId, mes, anio);
+            Mensualidad mensualidadExistente = optMensualidad.get();
+            mensualidadExistente.setDescripcion(mensualidadExistente.getDescripcion().toUpperCase());
+            if (!mensualidadExistente.getEstado().equals(EstadoMensualidad.PENDIENTE)) {
+                mensualidadExistente.setEstado(EstadoMensualidad.PENDIENTE);
+                mensualidadExistente = mensualidadRepositorio.save(mensualidadExistente);
+                log.info("[generarCuota] Mensualidad actualizada a PENDIENTE, id: {}", mensualidadExistente.getId());
+            }
+            // Aquí se puede asociar el DetallePago generado al pagoPendiente si fuera necesario
+            return null;
+        }
+
+        // Crear una nueva mensualidad
+        Mensualidad mensualidad = new Mensualidad();
+        mensualidad.setInscripcion(inscripcion);
+        mensualidad.setFechaCuota(inicio);
+        mensualidad.setFechaGeneracion(LocalDate.now());
+        mensualidad.setValorBase(inscripcion.getDisciplina().getValorCuota());
+        mensualidad.setBonificacion(inscripcion.getBonificacion());
+        mensualidad.setRecargo(null);
+        mensualidad.setMontoAbonado(0.0);
+
+        double importeInicial = calcularImporteInicial(mensualidad);
+        mensualidad.setImporteInicial(importeInicial);
+        mensualidad.setImportePendiente(importeInicial);
+        mensualidad.setEstado(EstadoMensualidad.PENDIENTE);
+
+        asignarDescripcion(mensualidad);
+        log.info("[generarCuota] Descripción asignada a la mensualidad: {}", mensualidad.getDescripcion());
+
+        mensualidad = mensualidadRepositorio.save(mensualidad);
+        log.info("[generarCuota] Cuota generada: id={} para inscripción id {} con importeInicial={}",
+                mensualidad.getId(), inscripcionId, mensualidad.getImporteInicial());
+
+        // Registrar el DetallePago para la mensualidad, asociándolo al pagoPendiente
+        DetallePago detallePago = registrarDetallePagoMensualidad(mensualidad, pagoPendiente);
+        log.info("[generarCuota] DetallePago para Mensualidad id={} registrado.", mensualidad.getId());
+
+        return detallePago;
+    }
+
     public Mensualidad generarCuota(Long inscripcionId, int mes, int anio) {
         log.info("[generarCuota] Generando cuota para inscripción id: {} para {}/{}", inscripcionId, mes, anio);
         Inscripcion inscripcion = inscripcionRepositorio.findById(inscripcionId)
@@ -295,6 +349,7 @@ public class MensualidadServicio implements IMensualidadService {
         if (optMensualidad.isPresent()) {
             log.info("[generarCuota] Mensualidad ya existe para inscripción id: {} para {}/{}", inscripcionId, mes, anio);
             Mensualidad mensualidadExistente = optMensualidad.get();
+            mensualidadExistente.setDescripcion(mensualidadExistente.getDescripcion().toUpperCase());
             // Si la cuota no está en estado PENDIENTE, se actualiza
             if (!mensualidadExistente.getEstado().equals(EstadoMensualidad.PENDIENTE)) {
                 mensualidadExistente.setEstado(EstadoMensualidad.PENDIENTE);
@@ -378,6 +433,53 @@ public class MensualidadServicio implements IMensualidadService {
         DetallePago savedDetalle = detallePagoRepositorio.save(detalle);
         log.info("[registrarDetallePagoMensualidad] DetallePago para Mensualidad id={} creado con importeInicial={} y importePendiente={}",
                 mensualidad.getId(), importeInicial, importePendiente);
+    }
+
+    @Transactional
+    public DetallePago registrarDetallePagoMensualidad(Mensualidad mensualidad, Pago pagoPendiente) {
+        log.info("[registrarDetallePagoMensualidad] Iniciando registro del DetallePago para Mensualidad id={}", mensualidad.getId());
+
+        // Verificar si ya existe un DetallePago asociado a esta mensualidad
+        boolean existeDetalle = detallePagoRepositorio.existsByMensualidadId(mensualidad.getId());
+        if (existeDetalle) {
+            log.info("[registrarDetallePagoMensualidad] Ya existe un DetallePago para Mensualidad id={}. No se creará uno nuevo.", mensualidad.getId());
+            return null;
+        }
+
+        DetallePago detalle = new DetallePago();
+        detalle.setVersion(0L);
+
+        // Asignar datos del alumno y la descripción, utilizando la mensualidad
+        Alumno alumno = mensualidad.getInscripcion().getAlumno();
+        detalle.setAlumno(alumno);
+        detalle.setDescripcionConcepto(mensualidad.getDescripcion());
+
+        // Asignar el valor base y calcular importes
+        Double valorBase = mensualidad.getValorBase();
+        detalle.setValorBase(valorBase);
+        double importeInicial = mensualidad.getImporteInicial();
+        detalle.setImporteInicial(importeInicial);
+
+        // Inicialmente, aCobrar es 0.0; se calcula el importe pendiente
+        double aCobrar = 0.0;
+        detalle.setaCobrar(aCobrar);
+        double importePendiente = importeInicial - aCobrar;
+        detalle.setImportePendiente(importePendiente);
+        detalle.setCobrado(importePendiente == 0);
+
+        // Asignar tipo y fecha de registro
+        detalle.setTipo(TipoDetallePago.MENSUALIDAD);
+        detalle.setFechaRegistro(LocalDate.now());
+
+        // Asociar la mensualidad y el pago pendiente al DetallePago
+        detalle.setMensualidad(mensualidad);
+        detalle.setPago(pagoPendiente);
+
+        // Persistir el DetallePago
+        DetallePago savedDetalle = detallePagoRepositorio.save(detalle);
+        log.info("[registrarDetallePagoMensualidad] DetallePago para Mensualidad id={} creado con importeInicial={} y importePendiente={}",
+                mensualidad.getId(), importeInicial, importePendiente);
+        return savedDetalle;
     }
 
     public MensualidadResponse obtenerMensualidad(Long id) {
@@ -683,13 +785,13 @@ public class MensualidadServicio implements IMensualidadService {
         return entidad;
     }
 
-    public void generarCuotaAutomatica(Inscripcion inscripcion) {
+    public DetallePago generarCuotaAutomatica(Inscripcion inscripcion, Pago pagoPendiente) {
         int mesActual = LocalDate.now().getMonthValue();
         int anioActual = LocalDate.now().getYear();
-        log.info("[MensualidadAutoService] Generando cuota automática para inscripción id: {} en {}/{}",
-                inscripcion.getId(), mesActual, anioActual);
-        // Delegar la generación de la cuota a la lógica ya existente
-        generarCuota(inscripcion.getId(), mesActual, anioActual);
+        log.info("[MensualidadAutoService] Generando cuota automática para inscripción id: {} en {}/{} y asociando pago id: {}",
+                inscripcion.getId(), mesActual, anioActual, pagoPendiente.getId());
+        // Delegar la generación de la cuota a la lógica ya existente, pasando el pago pendiente
+        return generarCuota(inscripcion.getId(), mesActual, anioActual, pagoPendiente);
     }
 
     public Mensualidad procesarAbonoMensualidad(Mensualidad mensualidad, DetallePago detalle) {

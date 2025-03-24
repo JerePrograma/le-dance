@@ -182,8 +182,8 @@ public class AlumnoServicio implements IAlumnoServicio {
                 // Asigna una descripción centralizada; si la mensualidad tiene descripción, se usa, sino se arma un texto con la fecha.
                 nuevoDetalle.setDescripcionConcepto(
                         mensualidad.getDescripcion() != null
-                                ? mensualidad.getDescripcion()
-                                : "Mensualidad " + mensualidad.getFechaCuota());
+                                ? mensualidad.getDescripcion().toUpperCase()
+                                : "MENSUALIDAD " + mensualidad.getFechaCuota());
                 // Formatear la cuota o período de la mensualidad
                 nuevoDetalle.setCuotaOCantidad(
                         mensualidad.getFechaCuota().format(DateTimeFormatter.ofPattern("MMMM yyyy")).toUpperCase());

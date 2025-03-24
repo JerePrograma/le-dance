@@ -2,6 +2,7 @@ package ledance.repositorios;
 
 import ledance.entidades.DetallePago;
 import ledance.entidades.EstadoPago;
+import ledance.entidades.TipoDetallePago;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -22,11 +23,16 @@ public interface DetallePagoRepositorio extends JpaRepository<DetallePago, Long>
     @Query("SELECT CASE WHEN COUNT(dp) > 0 THEN true ELSE false END FROM DetallePago dp WHERE dp.matricula.id = :id")
     boolean existsByMatriculaId(@Param("id") Long id);
 
-    Optional<DetallePago> findByMensualidadIdAndAlumnoIdAndCobradoFalse(Long id, Long alumnoId);
-
-    Optional<DetallePago> findByMatriculaIdAndAlumnoIdAndCobradoFalse(Long id, Long alumnoId);
-
-    Optional<DetallePago> findByDescripcionConceptoAndAlumnoIdAndCobradoFalse(String upperCase, Long alumnoId);
-
     boolean existsByMensualidadId(Long id);
+
+    Optional<DetallePago> findByPago_Alumno_IdAndDescripcionConceptoIgnoreCaseAndTipoAndCobradoFalseAndMatricula_Id(
+            Long alumnoId, String descripcion, TipoDetallePago tipo, Long matriculaId);
+
+    Optional<DetallePago> findByPago_Alumno_IdAndDescripcionConceptoIgnoreCaseAndTipoAndCobradoFalseAndMensualidad_Id(
+            Long alumnoId, String descripcion, TipoDetallePago tipo, Long mensualidadId);
+
+    Optional<DetallePago> findByPago_Alumno_IdAndDescripcionConceptoIgnoreCaseAndTipoAndCobradoFalse(
+            Long alumnoId, String descripcion, TipoDetallePago tipo);
+
+    Optional<DetallePago> findByMatriculaId(Long matriculaId);
 }
