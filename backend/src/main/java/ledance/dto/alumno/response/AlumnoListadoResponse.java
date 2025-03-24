@@ -1,9 +1,6 @@
-package ledance.dto.alumno.response;
-
-import ledance.dto.inscripcion.response.InscripcionResponse;
+package ledance.dto.alumno.response;// package ledance.dto.alumno.response;
 
 import java.time.LocalDate;
-import java.util.List;
 
 public record AlumnoListadoResponse(
         Long id,
@@ -21,8 +18,7 @@ public record AlumnoListadoResponse(
         Boolean deudaPendiente,
         String nombrePadres,
         Boolean autorizadoParaSalirSolo,
-        Boolean activo,  // <-- Agregado aquí
+        Boolean activo,
         String otrasNotas,
         Double cuotaTotal
-) {
-}
+) { }

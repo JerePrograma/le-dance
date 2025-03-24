@@ -1,14 +1,7 @@
 // src/forms/CobranzasForm.tsx
-import React, { useState, useCallback, useEffect, useRef } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
-import {
-  Formik,
-  Form,
-  Field,
-  FieldArray,
-  useFormikContext,
-  FormikErrors,
-} from "formik";
+import { Formik, Form, Field, FieldArray, useFormikContext } from "formik";
 import { toast } from "react-toastify";
 import pagosApi from "../../api/pagosApi";
 import { useCobranzasData } from "../../hooks/useCobranzasData";
@@ -20,7 +13,6 @@ import type {
   ConceptoResponse,
   DisciplinaDetalleResponse,
   MetodoPagoResponse,
-  MatriculaResponse,
   StockResponse,
   AlumnoRegistroRequest,
   AlumnoResponse,
@@ -87,7 +79,7 @@ const defaultValues: CobranzasFormValues = {
     otrasNotas: "",
     cuotaTotal: 0,
     inscripciones: [],
-  } as unknown as AlumnoRegistroRequest,
+  } as AlumnoRegistroRequest,
   alumnoId: 0,
   fecha: new Date().toISOString().split("T")[0],
   detallePagos: [],
@@ -107,9 +99,39 @@ const defaultValues: CobranzasFormValues = {
   pagoParcial: 0,
 };
 
-// ----- Hook TotalsUpdater -----
-// Este hook recalcula el total a cobrar como la suma de los "importePendiente" de cada detalle.
-const TotalsUpdater: React.FC = () => {
+// ----- Normalización del alumno -----
+function normalizeAlumno(alumno: AlumnoResponse): AlumnoRegistroRequest {
+  return {
+    id: alumno.id,
+    nombre: alumno.nombre,
+    apellido: alumno.apellido,
+    fechaNacimiento: alumno.fechaNacimiento,
+    fechaIncorporacion: alumno.fechaIncorporacion,
+    edad: alumno.edad,
+    celular1: alumno.celular1,
+    celular2: alumno.celular2,
+    email1: alumno.email1,
+    email2: alumno.email2,
+    documento: alumno.documento,
+    fechaDeBaja: alumno.fechaDeBaja,
+    deudaPendiente: alumno.deudaPendiente,
+    nombrePadres: alumno.nombrePadres,
+    autorizadoParaSalirSolo: alumno.autorizadoParaSalirSolo,
+    activo: alumno.activo,
+    otrasNotas: alumno.otrasNotas,
+    cuotaTotal: alumno.cuotaTotal,
+    inscripciones: alumno.inscripciones.map(normalizeInscripcion),
+  };
+}
+
+// ----- Subcomponentes -----
+
+/**
+ * TotalsUpdater: Recalcula los totales basándose en la suma de importePendiente y aCobrar de cada detalle.
+ */
+const TotalsUpdater: React.FC<{ metodosPago: MetodoPagoResponse[] }> = ({
+  metodosPago,
+}) => {
   const { values, setFieldValue } = useFormikContext<CobranzasFormValues>();
 
   useEffect(() => {
@@ -118,7 +140,8 @@ const TotalsUpdater: React.FC = () => {
       0
     );
     const computedTotalCobrado = values.detallePagos.reduce(
-      (total, item) => total + Number(item.aCobrar || 0),
+      (total, item) =>
+        total + (Number(item.aCobrar || 0) > 0 ? Number(item.aCobrar) : 0),
       0
     );
     if (values.totalACobrar !== computedTotalACobrar) {
@@ -132,165 +155,278 @@ const TotalsUpdater: React.FC = () => {
   return null;
 };
 
-// ----- Hook useSyncDetalles -----
-// Refactorizado para sincronizar solo al inicio (o cuando cambie alumnoData.autoRemoved)
-export const useSyncDetalles = (alumnoData: AlumnoDataResponse | undefined) => {
-  const { values, setFieldValue } = useFormikContext<CobranzasFormValues>();
-  const initialSyncDone = useRef(false);
-
-  useEffect(() => {
-    console.log("[useSyncDetalles] Iniciando sincronización...");
-    if (!alumnoData) {
-      console.log(
-        "[useSyncDetalles] No hay alumnoData. Abortando sincronización."
-      );
-      return;
-    }
-
-    // Sincronizar solo si no se ha hecho la sincronización inicial.
-    if (initialSyncDone.current) {
-      console.log(
-        "[useSyncDetalles] Sincronización ya realizada. No se actualiza."
-      );
-      return;
-    }
-
-    console.log("[useSyncDetalles] AlumnoData recibido:", alumnoData);
-    console.log(
-      "[useSyncDetalles] Valores actuales del formulario (detallePagos):",
-      values.detallePagos
-    );
-    console.log(
-      "[useSyncDetalles] Valores actuales del formulario (autoRemoved):",
-      values.autoRemoved
-    );
-
-    // 1. Mapear detalles pendientes al formato del formulario.
-    const autoDetails = mapDetallePagos(
-      alumnoData.detallePagosPendientes || [],
-      values.detallePagos
-    );
-    console.log(
-      "[useSyncDetalles] Detalles automáticos mapeados:",
-      autoDetails
-    );
-
-    // 2. Filtrar detalles removidos manualmente.
-    const removedIds = new Set(values.autoRemoved || []);
-    const autoDetailsFiltered = autoDetails.filter((det) => {
-      if (det.id != null) {
-        const include =
-          !removedIds.has(det.id) && Number(det.importePendiente) > 0;
-        console.log(
-          `[useSyncDetalles] Auto detalle id=${det.id} ${
-            include ? "incluido" : "excluido"
-          } por removedIds (${removedIds.has(det.id)}) y importePendiente (${
-            det.importePendiente
-          })`
-        );
-        return include;
-      }
-      const include = Number(det.importePendiente) > 0;
-      console.log(
-        `[useSyncDetalles] Auto detalle sin id ${
-          include ? "incluido" : "excluido"
-        } por importePendiente (${det.importePendiente})`
-      );
-      return include;
-    });
-    console.log(
-      "[useSyncDetalles] Detalles automáticos filtrados:",
-      autoDetailsFiltered
-    );
-
-    // 3. Extraer los detalles manuales (no autogenerados) ya existentes.
-    const manualDetails = values.detallePagos.filter(
-      (det) => !det.autoGenerated
-    );
-    console.log("[useSyncDetalles] Detalles manuales actuales:", manualDetails);
-
-    // 4. Fusionar manual y automáticos evitando duplicados.
-    let mergedDetails: DetallePagoRegistroRequestExt[];
-    if (manualDetails.length > 0) {
-      const manualIds = new Set(
-        manualDetails.filter((det) => det.id != null).map((det) => det.id)
-      );
-      console.log(
-        "[useSyncDetalles] IDs de detalles manuales:",
-        Array.from(manualIds)
-      );
-      const finalAutoDetails = autoDetailsFiltered.filter((autoDet) => {
-        if (autoDet.id != null) {
-          const include = !manualIds.has(autoDet.id);
-          if (!include) {
-            console.log(
-              `[useSyncDetalles] Auto detalle id=${autoDet.id} descartado porque ya existe manual.`
-            );
-          }
-          return include;
-        }
-        const exists = manualDetails.some(
-          (manDet) =>
-            manDet.descripcionConcepto === autoDet.descripcionConcepto &&
-            manDet.valorBase === autoDet.valorBase
-        );
-        if (exists) {
-          console.log(
-            "[useSyncDetalles] Auto detalle sin id descartado por coincidencia de campos:",
-            autoDet
-          );
-        }
-        return !exists;
-      });
-      console.log(
-        "[useSyncDetalles] Detalles automáticos finales tras filtrar duplicados:",
-        finalAutoDetails
-      );
-      mergedDetails = [...manualDetails, ...finalAutoDetails];
-      console.log(
-        "[useSyncDetalles] Fusionando manuales y automáticos:",
-        mergedDetails
-      );
-    } else {
-      mergedDetails = autoDetailsFiltered;
-      console.log(
-        "[useSyncDetalles] No hay detalles manuales; usando automáticos:",
-        mergedDetails
-      );
-    }
-
-    // 5. Actualizar el formulario si la lista final difiere.
-    if (!isEqual(mergedDetails, values.detallePagos)) {
-      console.log(
-        "[useSyncDetalles] La lista final difiere. Actualizando 'detallePagos' a:",
-        mergedDetails
-      );
-      setFieldValue("detallePagos", mergedDetails);
-    } else {
-      console.log(
-        "[useSyncDetalles] La lista final es igual. No se actualiza."
-      );
-    }
-    initialSyncDone.current = true;
-  }, [alumnoData, setFieldValue, values.autoRemoved]);
+/**
+ * ConceptosSection: Sección para seleccionar disciplina, tarifa, concepto y stock.
+ */
+interface ConceptosSectionProps {
+  disciplinas: DisciplinaDetalleResponse[];
+  stocks: StockResponse[];
+  conceptos: ConceptoResponse[];
+  values: CobranzasFormValues;
+  setFieldValue: (field: string, value: any) => void;
+  handleAgregarDetalle: (
+    values: CobranzasFormValues,
+    setFieldValue: (field: string, value: any) => void
+  ) => void;
+}
+const ConceptosSection: React.FC<ConceptosSectionProps> = ({
+  disciplinas,
+  stocks,
+  conceptos,
+  values,
+  setFieldValue,
+  handleAgregarDetalle,
+}) => {
+  return (
+    <div className="border p-4 mb-4">
+      <h2 className="font-bold mb-2">Datos de Disciplina y Conceptos</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">
+        <div className="sm:col-span-2">
+          <label className="block font-medium">Disciplina:</label>
+          <Field
+            as="select"
+            name="disciplina"
+            className="border p-2 w-full"
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+              setFieldValue("disciplina", e.target.value);
+              setFieldValue("tarifa", "");
+            }}
+          >
+            <option value="">Seleccione una disciplina</option>
+            {disciplinas.map((disc) => (
+              <option key={disc.id} value={disc.nombre}>
+                {disc.nombre}
+              </option>
+            ))}
+          </Field>
+        </div>
+        <div>
+          <label className="block font-medium">Tarifa:</label>
+          <Field as="select" name="tarifa" className="border p-2 w-full">
+            <option value="">Seleccione una tarifa</option>
+            <option value="CUOTA">CUOTA</option>
+            <option value="CLASE_SUELTA">CLASE SUELTA</option>
+            <option value="CLASE_PRUEBA">CLASE DE PRUEBA</option>
+          </Field>
+        </div>
+        {values.tarifa === "CUOTA" && (
+          <div>
+            <label className="block font-medium">Periodo Mensual:</label>
+            <Field
+              as="select"
+              name="periodoMensual"
+              className="border p-2 w-full"
+            >
+              <option value="">Seleccione el mes/periodo</option>
+              {generatePeriodos(12).map((periodo, index) => (
+                <option key={index} value={periodo}>
+                  {periodo}
+                </option>
+              ))}
+            </Field>
+          </div>
+        )}
+        <div className="sm:col-span-2">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block font-medium">Concepto:</label>
+              <Field
+                as="select"
+                name="conceptoSeleccionado"
+                className="border p-2 w-full"
+              >
+                <option value="">Seleccione un concepto</option>
+                {conceptos.map((conc) => (
+                  <option key={conc.id} value={conc.id}>
+                    {conc.descripcion}
+                  </option>
+                ))}
+              </Field>
+            </div>
+            <div>
+              <label className="block font-medium">Stock:</label>
+              <Field
+                as="select"
+                name="stockSeleccionado"
+                className="border p-2 w-full"
+              >
+                <option value="">Seleccione un stock</option>
+                {stocks.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.nombre}
+                  </option>
+                ))}
+              </Field>
+            </div>
+          </div>
+        </div>
+        <div>
+          <label className="block font-medium">Cantidad:</label>
+          <Field
+            name="cantidad"
+            type="number"
+            className="border p-2 w-full"
+            min="1"
+          />
+        </div>
+      </div>
+      <div className="mb-4">
+        <button
+          type="button"
+          className="bg-green-500 text-white p-2 rounded mt-4"
+          onClick={() => handleAgregarDetalle(values, setFieldValue)}
+        >
+          Agregar Detalle
+        </button>
+      </div>
+    </div>
+  );
 };
 
 /**
- * Componente principal para gestionar cobranzas.
+ * DetallesTable: Renderiza la tabla de detalles usando FieldArray.
  */
+const DetallesTable: React.FC = () => (
+  <FieldArray name="detallePagos">
+    {({ remove, form }) => (
+      <div className="overflow-x-auto">
+        <table className="border mb-4 w-auto table-layout-auto">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="border p-2 text-center text-sm font-medium text-gray-700 min-w-[120px]">
+                Concepto
+              </th>
+              <th className="border p-2 text-center text-sm font-medium text-gray-700 min-w-[80px]">
+                Cantidad
+              </th>
+              <th className="border p-2 text-center text-sm font-medium text-gray-700 min-w-[100px]">
+                Valor Base
+              </th>
+              <th className="border p-2 text-center text-sm font-medium text-gray-700 min-w-[80px]">
+                Bonificación
+              </th>
+              <th className="border p-2 text-center text-sm font-medium text-gray-700 min-w-[80px]">
+                Recargo
+              </th>
+              <th className="border p-2 text-center text-sm font-medium text-gray-700 min-w-[100px]">
+                Importe Pendiente
+              </th>
+              <th className="border p-2 text-center text-sm font-medium text-gray-700 min-w-[80px]">
+                A Cobrar
+              </th>
+              <th className="border p-2 text-center text-sm font-medium text-gray-700 min-w-[100px]">
+                Acciones
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {form.values.detallePagos && form.values.detallePagos.length > 0 ? (
+              form.values.detallePagos.map((_: any, index: number) => (
+                <tr key={index} className="hover:bg-gray-50">
+                  <td className="border p-2 text-center text-sm">
+                    <Field
+                      name={`detallePagos.${index}.descripcionConcepto`}
+                      type="text"
+                      className="w-full px-2 py-1 border rounded text-center"
+                      readOnly
+                    />
+                  </td>
+                  <td className="border p-2 text-center text-sm">
+                    <Field
+                      name={`detallePagos.${index}.cuotaOCantidad`}
+                      type="text"
+                      className="w-full px-2 py-1 border rounded text-center"
+                      readOnly
+                    />
+                  </td>
+                  <td className="border p-2 text-center text-sm">
+                    <Field
+                      name={`detallePagos.${index}.valorBase`}
+                      type="number"
+                      className="w-full px-2 py-1 border rounded text-center"
+                      readOnly
+                    />
+                  </td>
+                  <td className="border p-2 text-center text-sm">
+                    <Field
+                      name={`detallePagos.${index}.bonificacionId`}
+                      type="number"
+                      className="w-full px-2 py-1 border rounded text-center"
+                      readOnly
+                    />
+                  </td>
+                  <td className="border p-2 text-center text-sm">
+                    <Field
+                      name={`detallePagos.${index}.recargoId`}
+                      type="number"
+                      className="w-full px-2 py-1 border rounded text-center"
+                      readOnly
+                    />
+                  </td>
+                  <td className="border p-2 text-center text-sm">
+                    <Field name={`detallePagos.${index}.importePendiente`}>
+                      {({ field }: any) => (
+                        <input
+                          type="number"
+                          {...field}
+                          readOnly
+                          className="w-full px-2 py-1 border rounded text-center"
+                        />
+                      )}
+                    </Field>
+                  </td>
+                  <td className="border p-2 text-center text-sm">
+                    <Field name={`detallePagos.${index}.aCobrar`}>
+                      {({ field }: any) => (
+                        <input
+                          type="number"
+                          {...field}
+                          className="w-full px-2 py-1 border rounded text-center"
+                        />
+                      )}
+                    </Field>
+                  </td>
+                  <td className="border p-2 text-center text-sm">
+                    <button
+                      type="button"
+                      className="bg-red-500 hover:bg-red-600 text-white p-1 rounded text-xs transition-colors mx-auto block"
+                      onClick={() => remove(index)}
+                    >
+                      Eliminar
+                    </button>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={8} className="text-center text-sm p-2">
+                  No hay datos
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    )}
+  </FieldArray>
+);
+
+// ----- Componente Principal -----
 const CobranzasForm: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+
   const [initialValues, setInitialValues] =
     useState<CobranzasFormValues>(defaultValues);
   const [selectedAlumnoId, setSelectedAlumnoId] = useState<number>(0);
 
-  // Datos de la app
+  // Datos unificados de cobranzas y alumno
   const { alumnos, disciplinas, stocks, metodosPago, conceptos } =
     useCobranzasData();
   const { data: alumnoData } = useAlumnoData(selectedAlumnoId);
 
+  // Normalización de disciplinas
   const mappedDisciplinas: DisciplinaDetalleResponse[] = disciplinas.map(
     (disc) => ({
       ...disc,
@@ -304,7 +440,7 @@ const CobranzasForm: React.FC = () => {
     })
   );
 
-  // Hook para sincronizar detalles pendientes con el formulario.
+  // Hook para sincronizar los detalles (se ejecuta solo una vez para permitir edición manual)
   const SyncDetalles: React.FC<{ deudaData: AlumnoDataResponse }> = ({
     deudaData,
   }) => {
@@ -312,27 +448,25 @@ const CobranzasForm: React.FC = () => {
     return null;
   };
 
+  /**
+   * Manejo del cambio de alumno.
+   */
   const handleAlumnoChange = useCallback(
     async (
       alumnoIdStr: string,
       _currentValues: CobranzasFormValues,
-      setFieldValue: (
-        field: string,
-        value: any,
-        shouldValidate?: boolean
-      ) => Promise<void>
+      setFieldValue: (field: string, value: any) => Promise<void>
     ) => {
       const id = Number(alumnoIdStr);
       await setFieldValue("alumnoId", id, true);
       setSelectedAlumnoId(id);
       await setFieldValue("matriculaRemoved", false, true);
-
-      if (alumnoData) {
+      if (alumnoData && alumnoData.alumno) {
         console.log(
           "[handleAlumnoChange] Asignando data completa del alumno:",
           alumnoData
         );
-        await setFieldValue("alumno", alumnoData, true);
+        await setFieldValue("alumno", normalizeAlumno(alumnoData.alumno), true);
       } else {
         await setFieldValue(
           "alumno",
@@ -361,30 +495,7 @@ const CobranzasForm: React.FC = () => {
     [alumnoData]
   );
 
-  function normalizeAlumno(alumno: AlumnoResponse): AlumnoRegistroRequest {
-    return {
-      id: alumno.id,
-      nombre: alumno.nombre,
-      apellido: alumno.apellido,
-      fechaNacimiento: alumno.fechaNacimiento,
-      fechaIncorporacion: alumno.fechaIncorporacion,
-      edad: alumno.edad,
-      celular1: alumno.celular1,
-      celular2: alumno.celular2,
-      email1: alumno.email1,
-      email2: alumno.email2,
-      documento: alumno.documento,
-      fechaDeBaja: alumno.fechaDeBaja,
-      deudaPendiente: alumno.deudaPendiente,
-      nombrePadres: alumno.nombrePadres,
-      autorizadoParaSalirSolo: alumno.autorizadoParaSalirSolo,
-      activo: alumno.activo,
-      otrasNotas: alumno.otrasNotas,
-      cuotaTotal: alumno.cuotaTotal,
-      inscripciones: alumno.inscripciones.map(normalizeInscripcion),
-    };
-  }
-
+  // Cargar datos de pago si se pasa "id" en los query params
   useEffect(() => {
     const idParam = searchParams.get("id");
     if (idParam) {
@@ -398,7 +509,7 @@ const CobranzasForm: React.FC = () => {
             alumno: pagoData.alumno
               ? normalizeAlumno(pagoData.alumno)
               : defaultValues.alumno,
-            alumnoId: pagoData.alumno.id,
+            alumnoId: pagoData.alumno ? pagoData.alumno.id : 0,
             fecha: pagoData.fecha || new Date().toISOString().split("T")[0],
             detallePagos: pagoData.detallePagos.map((detalle: any) => ({
               id: detalle.id,
@@ -406,13 +517,22 @@ const CobranzasForm: React.FC = () => {
               conceptoId: detalle.conceptoId ?? null,
               subConceptoId: detalle.subConceptoId ?? null,
               cuotaOCantidad: detalle.cuotaOCantidad || "1",
-              valorBase: detalle.valorBase ?? 0,
+              valorBase: detalle.valorBase,
+              // Si importePendiente es 0 o nulo, se asigna el valorBase
+              importePendiente:
+                detalle.importePendiente == null ||
+                Number(detalle.importePendiente) === 0
+                  ? detalle.valorBase
+                  : detalle.importePendiente,
               bonificacionId: detalle.bonificacion
                 ? detalle.bonificacion.id
                 : null,
               recargoId: detalle.recargo ? detalle.recargo.id : null,
-              aCobrar: detalle.importePendiente, // Inicialmente, aCobrar = importePendiente
-              importePendiente: detalle.importePendiente,
+              aCobrar:
+                detalle.importePendiente == null ||
+                Number(detalle.importePendiente) === 0
+                  ? detalle.valorBase
+                  : detalle.importePendiente,
               cobrado: detalle.cobrado,
               mensualidadId: detalle.mensualidadId ?? null,
               matriculaId: detalle.matriculaId ?? null,
@@ -421,14 +541,22 @@ const CobranzasForm: React.FC = () => {
               pagoId: detalle.pagoId ?? null,
               autoGenerated: true,
             })),
-            totalCobrado: pagoData.detallePagos.reduce(
-              (sum: number, detalle: any) =>
-                sum + (Number(detalle.importePendiente) || 0),
-              0
-            ),
             totalACobrar: pagoData.detallePagos.reduce(
               (sum: number, detalle: any) =>
-                sum + (Number(detalle.importePendiente) || 0),
+                sum +
+                (Number(detalle.importePendiente) === 0 ||
+                detalle.importePendiente == null
+                  ? Number(detalle.valorBase)
+                  : Number(detalle.importePendiente)),
+              0
+            ),
+            totalCobrado: pagoData.detallePagos.reduce(
+              (sum: number, detalle: any) =>
+                sum +
+                (Number(detalle.importePendiente) === 0 ||
+                detalle.importePendiente == null
+                  ? Number(detalle.valorBase)
+                  : Number(detalle.importePendiente)),
               0
             ),
             metodoPagoId: pagoData.metodoPago?.id || 0,
@@ -441,6 +569,7 @@ const CobranzasForm: React.FC = () => {
     }
   }, [searchParams]);
 
+  // Función para agregar detalle
   const handleAgregarDetalle = useCallback(
     (
       values: CobranzasFormValues,
@@ -456,6 +585,7 @@ const CobranzasForm: React.FC = () => {
           (det) => det.descripcionConcepto.trim() === desc.trim()
         );
 
+      // Agregar detalle basado en concepto seleccionado
       if (values.conceptoSeleccionado) {
         const selectedConcept = conceptos.find(
           (c: ConceptoResponse) =>
@@ -472,6 +602,8 @@ const CobranzasForm: React.FC = () => {
               subConceptoId: null,
               cuotaOCantidad: "1",
               valorBase: selectedConcept.precio,
+              // Si importePendiente es 0 o nulo se usa valorBase
+              importePendiente: selectedConcept.precio,
               bonificacionId: null,
               recargoId: null,
               aCobrar: selectedConcept.precio,
@@ -487,6 +619,7 @@ const CobranzasForm: React.FC = () => {
           }
         }
       }
+      // Agregar detalle basado en disciplina/tarifa
       if (values.disciplina && values.tarifa) {
         const selectedDisciplina = mappedDisciplinas.find(
           (disc) => disc.nombre === values.disciplina
@@ -517,6 +650,8 @@ const CobranzasForm: React.FC = () => {
               subConceptoId: null,
               cuotaOCantidad: cantidad.toString(),
               valorBase: total,
+              // Si importePendiente es 0 o nulo se usa valorBase
+              importePendiente: total,
               bonificacionId: null,
               recargoId: null,
               aCobrar: total,
@@ -531,6 +666,7 @@ const CobranzasForm: React.FC = () => {
           }
         }
       }
+      // Agregar detalle basado en stock seleccionado
       if (values.stockSeleccionado) {
         const selectedStock = stocks.find(
           (s: StockResponse) => s.id.toString() === values.stockSeleccionado
@@ -549,6 +685,8 @@ const CobranzasForm: React.FC = () => {
               subConceptoId: null,
               cuotaOCantidad: cantidad.toString(),
               valorBase: total,
+              // Si importePendiente es 0 o nulo se usa valorBase
+              importePendiente: total,
               bonificacionId: null,
               recargoId: null,
               aCobrar: total,
@@ -564,6 +702,7 @@ const CobranzasForm: React.FC = () => {
           }
         }
       }
+
       if (added) {
         setFieldValue("detallePagos", newDetails);
         const totalCobrado = newDetails.reduce(
@@ -585,6 +724,7 @@ const CobranzasForm: React.FC = () => {
     [conceptos, mappedDisciplinas, stocks]
   );
 
+  // onSubmit: Mapea los valores y envía el registro al backend.
   const onSubmit = async (values: CobranzasFormValues, actions: any) => {
     try {
       const detallesFiltrados = values.detallePagos.filter(
@@ -653,155 +793,24 @@ const CobranzasForm: React.FC = () => {
       >
         {({ values, setFieldValue }) => (
           <Form className="w-full">
-            <TotalsUpdater />
+            <TotalsUpdater metodosPago={metodosPago} />
             <PaymentIdUpdater
               ultimoPago={alumnoData?.ultimoPago ?? undefined}
             />
-            {alumnoData && alumnoData.detallePagosPendientes && (
-              <SyncDetalles deudaData={alumnoData} />
-            )}
+            {alumnoData && <SyncDetalles deudaData={alumnoData} />}
             <FormHeader
               alumnos={alumnos}
               handleAlumnoChange={handleAlumnoChange}
             />
-            {/* Se asume que ConceptosSection y DetallesTable se importan y utilizan sin cambios */}
-            {/* Ejemplo: */}
-            {/* <ConceptosSection
+            <ConceptosSection
               disciplinas={mappedDisciplinas}
               stocks={stocks}
               conceptos={conceptos}
               values={values}
               setFieldValue={setFieldValue}
               handleAgregarDetalle={handleAgregarDetalle}
-            /> */}
-            {/* Renderizado de la tabla de detalles */}
-            <FieldArray name="detallePagos">
-              {({ remove, form }) => (
-                <div className="overflow-x-auto">
-                  <table className="border mb-4 w-auto table-layout-auto">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="border p-2 text-center text-sm font-medium text-gray-700 min-w-[120px]">
-                          Concepto
-                        </th>
-                        <th className="border p-2 text-center text-sm font-medium text-gray-700 min-w-[80px]">
-                          Cantidad
-                        </th>
-                        <th className="border p-2 text-center text-sm font-medium text-gray-700 min-w-[100px]">
-                          Valor Base
-                        </th>
-                        <th className="border p-2 text-center text-sm font-medium text-gray-700 min-w-[80px]">
-                          Bonificación
-                        </th>
-                        <th className="border p-2 text-center text-sm font-medium text-gray-700 min-w-[80px]">
-                          Recargo
-                        </th>
-                        <th className="border p-2 text-center text-sm font-medium text-gray-700 min-w-[100px]">
-                          Importe
-                        </th>
-                        <th className="border p-2 text-center text-sm font-medium text-gray-700 min-w-[80px]">
-                          A Cobrar
-                        </th>
-                        <th className="border p-2 text-center text-sm font-medium text-gray-700 min-w-[100px]">
-                          Acciones
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {form.values.detallePagos &&
-                      form.values.detallePagos.length > 0 ? (
-                        form.values.detallePagos.map(
-                          (_: any, index: number) => (
-                            <tr key={index} className="hover:bg-gray-50">
-                              <td className="border p-2 text-center text-sm">
-                                <Field
-                                  name={`detallePagos.${index}.descripcionConcepto`}
-                                  type="text"
-                                  className="w-full px-2 py-1 border rounded text-center"
-                                  readOnly
-                                />
-                              </td>
-                              <td className="border p-2 text-center text-sm">
-                                <Field
-                                  name={`detallePagos.${index}.cuotaOCantidad`}
-                                  type="text"
-                                  className="w-full px-2 py-1 border rounded text-center"
-                                  readOnly
-                                />
-                              </td>
-                              <td className="border p-2 text-center text-sm">
-                                <Field
-                                  name={`detallePagos.${index}.valorBase`}
-                                  type="number"
-                                  className="w-full px-2 py-1 border rounded text-center"
-                                  readOnly
-                                />
-                              </td>
-                              <td className="border p-2 text-center text-sm">
-                                <Field
-                                  name={`detallePagos.${index}.bonificacionId`}
-                                  type="number"
-                                  className="w-full px-2 py-1 border rounded text-center"
-                                  readOnly
-                                />
-                              </td>
-                              <td className="border p-2 text-center text-sm">
-                                <Field
-                                  name={`detallePagos.${index}.recargoId`}
-                                  type="number"
-                                  className="w-full px-2 py-1 border rounded text-center"
-                                  readOnly
-                                />
-                              </td>
-                              <td className="border p-2 text-center text-sm">
-                                <Field
-                                  name={`detallePagos.${index}.importePendiente`}
-                                >
-                                  {({ field }: any) => (
-                                    <input
-                                      type="number"
-                                      {...field}
-                                      readOnly
-                                      className="w-full px-2 py-1 border rounded text-center"
-                                    />
-                                  )}
-                                </Field>
-                              </td>
-                              <td className="border p-2 text-center text-sm">
-                                <Field name={`detallePagos.${index}.aCobrar`}>
-                                  {({ field }: any) => (
-                                    <input
-                                      type="number"
-                                      {...field}
-                                      className="w-full px-2 py-1 border rounded text-center"
-                                    />
-                                  )}
-                                </Field>
-                              </td>
-                              <td className="border p-2 text-center text-sm">
-                                <button
-                                  type="button"
-                                  className="bg-red-500 hover:bg-red-600 text-white p-1 rounded text-xs transition-colors mx-auto block"
-                                  onClick={() => remove(index)}
-                                >
-                                  Eliminar
-                                </button>
-                              </td>
-                            </tr>
-                          )
-                        )
-                      ) : (
-                        <tr>
-                          <td colSpan={8} className="text-center text-sm p-2">
-                            No hay datos
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </FieldArray>
+            />
+            <DetallesTable />
             <div className="border p-4 mb-4">
               <h2 className="font-bold mb-2">Totales y Pago</h2>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

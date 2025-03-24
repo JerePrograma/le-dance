@@ -4,6 +4,7 @@ import jakarta.persistence.EntityNotFoundException;
 import ledance.dto.alumno.AlumnoMapper;
 import ledance.dto.alumno.request.AlumnoRegistroRequest;
 import ledance.dto.alumno.response.AlumnoDataResponse;
+import ledance.dto.alumno.response.AlumnoListadoResponse;
 import ledance.dto.alumno.response.AlumnoResponse;
 import ledance.dto.disciplina.DisciplinaMapper;
 import ledance.dto.disciplina.response.DisciplinaResponse;
@@ -163,56 +164,16 @@ public class AlumnoServicio implements IAlumnoServicio {
         List<DetallePago> detallesPendientes = detallePagoRepositorio
                 .findByAlumnoIdAndImportePendienteGreaterThan(alumnoId, 0.0);
 
-        // 3. Obtener las mensualidades pendientes del alumno
-        List<Mensualidad> mensualidadesPendientes = mensualidadRepositorio
-                .findByInscripcionAlumnoIdAndEstado(alumnoId, EstadoMensualidad.PENDIENTE);
-
-        // 3a. Identificar los IDs de mensualidades ya centralizadas en DetallePago
-        Set<Long> mensualidadesRegistradas = detallesPendientes.stream()
-                .filter(dp -> dp.getMensualidad() != null)
-                .map(dp -> dp.getMensualidad().getId())
-                .collect(Collectors.toSet());
-
-        // 3b. Para cada mensualidad pendiente sin registro en DetallePago, crear y persistir uno nuevo
-        for (Mensualidad mensualidad : mensualidadesPendientes) {
-            if (!mensualidadesRegistradas.contains(mensualidad.getId())
-                    && mensualidad.getImportePendiente() > 0) {
-                DetallePago nuevoDetalle = new DetallePago();
-                nuevoDetalle.setAlumno(alumno);
-                // Asigna una descripción centralizada; si la mensualidad tiene descripción, se usa, sino se arma un texto con la fecha.
-                nuevoDetalle.setDescripcionConcepto(
-                        mensualidad.getDescripcion() != null
-                                ? mensualidad.getDescripcion().toUpperCase()
-                                : "MENSUALIDAD " + mensualidad.getFechaCuota());
-                // Formatear la cuota o período de la mensualidad
-                nuevoDetalle.setCuotaOCantidad(
-                        mensualidad.getFechaCuota().format(DateTimeFormatter.ofPattern("MMMM yyyy")).toUpperCase());
-                nuevoDetalle.setValorBase(mensualidad.getValorBase());
-                nuevoDetalle.setImporteInicial(mensualidad.getImporteInicial());
-                nuevoDetalle.setImportePendiente(
-                        mensualidad.getImporteInicial() - mensualidad.getMontoAbonado());
-                nuevoDetalle.setaCobrar(mensualidad.getValorBase());
-                nuevoDetalle.setCobrado(false);
-                nuevoDetalle.setTipo(TipoDetallePago.MENSUALIDAD);
-                nuevoDetalle.setFechaRegistro(mensualidad.getFechaCuota());
-                // Asocia la mensualidad al nuevo DetallePago
-                nuevoDetalle.setMensualidad(mensualidad);
-
-                // Persiste el nuevo registro de DetallePago y lo agrega a la lista
-                DetallePago detallePersistido = detallePagoRepositorio.save(nuevoDetalle);
-                detallesPendientes.add(detallePersistido);
-            }
-        }
-
-        // 4. Mapear cada DetallePago a su DTO, utilizando el mapper centralizado (incluyendo el campo version)
+        // 3. Mapear cada DetallePago a su DTO, utilizando el mapper centralizado
         List<DetallePagoResponse> detallePagosDTO = detallesPendientes.stream()
                 .map(detallePagoMapper::toDTO)
                 .collect(Collectors.toList());
 
+        // 4. Mapear el alumno a AlumnoListadoResponse usando el nuevo mapper
+        AlumnoListadoResponse alumnoListadoResponse = alumnoMapper.toAlumnoListadoResponse(alumno);
+
         // 5. Retornar la respuesta unificada
-        return new AlumnoDataResponse(
-                alumnoMapper.toResponse(alumno),
-                detallePagosDTO
-        );
+        return new AlumnoDataResponse(alumnoListadoResponse, detallePagosDTO);
     }
+
 }

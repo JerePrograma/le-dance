@@ -1,6 +1,7 @@
 package ledance.dto.alumno;
 
 import ledance.dto.alumno.request.AlumnoRegistroRequest;
+import ledance.dto.alumno.response.AlumnoListadoResponse;
 import ledance.dto.alumno.response.AlumnoResponse;
 import ledance.dto.inscripcion.InscripcionMapper;
 import ledance.entidades.Alumno;
@@ -24,5 +25,7 @@ public interface AlumnoMapper {
     Alumno toEntity(AlumnoRegistroRequest request);
 
     void updateEntityFromRequest(AlumnoRegistroRequest request, @MappingTarget Alumno alumno);
+
+    AlumnoListadoResponse toAlumnoListadoResponse(Alumno alumno);
 
 }
