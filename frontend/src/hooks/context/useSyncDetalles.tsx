@@ -82,7 +82,8 @@ export const useSyncDetalles = (alumnoData: AlumnoDataResponse | undefined) => {
     }
 
     // Usamos la propiedad 'detallePagosPendientes' si existe; de lo contrario, 'detallePagos'
-    const detallesPendientes = alumnoData.detallePagosPendientes || [];
+    const detallesPendientes =
+      alumnoData.detallePagosPendientes || alumnoData.detallePagos || [];
     console.log(
       "[useSyncDetalles] Detalles pendientes a mapear:",
       detallesPendientes

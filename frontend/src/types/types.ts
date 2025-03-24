@@ -886,6 +886,7 @@ export interface CobranzaDTO {
 export interface AlumnoDataResponse {
   alumno: AlumnoResponse;
   detallePagosPendientes: DetallePagoResponse[];
+  detallePagos?: DetallePagoResponse[]; // Propiedad opcional
 }
 
 export interface CobranzasDataResponse {
