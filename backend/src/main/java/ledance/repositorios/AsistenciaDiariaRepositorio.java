@@ -67,4 +67,6 @@ public interface AsistenciaDiariaRepositorio extends JpaRepository<AsistenciaDia
     boolean existsByAsistenciaAlumnoMensualIdAndFecha(Long id, LocalDate fecha);
 
     Optional<AsistenciaDiaria> findByAsistenciaAlumnoMensualIdAndFecha(Long id, LocalDate fecha);
+
+    List<AsistenciaDiaria> findByAsistenciaAlumnoMensualId(Long id);
 }

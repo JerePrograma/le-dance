@@ -4,16 +4,13 @@ import ledance.dto.asistencia.request.AsistenciaDiariaRegistroRequest;
 import ledance.dto.asistencia.request.AsistenciaDiariaModificacionRequest;
 import ledance.dto.asistencia.response.AsistenciaDiariaDetalleResponse;
 import ledance.dto.asistencia.AsistenciaDiariaMapper;
-import ledance.entidades.Alumno;
-import ledance.entidades.AsistenciaAlumnoMensual;
-import ledance.entidades.AsistenciaDiaria;
-import ledance.entidades.AsistenciaMensual;
-import ledance.entidades.EstadoAsistencia;
-import ledance.entidades.Inscripcion;
+import ledance.entidades.*;
+import ledance.infra.errores.TratadorDeErrores;
 import ledance.repositorios.AsistenciaDiariaRepositorio;
 import ledance.repositorios.AsistenciaMensualRepositorio;
 import ledance.repositorios.AsistenciaAlumnoMensualRepositorio;
 import ledance.repositorios.InscripcionRepositorio;
+import ledance.servicios.disciplina.DisciplinaHorarioServicio;
 import ledance.servicios.disciplina.DisciplinaServicio;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,10 +19,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.time.YearMonth;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -39,7 +36,7 @@ public class AsistenciaDiariaServicio {
     private final InscripcionRepositorio inscripcionRepositorio;
     private final AsistenciaMensualRepositorio asistenciaMensualRepositorio;
     private final AsistenciaAlumnoMensualRepositorio asistenciaAlumnoMensualRepositorio;
-    private final DisciplinaServicio disciplinaServicio;
+    private final DisciplinaHorarioServicio disciplinaHorarioServicio;
 
     public AsistenciaDiariaServicio(
             AsistenciaDiariaRepositorio asistenciaDiariaRepositorio,
@@ -47,13 +44,13 @@ public class AsistenciaDiariaServicio {
             InscripcionRepositorio inscripcionRepositorio,
             AsistenciaMensualRepositorio asistenciaMensualRepositorio,
             AsistenciaAlumnoMensualRepositorio asistenciaAlumnoMensualRepositorio,
-            DisciplinaServicio disciplinaServicio) {
+            DisciplinaHorarioServicio disciplinaHorarioServicio) {
         this.asistenciaDiariaRepositorio = asistenciaDiariaRepositorio;
         this.asistenciaDiariaMapper = asistenciaDiariaMapper;
         this.inscripcionRepositorio = inscripcionRepositorio;
         this.asistenciaMensualRepositorio = asistenciaMensualRepositorio;
         this.asistenciaAlumnoMensualRepositorio = asistenciaAlumnoMensualRepositorio;
-        this.disciplinaServicio = disciplinaServicio;
+        this.disciplinaHorarioServicio = disciplinaHorarioServicio;
     }
 
     /**
@@ -84,7 +81,7 @@ public class AsistenciaDiariaServicio {
         }
 
         // Calcular los dias de clase para la disciplina de la planilla
-        List<LocalDate> fechasClase = disciplinaServicio.obtenerDiasClase(
+        List<LocalDate> fechasClase = obtenerDiasClase(
                 planilla.getDisciplina().getId(),
                 planilla.getMes(),
                 planilla.getAnio()
@@ -191,8 +188,11 @@ public class AsistenciaDiariaServicio {
                 .collect(Collectors.toList());
     }
 
+    @Transactional
     public void eliminarAsistencia(Long id) {
-        asistenciaDiariaRepositorio.deleteById(id);
+        AsistenciaDiaria asistenciaDiaria = asistenciaDiariaRepositorio.findById(id)
+                .orElseThrow(() -> new TratadorDeErrores.RecursoNoEncontradoException("AsistenciaDiaria no encontrada."));
+        asistenciaDiariaRepositorio.delete(asistenciaDiaria);
     }
 
     /**
@@ -202,5 +202,48 @@ public class AsistenciaDiariaServicio {
     @Transactional(readOnly = true)
     public Map<Long, Integer> obtenerResumenAsistenciasPorAlumno(Long disciplinaId, LocalDate fechaInicio, LocalDate fechaFin) {
         return asistenciaDiariaRepositorio.contarAsistenciasPorAlumno(disciplinaId, fechaInicio, fechaFin);
+    }
+
+
+    @Transactional
+    public void eliminarAsistenciaAlumnoMensual(Long id) {
+        AsistenciaAlumnoMensual asistenciaAlumnoMensual = asistenciaAlumnoMensualRepositorio.findById(id)
+                .orElseThrow(() -> new TratadorDeErrores.RecursoNoEncontradoException("AsistenciaAlumnoMensual no encontrada."));
+
+        // Eliminar las asistencias diarias asociadas
+        List<AsistenciaDiaria> asistenciasDiarias = asistenciaDiariaRepositorio.findByAsistenciaAlumnoMensualId(asistenciaAlumnoMensual.getId());
+        if (asistenciasDiarias != null && !asistenciasDiarias.isEmpty()) {
+            for (AsistenciaDiaria asistenciaDiaria : asistenciasDiarias) {
+                eliminarAsistencia(asistenciaDiaria.getId());
+            }
+        }
+
+        asistenciaAlumnoMensualRepositorio.flush();
+        asistenciaAlumnoMensualRepositorio.delete(asistenciaAlumnoMensual);
+    }
+
+    public List<LocalDate> obtenerDiasClase(Long disciplinaId, Integer mes, Integer anio) {
+        log.info("Calculando dias de clase para la disciplina id: {} en {}/{}", disciplinaId, mes, anio);
+
+        // Obtener los horarios como entidades (no DTOs)
+        List<DisciplinaHorario> horarios = disciplinaHorarioServicio.obtenerHorariosEntidad(disciplinaId);
+
+        // Convertir cada horario a un DayOfWeek utilizando el metodo toDayOfWeek() de tu enum
+        Set<DayOfWeek> diasClase = horarios.stream()
+                .map(h -> h.getDiaSemana().toDayOfWeek())
+                .collect(Collectors.toSet());
+
+        log.info("Dias de clase identificados: {}", diasClase);
+
+        YearMonth yearMonth = YearMonth.of(anio, mes);
+        List<LocalDate> fechasClase = new ArrayList<>();
+        for (int dia = 1; dia <= yearMonth.lengthOfMonth(); dia++) {
+            LocalDate fecha = LocalDate.of(anio, mes, dia);
+            if (diasClase.contains(fecha.getDayOfWeek())) {
+                fechasClase.add(fecha);
+            }
+        }
+        log.info("Total de dias de clase encontrados: {}", fechasClase.size());
+        return fechasClase;
     }
 }

@@ -27,9 +27,8 @@ public interface DisciplinaMapper {
     @Mapping(target = "salon.id", source = "salonId")
     Disciplina toEntity(DisciplinaRegistroRequest request);
 
-    @Mapping(target = "salon.id", source = "salonId")
+    @Mapping(target = "salon", ignore = true)
     @Mapping(target = "horarios", ignore = true)
-        // <-- Ignoramos el mapeo de horarios en la actualizacion
     void updateEntityFromRequest(DisciplinaModificacionRequest request, @org.mapstruct.MappingTarget Disciplina disciplina);
 
     default String mapSalonToString(Salon salon) {

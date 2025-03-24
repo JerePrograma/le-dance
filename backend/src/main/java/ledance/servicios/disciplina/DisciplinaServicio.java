@@ -1,5 +1,6 @@
 package ledance.servicios.disciplina;
 
+import jakarta.persistence.EntityNotFoundException;
 import ledance.dto.alumno.AlumnoMapper;
 import ledance.dto.disciplina.DisciplinaHorarioMapper;
 import ledance.dto.disciplina.DisciplinaMapper;
@@ -10,14 +11,14 @@ import ledance.dto.alumno.response.AlumnoResponse;
 import ledance.dto.disciplina.response.DisciplinaResponse;
 import ledance.dto.disciplina.response.DisciplinaHorarioResponse;
 import ledance.dto.profesor.response.ProfesorResponse;
-import ledance.entidades.Disciplina;
-import ledance.entidades.DisciplinaHorario;
-import ledance.entidades.Profesor;
+import ledance.entidades.*;
 import ledance.infra.errores.TratadorDeErrores;
 import ledance.repositorios.*;
 import jakarta.transaction.Transactional;
+import ledance.servicios.inscripcion.InscripcionServicio;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
@@ -38,22 +39,31 @@ public class DisciplinaServicio implements IDisciplinaServicio {
     private final AlumnoMapper alumnoMapper;
     private final ProfesorMapper profesorMapper;
     private final DisciplinaHorarioServicio disciplinaHorarioServicio;
+    private final DisciplinaHorarioRepositorio disciplinaHorarioRepositorio;
+    private final InscripcionRepositorio inscripcionRepositorio;
+    private final AsistenciaAlumnoMensualRepositorio asistenciaAlumnoMensualRepositorio;
+    private final AsistenciaDiariaRepositorio asistenciaDiariaRepositorio;
+    private final SalonRepositorio salonRepositorio;
 
     public DisciplinaServicio(DisciplinaRepositorio disciplinaRepositorio,
                               ProfesorRepositorio profesorRepositorio,
                               DisciplinaMapper disciplinaMapper,
                               AlumnoMapper alumnoMapper,
                               ProfesorMapper profesorMapper,
-                              InscripcionRepositorio inscripcionRepositorio,
-                              AsistenciaMensualRepositorio asistenciaMensualRepositorio,
-                              DisciplinaHorarioMapper disciplinaHorarioMapper,
-                              DisciplinaHorarioServicio disciplinaHorarioServicio) {
+                              DisciplinaHorarioServicio disciplinaHorarioServicio,
+                              DisciplinaHorarioRepositorio disciplinaHorarioRepositorio,
+                              InscripcionServicio inscripcionServicio1, InscripcionRepositorio inscripcionRepositorio, AsistenciaAlumnoMensualRepositorio asistenciaAlumnoMensualRepositorio, AsistenciaDiariaRepositorio asistenciaDiariaRepositorio, SalonRepositorio salonRepositorio) {
         this.disciplinaRepositorio = disciplinaRepositorio;
         this.profesorRepositorio = profesorRepositorio;
         this.disciplinaMapper = disciplinaMapper;
         this.alumnoMapper = alumnoMapper;
         this.profesorMapper = profesorMapper;
         this.disciplinaHorarioServicio = disciplinaHorarioServicio;
+        this.disciplinaHorarioRepositorio = disciplinaHorarioRepositorio;
+        this.inscripcionRepositorio = inscripcionRepositorio;
+        this.asistenciaAlumnoMensualRepositorio = asistenciaAlumnoMensualRepositorio;
+        this.asistenciaDiariaRepositorio = asistenciaDiariaRepositorio;
+        this.salonRepositorio = salonRepositorio;
     }
 
     /**
@@ -119,18 +129,26 @@ public class DisciplinaServicio implements IDisciplinaServicio {
                 .orElseThrow(() -> new TratadorDeErrores.ProfesorNotFoundException(request.profesorId()));
         log.info("Profesor encontrado: {} {}", profesor.getNombre(), profesor.getApellido());
 
-        // Actualiza los campos basicos de la disciplina mediante el mapper
+        // Actualiza los campos básicos (excepto el salón, que se maneja manualmente)
         disciplinaMapper.updateEntityFromRequest(request, existente);
         existente.setProfesor(profesor);
 
-        // Actualiza la coleccion de horarios de la disciplina, si se proporcionan
-        if (request.horarios() != null && !request.horarios().isEmpty()) {
-            log.info("Actualizando horarios para la disciplina id: {}", existente.getId());
-            // Se asume que request.horarios() ya es de tipo List<DisciplinaHorarioModificacionRequest>
+        // Recupera el salón administrado usando el id del request y lo asigna
+        Salon salon = salonRepositorio.findById(request.salonId())
+                .orElseThrow(() -> new TratadorDeErrores.ResourceNotFoundException(request.salonId().toString()));
+        log.info("Salón encontrado: {}", salon.getNombre());
+        existente.setSalon(salon);
+
+        // Actualiza o elimina la colección de horarios
+        if (request.horarios() == null || request.horarios().isEmpty()) {
+            log.info("Eliminando todos los horarios para la disciplina con id: {}", existente.getId());
+            existente.getHorarios().clear();
+        } else {
+            log.info("Actualizando horarios para la disciplina con id: {}", existente.getId());
             disciplinaHorarioServicio.actualizarHorarios(existente, request.horarios(), LocalDate.now());
         }
 
-        // Guarda la disciplina actualizada en la base de datos
+        // Guarda la disciplina actualizada
         Disciplina disciplinaActualizada = disciplinaRepositorio.save(existente);
         log.info("Disciplina actualizada correctamente con id: {}", disciplinaActualizada.getId());
 
@@ -140,14 +158,58 @@ public class DisciplinaServicio implements IDisciplinaServicio {
     /**
      * Realiza una baja logica de la disciplina.
      */
-    @Override
     @Transactional
     public void eliminarDisciplina(Long id) {
-        log.info("Iniciando eliminacion de la disciplina con id: {}", id);
+        // Recupera la disciplina
         Disciplina disciplina = disciplinaRepositorio.findById(id)
-                .orElseThrow(() -> new TratadorDeErrores.DisciplinaNotFoundException(id));
+                .orElseThrow(() -> new EntityNotFoundException("Disciplina no encontrada"));
+
+        // 1. Procesar las inscripciones de la disciplina
+        if (disciplina.getInscripciones() != null && !disciplina.getInscripciones().isEmpty()) {
+            // Se usa una copia para evitar ConcurrentModificationException
+            List<Inscripcion> inscripciones = new ArrayList<>(disciplina.getInscripciones());
+            for (Inscripcion inscripcion : inscripciones) {
+                // 1.1. Procesar las asistencias de alumno asociadas a la inscripción
+                List<AsistenciaAlumnoMensual> asistenciasAlumno =
+                        asistenciaAlumnoMensualRepositorio.findByInscripcionId(inscripcion.getId());
+                if (asistenciasAlumno != null && !asistenciasAlumno.isEmpty()) {
+                    List<AsistenciaAlumnoMensual> copiaAsistencias = new ArrayList<>(asistenciasAlumno);
+                    for (AsistenciaAlumnoMensual asistenciaAlumno : copiaAsistencias) {
+                        // 1.1.1. Eliminar las asistencias diarias asociadas
+                        List<AsistenciaDiaria> asistenciasDiarias =
+                                asistenciaDiariaRepositorio.findByAsistenciaAlumnoMensualId(asistenciaAlumno.getId());
+                        if (asistenciasDiarias != null && !asistenciasDiarias.isEmpty()) {
+                            // Usamos una copia de la lista para iterar
+                            for (AsistenciaDiaria asistenciaDiaria : new ArrayList<>(asistenciasDiarias)) {
+                                asistenciaDiariaRepositorio.delete(asistenciaDiaria);
+                            }
+                        }
+                        // 1.1.2. Una vez eliminadas las diarias, eliminamos el registro de AsistenciaAlumnoMensual
+                        asistenciaAlumnoMensualRepositorio.delete(asistenciaAlumno);
+                    }
+                }
+                // 1.2. Finalmente, eliminar la inscripción
+                inscripcionRepositorio.delete(inscripcion);
+            }
+            inscripcionRepositorio.flush();
+        }
+
+        // 2. Eliminar los horarios asociados
+        // 2. Eliminar los horarios asociados
+        if (disciplina.getHorarios() != null && !disciplina.getHorarios().isEmpty()) {
+            // Creamos una copia para iterar y remover sin modificar la lista original en iteración
+            List<DisciplinaHorario> horarios = new ArrayList<>(disciplina.getHorarios());
+            for (DisciplinaHorario horario : horarios) {
+                // Removemos el horario de la colección de la disciplina para evitar que se intente actualizar
+                disciplina.getHorarios().remove(horario);
+                // Eliminamos directamente el registro
+                disciplinaHorarioRepositorio.delete(horario);
+            }
+            disciplinaHorarioRepositorio.flush();
+        }
+
+        // 3. Finalmente, eliminar la disciplina
         disciplinaRepositorio.delete(disciplina);
-        log.info("Disciplina con id: {} eliminada", id);
     }
 
     /**

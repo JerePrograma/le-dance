@@ -37,21 +37,16 @@ public class AlumnoServicio implements IAlumnoServicio {
     private final AlumnoRepositorio alumnoRepositorio;
     private final AlumnoMapper alumnoMapper;
     private final DisciplinaMapper disciplinaMapper;
-    private final InscripcionServicio inscripcionServicio;
-    private final PagoServicio pagoServicio;
     private final DetallePagoRepositorio detallePagoRepositorio;
     private final DetallePagoMapper detallePagoMapper;
-    private final MensualidadRepositorio mensualidadRepositorio;
 
-    public AlumnoServicio(AlumnoRepositorio alumnoRepositorio, AlumnoMapper alumnoMapper, DisciplinaMapper disciplinaMapper, InscripcionServicio inscripcionServicio, PagoServicio pagoServicio, DetallePagoRepositorio detallePagoRepositorio, DetallePagoMapper detallePagoMapper, MensualidadRepositorio mensualidadRepositorio) {
+    public AlumnoServicio(AlumnoRepositorio alumnoRepositorio, AlumnoMapper alumnoMapper, DisciplinaMapper disciplinaMapper,
+                          DetallePagoRepositorio detallePagoRepositorio, DetallePagoMapper detallePagoMapper, MensualidadRepositorio mensualidadRepositorio) {
         this.alumnoRepositorio = alumnoRepositorio;
         this.alumnoMapper = alumnoMapper;
         this.disciplinaMapper = disciplinaMapper;
-        this.inscripcionServicio = inscripcionServicio;
-        this.pagoServicio = pagoServicio;
         this.detallePagoRepositorio = detallePagoRepositorio;
         this.detallePagoMapper = detallePagoMapper;
-        this.mensualidadRepositorio = mensualidadRepositorio;
     }
 
     @Override

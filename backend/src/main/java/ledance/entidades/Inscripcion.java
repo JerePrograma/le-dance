@@ -1,10 +1,15 @@
 package ledance.entidades;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 @Getter
@@ -24,11 +29,12 @@ public class Inscripcion {
     @ManyToOne
     @JoinColumn(name = "alumno_id", nullable = false)
     @EqualsAndHashCode.Exclude
-    @ToString.Exclude // ⬅️ Añadir aqui
+    @ToString.Exclude
     private Alumno alumno;
 
-    @ManyToOne
+    @ManyToOne(optional = false)
     @JoinColumn(name = "disciplina_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Disciplina disciplina;
 
     @ManyToOne
@@ -49,4 +55,8 @@ public class Inscripcion {
     @EqualsAndHashCode.Exclude
     private List<Mensualidad> mensualidades;
 
+    // Relación añadida para manejar la eliminación en cascada de asistencias_alumno_mensual
+    @OneToMany(mappedBy = "inscripcion", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private List<AsistenciaAlumnoMensual> asistenciasAlumnoMensual = new ArrayList<>();
 }

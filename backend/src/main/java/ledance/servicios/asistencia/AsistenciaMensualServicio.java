@@ -6,6 +6,7 @@ import ledance.dto.asistencia.response.AsistenciaMensualListadoResponse;
 import ledance.dto.asistencia.AsistenciaMensualMapper;
 import ledance.dto.asistencia.response.AsistenciasActivasResponse;
 import ledance.entidades.*;
+import ledance.infra.errores.TratadorDeErrores;
 import ledance.repositorios.*;
 import ledance.servicios.disciplina.DisciplinaServicio;
 import org.springframework.context.annotation.Lazy;

@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,6 +32,7 @@ public class DisciplinaHorario {
     @JoinColumn(name = "disciplina_id", nullable = false)
     @EqualsAndHashCode.Exclude  // Excluir para evitar recursion en equals
     @JsonBackReference        // <-- Añadido para evitar ciclo en la serializacion
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Disciplina disciplina;
 
     @Enumerated(EnumType.STRING)

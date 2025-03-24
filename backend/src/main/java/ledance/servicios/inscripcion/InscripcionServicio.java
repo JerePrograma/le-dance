@@ -9,6 +9,7 @@ import ledance.dto.inscripcion.response.InscripcionResponse;
 import ledance.entidades.*;
 import ledance.infra.errores.TratadorDeErrores;
 import ledance.repositorios.*;
+import ledance.servicios.asistencia.AsistenciaDiariaServicio;
 import ledance.servicios.asistencia.AsistenciaMensualServicio;
 import ledance.servicios.matricula.MatriculaServicio;
 import ledance.servicios.mensualidad.MensualidadServicio;
@@ -41,6 +42,7 @@ public class InscripcionServicio implements IInscripcionServicio {
     private final MatriculaServicio matriculaServicio;
     private final PaymentProcessor paymentProcessor;
     private final PagoRepositorio pagoRepositorio;
+    private final AsistenciaDiariaServicio asistenciaDiariaServicio;
 
     public InscripcionServicio(InscripcionRepositorio inscripcionRepositorio,
                                AlumnoRepositorio alumnoRepositorio,
@@ -51,7 +53,7 @@ public class InscripcionServicio implements IInscripcionServicio {
                                AsistenciaMensualServicio asistenciaMensualServicio,
                                MensualidadServicio mensualidadServicio,
                                AsistenciaMensualMapper asistenciaMensualMapper,
-                               AsistenciaAlumnoMensualRepositorio asistenciaAlumnoMensualRepositorio, MatriculaServicio matriculaServicio, PaymentProcessor paymentProcessor, PagoServicio pagoServicio, PagoRepositorio pagoRepositorio) {
+                               AsistenciaAlumnoMensualRepositorio asistenciaAlumnoMensualRepositorio, MatriculaServicio matriculaServicio, PaymentProcessor paymentProcessor, PagoServicio pagoServicio, PagoRepositorio pagoRepositorio, AsistenciaDiariaServicio asistenciaDiariaServicio) {
         this.inscripcionRepositorio = inscripcionRepositorio;
         this.alumnoRepositorio = alumnoRepositorio;
         this.disciplinaRepositorio = disciplinaRepositorio;
@@ -63,6 +65,7 @@ public class InscripcionServicio implements IInscripcionServicio {
         this.matriculaServicio = matriculaServicio;
         this.paymentProcessor = paymentProcessor;
         this.pagoRepositorio = pagoRepositorio;
+        this.asistenciaDiariaServicio = asistenciaDiariaServicio;
     }
 
     /**
@@ -238,18 +241,20 @@ public class InscripcionServicio implements IInscripcionServicio {
     @Transactional
     public void eliminarInscripcion(Long id) {
         Inscripcion inscripcion = inscripcionRepositorio.findById(id)
-                .orElseThrow(() -> new TratadorDeErrores.RecursoNoEncontradoException("Inscripcion no encontrada."));
+                .orElseThrow(() -> new TratadorDeErrores.RecursoNoEncontradoException("Inscripción no encontrada."));
 
-        // Eliminar registros relacionados en otras entidades antes de eliminar la inscripcion
-        List<AsistenciaAlumnoMensual> registros = asistenciaAlumnoMensualRepositorio.findByInscripcionId(inscripcion.getId());
-        if (!registros.isEmpty()) {
-            asistenciaAlumnoMensualRepositorio.deleteAll(registros);
+        // Eliminar registros de AsistenciaAlumnoMensual asociados a la inscripción
+        List<AsistenciaAlumnoMensual> asistencias = asistenciaAlumnoMensualRepositorio.findByInscripcionId(inscripcion.getId());
+        if (asistencias != null && !asistencias.isEmpty()) {
+            for (AsistenciaAlumnoMensual asistenciaAlumnoMensual : asistencias) {
+                asistenciaDiariaServicio.eliminarAsistenciaAlumnoMensual(asistenciaAlumnoMensual.getId());
+            }
         }
 
-        // Refrescar la entidad en el contexto de persistencia
+        // Forzar el sincronizado del contexto de persistencia
         inscripcionRepositorio.flush();
 
-        // Ahora eliminamos la inscripcion (sus mensualidades seran eliminadas en cascada)
+        // Eliminar la inscripción (las mensualidades se eliminarán en cascada si están configuradas)
         inscripcionRepositorio.delete(inscripcion);
     }
 

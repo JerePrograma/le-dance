@@ -91,7 +91,9 @@ const BonificacionesFormulario: React.FC = () => {
     async (
       values: BonificacionRegistroRequest &
         Partial<BonificacionModificacionRequest>,
-      { setSubmitting }: FormikHelpers<
+      {
+        setSubmitting,
+      }: FormikHelpers<
         BonificacionRegistroRequest & Partial<BonificacionModificacionRequest>
       >
     ) => {
@@ -247,10 +249,11 @@ const BonificacionesFormulario: React.FC = () => {
 
             {mensaje && (
               <p
-                className={`form-mensaje ${mensaje.includes("Error") || mensaje.includes("no encontrada")
-                  ? "form-mensaje-error"
-                  : "form-mensaje-success"
-                  }`}
+                className={`form-mensaje ${
+                  mensaje.includes("Error") || mensaje.includes("no encontrada")
+                    ? "form-mensaje-error"
+                    : "form-mensaje-success"
+                }`}
               >
                 {mensaje}
               </p>
