@@ -7,6 +7,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -53,6 +55,7 @@ public class Mensualidad {
 
     @ManyToOne
     @JoinColumn(name = "inscripcion_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Inscripcion inscripcion;
 
     private String descripcion;

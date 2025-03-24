@@ -38,4 +38,5 @@ public interface AsistenciaMensualRepositorio extends JpaRepository<AsistenciaMe
                                             @Param("mes") Integer mes,
                                             @Param("anio") Integer anio);
 
+    List<AsistenciaMensual> findByDisciplinaId(Long id);
 }

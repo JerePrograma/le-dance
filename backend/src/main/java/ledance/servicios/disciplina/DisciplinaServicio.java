@@ -44,6 +44,8 @@ public class DisciplinaServicio implements IDisciplinaServicio {
     private final AsistenciaAlumnoMensualRepositorio asistenciaAlumnoMensualRepositorio;
     private final AsistenciaDiariaRepositorio asistenciaDiariaRepositorio;
     private final SalonRepositorio salonRepositorio;
+    private final MensualidadRepositorio mensualidadRepositorio;
+    private final AsistenciaMensualRepositorio asistenciaMensualRepositorio;
 
     public DisciplinaServicio(DisciplinaRepositorio disciplinaRepositorio,
                               ProfesorRepositorio profesorRepositorio,
@@ -51,8 +53,7 @@ public class DisciplinaServicio implements IDisciplinaServicio {
                               AlumnoMapper alumnoMapper,
                               ProfesorMapper profesorMapper,
                               DisciplinaHorarioServicio disciplinaHorarioServicio,
-                              DisciplinaHorarioRepositorio disciplinaHorarioRepositorio,
-                              InscripcionServicio inscripcionServicio1, InscripcionRepositorio inscripcionRepositorio, AsistenciaAlumnoMensualRepositorio asistenciaAlumnoMensualRepositorio, AsistenciaDiariaRepositorio asistenciaDiariaRepositorio, SalonRepositorio salonRepositorio) {
+                              DisciplinaHorarioRepositorio disciplinaHorarioRepositorio, InscripcionRepositorio inscripcionRepositorio, AsistenciaAlumnoMensualRepositorio asistenciaAlumnoMensualRepositorio, AsistenciaDiariaRepositorio asistenciaDiariaRepositorio, SalonRepositorio salonRepositorio, MensualidadRepositorio mensualidadRepositorio, AsistenciaMensualRepositorio asistenciaMensualRepositorio) {
         this.disciplinaRepositorio = disciplinaRepositorio;
         this.profesorRepositorio = profesorRepositorio;
         this.disciplinaMapper = disciplinaMapper;
@@ -64,6 +65,8 @@ public class DisciplinaServicio implements IDisciplinaServicio {
         this.asistenciaAlumnoMensualRepositorio = asistenciaAlumnoMensualRepositorio;
         this.asistenciaDiariaRepositorio = asistenciaDiariaRepositorio;
         this.salonRepositorio = salonRepositorio;
+        this.mensualidadRepositorio = mensualidadRepositorio;
+        this.asistenciaMensualRepositorio = asistenciaMensualRepositorio;
     }
 
     /**
@@ -179,36 +182,50 @@ public class DisciplinaServicio implements IDisciplinaServicio {
                         List<AsistenciaDiaria> asistenciasDiarias =
                                 asistenciaDiariaRepositorio.findByAsistenciaAlumnoMensualId(asistenciaAlumno.getId());
                         if (asistenciasDiarias != null && !asistenciasDiarias.isEmpty()) {
-                            // Usamos una copia de la lista para iterar
-                            for (AsistenciaDiaria asistenciaDiaria : new ArrayList<>(asistenciasDiarias)) {
-                                asistenciaDiariaRepositorio.delete(asistenciaDiaria);
-                            }
+                            asistenciaDiariaRepositorio.deleteAll(new ArrayList<>(asistenciasDiarias));
                         }
-                        // 1.1.2. Una vez eliminadas las diarias, eliminamos el registro de AsistenciaAlumnoMensual
+                        // 1.1.2. Eliminar el registro de AsistenciaAlumnoMensual
                         asistenciaAlumnoMensualRepositorio.delete(asistenciaAlumno);
                     }
                 }
-                // 1.2. Finalmente, eliminar la inscripción
+                // 1.2. Eliminar las mensualidades asociadas a la inscripción
+                if (inscripcion.getMensualidades() != null && !inscripcion.getMensualidades().isEmpty()) {
+                    List<Mensualidad> mensualidades = new ArrayList<>(inscripcion.getMensualidades());
+                    for (Mensualidad mensualidad : mensualidades) {
+                        // Removemos la referencia en la colección para evitar que Hibernate intente actualizarla
+                        inscripcion.getMensualidades().remove(mensualidad);
+                        // Eliminamos directamente la mensualidad
+                        mensualidadRepositorio.delete(mensualidad);
+                    }
+                    mensualidadRepositorio.flush();
+                }
+                // 1.3. Finalmente, eliminar la inscripción
                 inscripcionRepositorio.delete(inscripcion);
             }
             inscripcionRepositorio.flush();
         }
 
-        // 2. Eliminar los horarios asociados
-        // 2. Eliminar los horarios asociados
+        // 2. Eliminar las asistencias mensuales asociadas a la disciplina
+        List<AsistenciaMensual> asistenciasMensuales = asistenciaMensualRepositorio.findByDisciplinaId(disciplina.getId());
+        if (asistenciasMensuales != null && !asistenciasMensuales.isEmpty()) {
+            asistenciaMensualRepositorio.deleteAll(new ArrayList<>(asistenciasMensuales));
+            asistenciaMensualRepositorio.flush();
+        }
+
+        // 3. Eliminar los horarios asociados
         if (disciplina.getHorarios() != null && !disciplina.getHorarios().isEmpty()) {
-            // Creamos una copia para iterar y remover sin modificar la lista original en iteración
+            // Creamos una copia para iterar y remover sin modificar la lista original
             List<DisciplinaHorario> horarios = new ArrayList<>(disciplina.getHorarios());
             for (DisciplinaHorario horario : horarios) {
-                // Removemos el horario de la colección de la disciplina para evitar que se intente actualizar
+                // Removemos el horario de la colección para evitar que se intente actualizar
                 disciplina.getHorarios().remove(horario);
-                // Eliminamos directamente el registro
+                // Eliminamos el registro directamente
                 disciplinaHorarioRepositorio.delete(horario);
             }
             disciplinaHorarioRepositorio.flush();
         }
 
-        // 3. Finalmente, eliminar la disciplina
+        // 4. Finalmente, eliminar la disciplina
         disciplinaRepositorio.delete(disciplina);
     }
 
