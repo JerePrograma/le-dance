@@ -85,6 +85,27 @@ export interface AlumnoRegistroRequest {
   inscripciones: InscripcionRegistroRequest[]; // Asegúrate de que InscripcionRegistroRequest esté definido según tu DTO
 }
 
+export interface AlumnoRegistro {
+  id?: number;
+  nombre: string;
+  apellido: string;
+  fechaNacimiento: string; // en formato ISO, ej. "2023-08-30"
+  fechaIncorporacion: string; // en formato ISO
+  edad: number;
+  celular1?: string;
+  celular2?: string;
+  email1?: string;
+  email2?: string;
+  documento?: string;
+  fechaDeBaja?: string | null;
+  deudaPendiente?: boolean;
+  nombrePadres?: string;
+  autorizadoParaSalirSolo?: boolean;
+  activo: boolean;
+  otrasNotas?: string;
+  cuotaTotal?: number;
+}
+
 // ==========================================
 // PROFESOR
 // ==========================================

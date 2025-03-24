@@ -8,7 +8,7 @@ import inscripcionesApi from "../../api/inscripcionesApi";
 import { toast } from "react-toastify";
 import type {
   AlumnoResponse,
-  AlumnoRegistroRequest,
+  AlumnoRegistro,
   InscripcionResponse,
 } from "../../types/types";
 import useDebounce from "../../hooks/useDebounce";
@@ -21,7 +21,7 @@ import ResponsiveContainer from "../../componentes/comunes/ResponsiveContainer";
 // Pre-cargamos la fecha de incorporación con la fecha actual (formato "yyyy-MM-dd")
 const today = new Date().toISOString().split("T")[0];
 
-const initialAlumnoValues: AlumnoRegistroRequest = {
+const initialAlumnoValues: AlumnoRegistro = {
   id: 0,
   nombre: "",
   apellido: "",
@@ -33,14 +33,12 @@ const initialAlumnoValues: AlumnoRegistroRequest = {
   email1: "",
   email2: "",
   documento: "",
-  fechaDeBaja: null,
   deudaPendiente: false,
   nombrePadres: "",
   autorizadoParaSalirSolo: false,
   activo: true,
   otrasNotas: "",
   cuotaTotal: 0,
-  inscripciones: [],
 };
 
 const AlumnosFormulario: React.FC = () => {
@@ -63,7 +61,7 @@ const AlumnosFormulario: React.FC = () => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   // Estado del formulario
   const [formValues, setFormValues] =
-    useState<AlumnoRegistroRequest>(initialAlumnoValues);
+    useState<AlumnoRegistro>(initialAlumnoValues);
 
   // Ref para detectar clicks fuera del bloque de búsqueda
   const searchWrapperRef = useRef<HTMLDivElement>(null);
@@ -109,11 +107,9 @@ const AlumnosFormulario: React.FC = () => {
       try {
         if (id) {
           const alumno = await alumnosApi.obtenerPorId(Number(id));
-          // Creamos el objeto alumnoForm, asignando inscripciones como un array vacío
-          const alumnoForm: AlumnoRegistroRequest = {
+          const alumnoForm: AlumnoRegistro = {
             ...alumno,
             activo: alumno.activo ?? true,
-            inscripciones: [], // O bien, convertir cada inscripción si se requiere conservar información
           };
           setFormValues(alumnoForm);
           setIdBusqueda(String(alumno.id));
@@ -159,8 +155,8 @@ const AlumnosFormulario: React.FC = () => {
 
   // Manejar envío del formulario (guardar o actualizar)
   const handleGuardarAlumno = async (
-    values: AlumnoRegistroRequest,
-    { setSubmitting }: FormikHelpers<AlumnoRegistroRequest>
+    values: AlumnoRegistro,
+    { setSubmitting }: FormikHelpers<AlumnoRegistro>
   ) => {
     try {
       // Evitar duplicados al crear un nuevo alumno

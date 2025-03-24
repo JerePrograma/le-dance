@@ -1,7 +1,7 @@
 // src/alumnosApi.ts
 import api from "./axiosConfig";
 import type {
-  AlumnoRegistroRequest,
+  AlumnoRegistro,
   AlumnoDataResponse,
   DisciplinaListadoResponse,
   AlumnoResponse,
@@ -24,16 +24,14 @@ const alumnosApi = {
     return response.data;
   },
 
-  registrar: async (
-    alumno: AlumnoRegistroRequest
-  ): Promise<AlumnoResponse> => {
+  registrar: async (alumno: AlumnoRegistro): Promise<AlumnoResponse> => {
     const response = await api.post("/alumnos", alumno);
     return response.data;
   },
 
   actualizar: async (
     id: number,
-    alumno: AlumnoRegistroRequest
+    alumno: AlumnoRegistro
   ): Promise<AlumnoResponse> => {
     const response = await api.put(`/alumnos/${id}`, alumno);
     return response.data;
