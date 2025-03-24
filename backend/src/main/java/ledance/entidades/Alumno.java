@@ -57,7 +57,7 @@ public class Alumno {
     @JsonIgnore
     private List<Inscripcion> inscripciones;
 
-    // Nueva relacion con matrículas para que se eliminen en cascada
+    // Nueva relacion con matriculas para que se eliminen en cascada
     @OneToMany(mappedBy = "alumno", cascade = CascadeType.ALL)
     @JsonIgnore
     private List<Matricula> matriculas;

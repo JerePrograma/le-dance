@@ -4,13 +4,13 @@ ALTER TABLE mensualidades
 ALTER TABLE mensualidades
     DROP COLUMN bonificacion;
 
--- 2. Agregar claves foráneas a `Recargo` y `Bonificacion`
+-- 2. Agregar claves foraneas a `Recargo` y `Bonificacion`
 ALTER TABLE mensualidades
     ADD COLUMN recargo_id INT NULL;
 ALTER TABLE mensualidades
     ADD COLUMN bonificacion_id INT NULL;
 
--- 3. Agregar las claves foráneas a las tablas correspondientes
+-- 3. Agregar las claves foraneas a las tablas correspondientes
 ALTER TABLE mensualidades
     ADD CONSTRAINT fk_mensualidad_recargo
         FOREIGN KEY (recargo_id) REFERENCES recargos (id) ON DELETE SET NULL;

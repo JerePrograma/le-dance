@@ -11,8 +11,8 @@ public record InscripcionRegistroRequest(
         AlumnoRegistroRequest alumno,
         DisciplinaRegistroRequest disciplina,
         Long bonificacionId,
-        @PastOrPresent(message = "La fecha de inscripción no puede ser futura")
+        @PastOrPresent(message = "La fecha de inscripcion no puede ser futura")
         LocalDate fechaInscripcion,
-        LocalDate fechaBaja, // Permite dar de baja una inscripción
+        LocalDate fechaBaja, // Permite dar de baja una inscripcion
         Double costoParticular
 ) { }

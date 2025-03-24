@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 @Mapper(componentModel = "spring", uses = CommonMapper.class)
 public interface InscripcionMapper {
 
-    // Método estándar: mapea una inscripción a InscripcionResponse y ya ignora el alumno
+    // Metodo estandar: mapea una inscripcion a InscripcionResponse y ya ignora el alumno
     @Mapping(target = "id", source = "id")
     @Mapping(target = "fechaInscripcion", source = "fechaInscripcion")
     @Mapping(target = "estado", source = "estado")
@@ -24,7 +24,7 @@ public interface InscripcionMapper {
     @Mapping(target = "alumno", source = "alumno") // Rompe la recursividad
     InscripcionResponse toDTO(Inscripcion inscripcion);
 
-    // Versión simple para listas (puedes definirla como default)
+    // Version simple para listas (puedes definirla como default)
     default List<InscripcionResponse> toSimpleDTOList(List<Inscripcion> inscripciones) {
         if (inscripciones == null) {
             return null;
@@ -34,7 +34,7 @@ public interface InscripcionMapper {
                 .collect(Collectors.toList());
     }
 
-    // Para crear una inscripción a partir del DTO de registro
+    // Para crear una inscripcion a partir del DTO de registro
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "alumno", ignore = true)
     @Mapping(target = "disciplina", expression = "java(mapDisciplina(request.disciplina().id()))")
@@ -43,14 +43,14 @@ public interface InscripcionMapper {
     @Mapping(target = "estado", constant = "ACTIVA")
     Inscripcion toEntity(InscripcionRegistroRequest request);
 
-    // Para actualizar una inscripción a partir del DTO de modificación
+    // Para actualizar una inscripcion a partir del DTO de modificacion
     @Mapping(target = "alumno", ignore = true)
     @Mapping(target = "disciplina", expression = "java(mapDisciplina(request.disciplina().id()))")
     @Mapping(target = "bonificacion", expression = "java(request.bonificacionId() != null ? mapBonificacion(request.bonificacionId()) : null)")
     @Mapping(target = "fechaBaja", source = "fechaBaja")
     Inscripcion updateEntityFromRequest(InscripcionRegistroRequest request, @MappingTarget Inscripcion inscripcion);
 
-    // Métodos auxiliares para crear instancias mínimas de Disciplina y Bonificación a partir del id
+    // Metodos auxiliares para crear instancias minimas de Disciplina y Bonificacion a partir del id
     default Disciplina mapDisciplina(Long disciplinaId) {
         Disciplina d = new Disciplina();
         d.setId(disciplinaId);

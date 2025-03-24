@@ -67,11 +67,11 @@ public class InscripcionServicio implements IInscripcionServicio {
 
     /**
      * Registrar una nueva inscripcion.
-     * Se genera automáticamente una cuotaOCantidad para el mes vigente y se incorpora al alumno a la planilla de asistencia (por disciplina).
+     * Se genera automaticamente una cuotaOCantidad para el mes vigente y se incorpora al alumno a la planilla de asistencia (por disciplina).
      */
     @Transactional
     public InscripcionResponse crearInscripcion(InscripcionRegistroRequest request) {
-        log.info("[crearInscripcion] Iniciando creación de inscripción para alumnoId={}, disciplinaId={}",
+        log.info("[crearInscripcion] Iniciando creacion de inscripcion para alumnoId={}, disciplinaId={}",
                 request.alumno().id(), request.disciplina().id());
 
         // 1. Recuperar y validar alumno y disciplina
@@ -88,19 +88,19 @@ public class InscripcionServicio implements IInscripcionServicio {
             throw new IllegalStateException("La disciplina indicada no tiene profesor asignado.");
         }
 
-        // 2. Recuperar bonificación (si corresponde)
+        // 2. Recuperar bonificacion (si corresponde)
         Bonificacion bonificacion = null;
         if (request.bonificacionId() != null) {
             bonificacion = bonificacionRepositorio.findById(request.bonificacionId()).orElse(null);
             if (bonificacion != null) {
-                log.info("[crearInscripcion] Bonificación encontrada: id={}, descripcion={}",
+                log.info("[crearInscripcion] Bonificacion encontrada: id={}, descripcion={}",
                         bonificacion.getId(), bonificacion.getDescripcion());
             } else {
-                log.info("[crearInscripcion] No se encontró bonificación con id={}", request.bonificacionId());
+                log.info("[crearInscripcion] No se encontro bonificacion con id={}", request.bonificacionId());
             }
         }
 
-        // 3. Mapear y persistir la inscripción
+        // 3. Mapear y persistir la inscripcion
         Inscripcion inscripcion = inscripcionMapper.toEntity(request);
         inscripcion.setAlumno(alumno);
         inscripcion.setDisciplina(disciplina);
@@ -108,28 +108,28 @@ public class InscripcionServicio implements IInscripcionServicio {
         LocalDate fechaInscripcion = (request.fechaInscripcion() != null) ? request.fechaInscripcion() : LocalDate.now();
         inscripcion.setFechaInscripcion(fechaInscripcion);
         Inscripcion inscripcionGuardada = inscripcionRepositorio.save(inscripcion);
-        log.info("[crearInscripcion] Inscripción guardada con ID: {}", inscripcionGuardada.getId());
+        log.info("[crearInscripcion] Inscripcion guardada con ID: {}", inscripcionGuardada.getId());
 
         // 4. Verificar y/o crear un Pago pendiente para el alumno
         Pago pagoPendiente = obtenerOCrearPagoPendiente(alumno, fechaInscripcion);
         pagoPendiente = pagoRepositorio.save(pagoPendiente); // Persistir el pago pendiente
         log.info("[crearInscripcion] Pago pendiente persistido con ID: {}", pagoPendiente.getId());
 
-        // 5. Generar cuota automática y gestionar matrícula asociándolos al Pago pendiente
+        // 5. Generar cuota automatica y gestionar matricula asociandolos al Pago pendiente
         try {
-            // Generar cuota automática para la inscripción
+            // Generar cuota automatica para la inscripcion
             DetallePago mensualidad = mensualidadServicio.generarCuotaAutomatica(inscripcionGuardada, pagoPendiente);
-            log.info("[crearInscripcion] Cuota automática generada para inscripción id={}", inscripcionGuardada.getId());
+            log.info("[crearInscripcion] Cuota automatica generada para inscripcion id={}", inscripcionGuardada.getId());
             pagoPendiente.getDetallePagos().add(mensualidad);
         } catch (Exception e) {
-            log.warn("[crearInscripcion] Error al generar cuota automática: {}", e.getMessage());
+            log.warn("[crearInscripcion] Error al generar cuota automatica: {}", e.getMessage());
         }
         try {
             DetallePago matricula = matriculaServicio.obtenerOMarcarPendienteAutomatica(alumno.getId(), pagoPendiente);
-            log.info("[crearInscripcion] Matrícula verificada o creada automáticamente para alumno id={}", alumno.getId());
+            log.info("[crearInscripcion] Matricula verificada o creada automaticamente para alumno id={}", alumno.getId());
 
         } catch (Exception e) {
-            log.warn("[crearInscripcion] Error al obtener o marcar matrícula pendiente: {}", e.getMessage());
+            log.warn("[crearInscripcion] Error al obtener o marcar matricula pendiente: {}", e.getMessage());
         }
 
         // 6. Agregar alumno a la planilla de asistencia
@@ -137,9 +137,9 @@ public class InscripcionServicio implements IInscripcionServicio {
         int anioActual = LocalDate.now().getYear();
         log.info("[crearInscripcion] Agregando alumno a planilla de asistencia para mes={}, año={}", mesActual, anioActual);
         asistenciaMensualServicio.agregarAlumnoAPlanilla(inscripcionGuardada.getId(), mesActual, anioActual);
-        log.info("[crearInscripcion] Inscripción finalizada exitosamente para alumno id={}", alumno.getId());
+        log.info("[crearInscripcion] Inscripcion finalizada exitosamente para alumno id={}", alumno.getId());
 
-        // Actualizar totales del pago basándose en los DetallePago obtenidos
+        // Actualizar totales del pago basandose en los DetallePago obtenidos
         paymentProcessor.recalcularTotales(pagoPendiente);
         pagoRepositorio.save(pagoPendiente);
         log.info("[crearInscripcion] Totales de Pago actualizados. Pago ID: {}", pagoPendiente.getId());
@@ -150,17 +150,17 @@ public class InscripcionServicio implements IInscripcionServicio {
     /**
      * Verifica si ya existe un pago pendiente para el alumno.
      * Si no existe, crea uno nuevo asignando valores iniciales realistas.
-     * Los montos y saldos se actualizarán al final del proceso.
+     * Los montos y saldos se actualizaran al final del proceso.
      */
     private Pago obtenerOCrearPagoPendiente(Alumno alumno, LocalDate fecha) {
         Pago pagoPendiente = paymentProcessor.obtenerUltimoPagoPendienteEntidad(alumno.getId());
         if (pagoPendiente == null) {
             Pago nuevoPago = new Pago();
             nuevoPago.setFecha(fecha);
-            // Asignar una fecha de vencimiento realista, por ejemplo 5 días después de la inscripción
+            // Asignar una fecha de vencimiento realista, por ejemplo 5 dias despues de la inscripcion
             nuevoPago.setFechaVencimiento(fecha.plusDays(30));
             nuevoPago.setAlumno(alumno);
-            // Inicialización de valores monetarios: estos se recalcularán más adelante según DetallePago
+            // Inicializacion de valores monetarios: estos se recalcularan mas adelante segun DetallePago
             nuevoPago.setMonto(0.0);
             nuevoPago.setValorBase(0.0);
             nuevoPago.setImporteInicial(0.0);
@@ -168,7 +168,7 @@ public class InscripcionServicio implements IInscripcionServicio {
             nuevoPago.setSaldoRestante(0.0);
             // Definir el estado y observaciones (opcional)
             nuevoPago.setEstadoPago(EstadoPago.ACTIVO);
-            nuevoPago.setObservaciones("Pago pendiente creado automáticamente durante la inscripción.");
+            nuevoPago.setObservaciones("Pago pendiente creado automaticamente durante la inscripcion.");
             pagoPendiente = nuevoPago;
             log.info("[obtenerOCrearPagoPendiente] Nuevo pago creado para alumno id={} con ID={}", alumno.getId(), nuevoPago.getId());
         } else {
@@ -177,7 +177,7 @@ public class InscripcionServicio implements IInscripcionServicio {
         return pagoPendiente;
     }
 
-    // Logica de cálculo trasladada al servicio (sin utilizar el mapper)
+    // Logica de calculo trasladada al servicio (sin utilizar el mapper)
     private Double calcularCosto(Inscripcion inscripcion) {
         Disciplina d = inscripcion.getDisciplina();
         double valorCuota = d.getValorCuota() != null ? d.getValorCuota() : 0.0;
@@ -240,7 +240,7 @@ public class InscripcionServicio implements IInscripcionServicio {
         Inscripcion inscripcion = inscripcionRepositorio.findById(id)
                 .orElseThrow(() -> new TratadorDeErrores.RecursoNoEncontradoException("Inscripcion no encontrada."));
 
-        // Eliminar registros relacionados en otras entidades antes de eliminar la inscripción
+        // Eliminar registros relacionados en otras entidades antes de eliminar la inscripcion
         List<AsistenciaAlumnoMensual> registros = asistenciaAlumnoMensualRepositorio.findByInscripcionId(inscripcion.getId());
         if (!registros.isEmpty()) {
             asistenciaAlumnoMensualRepositorio.deleteAll(registros);
@@ -249,7 +249,7 @@ public class InscripcionServicio implements IInscripcionServicio {
         // Refrescar la entidad en el contexto de persistencia
         inscripcionRepositorio.flush();
 
-        // Ahora eliminamos la inscripción (sus mensualidades serán eliminadas en cascada)
+        // Ahora eliminamos la inscripcion (sus mensualidades seran eliminadas en cascada)
         inscripcionRepositorio.delete(inscripcion);
     }
 

@@ -16,7 +16,7 @@ import java.util.List;
 public interface IDisciplinaServicio {
 
     /**
-     * ✅ Registrar una nueva disciplina con horarios por día.
+     * ✅ Registrar una nueva disciplina con horarios por dia.
      */
     DisciplinaResponse crearDisciplina(DisciplinaRegistroRequest requestDTO);
 
@@ -46,23 +46,23 @@ public interface IDisciplinaServicio {
     void eliminarDisciplina(Long id);
 
     /**
-     * ✅ Obtener disciplinas activas según una fecha específica.
-     * ⚠️ Ahora funciona con horarios múltiples por día.
+     * ✅ Obtener disciplinas activas segun una fecha especifica.
+     * ⚠️ Ahora funciona con horarios multiples por dia.
      */
     List<DisciplinaResponse> obtenerDisciplinasPorFecha(String fecha);
 
     /**
-     * ✅ Obtener disciplinas activas según su horario de inicio.
+     * ✅ Obtener disciplinas activas segun su horario de inicio.
      */
     List<DisciplinaResponse> obtenerDisciplinasPorHorario(LocalTime horarioInicio);
 
     /**
-     * ✅ Obtener alumnos de una disciplina específica.
+     * ✅ Obtener alumnos de una disciplina especifica.
      */
     List<AlumnoResponse> obtenerAlumnosDeDisciplina(Long disciplinaId);
 
     /**
-     * ✅ Obtener el profesor de una disciplina específica.
+     * ✅ Obtener el profesor de una disciplina especifica.
      */
     ProfesorResponse obtenerProfesorDeDisciplina(Long disciplinaId);
 
@@ -72,12 +72,12 @@ public interface IDisciplinaServicio {
     List<DisciplinaResponse> buscarPorNombre(String nombre);
 
     /**
-     * ✅ Obtener los días de clase de una disciplina en un mes y año específicos.
+     * ✅ Obtener los dias de clase de una disciplina en un mes y año especificos.
      */
     List<LocalDate> obtenerDiasClase(Long disciplinaId, Integer mes, Integer anio);
 
     /**
-     * ✅ Obtener los horarios de una disciplina específica.
+     * ✅ Obtener los horarios de una disciplina especifica.
      */
     List<DisciplinaHorarioResponse> obtenerHorarios(Long disciplinaId);
 }

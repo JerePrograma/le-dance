@@ -82,7 +82,7 @@ public class DetallePago {
     @Column(name = "fecha_registro", nullable = false)
     private LocalDate fechaRegistro;
 
-    // Getters y Setters para aCobrar (u otros métodos personalizados)
+    // Getters y Setters para aCobrar (u otros metodos personalizados)
     public Double getaCobrar() {
         return aCobrar;
     }

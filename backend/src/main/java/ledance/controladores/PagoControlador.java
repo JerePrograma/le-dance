@@ -116,23 +116,23 @@ public class PagoControlador {
 
     @GetMapping("/alumno/{alumnoId}/ultimo")
     public ResponseEntity<PagoResponse> obtenerUltimoPagoPorAlumno(@PathVariable Long alumnoId) {
-        log.info("Obteniendo último pago pendiente para alumno id: {}", alumnoId);
+        log.info("Obteniendo ultimo pago pendiente para alumno id: {}", alumnoId);
         PagoResponse pago = pagoServicio.obtenerUltimoPagoPorAlumno(alumnoId);
         return ResponseEntity.ok(pago);
     }
 
     /**
      * Endpoint para filtrar detalles de pago.
-     * Todos los parámetros son opcionales. Si algún parámetro no es enviado, se considerará
+     * Todos los parametros son opcionales. Si algun parametro no es enviado, se considerara
      * que se requieren todos los registros para ese criterio.
      *
-     * @param fechaRegistroDesde (opcional) fecha mínima de registro (por ejemplo, fecha de creación del registro)
-     * @param fechaRegistroHasta (opcional) fecha máxima de registro
+     * @param fechaRegistroDesde (opcional) fecha minima de registro (por ejemplo, fecha de creacion del registro)
+     * @param fechaRegistroHasta (opcional) fecha maxima de registro
      * @param detalleConcepto    (opcional) valor o parte del valor del concepto en el DetallePago
-     * @param stock              (opcional) tipo de stock; si no se envía, se incluyen todos los tipos
-     * @param subConcepto        (opcional) sub concepto, en caso de querer filtrar aún más el campo concepto
+     * @param stock              (opcional) tipo de stock; si no se envia, se incluyen todos los tipos
+     * @param subConcepto        (opcional) sub concepto, en caso de querer filtrar aun mas el campo concepto
      * @param disciplina         (opcional) tarifa o tipo de disciplina, por ejemplo: CUOTA, MATRICULA, CLASE_SUELTA, CLASE_DE_PRUEBA
-     * @return Lista de DetallePagoResponse filtrados según los parámetros enviados.
+     * @return Lista de DetallePagoResponse filtrados segun los parametros enviados.
      */
     @GetMapping("/filtrar")
     public ResponseEntity<List<DetallePagoResponse>> filtrarDetalles(
@@ -152,7 +152,7 @@ public class PagoControlador {
 
             @RequestParam(required = false) String disciplina
     ) {
-        log.info("Filtrando detalles de pago con parámetros: fechaRegistroDesde={}, fechaRegistroHasta={}, detalleConcepto={}, stock={}, subConcepto={}, disciplina={}",
+        log.info("Filtrando detalles de pago con parametros: fechaRegistroDesde={}, fechaRegistroHasta={}, detalleConcepto={}, stock={}, subConcepto={}, disciplina={}",
                 fechaRegistroDesde, fechaRegistroHasta, detalleConcepto, stock, subConcepto, disciplina);
 
         List<DetallePagoResponse> detalles = detallePagoServicio.filtrarDetalles(

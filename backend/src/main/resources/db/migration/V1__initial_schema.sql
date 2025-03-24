@@ -1,12 +1,12 @@
 -- ========================================
--- Script Unificado de Creación Final de la Base de Datos
+-- Script Unificado de Creacion Final de la Base de Datos
 -- ========================================
 
--- 1. Crear tipo enumerado (aunque ya no se use en la tabla stocks, no se solicitó eliminarlo)
+-- 1. Crear tipo enumerado (aunque ya no se use en la tabla stocks, no se solicito eliminarlo)
 CREATE TYPE tipo_egreso AS ENUM ('VENTA', 'DEVOLUCION');
 
 -- ========================================
--- CREACIÓN DE TABLAS (VERSIÓN FINAL)
+-- CREACION DE TABLAS (VERSION FINAL)
 -- ========================================
 
 -- Tabla: roles
@@ -90,7 +90,7 @@ CREATE TABLE salones
     descripcion TEXT
 );
 
--- Tabla: disciplinas (sin columnas recargo_id ni matrícula)
+-- Tabla: disciplinas (sin columnas recargo_id ni matricula)
 CREATE TABLE disciplinas
 (
     id                 SERIAL PRIMARY KEY,
@@ -266,7 +266,7 @@ CREATE TABLE disciplina_dias
 CREATE INDEX idx_disciplinas_dias
     ON disciplina_dias (dia);
 
--- Tabla: detalle_pagos (sin la columna "recargo" numérica, con "recargo_id" y "abono")
+-- Tabla: detalle_pagos (sin la columna "recargo" numerica, con "recargo_id" y "abono")
 CREATE TABLE detalle_pagos
 (
     id              SERIAL PRIMARY KEY,

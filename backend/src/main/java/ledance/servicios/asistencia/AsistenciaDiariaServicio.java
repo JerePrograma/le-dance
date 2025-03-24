@@ -57,8 +57,8 @@ public class AsistenciaDiariaServicio {
     }
 
     /**
-     * Genera las asistencias diarias para un nuevo alumno (según su inscripcion)
-     * asociándolas al registro de asistencia mensual del alumno (AsistenciaAlumnoMensual).
+     * Genera las asistencias diarias para un nuevo alumno (segun su inscripcion)
+     * asociandolas al registro de asistencia mensual del alumno (AsistenciaAlumnoMensual).
      * Si ya existen registros para ese alumno en la planilla, se omite la generacion.
      */
     @Transactional
@@ -83,7 +83,7 @@ public class AsistenciaDiariaServicio {
             return;
         }
 
-        // Calcular los días de clase para la disciplina de la planilla
+        // Calcular los dias de clase para la disciplina de la planilla
         List<LocalDate> fechasClase = disciplinaServicio.obtenerDiasClase(
                 planilla.getDisciplina().getId(),
                 planilla.getMes(),
@@ -139,7 +139,7 @@ public class AsistenciaDiariaServicio {
     }
 
     /**
-     * Obtiene una página de asistencias diarias para una disciplina y una fecha específica.
+     * Obtiene una pagina de asistencias diarias para una disciplina y una fecha especifica.
      * Se recorre la relacion: AsistenciaDiaria → asistenciaAlumnoMensual → asistenciaMensual → disciplina.
      */
     @Transactional(readOnly = true)
@@ -181,7 +181,7 @@ public class AsistenciaDiariaServicio {
 
     /**
      * Obtiene las asistencias diarias de una planilla (basado en el id de AsistenciaMensual)
-     * a través de la relacion con AsistenciaAlumnoMensual.
+     * a traves de la relacion con AsistenciaAlumnoMensual.
      */
     @Transactional(readOnly = true)
     public List<AsistenciaDiariaDetalleResponse> obtenerAsistenciasPorAsistenciaMensual(Long asistenciaMensualId) {

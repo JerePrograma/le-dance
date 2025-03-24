@@ -15,7 +15,7 @@ public interface MensualidadMapper {
     @Mapping(target = "recargoId", source = "recargo.id")
     @Mapping(target = "bonificacion", source = "bonificacion")
     @Mapping(target = "inscripcionId", source = "inscripcion.id")
-    @Mapping(target = "importeInicial", source = "importeInicial")  // <-- Agregado explícitamente
+    @Mapping(target = "importeInicial", source = "importeInicial")  // <-- Agregado explicitamente
     MensualidadResponse toDTO(Mensualidad mensualidad);
 
     @Mapping(target = "id", ignore = true)
@@ -27,13 +27,13 @@ public interface MensualidadMapper {
         mensualidad.setFechaCuota(dto.fechaCuota());
         mensualidad.setValorBase(dto.valorBase());
         mensualidad.setEstado(EstadoMensualidad.valueOf(dto.estado()));
-        // Asignar relaciones, por ejemplo, la inscripción (quizás se resuelva en el servicio)
+        // Asignar relaciones, por ejemplo, la inscripcion (quizas se resuelva en el servicio)
         // mensualidad.setInscripcion( ... );
         // Valores por defecto para campos obligatorios que no vienen en el DTO:
         mensualidad.setFechaGeneracion(LocalDate.now());
         mensualidad.setImporteInicial(dto.valorBase());
         mensualidad.setImportePendiente(dto.valorBase());
-        // Otros campos (por ejemplo, descripción) se pueden dejar en null o asignarles un valor predeterminado
+        // Otros campos (por ejemplo, descripcion) se pueden dejar en null o asignarles un valor predeterminado
         return mensualidad;
     }
 

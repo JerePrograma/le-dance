@@ -63,7 +63,7 @@ public class RecargoServicio {
     }
 
     /**
-     * Método que devuelve los recargos que deben aplicarse en una fecha específica.
+     * Metodo que devuelve los recargos que deben aplicarse en una fecha especifica.
      */
     @Transactional(readOnly = true)
     public List<RecargoResponse> obtenerRecargosParaFecha(LocalDate fecha) {

@@ -27,7 +27,7 @@ public interface PagoMapper {
     @Mapping(target = "alumno", expression = "java(alumnoMapper.toResponse(pago.getAlumno()))")
     PagoResponse toDTO(Pago pago);
 
-    // Actualización de una entidad existente con datos del request.
+    // Actualizacion de una entidad existente con datos del request.
     @Mapping(target = "metodoPago", ignore = true)
     @Mapping(target = "detallePagos", ignore = true)
     @Mapping(target = "pagoMedios", ignore = true)

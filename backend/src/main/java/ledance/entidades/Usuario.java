@@ -35,7 +35,7 @@ public class Usuario implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        // Se previene NPE (aunque rol no debería ser nulo)
+        // Se previene NPE (aunque rol no deberia ser nulo)
         String rolDesc = (rol != null) ? rol.getDescripcion() : "UNKNOWN";
         return List.of(new SimpleGrantedAuthority("ROLE_" + rolDesc));
     }

@@ -55,7 +55,7 @@ public class SubConceptoControlador {
         return ResponseEntity.noContent().build();
     }
 
-    // Endpoint para búsqueda de subconceptos por nombre (para sugerencias)
+    // Endpoint para busqueda de subconceptos por nombre (para sugerencias)
     @GetMapping("/buscar")
     public ResponseEntity<List<SubConceptoResponse>> buscarPorNombre(@RequestParam String nombre) {
         List<SubConceptoResponse> resultado = subConceptoServicio.buscarPorNombre(nombre);

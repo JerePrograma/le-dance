@@ -22,7 +22,7 @@ public class ReporteMensualidadControlador {
 
     /**
      * Endpoint para buscar mensualidades con filtros.
-     * Parámetros:
+     * Parametros:
      * - fechaInicio (obligatorio, formato yyyy-MM-dd)
      * - fechaFin (obligatorio, formato yyyy-MM-dd)
      * - disciplinaId (opcional)

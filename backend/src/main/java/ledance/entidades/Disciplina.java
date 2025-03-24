@@ -34,7 +34,7 @@ public class Disciplina {
     @JoinColumn(name = "profesor_id", nullable = false)
     @NotNull(message = "La disciplina debe tener un profesor asignado")
     @EqualsAndHashCode.Exclude
-    @ToString.Exclude // ⬅️ Añadir aquí
+    @ToString.Exclude // ⬅️ Añadir aqui
     private Profesor profesor;
 
     @NotNull
@@ -51,7 +51,7 @@ public class Disciplina {
     @EqualsAndHashCode.Exclude
     private List<Inscripcion> inscripciones;
 
-    // Relacion con los horarios específicos
+    // Relacion con los horarios especificos
     @OneToMany(mappedBy = "disciplina", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference   // <-- Añadido para evitar ciclo en la serializacion
     @EqualsAndHashCode.Exclude

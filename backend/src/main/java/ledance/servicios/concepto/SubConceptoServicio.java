@@ -22,7 +22,7 @@ public class SubConceptoServicio {
         this.subConceptoMapper = subConceptoMapper;
     }
 
-    // Crea un subconcepto nuevo. El mapper se encarga de transformar la descripcion a mayúsculas.
+    // Crea un subconcepto nuevo. El mapper se encarga de transformar la descripcion a mayusculas.
     @Transactional
     public SubConceptoResponse crearSubConcepto(SubConceptoRegistroRequest request) {
         SubConcepto subConcepto = subConceptoMapper.toEntity(request);
@@ -65,7 +65,7 @@ public class SubConceptoServicio {
         subConceptoRepositorio.deleteById(id);
     }
 
-    // Busca subconceptos por nombre (o parte de él). Utiliza el método definido en el repositorio.
+    // Busca subconceptos por nombre (o parte de el). Utiliza el metodo definido en el repositorio.
     @Transactional(readOnly = true)
     public List<SubConceptoResponse> buscarPorNombre(String nombre) {
         return subConceptoRepositorio.buscarPorDescripcion(nombre).stream()

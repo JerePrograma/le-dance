@@ -20,7 +20,7 @@ public interface AsistenciaMensualMapper {
     @Mapping(target = "alumnos", source = "asistenciasAlumnoMensual")
     AsistenciaMensualDetalleResponse toDetalleDTO(AsistenciaMensual asistenciaMensual);
 
-    // Método de mapeo para convertir Salon a String (su nombre)
+    // Metodo de mapeo para convertir Salon a String (su nombre)
     default String map(Salon salon) {
         return (salon != null) ? salon.getNombre() : null;
     }
@@ -32,7 +32,7 @@ public interface AsistenciaMensualMapper {
     @Mapping(target = "anio", source = "anio")
     AsistenciaMensualListadoResponse toListadoDTO(AsistenciaMensual asistenciaMensual);
 
-    // Para crear una nueva planilla (se ignora la relacion de alumnos, que se establecerá posteriormente)
+    // Para crear una nueva planilla (se ignora la relacion de alumnos, que se establecera posteriormente)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "disciplina", ignore = true)
     @Mapping(target = "asistenciasAlumnoMensual", ignore = true)

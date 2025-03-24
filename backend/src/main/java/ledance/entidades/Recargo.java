@@ -24,5 +24,5 @@ public class Recargo {
     private Double valorFijo; // Valor fijo opcional del recargo
 
     @NotNull
-    private Integer diaDelMesAplicacion; // ✅ Día específico del mes donde se aplica
+    private Integer diaDelMesAplicacion; // ✅ Dia especifico del mes donde se aplica
 }

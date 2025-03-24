@@ -103,7 +103,7 @@ public class DisciplinaServicio implements IDisciplinaServicio {
     /**
      * Actualiza una disciplina existente y, si se incluyen horarios en el request, delega su gestion.
      */
-    // DisciplinaServicio.java (método actualizarDisciplina)
+    // DisciplinaServicio.java (metodo actualizarDisciplina)
     @Override
     @Transactional
     public DisciplinaResponse actualizarDisciplina(Long id, DisciplinaModificacionRequest request) {
@@ -119,7 +119,7 @@ public class DisciplinaServicio implements IDisciplinaServicio {
                 .orElseThrow(() -> new TratadorDeErrores.ProfesorNotFoundException(request.profesorId()));
         log.info("Profesor encontrado: {} {}", profesor.getNombre(), profesor.getApellido());
 
-        // Actualiza los campos básicos de la disciplina mediante el mapper
+        // Actualiza los campos basicos de la disciplina mediante el mapper
         disciplinaMapper.updateEntityFromRequest(request, existente);
         existente.setProfesor(profesor);
 
@@ -186,7 +186,7 @@ public class DisciplinaServicio implements IDisciplinaServicio {
         log.info("Convertido a DiaSemana: {}", diaSemana);
 
         List<?> horarios = disciplinaHorarioServicio.obtenerHorariosPorDia(diaSemana);
-        log.info("Se encontraron {} horarios para el día: {}", horarios.size(), diaSemana);
+        log.info("Se encontraron {} horarios para el dia: {}", horarios.size(), diaSemana);
 
         List<Disciplina> disciplinas = ((List<ledance.entidades.DisciplinaHorario>) horarios).stream()
                 .map(ledance.entidades.DisciplinaHorario::getDisciplina)
@@ -202,11 +202,11 @@ public class DisciplinaServicio implements IDisciplinaServicio {
     }
 
     /**
-     * Método aún no implementado para obtener disciplinas por un horario de inicio específico.
+     * Metodo aun no implementado para obtener disciplinas por un horario de inicio especifico.
      */
     @Override
     public List<DisciplinaResponse> obtenerDisciplinasPorHorario(LocalTime horarioInicio) {
-        log.warn("El método obtenerDisciplinasPorHorario no está implementado.");
+        log.warn("El metodo obtenerDisciplinasPorHorario no esta implementado.");
         return List.of();
     }
 
@@ -241,17 +241,17 @@ public class DisciplinaServicio implements IDisciplinaServicio {
      */
     @Override
     public List<LocalDate> obtenerDiasClase(Long disciplinaId, Integer mes, Integer anio) {
-        log.info("Calculando días de clase para la disciplina id: {} en {}/{}", disciplinaId, mes, anio);
+        log.info("Calculando dias de clase para la disciplina id: {} en {}/{}", disciplinaId, mes, anio);
 
         // Obtener los horarios como entidades (no DTOs)
         List<DisciplinaHorario> horarios = disciplinaHorarioServicio.obtenerHorariosEntidad(disciplinaId);
 
-        // Convertir cada horario a un DayOfWeek utilizando el método toDayOfWeek() de tu enum
+        // Convertir cada horario a un DayOfWeek utilizando el metodo toDayOfWeek() de tu enum
         Set<DayOfWeek> diasClase = horarios.stream()
                 .map(h -> h.getDiaSemana().toDayOfWeek())
                 .collect(Collectors.toSet());
 
-        log.info("Días de clase identificados: {}", diasClase);
+        log.info("Dias de clase identificados: {}", diasClase);
 
         YearMonth yearMonth = YearMonth.of(anio, mes);
         List<LocalDate> fechasClase = new ArrayList<>();
@@ -261,7 +261,7 @@ public class DisciplinaServicio implements IDisciplinaServicio {
                 fechasClase.add(fecha);
             }
         }
-        log.info("Total de días de clase encontrados: {}", fechasClase.size());
+        log.info("Total de dias de clase encontrados: {}", fechasClase.size());
         return fechasClase;
     }
 
@@ -298,7 +298,7 @@ public class DisciplinaServicio implements IDisciplinaServicio {
     public List<DisciplinaResponse> buscarPorNombre(String nombre) {
         log.info("Buscando disciplinas por nombre: {}", nombre);
         List<Disciplina> resultado = disciplinaRepositorio.buscarPorNombre(nombre);
-        log.info("Se encontraron {} disciplinas para el término: {}", resultado.size(), nombre);
+        log.info("Se encontraron {} disciplinas para el termino: {}", resultado.size(), nombre);
         List<DisciplinaResponse> response = resultado.stream()
                 .map(disciplinaMapper::toResponse)
                 .collect(Collectors.toList());

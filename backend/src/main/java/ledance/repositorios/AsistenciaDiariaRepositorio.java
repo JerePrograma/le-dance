@@ -16,10 +16,10 @@ import java.util.Optional;
 @Repository
 public interface AsistenciaDiariaRepositorio extends JpaRepository<AsistenciaDiaria, Long> {
 
-    // Recupera las asistencias diarias filtradas por disciplina (a través de la planilla)
+    // Recupera las asistencias diarias filtradas por disciplina (a traves de la planilla)
     Page<AsistenciaDiaria> findByAsistenciaAlumnoMensual_AsistenciaMensual_Disciplina_IdAndFecha(Long disciplinaId, LocalDate fecha, Pageable pageable);
 
-    // Busca una asistencia por id, alumno (a través del registro) y fecha
+    // Busca una asistencia por id, alumno (a traves del registro) y fecha
     Optional<AsistenciaDiaria> findByIdAndAsistenciaAlumnoMensual_Inscripcion_Alumno_IdAndFecha(Long id, Long alumnoId, LocalDate fecha);
 
     @Query("SELECT a.asistenciaAlumnoMensual.inscripcion.alumno.id, COUNT(a) " +
@@ -48,7 +48,7 @@ public interface AsistenciaDiariaRepositorio extends JpaRepository<AsistenciaDia
     // Busca una asistencia para un alumno en una fecha
     Optional<AsistenciaDiaria> findByAsistenciaAlumnoMensual_Inscripcion_Alumno_IdAndFecha(Long alumnoId, LocalDate fecha);
 
-    // Recupera todas las asistencias asociadas a una planilla (a través de AsistenciaAlumnoMensual)
+    // Recupera todas las asistencias asociadas a una planilla (a traves de AsistenciaAlumnoMensual)
     List<AsistenciaDiaria> findByAsistenciaAlumnoMensual_AsistenciaMensual_Id(Long asistenciaMensualId);
 
     // Elimina asistencias diarias de una planilla cuya fecha sea mayor o igual a la indicada

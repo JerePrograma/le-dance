@@ -20,7 +20,7 @@ public record AlumnoResponse(
         Boolean deudaPendiente,
         String nombrePadres,
         Boolean autorizadoParaSalirSolo,
-        Boolean activo,  // <-- Agregado aquí
+        Boolean activo,  // <-- Agregado aqui
         String otrasNotas,
         Double cuotaTotal,
         List<InscripcionResponse> inscripciones

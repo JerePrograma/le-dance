@@ -30,7 +30,7 @@ public record AlumnoRegistroRequest(
         Boolean deudaPendiente,
         String nombrePadres,
         Boolean autorizadoParaSalirSolo,
-        Boolean activo,  // <-- Agregado aquí
+        Boolean activo,  // <-- Agregado aqui
         String otrasNotas,
         Double cuotaTotal,
         List<InscripcionRegistroRequest> inscripciones // ✅ Relacion con disciplinas y bonificaciones

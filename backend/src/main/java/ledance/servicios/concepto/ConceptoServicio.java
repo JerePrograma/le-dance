@@ -61,7 +61,7 @@ public class ConceptoServicio {
 
     @Transactional
     public ConceptoResponse actualizarConcepto(Long id, ConceptoRegistroRequest request) {
-        log.info("[ConceptoService] Iniciando actualización del concepto con id: {}", id);
+        log.info("[ConceptoService] Iniciando actualizacion del concepto con id: {}", id);
 
         Concepto concepto = conceptoRepositorio.findById(id)
                 .orElseThrow(() -> {
@@ -71,12 +71,12 @@ public class ConceptoServicio {
                 });
         log.info("[ConceptoService] Concepto encontrado: {}", concepto);
 
-        // Actualizamos solo los campos de Concepto, ignorando la descripción del subconcepto
+        // Actualizamos solo los campos de Concepto, ignorando la descripcion del subconcepto
         concepto.setDescripcion(request.descripcion());
         concepto.setPrecio(request.precio());
-        log.info("[ConceptoService] Campos actualizados - Descripción: {}, Precio: {}", request.descripcion(), request.precio());
+        log.info("[ConceptoService] Campos actualizados - Descripcion: {}, Precio: {}", request.descripcion(), request.precio());
 
-        // Recuperamos el subconcepto existente según el id del request
+        // Recuperamos el subconcepto existente segun el id del request
         Long subConceptoId = request.subConcepto().id();
         SubConcepto subConcepto = subConceptoRepositorio.findById(subConceptoId)
                 .orElseThrow(() -> {
@@ -86,7 +86,7 @@ public class ConceptoServicio {
                 });
         log.info("[ConceptoService] SubConcepto encontrado: {}", subConcepto);
 
-        // Asignamos el subconcepto sin modificar su descripción
+        // Asignamos el subconcepto sin modificar su descripcion
         concepto.setSubConcepto(subConcepto);
 
         Concepto updated = conceptoRepositorio.save(concepto);

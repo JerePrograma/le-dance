@@ -17,7 +17,7 @@ public class AsistenciaAlumnoMensual {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Relacion al alumno (a través de su inscripcion)
+    // Relacion al alumno (a traves de su inscripcion)
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "inscripcion_id", nullable = false)
     private Inscripcion inscripcion;

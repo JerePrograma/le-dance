@@ -30,8 +30,8 @@ public interface MatriculaMapper {
     @Mapping(target = "alumno", ignore = true)
     void updateEntityFromRequest(MatriculaRegistroRequest request, @MappingTarget Matricula matricula);
 
-    // Método para transformar una Inscripción en un MatriculaRegistroRequest.
-    // Se asume que la fecha de inscripción es la que se usará para determinar el año.
+    // Metodo para transformar una Inscripcion en un MatriculaRegistroRequest.
+    // Se asume que la fecha de inscripcion es la que se usara para determinar el año.
     @Mapping(target = "alumnoId", source = "alumno.id")
     @Mapping(target = "anio", expression = "java(inscripcionObtenida.getFechaInscripcion() != null ? inscripcionObtenida.getFechaInscripcion().getYear() : null)")
     @Mapping(target = "pagada", constant = "false")

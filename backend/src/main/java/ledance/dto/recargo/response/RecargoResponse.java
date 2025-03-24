@@ -5,5 +5,5 @@ public record RecargoResponse(
         String descripcion,
         Double porcentaje,
         Double valorFijo,
-        Integer diaDelMesAplicacion // ✅ Día específico del mes
+        Integer diaDelMesAplicacion // ✅ Dia especifico del mes
 ) {}

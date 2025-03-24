@@ -20,13 +20,13 @@ public interface PagoRepositorio extends JpaRepository<Pago, Long> {
     List<Pago> findPagosActivosByAlumno(@Param("alumnoId") Long alumnoId,
                                         @Param("estadoActivo") EstadoPago estadoActivo);
 
-    // Retorna el último pago con el estado indicado (por alumno) ordenado por fecha descendente.
+    // Retorna el ultimo pago con el estado indicado (por alumno) ordenado por fecha descendente.
     Optional<Pago> findTopByAlumnoIdAndEstadoPagoAndSaldoRestanteGreaterThanOrderByFechaDesc(
             Long alumnoId, EstadoPago estadoPago, double saldoRestante);
 
-    // --- Se han eliminado los métodos basados en Inscripcion, ya que la relación Pago → Inscripcion fue removida ---
+    // --- Se han eliminado los metodos basados en Inscripcion, ya que la relacion Pago → Inscripcion fue removida ---
 
-    // Retorna los pagos vencidos (fechaVencimiento menor a la indicada) y que están activos.
+    // Retorna los pagos vencidos (fechaVencimiento menor a la indicada) y que estan activos.
     @Query("SELECT p FROM Pago p WHERE p.fechaVencimiento < :hoy AND p.estadoPago = :estadoActivo")
     List<Pago> findPagosVencidos(@Param("hoy") LocalDate hoy,
                                  @Param("estadoActivo") EstadoPago estadoActivo);
@@ -34,10 +34,10 @@ public interface PagoRepositorio extends JpaRepository<Pago, Long> {
     // Retorna los pagos activos en un rango de fechas.
     List<Pago> findByFechaBetweenAndEstadoPago(LocalDate start, LocalDate end, EstadoPago estadoPago);
 
-    // Retorna los pagos activos en una fecha específica.
+    // Retorna los pagos activos en una fecha especifica.
     List<Pago> findByFechaAndEstadoPago(LocalDate fecha, EstadoPago estadoPago);
 
-    // Método para listar pagos de un alumno (sin depender de inscripción) que estén activos.
+    // Metodo para listar pagos de un alumno (sin depender de inscripcion) que esten activos.
     List<Pago> findByAlumnoIdAndEstadoPagoOrderByFechaDesc(Long alumnoId, EstadoPago estadoPago);
 
     List<Pago> findByAlumnoIdAndEstadoPagoNotOrderByFechaDesc(Long alumnoId, EstadoPago estado);

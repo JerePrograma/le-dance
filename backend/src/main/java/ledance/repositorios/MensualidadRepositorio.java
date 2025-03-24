@@ -13,7 +13,7 @@ import java.util.Optional;
 public interface MensualidadRepositorio extends JpaRepository<Mensualidad, Long>, JpaSpecificationExecutor<Mensualidad> {
     List<Mensualidad> findByInscripcionId(Long inscripcionId);
 
-    // Método para verificar si ya existe una cuota para una inscripción en un rango de fechas (mes)
+    // Metodo para verificar si ya existe una cuota para una inscripcion en un rango de fechas (mes)
     Optional<Mensualidad> findByInscripcionIdAndFechaCuotaBetween(Long inscripcionId, LocalDate inicio, LocalDate fin);
 
     List<Mensualidad> findByInscripcionAlumnoIdAndEstadoInOrderByFechaCuotaDesc(Long alumnoId, List<EstadoMensualidad> estados);
@@ -24,6 +24,6 @@ public interface MensualidadRepositorio extends JpaRepository<Mensualidad, Long>
 
     Optional<Mensualidad> findByInscripcionAlumnoIdAndDescripcion(Long alumnoId, String descripcionConcepto);
 
-    // Se elimina o comenta este método, ya que se basaba en propiedades inexistentes:
+    // Se elimina o comenta este metodo, ya que se basaba en propiedades inexistentes:
     // Optional<Mensualidad> findByInscripcionIdAndMesAndAnio(Long inscripcionId, int mes, int anio);
 }

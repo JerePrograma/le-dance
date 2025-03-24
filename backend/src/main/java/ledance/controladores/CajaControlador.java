@@ -63,7 +63,7 @@ public class CajaControlador {
 
     /**
      * NUEVO: Endpoint para generar la rendicion mensual para el mes vigente.
-     * Se determina el primer y último día del mes actual.
+     * Se determina el primer y ultimo dia del mes actual.
      */
     @PostMapping("/rendicion/generar")
     public RendicionDTO generarRendicionMensual() {

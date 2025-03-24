@@ -24,7 +24,7 @@ public interface AsistenciaDiariaMapper {
     AsistenciaDiariaDetalleResponse toDTO(AsistenciaDiaria asistenciaDiaria);
 
     @Mapping(target = "id", ignore = false)
-    // La relacion con asistenciaAlumnoMensual se establecerá por separado en el servicio
+    // La relacion con asistenciaAlumnoMensual se establecera por separado en el servicio
     @Mapping(target = "asistenciaAlumnoMensual", ignore = true)
     AsistenciaDiaria toEntity(AsistenciaDiariaRegistroRequest request);
 

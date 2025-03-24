@@ -36,7 +36,7 @@ public interface DisciplinaMapper {
         if (salon == null) {
             return null;
         }
-        // Ajusta según la propiedad que quieras usar
+        // Ajusta segun la propiedad que quieras usar
         // Por ejemplo, si tu Salon tiene un campo "nombre" o "descripcion":
         return salon.getNombre();
     }

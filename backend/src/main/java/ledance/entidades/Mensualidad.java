@@ -28,7 +28,7 @@ public class Mensualidad {
     @NotNull
     private LocalDate fechaCuota;
 
-    // Fecha en la que se realizó el pago (null si aún no se paga)
+    // Fecha en la que se realizo el pago (null si aun no se paga)
     private LocalDate fechaPago;
 
     @NotNull

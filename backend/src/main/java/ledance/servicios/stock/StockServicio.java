@@ -98,8 +98,8 @@ public class StockServicio {
 
         Stock stock = stockRepositorio.findByNombreIgnoreCase(nombreNormalizado)
                 .orElseThrow(() -> {
-                    log.error("[reducirStock] No se encontró stock con nombre: '{}'", nombreNormalizado);
-                    return new SinStockException("No se encontró stock con nombre: " + nombreNormalizado);
+                    log.error("[reducirStock] No se encontro stock con nombre: '{}'", nombreNormalizado);
+                    return new SinStockException("No se encontro stock con nombre: " + nombreNormalizado);
                 });
 
         log.info("[reducirStock] Stock actual para '{}': {} unidades", nombreNormalizado, stock.getStock());

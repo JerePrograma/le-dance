@@ -12,8 +12,8 @@ public interface UsuarioMapper {
 
     /**
      * Convierte UsuarioRegistroRequest en una entidad Usuario.
-     * Se ignora el id (generado automáticamente), la contraseña (se encripta en el servicio)
-     * y el rol (se asigna en el servicio). Además, se fija activo en true.
+     * Se ignora el id (generado automaticamente), la contraseña (se encripta en el servicio)
+     * y el rol (se asigna en el servicio). Ademas, se fija activo en true.
      */
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "contrasena", ignore = true)

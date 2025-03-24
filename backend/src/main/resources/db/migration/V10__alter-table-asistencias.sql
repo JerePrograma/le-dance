@@ -1,6 +1,6 @@
 -- V10__alter-table-asistencias.sql
 
--- 1. Agregar la columna "observacion" a la tabla "asistencias_mensuales" (si aún no existe)
+-- 1. Agregar la columna "observacion" a la tabla "asistencias_mensuales" (si aun no existe)
 DO $$
     BEGIN
         IF NOT EXISTS (

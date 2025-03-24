@@ -6,5 +6,5 @@ public record RecargoRegistroRequest(
         @NotBlank String descripcion,
         @NotNull Double porcentaje,
         Double valorFijo,
-        @NotNull @Min(1) @Max(31) Integer diaDelMesAplicacion // ✅ Día específico del mes
+        @NotNull @Min(1) @Max(31) Integer diaDelMesAplicacion // ✅ Dia especifico del mes
 ) {}

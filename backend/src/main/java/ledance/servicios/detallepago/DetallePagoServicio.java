@@ -34,18 +34,18 @@ public class DetallePagoServicio {
      * importe = totalAjustado - aCobrar (acumulado)
      */
     public void calcularImporte(DetallePago detalle) {
-        // Usar el campo unificado para la descripción del concepto
+        // Usar el campo unificado para la descripcion del concepto
         String conceptoDesc = (detalle.getDescripcionConcepto() != null)
                 ? detalle.getDescripcionConcepto()
                 : "N/A";
-        log.info("[calcularImporte] Iniciando cálculo para DetallePago id={} (Concepto: '{}')",
+        log.info("[calcularImporte] Iniciando calculo para DetallePago id={} (Concepto: '{}')",
                 detalle.getId(), conceptoDesc);
 
         double base = Optional.ofNullable(detalle.getValorBase()).orElse(0.0);
         log.info("[calcularImporte] Base para DetallePago id={} es {}", detalle.getId(), base);
 
         double descuento;
-        // Ahora se utiliza la bonificación asignada directamente en el DetallePago
+        // Ahora se utiliza la bonificacion asignada directamente en el DetallePago
         if (TipoDetallePago.MENSUALIDAD.equals(detalle.getTipo())
                 && detalle.getBonificacion() != null) {
             double descuentoFijo = (detalle.getBonificacion().getValorFijo() != null)
@@ -53,7 +53,7 @@ public class DetallePagoServicio {
             double descuentoPorcentaje = (detalle.getBonificacion().getPorcentajeDescuento() != null)
                     ? (detalle.getBonificacion().getPorcentajeDescuento() / 100.0 * base) : 0.0;
             descuento = descuentoFijo + descuentoPorcentaje;
-            log.info("[calcularImporte] Detalle id={} (Mensualidad): Descuento calculado basado en bonificación = {}",
+            log.info("[calcularImporte] Detalle id={} (Mensualidad): Descuento calculado basado en bonificacion = {}",
                     detalle.getId(), descuento);
         } else {
             descuento = calcularDescuento(detalle, base);
@@ -93,10 +93,10 @@ public class DetallePagoServicio {
         Recargo recargo = detalle.getRecargo();
         if (recargo != null) {
             int diaActual = LocalDate.now().getDayOfMonth();
-            log.info("[obtenerValorRecargo] Detalle id={} | Día actual={} | Día de aplicacion={}",
+            log.info("[obtenerValorRecargo] Detalle id={} | Dia actual={} | Dia de aplicacion={}",
                     detalle.getId(), diaActual, recargo.getDiaDelMesAplicacion());
             if (diaActual != recargo.getDiaDelMesAplicacion()) {
-                log.info("[obtenerValorRecargo] Día actual no coincide; recargo=0");
+                log.info("[obtenerValorRecargo] Dia actual no coincide; recargo=0");
                 return 0.0;
             }
             double recargoFijo = recargo.getValorFijo() != null ? recargo.getValorFijo() : 0.0;
@@ -120,7 +120,7 @@ public class DetallePagoServicio {
                                                      String stock,
                                                      String subConcepto,     // Texto para filtrar por sub concepto
                                                      String disciplina) {
-        log.info("Inicio del método filtrarDetalles con parámetros:");
+        log.info("Inicio del metodo filtrarDetalles con parametros:");
         log.info("  fechaRegistroDesde: {}", fechaRegistroDesde);
         log.info("  fechaRegistroHasta: {}", fechaRegistroHasta);
         log.info("  detalleConcepto: {}", detalleConcepto);
@@ -152,9 +152,9 @@ public class DetallePagoServicio {
             );
         }
 
-        // Lógica de filtrado para Concepto/SubConcepto:
-        // 1. Si se proporciona subConcepto, se filtra por el campo de la relación SubConcepto.
-        // 2. Si no se proporcionó subConcepto pero sí detalleConcepto, se filtra por el concepto.
+        // Logica de filtrado para Concepto/SubConcepto:
+        // 1. Si se proporciona subConcepto, se filtra por el campo de la relacion SubConcepto.
+        // 2. Si no se proporciono subConcepto pero si detalleConcepto, se filtra por el concepto.
         if (StringUtils.hasText(subConcepto)) {
             String pattern = "%" + subConcepto.toLowerCase() + "%";
             log.info("Aplicando filtro prioritario: subConcepto.descripcion LIKE {}", pattern);
@@ -178,19 +178,19 @@ public class DetallePagoServicio {
                         cb.equal(root.get("tipo"), tipo)
                 );
             } catch (IllegalArgumentException ex) {
-                log.warn("Valor de disciplina no válido: {}", disciplina);
+                log.warn("Valor de disciplina no valido: {}", disciplina);
             }
         }
 
         // Se realiza la consulta utilizando la Specification compuesta
         List<DetallePago> detalles = detallePagoRepositorio.findAll(spec);
-        log.info("Consulta realizada. Número de registros encontrados: {}", detalles.size());
+        log.info("Consulta realizada. Numero de registros encontrados: {}", detalles.size());
 
-        // Conversión de la entidad a DTO
+        // Conversion de la entidad a DTO
         List<DetallePagoResponse> responses = detalles.stream()
                 .map(this::mapToDetallePagoResponse)
                 .collect(Collectors.toList());
-        log.info("Conversión a DetallePagoResponse completada. Regresando respuesta.");
+        log.info("Conversion a DetallePagoResponse completada. Regresando respuesta.");
 
         return responses;
     }

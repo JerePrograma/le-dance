@@ -24,7 +24,7 @@ public class Inscripcion {
     @ManyToOne
     @JoinColumn(name = "alumno_id", nullable = false)
     @EqualsAndHashCode.Exclude
-    @ToString.Exclude // ⬅️ Añadir aquí
+    @ToString.Exclude // ⬅️ Añadir aqui
     private Alumno alumno;
 
     @ManyToOne

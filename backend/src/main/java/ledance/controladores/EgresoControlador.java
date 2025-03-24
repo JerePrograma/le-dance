@@ -35,7 +35,7 @@ public class EgresoControlador {
         return ResponseEntity.ok(response);
     }
 
-    // Eliminar (Baja lógica) un egreso
+    // Eliminar (Baja logica) un egreso
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminarEgreso(@PathVariable Long id) {
         egresoServicio.eliminarEgreso(id);

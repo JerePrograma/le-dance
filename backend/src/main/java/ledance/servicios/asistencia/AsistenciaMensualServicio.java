@@ -68,7 +68,7 @@ public class AsistenciaMensualServicio {
     }
 
     /**
-     * Incorpora un alumno (a través de su inscripcion) a la planilla de asistencia de su disciplina.
+     * Incorpora un alumno (a traves de su inscripcion) a la planilla de asistencia de su disciplina.
      */
     @Transactional
     public void agregarAlumnoAPlanilla(Long inscripcionId, int mes, int anio) {
@@ -86,7 +86,7 @@ public class AsistenciaMensualServicio {
         boolean yaExiste = planilla.getAsistenciasAlumnoMensual().stream()
                 .anyMatch(aam -> aam.getInscripcion().getId().equals(inscripcionId));
         if (yaExiste) {
-            // Si ya está incorporado, se omite la creacion
+            // Si ya esta incorporado, se omite la creacion
             return;
         }
 
@@ -100,7 +100,7 @@ public class AsistenciaMensualServicio {
         planilla.getAsistenciasAlumnoMensual().add(alumnoMensual);
         alumnoMensual = asistenciaAlumnoMensualRepositorio.save(alumnoMensual);
 
-        // Generar las asistencias diarias según los días de clase
+        // Generar las asistencias diarias segun los dias de clase
         List<LocalDate> fechasClase = disciplinaServicio.obtenerDiasClase(disciplinaId, mes, anio);
         AsistenciaAlumnoMensual finalAlumnoMensual = alumnoMensual;
         List<AsistenciaDiaria> nuevasAsistencias = fechasClase.stream()
@@ -131,7 +131,7 @@ public class AsistenciaMensualServicio {
             existente.getAsistenciasAlumnoMensual().forEach(aam -> {
                 if (aam.getId().equals(modReq.id())) {
                     aam.setObservacion(modReq.observacion());
-                    // Si se requiere actualizar asistencias diarias, se puede iterar por modReq.asistenciasDiarias() aquí
+                    // Si se requiere actualizar asistencias diarias, se puede iterar por modReq.asistenciasDiarias() aqui
                 }
             });
         });
@@ -214,7 +214,7 @@ public class AsistenciaMensualServicio {
                 planillasCreadas++;
             }
 
-            // Obtener los días de clase para la disciplina
+            // Obtener los dias de clase para la disciplina
             List<LocalDate> fechasClase = disciplinaServicio.obtenerDiasClase(disciplina.getId(), mes, anio);
             int asistenciasGeneradasParaDisciplina = 0;
             // Para cada inscripcion de esta disciplina

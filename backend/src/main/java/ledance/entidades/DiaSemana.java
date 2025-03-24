@@ -14,7 +14,7 @@ public enum DiaSemana {
             case VIERNES: return DayOfWeek.FRIDAY;
             case SABADO: return DayOfWeek.SATURDAY;
             case DOMINGO: return DayOfWeek.SUNDAY;
-            default: throw new IllegalArgumentException("Día inválido");
+            default: throw new IllegalArgumentException("Dia invalido");
         }
     }
 }

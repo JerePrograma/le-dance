@@ -27,7 +27,7 @@ public class ScheduledTasks {
     }
 
     /**
-     * Se ejecuta a medianoche todos los días para verificar recargos aplicables.
+     * Se ejecuta a medianoche todos los dias para verificar recargos aplicables.
      */
     @Scheduled(cron = "0 0 0 * * ?")
     public void aplicarRecargosDiarios() {
@@ -35,14 +35,14 @@ public class ScheduledTasks {
         int diaActual = hoy.getDayOfMonth();
         boolean esPrimerDiaDelMes = diaActual == 1;
 
-        log.info("🔎 Verificando recargos para el día: {}", diaActual);
+        log.info("🔎 Verificando recargos para el dia: {}", diaActual);
 
-        // Obtener los recargos normales del día
+        // Obtener los recargos normales del dia
         List<Recargo> recargosAplicables = recargoRepositorio.findByDiaDelMesAplicacion(diaActual);
 
-        // Si es 1ro del mes, buscar también recargos de 30 días (del mes anterior)
+        // Si es 1ro del mes, buscar tambien recargos de 30 dias (del mes anterior)
         if (esPrimerDiaDelMes) {
-            log.info("📅 Es el primer día del mes, buscando recargos de fin de mes anterior...");
+            log.info("📅 Es el primer dia del mes, buscando recargos de fin de mes anterior...");
             List<Recargo> recargosDeFinDeMes = recargoRepositorio.findByDiaDelMesAplicacion(30);
             recargosAplicables.addAll(recargosDeFinDeMes);
         }
@@ -60,14 +60,14 @@ public class ScheduledTasks {
             aplicarRecargo(recargo);
         }
 
-        log.info("🎯 Aplicacion de recargos completada para el día {}", diaActual);
+        log.info("🎯 Aplicacion de recargos completada para el dia {}", diaActual);
     }
 
     /**
      * Aplica el recargo a los pagos pendientes del sistema.
      */
     private void aplicarRecargo(Recargo recargo) {
-        List<Pago> pagosPendientes = pagoRepositorio.findPagosPendientes(EstadoPago.ACTIVO); // Debes definir este método en tu repositorio
+        List<Pago> pagosPendientes = pagoRepositorio.findPagosPendientes(EstadoPago.ACTIVO); // Debes definir este metodo en tu repositorio
 
         for (Pago pago : pagosPendientes) {
             double montoBase = pago.getMonto();

@@ -28,7 +28,7 @@ public class AsistenciaMensual {
     @JoinColumn(name = "disciplina_id", nullable = false)
     private Disciplina disciplina;
 
-    // Nueva relacion: cada planilla tendrá registros por alumno
+    // Nueva relacion: cada planilla tendra registros por alumno
     @OneToMany(mappedBy = "asistenciaMensual", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<AsistenciaAlumnoMensual> asistenciasAlumnoMensual = new ArrayList<>();
 }

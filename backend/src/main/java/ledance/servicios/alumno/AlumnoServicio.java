@@ -156,7 +156,7 @@ public class AlumnoServicio implements IAlumnoServicio {
 
     @Transactional
     public AlumnoDataResponse obtenerAlumnoData(Long alumnoId) {
-        // 1. Obtener el alumno (con su información básica)
+        // 1. Obtener el alumno (con su informacion basica)
         Alumno alumno = alumnoRepositorio.findById(alumnoId)
                 .orElseThrow(() -> new EntityNotFoundException("Alumno no encontrado"));
 

@@ -7,5 +7,5 @@ public record AsistenciaMensualRegistroRequest(
         @NotNull Integer mes,
         @NotNull Integer anio,
         @NotNull Long disciplinaId,  // Cambiado de inscripcionId a disciplinaId
-        List<AsistenciaDiariaRegistroRequest> asistenciasDiarias // Opcional; puede generarse automáticamente si está vacío
+        List<AsistenciaDiariaRegistroRequest> asistenciasDiarias // Opcional; puede generarse automaticamente si esta vacio
 ) {}

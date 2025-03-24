@@ -29,7 +29,7 @@ public interface DisciplinaHorarioMapper {
         horario.setDiaSemana(request.diaSemana());
         horario.setHorarioInicio(request.horarioInicio());
         horario.setDuracion(request.duracion());
-        // No asignamos disciplina aquí, se hará en el servicio.
+        // No asignamos disciplina aqui, se hara en el servicio.
         return horario;
     }
 

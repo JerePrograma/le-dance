@@ -47,9 +47,9 @@ public class DisciplinaHorarioServicio {
      * Actualiza los horarios de una disciplina en base a una lista de solicitudes de modificacion.
      * Se actualizan los horarios existentes, se crean nuevos y se eliminan los que no vienen en la solicitud.
      * Finalmente, se invoca la actualizacion de la planilla de asistencia (por cambio de horario)
-     * usando la fecha de cambio (puedes recibirla como parámetro o usar LocalDate.now()).
+     * usando la fecha de cambio (puedes recibirla como parametro o usar LocalDate.now()).
      *
-     * @param disciplina   la disciplina a la cual se actualizarán los horarios
+     * @param disciplina   la disciplina a la cual se actualizaran los horarios
      * @param horariosRequest lista de solicitudes de modificacion de horarios
      * @param fechaCambio  la fecha a partir de la cual se deben recalcular las asistencias
      * @return la lista de horarios guardados
@@ -60,7 +60,7 @@ public class DisciplinaHorarioServicio {
                                                       LocalDate fechaCambio) {
         log.info("Actualizando {} horarios para disciplina id: {}", horariosRequest.size(), disciplina.getId());
 
-        // Obtén la lista actual de horarios asociados a la disciplina
+        // Obten la lista actual de horarios asociados a la disciplina
         List<DisciplinaHorario> existentes = new ArrayList<>(disciplina.getHorarios());
 
         // Mapea los horarios existentes por su ID para facilitar actualizaciones
@@ -175,18 +175,18 @@ public class DisciplinaHorarioServicio {
     }
 
     /**
-     * Obtiene los horarios que corresponden a un día específico.
+     * Obtiene los horarios que corresponden a un dia especifico.
      */
     public List<DisciplinaHorario> obtenerHorariosPorDia(DiaSemana diaSemana) {
-        log.info("Obteniendo horarios para el día: {}", diaSemana);
+        log.info("Obteniendo horarios para el dia: {}", diaSemana);
         List<DisciplinaHorario> horarios = disciplinaHorarioRepositorio.findByDiaSemana(diaSemana);
-        log.info("Se encontraron {} horarios para el día {}", horarios.size(), diaSemana);
+        log.info("Se encontraron {} horarios para el dia {}", horarios.size(), diaSemana);
         return horarios;
     }
 
     @Transactional
     public List<DisciplinaHorario> obtenerHorariosEntidad(Long disciplinaId) {
-        // Este método usa el repositorio y retorna las entidades directamente
+        // Este metodo usa el repositorio y retorna las entidades directamente
         return disciplinaHorarioRepositorio.findByDisciplinaId(disciplinaId);
     }
 

@@ -35,11 +35,11 @@ public class EgresoServicio {
     public EgresoResponse agregarEgreso(EgresoRegistroRequest request) {
         // Mapear el request a la entidad
         Egreso egreso = egresoMapper.toEntity(request);
-        // Asignar el método de pago usando el ID del request
+        // Asignar el metodo de pago usando el ID del request
         MetodoPago metodo = metodoPagoRepositorio.findById(request.metodoPagoId())
-                .orElseThrow(() -> new IllegalArgumentException("Método de pago no encontrado para id: " + request.metodoPagoId()));
+                .orElseThrow(() -> new IllegalArgumentException("Metodo de pago no encontrado para id: " + request.metodoPagoId()));
         egreso.setMetodoPago(metodo);
-        // Aseguramos que el egreso esté activo
+        // Aseguramos que el egreso este activo
         egreso.setActivo(true);
         Egreso saved = egresoRepositorio.save(egreso);
         return egresoMapper.toDTO(saved);
@@ -54,10 +54,10 @@ public class EgresoServicio {
                 .orElseThrow(() -> new IllegalArgumentException("Egreso no encontrado para id: " + id));
         // Actualizar campos mediante el mapper
         egresoMapper.updateEntityFromRequest(request, egreso);
-        // Actualizar el método de pago si se envía en el request
+        // Actualizar el metodo de pago si se envia en el request
         if (request.metodoPagoId() != null) {
             MetodoPago metodo = metodoPagoRepositorio.findById(request.metodoPagoId())
-                    .orElseThrow(() -> new IllegalArgumentException("Método de pago no encontrado para id: " + request.metodoPagoId()));
+                    .orElseThrow(() -> new IllegalArgumentException("Metodo de pago no encontrado para id: " + request.metodoPagoId()));
             egreso.setMetodoPago(metodo);
         }
         Egreso saved = egresoRepositorio.save(egreso);
@@ -65,13 +65,13 @@ public class EgresoServicio {
     }
 
     // -------------------------------------------------------------------------
-    // Eliminar (Baja lógica) un Egreso
+    // Eliminar (Baja logica) un Egreso
     // -------------------------------------------------------------------------
     @Transactional
     public void eliminarEgreso(Long id) {
         Egreso egreso = egresoRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Egreso no encontrado para id: " + id));
-        // Realizamos una baja lógica (marcándolo inactivo)
+        // Realizamos una baja logica (marcandolo inactivo)
         egreso.setActivo(false);
         egresoRepositorio.save(egreso);
     }
@@ -97,7 +97,7 @@ public class EgresoServicio {
     }
 
     // -------------------------------------------------------------------------
-    // Listar egresos activos filtrados por método de pago
+    // Listar egresos activos filtrados por metodo de pago
     // -------------------------------------------------------------------------
     public List<EgresoResponse> listarEgresosPorMetodo(String metodoDescripcion) {
         return egresoRepositorio.findAll()
@@ -109,7 +109,7 @@ public class EgresoServicio {
                 .collect(Collectors.toList());
     }
 
-    // Métodos convenientes
+    // Metodos convenientes
     public List<EgresoResponse> listarEgresosDebito() {
         return listarEgresosPorMetodo("DEBITO");
     }
