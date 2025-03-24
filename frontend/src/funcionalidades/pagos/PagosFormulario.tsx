@@ -766,6 +766,7 @@ const CobranzasForm: React.FC = () => {
             matriculaId: d.matriculaId ?? null,
             stockId: d.stockId ?? null,
             version: d.version ?? null,
+            pagoId: d.pagoId ?? null,
           })
         ),
         pagoMedios: [],
