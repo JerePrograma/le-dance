@@ -141,6 +141,13 @@ public class PaymentProcessor {
         pago.setSaldoRestante(saldoTotal.doubleValue());
         log.info("[recalcularTotales] Totales actualizados para Pago ID: {} - Monto total abonado: {}, Saldo restante: {}",
                 pago.getId(), pago.getMonto(), pago.getSaldoRestante());
+
+        // Asignar estado según el saldo restante
+        if (saldoTotal.compareTo(BigDecimal.ZERO) == 0) {
+            pago.setEstadoPago(EstadoPago.HISTORICO);
+        } else {
+            pago.setEstadoPago(EstadoPago.ACTIVO);
+        }
     }
 
     /**
