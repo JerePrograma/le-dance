@@ -325,7 +325,7 @@ const DetallePagoList: React.FC = () => {
             data={currentItems}
             customRender={(fila) => [
               fila.conceptoId || fila.id,
-              "Nombre Alumno",
+              fila.alumnoDisplay,
               fila.descripcionConcepto,
               fila.importeInicial,
               fila.bonificacionId ? fila.bonificacionId : "-",

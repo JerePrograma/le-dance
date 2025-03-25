@@ -751,6 +751,7 @@ export interface DetallePagoResponse {
   tipo: string;
   fechaRegistro: string;
   pagoId?: number | null; // <-- Nuevo atributo
+  alumnoDisplay: string;
 }
 
 // DetallePagoRegistroRequest.ts

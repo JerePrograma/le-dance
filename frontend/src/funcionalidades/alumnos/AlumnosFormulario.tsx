@@ -291,7 +291,7 @@ const AlumnosFormulario: React.FC = () => {
           onSubmit={handleGuardarAlumno}
           enableReinitialize
         >
-          {({ isSubmitting, setFieldValue, resetForm }) => (
+          {({ isSubmitting, setFieldValue, resetForm, values }) => (
             <Form className="formulario max-w-4xl mx-auto">
               {/* Campo oculto para enviar el ID */}
               <Field name="id" type="hidden" />
@@ -398,7 +398,7 @@ const AlumnosFormulario: React.FC = () => {
                   </div>
                 ))}
 
-                {/* Fecha de Nacimiento y Edad */}
+                {/* Fecha de Nacimiento y Edad estimada */}
                 <div className="mb-4">
                   <label htmlFor="fechaNacimiento" className="auth-label">
                     Fecha de Nacimiento:
@@ -408,15 +408,19 @@ const AlumnosFormulario: React.FC = () => {
                     type="date"
                     className="form-input"
                     id="fechaNacimiento"
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      // Actualiza el campo y se recalcula la edad al instante
+                      setFieldValue("fechaNacimiento", e.target.value);
+                    }}
                   />
                   <ErrorMessage
                     name="fechaNacimiento"
                     component="div"
                     className="auth-error"
                   />
-                  {formValues.fechaNacimiento && (
+                  {values.fechaNacimiento && (
                     <div className="text-sm mt-1">
-                      Edad: {calcularEdad(formValues.fechaNacimiento)} años
+                      Edad: {calcularEdad(values.fechaNacimiento)} años
                     </div>
                   )}
                 </div>

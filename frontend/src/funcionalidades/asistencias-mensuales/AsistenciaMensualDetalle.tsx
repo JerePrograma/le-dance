@@ -34,7 +34,9 @@ import {
 import useDebounce from "../../hooks/useDebounce";
 
 // Función para obtener el nombre del alumno (ya que el backend lo mapea correctamente)
-const getAlumnoDisplayName = (alumnoRecord: AsistenciaAlumnoMensualDetalleResponse): string =>
+const getAlumnoDisplayName = (
+  alumnoRecord: AsistenciaAlumnoMensualDetalleResponse
+): string =>
   alumnoRecord.alumno
     ? `${alumnoRecord.alumno.apellido}, ${alumnoRecord.alumno.nombre}`
     : "Sin alumno";
@@ -43,22 +45,34 @@ const AsistenciaMensualDetalle: React.FC = () => {
   const navigate = useNavigate();
 
   // Estados de filtros y datos
-  const [disciplinas, setDisciplinas] = useState<DisciplinaListadoResponse[]>([]);
+  const [disciplinas, setDisciplinas] = useState<DisciplinaListadoResponse[]>(
+    []
+  );
   const [disciplineFilter, setDisciplineFilter] = useState<string>("");
-  const [selectedDisciplineId, setSelectedDisciplineId] = useState<number | null>(null);
+  const [selectedDisciplineId, setSelectedDisciplineId] = useState<
+    number | null
+  >(null);
   const currentDate = new Date();
-  const [selectedMonth, setSelectedMonth] = useState<number>(currentDate.getMonth() + 1);
-  const [selectedYear, setSelectedYear] = useState<number>(currentDate.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState<number>(
+    currentDate.getMonth() + 1
+  );
+  const [selectedYear, setSelectedYear] = useState<number>(
+    currentDate.getFullYear()
+  );
 
   // Estado para la asistencia mensual y manejo de errores/carga
-  const [asistenciaMensual, setAsistenciaMensual] = useState<AsistenciaMensualDetalleResponse | null>(null);
+  const [asistenciaMensual, setAsistenciaMensual] =
+    useState<AsistenciaMensualDetalleResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [observaciones, setObservaciones] = useState<Record<number, string>>({});
+  const [observaciones, setObservaciones] = useState<Record<number, string>>(
+    {}
+  );
 
   // Estados para el sistema de búsqueda (select con sugerencias)
   const [showSuggestions, setShowSuggestions] = useState<boolean>(false);
-  const [activeDisciplineSuggestionIndex, setActiveDisciplineSuggestionIndex] = useState<number>(-1);
+  const [activeDisciplineSuggestionIndex, setActiveDisciplineSuggestionIndex] =
+    useState<number>(-1);
   const searchWrapperRef = useRef<HTMLDivElement>(null);
 
   // Cargar lista de disciplinas
@@ -84,14 +98,18 @@ const AsistenciaMensualDetalle: React.FC = () => {
     );
   }, [debouncedDisciplineFilter, disciplinas]);
 
-  const handleSeleccionarDisciplina = (disciplina: DisciplinaListadoResponse) => {
+  const handleSeleccionarDisciplina = (
+    disciplina: DisciplinaListadoResponse
+  ) => {
     setSelectedDisciplineId(disciplina.id);
     setDisciplineFilter(disciplina.nombre);
     setActiveDisciplineSuggestionIndex(-1);
     setShowSuggestions(false);
   };
 
-  const handleDisciplineKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleDisciplineKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>
+  ) => {
     if (filteredDisciplinas.length > 0) {
       if (e.key === "ArrowDown") {
         e.preventDefault();
@@ -109,7 +127,9 @@ const AsistenciaMensualDetalle: React.FC = () => {
           activeDisciplineSuggestionIndex < filteredDisciplinas.length
         ) {
           e.preventDefault();
-          handleSeleccionarDisciplina(filteredDisciplinas[activeDisciplineSuggestionIndex]);
+          handleSeleccionarDisciplina(
+            filteredDisciplinas[activeDisciplineSuggestionIndex]
+          );
         }
       }
     }
@@ -123,7 +143,10 @@ const AsistenciaMensualDetalle: React.FC = () => {
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (searchWrapperRef.current && !searchWrapperRef.current.contains(e.target as Node)) {
+      if (
+        searchWrapperRef.current &&
+        !searchWrapperRef.current.contains(e.target as Node)
+      ) {
         setShowSuggestions(false);
       }
     };
@@ -140,11 +163,12 @@ const AsistenciaMensualDetalle: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await asistenciasApi.obtenerAsistenciaMensualDetallePorParametros(
-        selectedDisciplineId,
-        selectedMonth,
-        selectedYear
-      );
+      const data =
+        await asistenciasApi.obtenerAsistenciaMensualDetallePorParametros(
+          selectedDisciplineId,
+          selectedMonth,
+          selectedYear
+        );
       if (data) {
         setAsistenciaMensual(data);
         // Construir mapa de observaciones
@@ -167,7 +191,10 @@ const AsistenciaMensualDetalle: React.FC = () => {
   // Agrupa los registros duplicados basándose en el ID del alumno
   const uniqueAlumnos = useMemo(() => {
     if (!asistenciaMensual) return [];
-    const alumnosMap = new Map<number, AsistenciaAlumnoMensualDetalleResponse>();
+    const alumnosMap = new Map<
+      number,
+      AsistenciaAlumnoMensualDetalleResponse
+    >();
 
     asistenciaMensual.alumnos.forEach((alumno) => {
       const alumnoId = alumno.alumno?.id;
@@ -214,10 +241,12 @@ const AsistenciaMensualDetalle: React.FC = () => {
       }).map(([id, observacion]) => ({
         id: Number(id),
         observacion,
-        asistenciasDiarias: [] // Se envía vacío si no se actualizan
+        asistenciasDiarias: [], // Se envía vacío si no se actualizan
       }));
       asistenciasApi
-        .actualizarAsistenciaMensual(asistenciaMensual!.id, { asistenciasAlumnoMensual: asistenciasAlumnoMensualArray })
+        .actualizarAsistenciaMensual(asistenciaMensual!.id, {
+          asistenciasAlumnoMensual: asistenciasAlumnoMensualArray,
+        })
         .then(() => toast.success("Observación actualizada"))
         .catch((err) => {
           toast.error("Error al actualizar observación", err);
@@ -240,9 +269,13 @@ const AsistenciaMensualDetalle: React.FC = () => {
       toast.error("Registro de alumno no encontrado.");
       return;
     }
-    const registro = alumnoRegistro.asistenciasDiarias.find((ad) => ad.fecha === fecha);
+    const registro = alumnoRegistro.asistenciasDiarias.find(
+      (ad) => ad.fecha === fecha
+    );
     if (!registro) {
-      toast.error("No se encontró registro de asistencia para este alumno en esta fecha.");
+      toast.error(
+        "No se encontró registro de asistencia para este alumno en esta fecha."
+      );
       return;
     }
     try {
@@ -268,11 +301,11 @@ const AsistenciaMensualDetalle: React.FC = () => {
           alumnos: prev.alumnos.map((al) =>
             al.id === alumnoId
               ? {
-                ...al,
-                asistenciasDiarias: al.asistenciasDiarias.map((ad) =>
-                  ad.id === registro.id ? updated : ad
-                ),
-              }
+                  ...al,
+                  asistenciasDiarias: al.asistenciasDiarias.map((ad) =>
+                    ad.id === registro.id ? updated : ad
+                  ),
+                }
               : al
           ),
         };
@@ -296,9 +329,15 @@ const AsistenciaMensualDetalle: React.FC = () => {
         <CardContent>
           {/* Sección de filtros: búsqueda de disciplina y selección de mes/año */}
           <div className="mb-4 space-y-2">
-            <div ref={searchWrapperRef} className="flex items-center space-x-2 relative">
+            <div
+              ref={searchWrapperRef}
+              className="flex items-center space-x-2 relative"
+            >
               <div className="flex-1">
-                <label htmlFor="searchDiscipline" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="searchDiscipline"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Buscar disciplina:
                 </label>
                 <Input
@@ -319,8 +358,14 @@ const AsistenciaMensualDetalle: React.FC = () => {
                       <li
                         key={disciplina.id}
                         onClick={() => handleSeleccionarDisciplina(disciplina)}
-                        onMouseEnter={() => setActiveDisciplineSuggestionIndex(index)}
-                        className={`p-2 cursor-pointer ${index === activeDisciplineSuggestionIndex ? "bg-gray-200" : ""}`}
+                        onMouseEnter={() =>
+                          setActiveDisciplineSuggestionIndex(index)
+                        }
+                        className={`p-2 cursor-pointer ${
+                          index === activeDisciplineSuggestionIndex
+                            ? "bg-gray-200"
+                            : ""
+                        }`}
                       >
                         {disciplina.nombre}
                       </li>
@@ -334,7 +379,10 @@ const AsistenciaMensualDetalle: React.FC = () => {
             </div>
             <div className="flex space-x-2">
               <div className="flex-1">
-                <label htmlFor="monthSelect" className="block text-sm font-medium text-gray-700">
+                <label
+                  htmlFor="monthSelect"
+                  className="block text-sm font-medium text-gray-700"
+                >
                   Mes:
                 </label>
                 <select
@@ -365,7 +413,10 @@ const AsistenciaMensualDetalle: React.FC = () => {
                 </select>
               </div>
               <div className="flex-1">
-                <label htmlFor="yearSelect" className="block text-sm font-medium text-gray-700">
+                <label
+                  htmlFor="yearSelect"
+                  className="block text-sm font-medium text-gray-700"
+                >
                   Año:
                 </label>
                 <select
@@ -375,7 +426,10 @@ const AsistenciaMensualDetalle: React.FC = () => {
                   onChange={(e) => setSelectedYear(Number(e.target.value))}
                 >
                   <option value="">-- Seleccione --</option>
-                  {Array.from({ length: 8 }, (_, i) => currentDate.getFullYear() + i).map((año) => (
+                  {Array.from(
+                    { length: 8 },
+                    (_, i) => currentDate.getFullYear() + i
+                  ).map((año) => (
                     <option key={año} value={año}>
                       {año}
                     </option>
@@ -384,12 +438,20 @@ const AsistenciaMensualDetalle: React.FC = () => {
               </div>
             </div>
             <div className="mb-4">
-              <Button onClick={cargarAsistenciaDinamica}>Consultar asistencia</Button>
+              <Button onClick={cargarAsistenciaDinamica}>
+                Consultar asistencia
+              </Button>
             </div>
           </div>
 
-          {loading && <div className="text-center py-4">Cargando asistencia mensual...</div>}
-          {error && <div className="text-center py-4 text-red-500">{error}</div>}
+          {loading && (
+            <div className="text-center py-4">
+              Cargando asistencia mensual...
+            </div>
+          )}
+          {error && (
+            <div className="text-center py-4 text-red-500">{error}</div>
+          )}
 
           {asistenciaMensual && diasRegistrados.length === 0 && (
             <div className="text-center text-red-500 mb-4">
@@ -404,10 +466,13 @@ const AsistenciaMensualDetalle: React.FC = () => {
                   <TableHead>Alumno</TableHead>
                   {diasRegistrados.map((fecha) => (
                     <TableHead key={fecha} className="text-center">
-                      {new Date(fecha + "T00:00:00").toLocaleDateString("es-ES", {
-                        day: "numeric",
-                        weekday: "short",
-                      })}
+                      {new Date(fecha + "T00:00:00").toLocaleDateString(
+                        "es-ES",
+                        {
+                          day: "numeric",
+                          weekday: "short",
+                        }
+                      )}
                     </TableHead>
                   ))}
                   <TableHead>Observación</TableHead>
@@ -418,13 +483,21 @@ const AsistenciaMensualDetalle: React.FC = () => {
                   <TableRow key={alumno.id}>
                     <TableCell>{getAlumnoDisplayName(alumno)}</TableCell>
                     {diasRegistrados.map((fecha) => {
-                      const registro = alumno.asistenciasDiarias.find((ad) => ad.fecha === fecha);
+                      const registro = alumno.asistenciasDiarias.find(
+                        (ad) => ad.fecha === fecha
+                      );
                       return (
                         <TableCell key={fecha} className="text-center">
                           <Button
                             size="sm"
-                            variant={registro?.estado === EstadoAsistencia.PRESENTE ? "default" : "outline"}
-                            onClick={() => registro && toggleAsistencia(alumno.id, fecha)}
+                            variant={
+                              registro?.estado === EstadoAsistencia.PRESENTE
+                                ? "default"
+                                : "outline"
+                            }
+                            onClick={() =>
+                              registro && toggleAsistencia(alumno.id, fecha)
+                            }
                           >
                             {registro?.estado === EstadoAsistencia.PRESENTE ? (
                               <Check className="h-4 w-4" />
@@ -439,7 +512,9 @@ const AsistenciaMensualDetalle: React.FC = () => {
                       <Input
                         placeholder="Observaciones..."
                         value={observaciones[alumno.id] || ""}
-                        onChange={(e) => handleObservacionChange(alumno.id, e.target.value)}
+                        onChange={(e) =>
+                          handleObservacionChange(alumno.id, e.target.value)
+                        }
                       />
                     </TableCell>
                   </TableRow>
@@ -449,7 +524,9 @@ const AsistenciaMensualDetalle: React.FC = () => {
           )}
 
           <div className="mt-6 flex justify-end space-x-4">
-            <Button onClick={() => navigate("/asistencias-mensuales")}>Volver</Button>
+            <Button onClick={() => navigate("/asistencias-mensuales")}>
+              Volver
+            </Button>
           </div>
         </CardContent>
       </Card>

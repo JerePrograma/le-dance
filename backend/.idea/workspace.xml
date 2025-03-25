@@ -6,8 +6,13 @@
   <component name="ChangeListManager">
     <list default="true" id="ccb8f120-972c-4a18-b18b-4ae7da723dfa" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/repositorios/PagoRepositorio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/repositorios/PagoRepositorio.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/alumno/AlumnoServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/alumno/AlumnoServicio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/alumno/AlumnoMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/alumno/AlumnoMapper.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/AsistenciaMensualMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/AsistenciaMensualMapper.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/response/AsistenciaAlumnoMensualDetalleResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/asistencia/response/AsistenciaAlumnoMensualDetalleResponse.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/pago/DetallePagoMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/pago/DetallePagoMapper.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/dto/pago/response/DetallePagoResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/dto/pago/response/DetallePagoResponse.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/detallepago/DetallePagoServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/detallepago/DetallePagoServicio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/alumnos/AlumnosFormulario.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/alumnos/AlumnosFormulario.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -21,9 +26,9 @@
     <option name="RECENT_TEMPLATES">
       <list>
         <option value="Enum" />
-        <option value="Record" />
         <option value="Interface" />
         <option value="Class" />
+        <option value="Record" />
       </list>
     </option>
   </component>
@@ -145,7 +150,8 @@
       <workItem from="1742823279869" duration="970000" />
       <workItem from="1742824337524" duration="2837000" />
       <workItem from="1742827636088" duration="850000" />
-      <workItem from="1742832041337" duration="2741000" />
+      <workItem from="1742832041337" duration="3362000" />
+      <workItem from="1742867301165" duration="5434000" />
     </task>
     <servers />
   </component>

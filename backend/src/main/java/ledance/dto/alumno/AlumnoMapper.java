@@ -10,10 +10,12 @@ import org.mapstruct.*;
 @Mapper(componentModel = "spring", uses = {InscripcionMapper.class})
 public interface AlumnoMapper {
 
+    @Named("toResponse")
     @Mapping(target = "id", source = "id")
+    @Mapping(target = "nombre", source = "nombre")
+    @Mapping(target = "apellido", source = "apellido")
     @Mapping(target = "fechaNacimiento", source = "fechaNacimiento")
     @Mapping(target = "celular1", source = "celular1")
-    @Mapping(target = "apellido", source = "apellido")
     @Mapping(target = "activo", source = "activo")
     @Mapping(target = "inscripciones", ignore = true)
     AlumnoResponse toResponse(Alumno alumno);
@@ -27,5 +29,4 @@ public interface AlumnoMapper {
     void updateEntityFromRequest(AlumnoRegistroRequest request, @MappingTarget Alumno alumno);
 
     AlumnoListadoResponse toAlumnoListadoResponse(Alumno alumno);
-
 }

@@ -78,6 +78,7 @@ public interface DetallePagoMapper {
     @Mapping(target = "matriculaId", expression = "java(detallePago.getMatricula() != null ? detallePago.getMatricula().getId() : null)")
     @Mapping(target = "stockId", expression = "java(detallePago.getStock() != null ? detallePago.getStock().getId() : null)")
     @Mapping(target = "pagoId", expression = "java(detallePago.getPago() != null ? detallePago.getPago().getId() : null)")
+    @Mapping(target = "alumnoDisplay", expression = "java(detallePago.getAlumno().getNombre() + \", \" + detallePago.getAlumno().getApellido())")
     DetallePagoResponse toDTO(DetallePago detallePago);
 
     // Metodos helper para asociaciones

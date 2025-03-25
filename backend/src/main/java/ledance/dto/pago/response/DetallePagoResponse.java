@@ -22,5 +22,6 @@ public record DetallePagoResponse(
         Double importePendiente,
         TipoDetallePago tipo,
         LocalDate fechaRegistro,
-        Long pagoId
+        Long pagoId,
+        String alumnoDisplay // <-- Nuevo campo para mostrar el nombre y apellido
 ) { }
