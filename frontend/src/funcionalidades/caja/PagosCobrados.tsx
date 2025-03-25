@@ -106,7 +106,7 @@ const DetallePagoList: React.FC = () => {
 
   // Filtrar los detalles para mostrar solo aquellos que NO han sido cobrados
   const detallesNoCobrado = useMemo(
-    () => detalles.filter((detalle) => !detalle.cobrado),
+    () => detalles.filter((detalle) => detalle.cobrado),
     [detalles]
   );
 

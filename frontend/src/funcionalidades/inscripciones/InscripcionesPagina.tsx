@@ -1,131 +1,139 @@
-"use client"
+"use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react"
-import { useNavigate } from "react-router-dom"
-import Tabla from "../../componentes/comunes/Tabla"
-import inscripcionesApi from "../../api/inscripcionesApi"
-import mensualidadesApi from "../../api/mensualidadesApi"
-import type { InscripcionResponse } from "../../types/types"
-import Boton from "../../componentes/comunes/Boton"
-import { Pencil } from "lucide-react"
-import Pagination from "../../componentes/comunes/Pagination"
-import { toast } from "react-toastify"
-import asistenciasApi from "../../api/asistenciasApi"
+import { useEffect, useState, useCallback, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import Tabla from "../../componentes/comunes/Tabla";
+import inscripcionesApi from "../../api/inscripcionesApi";
+import type { InscripcionResponse } from "../../types/types";
+import Boton from "../../componentes/comunes/Boton";
+import { Pencil } from "lucide-react";
+import Pagination from "../../componentes/comunes/Pagination";
+import { toast } from "react-toastify";
+import asistenciasApi from "../../api/asistenciasApi";
 
-const itemsPerPage = 5
+const itemsPerPage = 5;
 
 const InscripcionesPagina = () => {
-  const [inscripciones, setInscripciones] = useState<InscripcionResponse[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [currentPage, setCurrentPage] = useState(0)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
-  const navigate = useNavigate()
+  const [inscripciones, setInscripciones] = useState<InscripcionResponse[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const navigate = useNavigate();
 
   const fetchInscripciones = useCallback(async () => {
     try {
-      setLoading(true)
-      setError(null)
-      const data = await inscripcionesApi.listar()
-      setInscripciones(data)
+      setLoading(true);
+      setError(null);
+      const data = await inscripcionesApi.listar();
+      setInscripciones(data);
     } catch (error) {
-      toast.error("Error al cargar inscripciones:")
-      setError("Error al cargar inscripciones.")
+      toast.error("Error al cargar inscripciones:");
+      setError("Error al cargar inscripciones.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
-    fetchInscripciones()
-  }, [fetchInscripciones])
+    fetchInscripciones();
+  }, [fetchInscripciones]);
 
   const handleGenerarAsistencias = async () => {
     try {
       // Asegúrate de que la función en inscripcionesApi acepte mes y anio
       await asistenciasApi.crearAsistenciasParaInscripcionesActivas();
-      toast.success("Asistencias generadas exitosamente para inscripciones activas");
+      toast.success(
+        "Asistencias generadas exitosamente para inscripciones activas"
+      );
       fetchInscripciones();
     } catch (error) {
       toast.error("Error al generar asistencias para inscripciones activas");
     }
   };
 
-
-  const handleGenerarCuotas = async () => {
-    try {
-      const respuestas = await mensualidadesApi.generarMensualidadesParaMesVigente()
-      toast.success(`Se generaron/actualizaron ${respuestas.length} cuota(s) para el mes vigente.`)
-      fetchInscripciones()
-    } catch (error) {
-      toast.error("Error al generar cuotas del mes.")
-    }
-  }
-
   const calcularCostoInscripcion = (ins: InscripcionResponse) => {
-    const cuota = ins.disciplina?.valorCuota || 0
-    const bonifPct = ins.bonificacion?.porcentajeDescuento || 0
-    const bonifMonto = ins.bonificacion?.valorFijo || 0
-    return cuota - bonifMonto - (cuota * bonifPct) / 100
-  }
+    const cuota = ins.disciplina?.valorCuota || 0;
+    const bonifPct = ins.bonificacion?.porcentajeDescuento || 0;
+    const bonifMonto = ins.bonificacion?.valorFijo || 0;
+    return cuota - bonifMonto - (cuota * bonifPct) / 100;
+  };
 
   // Agrupa las inscripciones por alumno
   const gruposInscripciones = useMemo(() => {
     return inscripciones.reduce((acc, ins) => {
-      const alumnoId = ins.alumno.id
+      const alumnoId = ins.alumno.id;
       if (!acc[alumnoId]) {
-        acc[alumnoId] = { alumno: ins.alumno, inscripciones: [] }
+        acc[alumnoId] = { alumno: ins.alumno, inscripciones: [] };
       }
-      acc[alumnoId].inscripciones.push(ins)
-      return acc
-    }, {} as Record<number, { alumno: InscripcionResponse["alumno"], inscripciones: InscripcionResponse[] }>)
-  }, [inscripciones])
+      acc[alumnoId].inscripciones.push(ins);
+      return acc;
+    }, {} as Record<number, { alumno: InscripcionResponse["alumno"]; inscripciones: InscripcionResponse[] }>);
+  }, [inscripciones]);
 
-  const gruposArray = useMemo(() => Object.values(gruposInscripciones), [gruposInscripciones])
+  const gruposArray = useMemo(
+    () => Object.values(gruposInscripciones),
+    [gruposInscripciones]
+  );
 
   const gruposConCosto = useMemo(() => {
     return gruposArray.map((grupo) => {
       const costoTotal = grupo.inscripciones.reduce(
         (sum, ins) => sum + calcularCostoInscripcion(ins),
         0
-      )
-      return { ...grupo, costoTotal }
-    })
-  }, [gruposArray])
+      );
+      return { ...grupo, costoTotal };
+    });
+  }, [gruposArray]);
 
   const gruposFiltradosYOrdenados = useMemo(() => {
     const filtrados = gruposConCosto.filter((grupo) => {
-      const nombreCompleto = `${grupo.alumno.nombre} ${grupo.alumno.apellido}`.toLowerCase()
-      return nombreCompleto.includes(searchTerm.toLowerCase())
-    })
+      const nombreCompleto =
+        `${grupo.alumno.nombre} ${grupo.alumno.apellido}`.toLowerCase();
+      return nombreCompleto.includes(searchTerm.toLowerCase());
+    });
     return filtrados.sort((a, b) => {
-      const nombreA = `${a.alumno.nombre} ${a.alumno.apellido}`.toLowerCase()
-      const nombreB = `${b.alumno.nombre} ${b.alumno.apellido}`.toLowerCase()
-      return sortOrder === "asc" ? nombreA.localeCompare(nombreB) : nombreB.localeCompare(nombreA)
-    })
-  }, [gruposConCosto, searchTerm, sortOrder])
+      const nombreA = `${a.alumno.nombre} ${a.alumno.apellido}`.toLowerCase();
+      const nombreB = `${b.alumno.nombre} ${b.alumno.apellido}`.toLowerCase();
+      return sortOrder === "asc"
+        ? nombreA.localeCompare(nombreB)
+        : nombreB.localeCompare(nombreA);
+    });
+  }, [gruposConCosto, searchTerm, sortOrder]);
 
-  const pageCount = useMemo(() => Math.ceil(gruposFiltradosYOrdenados.length / itemsPerPage), [gruposFiltradosYOrdenados.length])
+  const pageCount = useMemo(
+    () => Math.ceil(gruposFiltradosYOrdenados.length / itemsPerPage),
+    [gruposFiltradosYOrdenados.length]
+  );
   const currentItems = useMemo(
-    () => gruposFiltradosYOrdenados.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage),
+    () =>
+      gruposFiltradosYOrdenados.slice(
+        currentPage * itemsPerPage,
+        (currentPage + 1) * itemsPerPage
+      ),
     [gruposFiltradosYOrdenados, currentPage]
-  )
+  );
 
   const nombresUnicos = useMemo(() => {
     const nombresSet = new Set(
-      gruposConCosto.map((grupo) => `${grupo.alumno.nombre} ${grupo.alumno.apellido}`)
-    )
-    return Array.from(nombresSet)
-  }, [gruposConCosto])
+      gruposConCosto.map(
+        (grupo) => `${grupo.alumno.nombre} ${grupo.alumno.apellido}`
+      )
+    );
+    return Array.from(nombresSet);
+  }, [gruposConCosto]);
 
-  if (loading) return <div className="text-center py-4">Cargando...</div>
-  if (error) return <div className="text-center py-4 text-destructive">{error}</div>
+  if (loading) return <div className="text-center py-4">Cargando...</div>;
+  if (error)
+    return <div className="text-center py-4 text-destructive">{error}</div>;
 
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Inscripciones por Alumno</h1>
+        <h1 className="text-3xl font-bold tracking-tight">
+          Inscripciones por Alumno
+        </h1>
         <div className="flex gap-4">
           <Boton
             onClick={handleGenerarAsistencias}
@@ -133,13 +141,6 @@ const InscripcionesPagina = () => {
             aria-label="Generar Asistencias"
           >
             Generar Asistencias
-          </Boton>
-          <Boton
-            onClick={handleGenerarCuotas}
-            className="inline-flex items-center gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/90"
-            aria-label="Generar cuotas del mes"
-          >
-            Generar Cuotas del Mes
           </Boton>
         </div>
       </div>
@@ -155,8 +156,8 @@ const InscripcionesPagina = () => {
             type="text"
             value={searchTerm}
             onChange={(e) => {
-              setSearchTerm(e.target.value)
-              setCurrentPage(0)
+              setSearchTerm(e.target.value);
+              setCurrentPage(0);
             }}
             placeholder="Escribe o selecciona un nombre..."
             className="border rounded px-2 py-1"
@@ -184,7 +185,9 @@ const InscripcionesPagina = () => {
       </div>
 
       {gruposFiltradosYOrdenados.length === 0 ? (
-        <div className="text-center py-4">No hay inscripciones disponibles.</div>
+        <div className="text-center py-4">
+          No hay inscripciones disponibles.
+        </div>
       ) : (
         <div className="overflow-x-auto">
           <Tabla
@@ -193,12 +196,16 @@ const InscripcionesPagina = () => {
             customRender={(grupo) => [
               grupo.alumno.id,
               `${grupo.alumno.nombre} ${grupo.alumno.apellido}`,
-              grupo.costoTotal.toFixed(2)
+              grupo.costoTotal.toFixed(2),
             ]}
             actions={(grupo) => (
               <div className="flex gap-2">
                 <Boton
-                  onClick={() => navigate(`/inscripciones/formulario?alumnoId=${grupo.alumno.id}`)}
+                  onClick={() =>
+                    navigate(
+                      `/inscripciones/formulario?alumnoId=${grupo.alumno.id}`
+                    )
+                  }
                   className="inline-flex items-center gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/90"
                 >
                   <Pencil className="w-4 h-4" />
@@ -221,7 +228,7 @@ const InscripcionesPagina = () => {
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default InscripcionesPagina
+export default InscripcionesPagina;

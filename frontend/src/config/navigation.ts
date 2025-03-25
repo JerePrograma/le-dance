@@ -91,6 +91,12 @@ export const navigationItems: NavigationItem[] = [
         icon: Receipt,
       },
       {
+        id: "pagos-cobrados",
+        label: "Pagos cobrados",
+        href: "/pagos-cobrados",
+        icon: Receipt,
+      },
+      {
         id: "metodos-pago",
         label: "Métodos de Pago",
         href: "/metodos-pago",

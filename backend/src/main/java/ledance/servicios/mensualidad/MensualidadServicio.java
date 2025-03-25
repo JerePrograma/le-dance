@@ -171,7 +171,7 @@ public class MensualidadServicio implements IMensualidadService {
     }
 
     public List<MensualidadResponse> generarMensualidadesParaMesVigente() {
-        int mes = LocalDate.now().getMonthValue();
+        int mes = LocalDate.now().getMonthValue() +1;
         int anio = LocalDate.now().getYear();
         YearMonth ym = YearMonth.of(anio, mes);
         LocalDate inicioMes = ym.atDay(1);

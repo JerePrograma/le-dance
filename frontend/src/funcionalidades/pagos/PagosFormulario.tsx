@@ -1,5 +1,5 @@
 // src/forms/CobranzasForm.tsx
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import {
   Formik,
@@ -11,8 +11,11 @@ import {
 } from "formik";
 import { toast } from "react-toastify";
 import pagosApi from "../../api/pagosApi";
+import alumnosApi from "../../api/alumnosApi";
+import inscripcionesApi from "../../api/inscripcionesApi"; // Importamos el API de inscripciones
 import { useCobranzasData } from "../../hooks/useCobranzasData";
 import { useAlumnoData } from "../../hooks/useAlumnoData";
+import useDebounce from "../../hooks/useDebounce";
 import type {
   CobranzasFormValues,
   DetallePagoRegistroRequest,
@@ -25,9 +28,9 @@ import type {
   AlumnoResponse,
   PagoRegistroRequest,
   AlumnoDataResponse,
+  InscripcionResponse,
 } from "../../types/types";
 import ResponsiveContainer from "../../componentes/comunes/ResponsiveContainer";
-import FormHeader from "../../componentes/FormHeader";
 import { useSyncDetalles } from "../../hooks/context/useSyncDetalles";
 import { normalizeInscripcion } from "./normalizeInscripcion";
 
@@ -126,16 +129,167 @@ function normalizeAlumno(alumno: AlumnoResponse): AlumnoRegistroRequest {
     activo: alumno.activo,
     otrasNotas: alumno.otrasNotas,
     cuotaTotal: alumno.cuotaTotal,
-    inscripciones: alumno.inscripciones.map(normalizeInscripcion),
+    inscripciones: alumno.inscripciones
+      ? alumno.inscripciones.map(normalizeInscripcion)
+      : [],
   };
 }
 
-// ----- Subcomponentes -----
+// ----- Nuevo Subcomponente: CobranzasFormHeader -----
+// Mantiene el layout original y reemplaza el select de alumno por un input de búsqueda
+interface CobranzasFormHeaderProps {
+  handleAlumnoChange: (
+    alumnoIdStr: string,
+    currentValues: CobranzasFormValues,
+    setFieldValue: (
+      field: string,
+      value: any
+    ) => Promise<void | FormikErrors<CobranzasFormValues>>
+  ) => Promise<void>;
+}
 
-/**
- * TotalsUpdater: Recalcula los totales basándose en la suma de importePendiente y aCobrar de cada detalle.
- */
-const TotalsUpdater: React.FC<{ metodosPago: MetodoPagoResponse[] }> = ({}) => {
+const CobranzasFormHeader: React.FC<CobranzasFormHeaderProps> = ({
+  handleAlumnoChange,
+}) => {
+  const { values, setFieldValue } = useFormikContext<CobranzasFormValues>();
+  const [nombreBusqueda, setNombreBusqueda] = useState("");
+  const [sugerencias, setSugerencias] = useState<AlumnoResponse[]>([]);
+  const [activeSuggestionIndex, setActiveSuggestionIndex] =
+    useState<number>(-1);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const debouncedNombre = useDebounce(nombreBusqueda, 300);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const fetchSugerencias = async () => {
+      const query = debouncedNombre.trim();
+      if (query !== "") {
+        try {
+          const resultados = await alumnosApi.buscarPorNombre(query);
+          setSugerencias(resultados);
+          setActiveSuggestionIndex(-1);
+        } catch (error) {
+          // Manejo de error si es necesario.
+        }
+      } else {
+        setSugerencias([]);
+      }
+    };
+    fetchSugerencias();
+  }, [debouncedNombre]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        wrapperRef.current &&
+        !wrapperRef.current.contains(e.target as Node)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleSelectAlumno = async (alumno: AlumnoResponse) => {
+    setNombreBusqueda(`${alumno.nombre} ${alumno.apellido}`);
+    setShowSuggestions(false);
+    await handleAlumnoChange(alumno.id.toString(), values, setFieldValue);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (sugerencias.length > 0) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setActiveSuggestionIndex((prev) =>
+          prev < sugerencias.length - 1 ? prev + 1 : 0
+        );
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setActiveSuggestionIndex((prev) =>
+          prev > 0 ? prev - 1 : sugerencias.length - 1
+        );
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        if (
+          activeSuggestionIndex >= 0 &&
+          activeSuggestionIndex < sugerencias.length
+        ) {
+          handleSelectAlumno(sugerencias[activeSuggestionIndex]);
+        }
+      }
+    }
+  };
+
+  return (
+    <div className="border p-4 mb-4">
+      <h2 className="font-bold mb-2">Datos de Cobranzas</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">
+        {/* Recibo Nro */}
+        <div>
+          <label className="block font-medium">Recibo Nro:</label>
+          <input
+            type="text"
+            readOnly
+            className="border p-2 w-full"
+            value={values.reciboNro}
+          />
+        </div>
+        {/* Campo de búsqueda de Alumno */}
+        <div className="sm:col-span-2 relative" ref={wrapperRef}>
+          <label className="block font-medium">Alumno:</label>
+          <input
+            type="text"
+            className="border p-2 w-full"
+            value={nombreBusqueda}
+            onChange={(e) => {
+              setNombreBusqueda(e.target.value);
+              setShowSuggestions(true);
+            }}
+            onKeyDown={handleKeyDown}
+            onFocus={() => {
+              if (nombreBusqueda.trim() !== "") {
+                setShowSuggestions(true);
+              }
+            }}
+            placeholder="Buscar por nombre..."
+          />
+          {showSuggestions && sugerencias.length > 0 && (
+            <ul className="absolute w-full bg-gray-500 border border-gray-700 mt-1 z-10 rounded-md shadow-lg">
+              {sugerencias.map((alumno, index) => (
+                <li
+                  key={alumno.id}
+                  onClick={() => handleSelectAlumno(alumno)}
+                  onMouseEnter={() => setActiveSuggestionIndex(index)}
+                  className={`p-2 cursor-pointer ${
+                    index === activeSuggestionIndex
+                      ? "bg-slate-600"
+                      : "hover:bg-gray-700"
+                  }`}
+                >
+                  {alumno.nombre} {alumno.apellido}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        {/* Fecha */}
+        <div>
+          <label className="block font-medium">Fecha:</label>
+          <input
+            type="date"
+            className="border p-2 w-full"
+            value={values.fecha}
+            onChange={(e) => setFieldValue("fecha", e.target.value)}
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ----- Subcomponentes existentes -----
+const TotalsUpdater: React.FC<{ metodosPago: MetodoPagoResponse[] }> = () => {
   const { values, setFieldValue } = useFormikContext<CobranzasFormValues>();
 
   useEffect(() => {
@@ -159,9 +313,6 @@ const TotalsUpdater: React.FC<{ metodosPago: MetodoPagoResponse[] }> = ({}) => {
   return null;
 };
 
-/**
- * ConceptosSection: Sección para seleccionar disciplina, tarifa, concepto y stock.
- */
 interface ConceptosSectionProps {
   disciplinas: DisciplinaDetalleResponse[];
   stocks: StockResponse[];
@@ -287,9 +438,6 @@ const ConceptosSection: React.FC<ConceptosSectionProps> = ({
   );
 };
 
-/**
- * DetallesTable: Renderiza la tabla de detalles usando FieldArray.
- */
 const DetallesTable: React.FC = () => (
   <FieldArray name="detallePagos">
     {({ remove, form }) => (
@@ -424,6 +572,10 @@ const CobranzasForm: React.FC = () => {
   const [initialValues, setInitialValues] =
     useState<CobranzasFormValues>(defaultValues);
   const [selectedAlumnoId, setSelectedAlumnoId] = useState<number>(0);
+  // Estado para almacenar las inscripciones activas del alumno seleccionado
+  const [activeInscripciones, setActiveInscripciones] = useState<
+    InscripcionResponse[]
+  >([]);
 
   // Datos unificados de cobranzas y alumno
   const { alumnos, disciplinas, stocks, metodosPago, conceptos } =
@@ -444,6 +596,14 @@ const CobranzasForm: React.FC = () => {
     })
   );
 
+  // Filtrado de disciplinas en base a las inscripciones activas
+  const filteredDisciplinas =
+    activeInscripciones.length > 0
+      ? mappedDisciplinas.filter((disc) =>
+          activeInscripciones.some((ins) => ins.disciplina.id === disc.id)
+        )
+      : mappedDisciplinas;
+
   // Hook para sincronizar los detalles (se ejecuta solo una vez para permitir edición manual)
   const SyncDetalles: React.FC<{ deudaData: AlumnoDataResponse }> = ({
     deudaData,
@@ -454,6 +614,8 @@ const CobranzasForm: React.FC = () => {
 
   /**
    * Manejo del cambio de alumno.
+   * Se actualiza el alumno en el formulario (buscando por ID) y normalizando los datos.
+   * Además, se obtienen automáticamente las inscripciones activas y se actualiza el estado para filtrar las disciplinas.
    */
   const handleAlumnoChange = useCallback(
     async (
@@ -469,12 +631,16 @@ const CobranzasForm: React.FC = () => {
       await setFieldValue("alumnoId", id);
       setSelectedAlumnoId(id);
       await setFieldValue("matriculaRemoved", false);
-      if (alumnoData && alumnoData.alumno) {
-        console.log(
-          "[handleAlumnoChange] Asignando data completa del alumno:",
-          alumnoData
-        );
-        await setFieldValue("alumno", normalizeAlumno(alumnoData.alumno));
+      let alumnoInfo = alumnoData?.alumno;
+      if (!alumnoInfo) {
+        try {
+          alumnoInfo = await alumnosApi.obtenerPorId(id);
+        } catch (error) {
+          alumnoInfo = null;
+        }
+      }
+      if (alumnoInfo) {
+        await setFieldValue("alumno", normalizeAlumno(alumnoInfo));
       } else {
         await setFieldValue("alumno", {
           id,
@@ -494,6 +660,14 @@ const CobranzasForm: React.FC = () => {
           cuotaTotal: 0,
           inscripciones: [],
         });
+      }
+      // Se obtiene automáticamente las inscripciones activas del alumno
+      try {
+        const inscripcionesActivas =
+          await inscripcionesApi.obtenerInscripcionesActivas(id);
+        setActiveInscripciones(inscripcionesActivas);
+      } catch (error) {
+        setActiveInscripciones([]);
       }
     },
     [alumnoData]
@@ -522,7 +696,6 @@ const CobranzasForm: React.FC = () => {
               subConceptoId: detalle.subConceptoId ?? null,
               cuotaOCantidad: detalle.cuotaOCantidad || "1",
               valorBase: detalle.valorBase,
-              // Si importePendiente es 0 o nulo, se asigna el valorBase
               importePendiente:
                 detalle.importePendiente == null ||
                 Number(detalle.importePendiente) === 0
@@ -573,7 +746,7 @@ const CobranzasForm: React.FC = () => {
     }
   }, [searchParams]);
 
-  // Función para agregar detalle
+  // Función para agregar detalle (se mantiene igual)
   const handleAgregarDetalle = useCallback(
     (
       values: CobranzasFormValues,
@@ -606,7 +779,6 @@ const CobranzasForm: React.FC = () => {
               subConceptoId: null,
               cuotaOCantidad: "1",
               valorBase: selectedConcept.precio,
-              // Si importePendiente es 0 o nulo se usa valorBase
               importePendiente: selectedConcept.precio,
               bonificacionId: null,
               recargoId: null,
@@ -654,7 +826,6 @@ const CobranzasForm: React.FC = () => {
               subConceptoId: null,
               cuotaOCantidad: cantidad.toString(),
               valorBase: total,
-              // Si importePendiente es 0 o nulo se usa valorBase
               importePendiente: total,
               bonificacionId: null,
               recargoId: null,
@@ -689,7 +860,6 @@ const CobranzasForm: React.FC = () => {
               subConceptoId: null,
               cuotaOCantidad: cantidad.toString(),
               valorBase: total,
-              // Si importePendiente es 0 o nulo se usa valorBase
               importePendiente: total,
               bonificacionId: null,
               recargoId: null,
@@ -792,12 +962,11 @@ const CobranzasForm: React.FC = () => {
           <Form className="w-full">
             <TotalsUpdater metodosPago={metodosPago} />
             {alumnoData && <SyncDetalles deudaData={alumnoData} />}
-            <FormHeader
-              alumnos={alumnos}
-              handleAlumnoChange={handleAlumnoChange}
-            />
+            {/* Se reemplaza el antiguo FormHeader por el nuevo header con búsqueda */}
+            <CobranzasFormHeader handleAlumnoChange={handleAlumnoChange} />
             <ConceptosSection
-              disciplinas={mappedDisciplinas}
+              // Se envía el arreglo de disciplinas filtrado según las inscripciones activas del alumno
+              disciplinas={filteredDisciplinas}
               stocks={stocks}
               conceptos={conceptos}
               values={values}

@@ -228,8 +228,12 @@ const AlumnosFormulario: React.FC = () => {
   useEffect(() => {
     const buscarSugerencias = async () => {
       const query = debouncedNombreBusqueda.trim();
-      const sugerencias = await alumnosApi.buscarPorNombre(query);
-      setSugerenciasAlumnos(sugerencias);
+      if (query !== "") {
+        const sugerencias = await alumnosApi.buscarPorNombre(query);
+        setSugerenciasAlumnos(sugerencias);
+      } else {
+        setSugerenciasAlumnos([]);
+      }
       setActiveSuggestionIndex(-1);
     };
     buscarSugerencias();
@@ -334,10 +338,15 @@ const AlumnosFormulario: React.FC = () => {
                       id="nombreBusqueda"
                       value={nombreBusqueda}
                       onChange={(e) => {
-                        setNombreBusqueda(e.target.value);
-                        setShowSuggestions(true);
+                        const value = e.target.value;
+                        setNombreBusqueda(value);
+                        setShowSuggestions(value.trim() !== "");
                       }}
-                      onFocus={() => setShowSuggestions(true)}
+                      onFocus={() => {
+                        if (nombreBusqueda.trim() !== "") {
+                          setShowSuggestions(true);
+                        }
+                      }}
                       onKeyDown={handleKeyDown}
                       className="form-input w-full"
                     />
@@ -379,7 +388,6 @@ const AlumnosFormulario: React.FC = () => {
                     )}
                   </div>
                 </div>
-
                 {/* Datos Personales */}
                 {[
                   { name: "nombre", label: "Nombre" },
