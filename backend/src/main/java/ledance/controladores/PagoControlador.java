@@ -144,26 +144,36 @@ public class PagoControlador {
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
             LocalDate fechaRegistroHasta,
 
+            // Para filtrar por concepto (o nombre completo del concepto)
             @RequestParam(required = false) String detalleConcepto,
 
+            // Para filtrar por stock (se usará el nombre de Stock)
             @RequestParam(required = false) String stock,
 
+            // Para filtrar por sub concepto (subConcepto.descripcion)
             @RequestParam(required = false) String subConcepto,
 
-            @RequestParam(required = false) String disciplina
+            // Para filtrar por disciplinas (se usa el campo descripcionConcepto)
+            // Si se envía tarifa, se espera que el formato sea: "DISCIPLINA - TARIFA"
+            @RequestParam(required = false) String disciplina,
+
+            // Parámetro adicional para el filtro de tarifa
+            @RequestParam(required = false) String tarifa
     ) {
-        log.info("Filtrando detalles de pago con parametros: fechaRegistroDesde={}, fechaRegistroHasta={}, detalleConcepto={}, stock={}, subConcepto={}, disciplina={}",
-                fechaRegistroDesde, fechaRegistroHasta, detalleConcepto, stock, subConcepto, disciplina);
+        log.info("Filtrando detalles de pago con parametros: fechaRegistroDesde={}, fechaRegistroHasta={}, detalleConcepto={}, stock={}, subConcepto={}, disciplina={}, tarifa={}",
+                fechaRegistroDesde, fechaRegistroHasta, detalleConcepto, stock, subConcepto, disciplina, tarifa);
 
         List<DetallePagoResponse> detalles = detallePagoServicio.filtrarDetalles(
                 fechaRegistroDesde,
                 fechaRegistroHasta,
-                detalleConcepto,
+                disciplina,
+                tarifa,
                 stock,
                 subConcepto,
-                disciplina
+                detalleConcepto
         );
 
         return detalles.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(detalles);
     }
+
 }

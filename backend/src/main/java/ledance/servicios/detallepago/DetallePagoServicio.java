@@ -114,83 +114,71 @@ public class DetallePagoServicio {
         return BigDecimal.valueOf(importe).setScale(2, RoundingMode.HALF_UP).doubleValue();
     }
 
-    public List<DetallePagoResponse> filtrarDetalles(LocalDate fechaRegistroDesde,
-                                                     LocalDate fechaRegistroHasta,
-                                                     String detalleConcepto, // Filtra por parte del nombre en conceptoEntity.descripcion
-                                                     String stock,
-                                                     String subConcepto,     // Texto para filtrar por sub concepto
-                                                     String disciplina) {
-        log.info("Inicio del metodo filtrarDetalles con parametros:");
-        log.info("  fechaRegistroDesde: {}", fechaRegistroDesde);
-        log.info("  fechaRegistroHasta: {}", fechaRegistroHasta);
-        log.info("  detalleConcepto: {}", detalleConcepto);
-        log.info("  stock: {}", stock);
-        log.info("  subConcepto: {}", subConcepto);
-        log.info("  disciplina: {}", disciplina);
-
+    public List<DetallePagoResponse> filtrarDetalles(
+            LocalDate fechaRegistroDesde,
+            LocalDate fechaRegistroHasta,
+            String disciplina,
+            String tarifa,
+            String stock,
+            String subConcepto,
+            String detalleConcepto
+    ) {
         Specification<DetallePago> spec = Specification.where(null);
 
-        // Filtrado por rango de fecha en DetallePago
+        // Filtrado por rango de fecha (fechaRegistro)
         if (fechaRegistroDesde != null) {
-            log.info("Aplicando filtro: fechaRegistro >= {}", fechaRegistroDesde);
             spec = spec.and((root, query, cb) ->
-                    cb.greaterThanOrEqualTo(root.get("fechaRegistro"), fechaRegistroDesde)
-            );
+                    cb.greaterThanOrEqualTo(root.get("fechaRegistro"), fechaRegistroDesde));
         }
         if (fechaRegistroHasta != null) {
-            log.info("Aplicando filtro: fechaRegistro <= {}", fechaRegistroHasta);
             spec = spec.and((root, query, cb) ->
-                    cb.lessThanOrEqualTo(root.get("fechaRegistro"), fechaRegistroHasta)
-            );
+                    cb.lessThanOrEqualTo(root.get("fechaRegistro"), fechaRegistroHasta));
         }
 
-        // Filtrado por stock: se filtra por detalles cuyo tipo sea STOCK
+        // Filtrado por disciplina:
+        // Si se envía también tarifa se busca que inicie con "DISCIPLINA - TARIFA",
+        // de lo contrario se usa un patrón que encuentre la cadena en cualquier parte.
+        if (StringUtils.hasText(disciplina)) {
+            String pattern;
+            if (StringUtils.hasText(tarifa)) {
+                pattern = (disciplina + " - " + tarifa).toUpperCase() + "%";
+            } else {
+                pattern = "%" + disciplina.toUpperCase() + "%";
+            }
+            spec = spec.and((root, query, cb) ->
+                    cb.like(root.get("descripcionConcepto"), pattern));
+        }
+
+        // Filtrado por Stock (usa el campo stock.nombre)
         if (StringUtils.hasText(stock)) {
-            log.info("Aplicando filtro: tipo = {}", TipoDetallePago.STOCK);
+            String pattern = "%" + stock.toLowerCase() + "%";
             spec = spec.and((root, query, cb) ->
-                    cb.equal(root.get("tipo"), TipoDetallePago.STOCK)
-            );
+                    cb.like(cb.lower(root.get("stock").get("nombre")), pattern));
         }
 
-        // Logica de filtrado para Concepto/SubConcepto:
-        // 1. Si se proporciona subConcepto, se filtra por el campo de la relacion SubConcepto.
-        // 2. Si no se proporciono subConcepto pero si detalleConcepto, se filtra por el concepto.
+        // Filtrado por SubConcepto (usa subConcepto.descripcion)
         if (StringUtils.hasText(subConcepto)) {
             String pattern = "%" + subConcepto.toLowerCase() + "%";
-            log.info("Aplicando filtro prioritario: subConcepto.descripcion LIKE {}", pattern);
             spec = spec.and((root, query, cb) ->
-                    cb.like(cb.lower(root.get("subConcepto").get("descripcion")), pattern)
-            );
-        } else if (StringUtils.hasText(detalleConcepto)) {
-            String pattern = "%" + detalleConcepto.toLowerCase() + "%";
-            log.info("Aplicando filtro: descripcionConcepto LIKE {}", pattern);
-            spec = spec.and((root, query, cb) ->
-                    cb.like(cb.lower(root.get("descripcionConcepto")), pattern)
-            );
+                    cb.like(cb.lower(root.get("subConcepto").get("descripcion")), pattern));
         }
 
-        // Filtrado por disciplina (tipo de detalle)
-        if (StringUtils.hasText(disciplina)) {
-            try {
-                TipoDetallePago tipo = TipoDetallePago.valueOf(disciplina.toUpperCase());
-                log.info("Aplicando filtro: tipo = {}", tipo);
-                spec = spec.and((root, query, cb) ->
-                        cb.equal(root.get("tipo"), tipo)
-                );
-            } catch (IllegalArgumentException ex) {
-                log.warn("Valor de disciplina no valido: {}", disciplina);
-            }
+        // Filtrado por Concepto (usando el campo descripcionConcepto)
+        if (StringUtils.hasText(detalleConcepto)) {
+            String pattern = "%" + detalleConcepto.toUpperCase() + "%";
+            spec = spec.and((root, query, cb) ->
+                    cb.like(root.get("descripcionConcepto"), pattern));
         }
 
-        // Se realiza la consulta utilizando la Specification compuesta
+        // Ejecutar la consulta con la Specification compuesta
         List<DetallePago> detalles = detallePagoRepositorio.findAll(spec);
-        log.info("Consulta realizada. Numero de registros encontrados: {}", detalles.size());
+        log.info("Consulta realizada. Número de registros encontrados: {}", detalles.size());
 
-        // Conversion de la entidad a DTO
+        // Conversión de las entidades a DTOs
         List<DetallePagoResponse> responses = detalles.stream()
                 .map(this::mapToDetallePagoResponse)
                 .collect(Collectors.toList());
-        log.info("Conversion a DetallePagoResponse completada. Regresando respuesta.");
+        log.info("Conversión a DetallePagoResponse completada. Regresando respuesta.");
 
         return responses;
     }

@@ -10,7 +10,7 @@ import pagosApi from "../../api/pagosApi";
 import disciplinasApi from "../../api/disciplinasApi";
 import stocksApi from "../../api/stocksApi";
 import subConceptosApi from "../../api/subConceptosApi";
-import conceptosApi from "../../api/conceptosApi"; // Nuevo endpoint para conceptos por sub concepto
+import conceptosApi from "../../api/conceptosApi";
 import type { DetallePagoResponse } from "../../types/types";
 
 const tarifaOptions = ["CUOTA", "CLASE DE PRUEBA", "CLASE SUELTA"];
@@ -28,20 +28,17 @@ const DetallePagoList: React.FC = () => {
   const [fechaFin, setFechaFin] = useState("");
   const [filtroTipo, setFiltroTipo] = useState("");
 
-  // Estado para el filtro "valor" original (en caso de CUOTAS u otro)
-  const [, setFiltroValor] = useState("");
-
   // Estados para los filtros secundarios según la opción elegida
-  // Para DISCIPLINAS
+  // Para DISCIPLINAS: se usa el valor textual (ej. "DANZA")
   const [disciplinas, setDisciplinas] = useState<any[]>([]);
   const [selectedDisciplina, setSelectedDisciplina] = useState("");
   const [selectedTarifa, setSelectedTarifa] = useState("");
 
-  // Para STOCK
+  // Para STOCK: se filtra por el nombre del stock
   const [stocks, setStocks] = useState<any[]>([]);
   const [selectedStock, setSelectedStock] = useState("");
 
-  // Para CONCEPTOS
+  // Para CONCEPTOS: se trabaja primero con subConceptos y luego con conceptos
   const [subConceptos, setSubConceptos] = useState<any[]>([]);
   const [selectedSubConcepto, setSelectedSubConcepto] = useState("");
   const [conceptos, setConceptos] = useState<any[]>([]);
@@ -71,10 +68,9 @@ const DetallePagoList: React.FC = () => {
     fetchDetalles();
   }, [fetchDetalles]);
 
-  // Efecto para cargar los filtros secundarios según filtroTipo
+  // Carga de filtros secundarios según la categoría seleccionada.
   useEffect(() => {
     if (filtroTipo === "DISCIPLINAS") {
-      // Cargar lista de disciplinas
       disciplinasApi
         .listarDisciplinas()
         .then((data) => setDisciplinas(data))
@@ -85,15 +81,20 @@ const DetallePagoList: React.FC = () => {
         .then((data) => setStocks(data))
         .catch(() => toast.error("Error al cargar stocks"));
     } else if (filtroTipo === "CONCEPTOS") {
-      // Cargar lista de subconceptos
       subConceptosApi
         .listarSubConceptos()
         .then((data) => setSubConceptos(data))
         .catch(() => toast.error("Error al cargar sub conceptos"));
     }
+    // Reiniciamos los filtros secundarios al cambiar la categoría
+    setSelectedDisciplina("");
+    setSelectedTarifa("");
+    setSelectedStock("");
+    setSelectedSubConcepto("");
+    setSelectedConcepto("");
   }, [filtroTipo]);
 
-  // Cuando se selecciona un sub concepto, se cargan los conceptos asociados mediante el nuevo endpoint.
+  // Cargar conceptos al seleccionar un sub concepto (para CONCEPTOS)
   useEffect(() => {
     if (filtroTipo === "CONCEPTOS" && selectedSubConcepto) {
       conceptosApi
@@ -128,25 +129,39 @@ const DetallePagoList: React.FC = () => {
     [pageCount]
   );
 
+  // Al enviar el formulario se arma el objeto de parámetros.
+  // Si se selecciona una categoría sin filtros secundarios, se envía el parámetro "categoria"
   const handleFilterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const params: Record<string, string> = {};
     if (fechaInicio) params.fechaRegistroDesde = fechaInicio;
     if (fechaFin) params.fechaRegistroHasta = fechaFin;
 
-    // Según el filtro seleccionado, se añaden parámetros adicionales.
     if (filtroTipo) {
+      // Enviamos el tipo de filtro (categoría) para que el backend sepa qué filtrar
+      params.categoria = filtroTipo;
       switch (filtroTipo) {
         case "DISCIPLINAS":
-          if (selectedDisciplina) params.disciplina = selectedDisciplina;
-          if (selectedTarifa) params.tarifa = selectedTarifa;
+          // Si se selecciona disciplina, se envía; de lo contrario, el backend interpretará que se desea filtrar por todas
+          if (selectedDisciplina) {
+            params.disciplina = selectedDisciplina;
+          }
+          if (selectedTarifa) {
+            params.tarifa = selectedTarifa;
+          }
           break;
         case "STOCK":
-          if (selectedStock) params.stock = selectedStock;
+          if (selectedStock) {
+            params.stock = selectedStock;
+          }
           break;
         case "CONCEPTOS":
-          if (selectedSubConcepto) params.subConcepto = selectedSubConcepto;
-          if (selectedConcepto) params.detalleConcepto = selectedConcepto;
+          if (selectedSubConcepto) {
+            params.subConcepto = selectedSubConcepto;
+          }
+          if (selectedConcepto) {
+            params.detalleConcepto = selectedConcepto;
+          }
           break;
         default:
           break;
@@ -187,16 +202,7 @@ const DetallePagoList: React.FC = () => {
               <label className="block font-medium">Filtrar por:</label>
               <select
                 value={filtroTipo}
-                onChange={(e) => {
-                  setFiltroTipo(e.target.value);
-                  // Reiniciamos los estados secundarios al cambiar el filtro principal.
-                  setFiltroValor("");
-                  setSelectedDisciplina("");
-                  setSelectedTarifa("");
-                  setSelectedStock("");
-                  setSelectedSubConcepto("");
-                  setSelectedConcepto("");
-                }}
+                onChange={(e) => setFiltroTipo(e.target.value)}
                 className="border p-2"
               >
                 <option value="">Seleccionar...</option>
@@ -217,7 +223,7 @@ const DetallePagoList: React.FC = () => {
                   >
                     <option value="">Seleccionar disciplina...</option>
                     {disciplinas.map((d) => (
-                      <option key={d.id} value={d.id}>
+                      <option key={d.id} value={d.nombre || d.descripcion}>
                         {d.nombre || d.descripcion}
                       </option>
                     ))}
@@ -251,7 +257,7 @@ const DetallePagoList: React.FC = () => {
                 >
                   <option value="">Seleccionar stock...</option>
                   {stocks.map((s) => (
-                    <option key={s.id} value={s.id}>
+                    <option key={s.id} value={s.nombre || s.descripcion}>
                       {s.nombre || s.descripcion}
                     </option>
                   ))}
@@ -270,7 +276,7 @@ const DetallePagoList: React.FC = () => {
                   >
                     <option value="">Seleccionar sub concepto...</option>
                     {subConceptos.map((sc) => (
-                      <option key={sc.id} value={sc.id}>
+                      <option key={sc.id} value={sc.descripcion}>
                         {sc.descripcion}
                       </option>
                     ))}
@@ -286,7 +292,7 @@ const DetallePagoList: React.FC = () => {
                   >
                     <option value="">Seleccionar concepto...</option>
                     {conceptos.map((c) => (
-                      <option key={c.id} value={c.id}>
+                      <option key={c.id} value={c.descripcion}>
                         {c.descripcion}
                       </option>
                     ))}
