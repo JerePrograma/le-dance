@@ -74,6 +74,7 @@ public interface DetallePagoMapper {
     @Mapping(target = "conceptoId", expression = "java(detallePago.getConcepto() != null ? detallePago.getConcepto().getId() : null)")
     @Mapping(target = "subConceptoId", expression = "java(detallePago.getSubConcepto() != null ? detallePago.getSubConcepto().getId() : null)")
     @Mapping(target = "bonificacionId", expression = "java(detallePago.getBonificacion() != null ? detallePago.getBonificacion().getId() : null)")
+    @Mapping(target = "bonificacionNombre", expression = "java(detallePago.getBonificacion() != null ? detallePago.getBonificacion().getDescripcion() : \"\")")
     @Mapping(target = "recargoId", expression = "java(detallePago.getRecargo() != null ? detallePago.getRecargo().getId() : null)")
     @Mapping(target = "mensualidadId", expression = "java(detallePago.getMensualidad() != null ? detallePago.getMensualidad().getId() : null)")
     @Mapping(target = "matriculaId", expression = "java(detallePago.getMatricula() != null ? detallePago.getMatricula().getId() : null)")

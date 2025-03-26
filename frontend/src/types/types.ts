@@ -740,7 +740,9 @@ export interface DetallePagoResponse {
   cuotaOCantidad: string;
   valorBase: number;
   bonificacionId?: number | null;
+  bonificacionNombre?: string; // <-- Agregado
   recargoId?: number | null;
+  recargoNombre?: string; // <-- Agregado
   aCobrar: number;
   cobrado: boolean;
   conceptoId?: number | null;
@@ -752,7 +754,7 @@ export interface DetallePagoResponse {
   importePendiente: number;
   tipo: string;
   fechaRegistro: string;
-  pagoId?: number | null; // <-- Nuevo atributo
+  pagoId?: number | null;
   alumnoDisplay: string;
 }
 

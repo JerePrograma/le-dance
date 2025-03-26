@@ -1,6 +1,7 @@
 package ledance.servicios.detallepago;
 
 import jakarta.persistence.EntityNotFoundException;
+import ledance.dto.pago.DetallePagoMapper;
 import ledance.dto.pago.response.DetallePagoResponse;
 import ledance.entidades.DetallePago;
 import ledance.entidades.Recargo;
@@ -24,9 +25,11 @@ public class DetallePagoServicio {
 
     private static final Logger log = LoggerFactory.getLogger(DetallePagoServicio.class);
     private final DetallePagoRepositorio detallePagoRepositorio;
+    private final DetallePagoMapper detallePagoMapper;
 
-    public DetallePagoServicio(DetallePagoRepositorio detallePagoRepositorio) {
+    public DetallePagoServicio(DetallePagoRepositorio detallePagoRepositorio, DetallePagoMapper detallePagoMapper) {
         this.detallePagoRepositorio = detallePagoRepositorio;
+        this.detallePagoMapper = detallePagoMapper;
     }
 
     /**
@@ -173,7 +176,7 @@ public class DetallePagoServicio {
 
         // Conversión de las entidades a DTOs
         List<DetallePagoResponse> responses = detalles.stream()
-                .map(this::mapToDetallePagoResponse)
+                .map(detallePagoMapper::toDTO)
                 .collect(Collectors.toList());
         log.info("Conversión a DetallePagoResponse completada. Regresando respuesta.");
 
@@ -190,14 +193,14 @@ public class DetallePagoServicio {
         calcularImporte(detalle);
         DetallePago detalleGuardado = detallePagoRepositorio.save(detalle);
         log.info("DetallePago creado con id={}", detalleGuardado.getId());
-        return mapToDetallePagoResponse(detalleGuardado);
+        return detallePagoMapper.toDTO(detalleGuardado);
     }
 
     // Obtener un DetallePago por su ID
     public DetallePagoResponse obtenerDetallePagoPorId(Long id) {
         DetallePago detalle = detallePagoRepositorio.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("DetallePago con id " + id + " no encontrado"));
-        return mapToDetallePagoResponse(detalle);
+        return detallePagoMapper.toDTO(detalle);
     }
 
     // Actualizar un DetallePago existente
@@ -219,7 +222,7 @@ public class DetallePagoServicio {
         calcularImporte(detalleExistente);
         DetallePago detalleGuardado = detallePagoRepositorio.save(detalleExistente);
         log.info("DetallePago actualizado con id={}", detalleGuardado.getId());
-        return mapToDetallePagoResponse(detalleGuardado);
+        return detallePagoMapper.toDTO(detalleGuardado);
     }
 
     // Eliminar un DetallePago por su ID
@@ -236,7 +239,7 @@ public class DetallePagoServicio {
         List<DetallePago> detalles = detallePagoRepositorio.findAll();
         log.info("Listado de DetallePagos obtenido. Total registros: {}", detalles.size());
         return detalles.stream()
-                .map(this::mapToDetallePagoResponse)
+                .map(detallePagoMapper::toDTO)
                 .collect(Collectors.toList());
     }
 
@@ -244,32 +247,4 @@ public class DetallePagoServicio {
     // Método privado para mappear a DTO
     // =====================================================
 
-    private DetallePagoResponse mapToDetallePagoResponse(DetallePago detalle) {
-        String conceptoDesc = (detalle.getDescripcionConcepto() != null)
-                ? detalle.getDescripcionConcepto()
-                : "N/A";
-
-        return new DetallePagoResponse(
-                detalle.getId(),
-                detalle.getVersion(),
-                conceptoDesc,
-                detalle.getCuotaOCantidad(),
-                detalle.getValorBase(),
-                detalle.getBonificacion() != null ? detalle.getBonificacion().getId() : null,
-                detalle.getRecargo() != null ? detalle.getRecargo().getId() : null,
-                detalle.getaCobrar(),
-                detalle.getCobrado(),
-                detalle.getConcepto() != null ? detalle.getConcepto().getId() : null,
-                detalle.getSubConcepto() != null ? detalle.getSubConcepto().getId() : null,
-                detalle.getMensualidad() != null ? detalle.getMensualidad().getId() : null,
-                detalle.getMatricula() != null ? detalle.getMatricula().getId() : null,
-                detalle.getStock() != null ? detalle.getStock().getId() : null,
-                detalle.getImporteInicial(),
-                detalle.getImportePendiente(),
-                detalle.getTipo(),
-                detalle.getFechaRegistro(),
-                detalle.getPago().getId(),
-                (detalle.getAlumno().getNombre() + " " + detalle.getAlumno().getApellido())
-        );
-    }
 }

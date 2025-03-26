@@ -506,7 +506,8 @@ const DetallesTable: React.FC = () => {
                   const bonificacionNombre =
                     bonificaciones.find(
                       (b: BonificacionResponse) =>
-                        b.id === Number(detalle.bonificacionId)
+                        b.id ===
+                        (detalle.bonificacionId ?? detalle.bonificacion?.id)
                     )?.descripcion || "";
                   const recargoNombre =
                     recargos.find(
@@ -542,7 +543,7 @@ const DetallesTable: React.FC = () => {
                         <input
                           type="text"
                           readOnly
-                          value={bonificacionNombre}
+                          value={bonificacionNombre || ""}
                           className="w-full px-2 py-1 border rounded text-center"
                         />
                       </td>

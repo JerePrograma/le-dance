@@ -10,6 +10,7 @@ public record DetallePagoResponse(
         String cuotaOCantidad,
         Double valorBase,
         Long bonificacionId,
+        String bonificacionNombre,  // Agregado
         Long recargoId,
         Double aCobrar,
         Boolean cobrado,
@@ -23,5 +24,5 @@ public record DetallePagoResponse(
         TipoDetallePago tipo,
         LocalDate fechaRegistro,
         Long pagoId,
-        String alumnoDisplay // <-- Nuevo campo para mostrar el nombre y apellido
+        String alumnoDisplay
 ) { }
