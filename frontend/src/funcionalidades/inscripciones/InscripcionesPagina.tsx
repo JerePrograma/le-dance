@@ -9,7 +9,6 @@ import Boton from "../../componentes/comunes/Boton";
 import { Pencil } from "lucide-react";
 import Pagination from "../../componentes/comunes/Pagination";
 import { toast } from "react-toastify";
-import asistenciasApi from "../../api/asistenciasApi";
 
 const itemsPerPage = 5;
 
@@ -39,19 +38,6 @@ const InscripcionesPagina = () => {
   useEffect(() => {
     fetchInscripciones();
   }, [fetchInscripciones]);
-
-  const handleGenerarAsistencias = async () => {
-    try {
-      // Asegúrate de que la función en inscripcionesApi acepte mes y anio
-      await asistenciasApi.crearAsistenciasParaInscripcionesActivas();
-      toast.success(
-        "Asistencias generadas exitosamente para inscripciones activas"
-      );
-      fetchInscripciones();
-    } catch (error) {
-      toast.error("Error al generar asistencias para inscripciones activas");
-    }
-  };
 
   const calcularCostoInscripcion = (ins: InscripcionResponse) => {
     const cuota = ins.disciplina?.valorCuota || 0;
@@ -134,15 +120,6 @@ const InscripcionesPagina = () => {
         <h1 className="text-3xl font-bold tracking-tight">
           Inscripciones por Alumno
         </h1>
-        <div className="flex gap-4">
-          <Boton
-            onClick={handleGenerarAsistencias}
-            className="inline-flex items-center gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/90"
-            aria-label="Generar Asistencias"
-          >
-            Generar Asistencias
-          </Boton>
-        </div>
       </div>
 
       <div className="flex flex-col sm:flex-row sm:justify-between gap-4">

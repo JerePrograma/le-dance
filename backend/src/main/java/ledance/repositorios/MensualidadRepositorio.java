@@ -5,6 +5,8 @@ import ledance.entidades.Inscripcion;
 import ledance.entidades.Mensualidad;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -14,7 +16,9 @@ public interface MensualidadRepositorio extends JpaRepository<Mensualidad, Long>
     List<Mensualidad> findByInscripcionId(Long inscripcionId);
 
     // Metodo para verificar si ya existe una cuota para una inscripcion en un rango de fechas (mes)
-    Optional<Mensualidad> findByInscripcionIdAndFechaCuotaBetween(Long inscripcionId, LocalDate inicio, LocalDate fin);
+    Optional<Mensualidad> findByInscripcionIdAndFechaGeneracionAndDescripcion(Long inscripcionId,
+                                                                              LocalDate fechaGeneracion,
+                                                                              String descripcion);
 
     List<Mensualidad> findByInscripcionAlumnoIdAndEstadoInOrderByFechaCuotaDesc(Long alumnoId, List<EstadoMensualidad> estados);
 
@@ -23,6 +27,10 @@ public interface MensualidadRepositorio extends JpaRepository<Mensualidad, Long>
     List<Mensualidad> findByInscripcionAlumnoIdAndEstado(Long alumnoId, EstadoMensualidad estado);
 
     Optional<Mensualidad> findByInscripcionAlumnoIdAndDescripcion(Long alumnoId, String descripcionConcepto);
+
+    List<Mensualidad> findByDescripcionContainingIgnoreCaseAndEstado(String cuota, EstadoMensualidad estadoMensualidad);
+
+    List<Mensualidad> findByFechaCuotaBeforeAndEstado(LocalDate fecha, EstadoMensualidad estado);
 
     // Se elimina o comenta este metodo, ya que se basaba en propiedades inexistentes:
     // Optional<Mensualidad> findByInscripcionIdAndMesAndAnio(Long inscripcionId, int mes, int anio);

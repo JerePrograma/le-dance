@@ -23,5 +23,6 @@ public record AlumnoResponse(
         Boolean activo,  // <-- Agregado aqui
         String otrasNotas,
         Double cuotaTotal,
-        List<InscripcionResponse> inscripciones
+        List<InscripcionResponse> inscripciones,
+        Double creditoAcumulado
 ) {}

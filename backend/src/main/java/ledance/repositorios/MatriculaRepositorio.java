@@ -9,7 +9,7 @@ import java.util.Optional;
 
 @Repository
 public interface MatriculaRepositorio extends JpaRepository<Matricula, Long> {
-    List<Matricula> findByAlumnoIdAndAnio(Long alumnoId, Integer anio);
+    Optional<Matricula> findByAlumnoIdAndAnio(Long alumnoId, Integer anio);
 
     Optional<Matricula> findFirstByAlumnoIdAndAnioOrderByIdAsc(Long alumnoId, int anio);
 
@@ -17,7 +17,4 @@ public interface MatriculaRepositorio extends JpaRepository<Matricula, Long> {
     Optional<Matricula> findFirstByAlumnoIdAndPagadaFalseOrderByIdAsc(Long alumnoId);
 
     List<Matricula> findByAlumnoIdAndPagadaFalse(Long alumnoId);
-
-    // Busca una matricula para un alumno en un año determinado que aun no este pagada.
-    Optional<Matricula> findByAlumnoIdAndAnioAndPagadaFalse(Long alumnoId, int anio);
 }

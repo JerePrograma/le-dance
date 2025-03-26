@@ -10,11 +10,11 @@ import type {
 export const useCobranzasData = () => {
   const cobranzasQuery = useQuery<CobranzasDataResponse, Error>({
     queryKey: ["cobranzasData"],
-    queryFn: cajaApi.obtenerDatosCobranzas,
+    queryFn: cajaApi.obtenerDatosCobranzas, // Asegúrate de que este endpoint devuelva bonificaciones y recargos también
     staleTime: Infinity,
     refetchOnWindowFocus: false,
   });
-
+  
   useEffect(() => {
     if (cobranzasQuery.error) {
       toast.error(
@@ -22,12 +22,14 @@ export const useCobranzasData = () => {
       );
     }
   }, [cobranzasQuery.error]);
-
+  
   return cobranzasQuery.data || {
     alumnos: [],
     disciplinas: [],
     stocks: [],
     metodosPago: [],
     conceptos: [],
+    bonificaciones: [],
+    recargos: [],
   };
 };

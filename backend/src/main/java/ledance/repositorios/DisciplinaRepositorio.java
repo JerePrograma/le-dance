@@ -27,4 +27,5 @@ public interface DisciplinaRepositorio extends JpaRepository<Disciplina, Long> {
     @Query("SELECT d FROM Disciplina d WHERE LOWER(d.nombre) LIKE LOWER(CONCAT('%', :nombre, '%')) AND d.activo = true")
     List<Disciplina> buscarPorNombre(@Param("nombre") String nombre);
 
+    Disciplina findByNombreContainingIgnoreCase(String nombre);
 }

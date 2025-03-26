@@ -44,4 +44,6 @@ public interface InscripcionRepositorio extends JpaRepository<Inscripcion, Long>
     List<Inscripcion> findAllByDisciplina_IdAndEstado(Long id, EstadoInscripcion estadoInscripcion);
 
     Optional<Inscripcion> findByAlumnoIdAndEstado(Long alumnoId, EstadoInscripcion estadoInscripcion);
+
+    Optional<Inscripcion> findByAlumnoIdAndDisciplinaIdAndEstado(Long alumnoId, Long disciplinaId, EstadoInscripcion estado);
 }

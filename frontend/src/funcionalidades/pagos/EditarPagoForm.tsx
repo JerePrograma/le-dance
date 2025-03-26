@@ -107,6 +107,7 @@ const defaultValues: CobranzasFormValues = {
   periodoMensual: getMesVigente(),
   autoRemoved: [],
   pagoParcial: 0,
+  aplicarRecargo: true, // <-- Nuevo flag para controlar el recargo
 };
 
 // ----- Normalización del alumno -----
@@ -133,6 +134,7 @@ function normalizeAlumno(alumno: AlumnoResponse): AlumnoRegistroRequest {
     inscripciones: alumno.inscripciones
       ? alumno.inscripciones.map(normalizeInscripcion)
       : [],
+    creditoAcumulado: alumno.creditoAcumulado,
   };
 }
 
@@ -307,9 +309,9 @@ const TotalsUpdater: React.FC<{ metodosPago: MetodoPagoResponse[] }> = ({
       0
     );
 
-    // Incorporar el recargo (si corresponde) para el Total Importe.
+    // Incorporar el recargo solo si se aplica.
     let recargo = 0;
-    if (values.metodoPagoId) {
+    if (values.metodoPagoId && values.aplicarRecargo) {
       const selectedMetodoPago = metodosPago.find(
         (mp: MetodoPagoResponse) => mp.id === Number(values.metodoPagoId)
       );
@@ -319,14 +321,20 @@ const TotalsUpdater: React.FC<{ metodosPago: MetodoPagoResponse[] }> = ({
     }
     const newTotalImporte = computedTotalImporte + recargo;
 
-    // Actualizar los totales.
+    // Actualizar los totales en el formulario.
     if (values.totalACobrar !== newTotalImporte) {
       setFieldValue("totalACobrar", newTotalImporte);
     }
     if (values.totalCobrado !== computedTotalACobrar) {
       setFieldValue("totalCobrado", computedTotalACobrar);
     }
-  }, [values.detallePagos, values.metodoPagoId, metodosPago, setFieldValue]);
+  }, [
+    values.detallePagos,
+    values.metodoPagoId,
+    metodosPago,
+    setFieldValue,
+    values.aplicarRecargo,
+  ]);
 
   return null;
 };
@@ -1071,6 +1079,16 @@ const EditarPagoForm: React.FC = () => {
                 />
               </div>
               <div className="flex justify-end gap-4">
+                <button
+                  type="button"
+                  className="bg-red-500 p-2 rounded text-white"
+                  onClick={() => {
+                    setFieldValue("aplicarRecargo", false);
+                    toast.info("Recargo quitado");
+                  }}
+                >
+                  Quitar Recargo
+                </button>
                 <button
                   type="submit"
                   className="bg-green-500 p-2 rounded text-white"

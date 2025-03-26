@@ -61,7 +61,6 @@ public class Mensualidad {
     private String descripcion;
 
     // Nuevo campo para registrar el monto acumulado abonado en la mensualidad
-    @NotNull
     private Double montoAbonado = 0.0;
 
     @OneToMany(mappedBy = "mensualidad", cascade = CascadeType.ALL, orphanRemoval = true)

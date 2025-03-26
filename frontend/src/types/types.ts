@@ -61,9 +61,11 @@ export interface AlumnoResponse {
   otrasNotas: string;
   cuotaTotal: number;
   inscripciones: InscripcionResponse[]; // Asegúrate de que InscripcionResponse esté definido según tu DTO
+  creditoAcumulado: number;
 }
 
 export interface AlumnoRegistroRequest {
+  creditoAcumulado: number;
   id?: number;
   nombre: string;
   apellido: string;
@@ -816,6 +818,7 @@ export interface CobranzasFormValues {
   periodoMensual: string;
   autoRemoved: number[];
   pagoParcial: number;
+  aplicarRecargo: boolean;
 }
 
 // --- Para la cobranza ---
@@ -917,4 +920,6 @@ export interface CobranzasDataResponse {
   stocks: StockResponse[];
   metodosPago: MetodoPagoResponse[];
   conceptos: ConceptoResponse[];
+  bonificaciones: BonificacionResponse[];
+  recargos: RecargoResponse[];
 }

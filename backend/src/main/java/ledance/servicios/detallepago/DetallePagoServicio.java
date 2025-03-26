@@ -111,10 +111,6 @@ public class DetallePagoServicio {
         return 0.0;
     }
 
-    private double importeRedondeado(double importe) {
-        return BigDecimal.valueOf(importe).setScale(2, RoundingMode.HALF_UP).doubleValue();
-    }
-
     public List<DetallePagoResponse> filtrarDetalles(
             LocalDate fechaRegistroDesde,
             LocalDate fechaRegistroHasta,
@@ -247,6 +243,7 @@ public class DetallePagoServicio {
     // =====================================================
     // Método privado para mappear a DTO
     // =====================================================
+
     private DetallePagoResponse mapToDetallePagoResponse(DetallePago detalle) {
         String conceptoDesc = (detalle.getDescripcionConcepto() != null)
                 ? detalle.getDescripcionConcepto()
@@ -275,5 +272,4 @@ public class DetallePagoServicio {
                 (detalle.getAlumno().getNombre() + " " + detalle.getAlumno().getApellido())
         );
     }
-
 }

@@ -51,14 +51,16 @@ public class Alumno {
     @Column(nullable = false)
     private Boolean activo = true;
 
-    // Relacion con inscripciones (ya definida)
+    // Nuevo atributo para acumular crédito de CLASE SUELTA
+    @Column(name = "credito_acumulado", nullable = false)
+    private Double creditoAcumulado = 0.0;
+
     @EqualsAndHashCode.Exclude
     @OneToMany(mappedBy = "alumno", cascade = CascadeType.ALL)
     @JsonIgnore
-    private List<Inscripcion> inscripciones;
+    private List<Inscripcion> inscripciones = new ArrayList<>();
 
-    // Nueva relacion con matriculas para que se eliminen en cascada
     @OneToMany(mappedBy = "alumno", cascade = CascadeType.ALL)
     @JsonIgnore
-    private List<Matricula> matriculas;
+    private List<Matricula> matriculas = new ArrayList<>();
 }

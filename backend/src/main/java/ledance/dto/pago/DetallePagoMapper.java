@@ -29,6 +29,7 @@ public interface DetallePagoMapper {
     @Mapping(target = "valorBase", source = "valorBase")
     @Mapping(target = "cuotaOCantidad", source = "cuotaOCantidad")
     @Mapping(target = "tipo", expression = "java( determineTipo(request) )")
+    @Mapping(target = "aCobrar", source = "aCobrar")
     DetallePago toEntity(DetallePagoRegistroRequest request);
 
     // Actualizacion de entidad existente

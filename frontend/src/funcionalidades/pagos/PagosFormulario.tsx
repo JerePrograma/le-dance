@@ -29,6 +29,8 @@ import type {
   PagoRegistroRequest,
   AlumnoDataResponse,
   InscripcionResponse,
+  BonificacionResponse,
+  RecargoResponse,
 } from "../../types/types";
 import ResponsiveContainer from "../../componentes/comunes/ResponsiveContainer";
 import { useSyncDetalles } from "../../hooks/context/useSyncDetalles";
@@ -106,6 +108,7 @@ const defaultValues: CobranzasFormValues = {
   periodoMensual: getMesVigente(),
   autoRemoved: [],
   pagoParcial: 0,
+  aplicarRecargo: true,
 };
 
 // ----- Normalización del alumno -----
@@ -129,14 +132,14 @@ function normalizeAlumno(alumno: AlumnoResponse): AlumnoRegistroRequest {
     activo: alumno.activo,
     otrasNotas: alumno.otrasNotas,
     cuotaTotal: alumno.cuotaTotal,
+    creditoAcumulado: alumno.creditoAcumulado,
     inscripciones: alumno.inscripciones
       ? alumno.inscripciones.map(normalizeInscripcion)
       : [],
   };
 }
 
-// ----- Nuevo Subcomponente: CobranzasFormHeader -----
-// Mantiene el layout original y reemplaza el select de alumno por un input de búsqueda.
+// ----- Subcomponente: CobranzasFormHeader -----
 interface CobranzasFormHeaderProps {
   handleAlumnoChange: (
     alumnoIdStr: string,
@@ -169,7 +172,7 @@ const CobranzasFormHeader: React.FC<CobranzasFormHeaderProps> = ({
           setSugerencias(resultados);
           setActiveSuggestionIndex(-1);
         } catch (error) {
-          // Manejo de error si es necesario.
+          // Manejo de error
         }
       } else {
         setSugerencias([]);
@@ -235,7 +238,7 @@ const CobranzasFormHeader: React.FC<CobranzasFormHeaderProps> = ({
             value={values.reciboNro}
           />
         </div>
-        {/* Campo de búsqueda de Alumno */}
+        {/* Búsqueda de Alumno */}
         <div className="sm:col-span-2 relative" ref={wrapperRef}>
           <label className="block font-medium">Alumno:</label>
           <input
@@ -288,28 +291,24 @@ const CobranzasFormHeader: React.FC<CobranzasFormHeaderProps> = ({
   );
 };
 
-// ----- TotalsUpdater modificado -----
+// ----- TotalsUpdater -----
 const TotalsUpdater: React.FC<{ metodosPago: MetodoPagoResponse[] }> = ({
   metodosPago,
 }) => {
   const { values, setFieldValue } = useFormikContext<CobranzasFormValues>();
 
   useEffect(() => {
-    // Sumar todos los "importePendiente" para Total Importe.
     const computedTotalImporte = values.detallePagos.reduce(
       (total, item) => total + Number(item.importePendiente || 0),
       0
     );
-
-    // Sumar todos los "aCobrar" para Total a Cobrar.
     const computedTotalACobrar = values.detallePagos.reduce(
       (total, item) => total + Number(item.aCobrar || 0),
       0
     );
 
-    // Incorporar el recargo (si corresponde) para el Total Importe.
     let recargo = 0;
-    if (values.metodoPagoId) {
+    if (values.metodoPagoId && values.aplicarRecargo) {
       const selectedMetodoPago = metodosPago.find(
         (mp: MetodoPagoResponse) => mp.id === Number(values.metodoPagoId)
       );
@@ -319,14 +318,19 @@ const TotalsUpdater: React.FC<{ metodosPago: MetodoPagoResponse[] }> = ({
     }
     const newTotalImporte = computedTotalImporte + recargo;
 
-    // Actualizar los totales.
     if (values.totalACobrar !== newTotalImporte) {
       setFieldValue("totalACobrar", newTotalImporte);
     }
     if (values.totalCobrado !== computedTotalACobrar) {
       setFieldValue("totalCobrado", computedTotalACobrar);
     }
-  }, [values.detallePagos, values.metodoPagoId, metodosPago, setFieldValue]);
+  }, [
+    values.detallePagos,
+    values.metodoPagoId,
+    metodosPago,
+    setFieldValue,
+    values.aplicarRecargo,
+  ]);
 
   return null;
 };
@@ -458,162 +462,189 @@ const ConceptosSection: React.FC<ConceptosSectionProps> = ({
 };
 
 // ----- DetallesTable -----
-const DetallesTable: React.FC = () => (
-  <FieldArray name="detallePagos">
-    {({ remove, form }) => (
-      <div className="overflow-x-auto">
-        <table className="border mb-4 w-auto table-layout-auto">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="border p-2 text-center text-sm font-medium text-gray-700 min-w-[120px]">
-                Concepto
-              </th>
-              <th className="border p-2 text-center text-sm font-medium text-gray-700 min-w-[80px]">
-                Cantidad
-              </th>
-              <th className="border p-2 text-center text-sm font-medium text-gray-700 min-w-[100px]">
-                Valor Base
-              </th>
-              <th className="border p-2 text-center text-sm font-medium text-gray-700 min-w-[80px]">
-                Bonificación
-              </th>
-              <th className="border p-2 text-center text-sm font-medium text-gray-700 min-w-[80px]">
-                Recargo
-              </th>
-              <th className="border p-2 text-center text-sm font-medium text-gray-700 min-w-[100px]">
-                Importe Pendiente
-              </th>
-              <th className="border p-2 text-center text-sm font-medium text-gray-700 min-w-[80px]">
-                A Cobrar
-              </th>
-              <th className="border p-2 text-center text-sm font-medium text-gray-700 min-w-[100px]">
-                Acciones
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {form.values.detallePagos && form.values.detallePagos.length > 0 ? (
-              form.values.detallePagos.map((_: any, index: number) => (
-                <tr key={index} className="hover:bg-gray-50">
-                  <td className="border p-2 text-center text-sm">
-                    <Field
-                      name={`detallePagos.${index}.descripcionConcepto`}
-                      type="text"
-                      className="w-full px-2 py-1 border rounded text-center"
-                      readOnly
-                    />
-                  </td>
-                  <td className="border p-2 text-center text-sm">
-                    <Field
-                      name={`detallePagos.${index}.cuotaOCantidad`}
-                      type="text"
-                      className="w-full px-2 py-1 border rounded text-center"
-                      readOnly
-                    />
-                  </td>
-                  <td className="border p-2 text-center text-sm">
-                    <Field
-                      name={`detallePagos.${index}.valorBase`}
-                      type="number"
-                      className="w-full px-2 py-1 border rounded text-center"
-                      readOnly
-                    />
-                  </td>
-                  <td className="border p-2 text-center text-sm">
-                    <Field
-                      name={`detallePagos.${index}.bonificacionId`}
-                      type="number"
-                      className="w-full px-2 py-1 border rounded text-center"
-                      readOnly
-                    />
-                  </td>
-                  <td className="border p-2 text-center text-sm">
-                    <Field
-                      name={`detallePagos.${index}.recargoId`}
-                      type="number"
-                      className="w-full px-2 py-1 border rounded text-center"
-                      readOnly
-                    />
-                  </td>
-                  <td className="border p-2 text-center text-sm">
-                    <Field name={`detallePagos.${index}.importePendiente`}>
-                      {({ field, form }: any) => (
-                        <input
+const DetallesTable: React.FC = () => {
+  useFormikContext<CobranzasFormValues>();
+  // Extraer bonificaciones y recargos del hook.
+  const { bonificaciones, recargos } = useCobranzasData();
+  return (
+    <FieldArray name="detallePagos">
+      {({ remove, form }) => (
+        <div className="overflow-x-auto">
+          <table className="border mb-4 w-auto table-layout-auto">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="border p-2 text-center text-sm font-medium text-gray-700 min-w-[120px]">
+                  Concepto
+                </th>
+                <th className="border p-2 text-center text-sm font-medium text-gray-700 min-w-[80px]">
+                  Cantidad
+                </th>
+                <th className="border p-2 text-center text-sm font-medium text-gray-700 min-w-[100px]">
+                  Valor Base
+                </th>
+                <th className="border p-2 text-center text-sm font-medium text-gray-700 min-w-[120px]">
+                  Bonificación
+                </th>
+                <th className="border p-2 text-center text-sm font-medium text-gray-700 min-w-[120px]">
+                  Recargo
+                </th>
+                <th className="border p-2 text-center text-sm font-medium text-gray-700 min-w-[100px]">
+                  Importe Pendiente
+                </th>
+                <th className="border p-2 text-center text-sm font-medium text-gray-700 min-w-[80px]">
+                  A Cobrar
+                </th>
+                <th className="border p-2 text-center text-sm font-medium text-gray-700 min-w-[100px]">
+                  Acciones
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {form.values.detallePagos &&
+              form.values.detallePagos.length > 0 ? (
+                form.values.detallePagos.map((detalle: any, index: number) => {
+                  const bonificacionNombre =
+                    bonificaciones.find(
+                      (b: BonificacionResponse) =>
+                        b.id === Number(detalle.bonificacionId)
+                    )?.descripcion || "";
+                  const recargoNombre =
+                    recargos.find(
+                      (r: RecargoResponse) => r.id === Number(detalle.recargoId)
+                    )?.descripcion || "";
+                  return (
+                    <tr key={index} className="hover:bg-gray-50">
+                      <td className="border p-2 text-center text-sm">
+                        <Field
+                          name={`detallePagos.${index}.descripcionConcepto`}
+                          type="text"
+                          className="w-full px-2 py-1 border rounded text-center"
+                          readOnly
+                        />
+                      </td>
+                      <td className="border p-2 text-center text-sm">
+                        <Field
+                          name={`detallePagos.${index}.cuotaOCantidad`}
+                          type="text"
+                          className="w-full px-2 py-1 border rounded text-center"
+                          readOnly
+                        />
+                      </td>
+                      <td className="border p-2 text-center text-sm">
+                        <Field
+                          name={`detallePagos.${index}.valorBase`}
                           type="number"
-                          {...field}
-                          onChange={(e) => {
-                            const newValue = e.target.value;
-                            // Actualiza importePendiente
-                            form.setFieldValue(
-                              `detallePagos.${index}.importePendiente`,
-                              newValue
-                            );
-                            // Siempre sincroniza aCobrar con el nuevo valor
-                            form.setFieldValue(
-                              `detallePagos.${index}.aCobrar`,
-                              newValue
-                            );
-                          }}
+                          className="w-full px-2 py-1 border rounded text-center"
+                          readOnly
+                        />
+                      </td>
+                      <td className="border p-2 text-center text-sm">
+                        <input
+                          type="text"
+                          readOnly
+                          value={bonificacionNombre}
                           className="w-full px-2 py-1 border rounded text-center"
                         />
-                      )}
-                    </Field>
-                  </td>
-                  <td className="border p-2 text-center text-sm">
-                    <Field name={`detallePagos.${index}.aCobrar`}>
-                      {({ field }: any) => (
+                      </td>
+                      <td className="border p-2 text-center text-sm">
                         <input
-                          type="number"
-                          {...field}
+                          type="text"
+                          readOnly
+                          value={recargoNombre}
                           className="w-full px-2 py-1 border rounded text-center"
                         />
-                      )}
-                    </Field>
-                  </td>
-                  <td className="border p-2 text-center text-sm">
-                    <button
-                      type="button"
-                      className="bg-red-500 hover:bg-red-600 text-white p-1 rounded text-xs transition-colors mx-auto block"
-                      onClick={() => remove(index)}
-                    >
-                      Eliminar
-                    </button>
+                      </td>
+                      <td className="border p-2 text-center text-sm">
+                        <Field name={`detallePagos.${index}.importePendiente`}>
+                          {({ field, form }: any) => (
+                            <input
+                              type="number"
+                              {...field}
+                              onChange={(e) => {
+                                const newValue = e.target.value;
+                                form.setFieldValue(
+                                  `detallePagos.${index}.importePendiente`,
+                                  newValue
+                                );
+                                form.setFieldValue(
+                                  `detallePagos.${index}.aCobrar`,
+                                  newValue
+                                );
+                              }}
+                              className="w-full px-2 py-1 border rounded text-center"
+                            />
+                          )}
+                        </Field>
+                      </td>
+                      <td className="border p-2 text-center text-sm">
+                        <Field name={`detallePagos.${index}.aCobrar`}>
+                          {({ field, form }: any) => (
+                            <div>
+                              <input
+                                type="number"
+                                {...field}
+                                className="w-full px-2 py-1 border rounded text-center"
+                              />
+                              {detalle.descripcionConcepto &&
+                                detalle.descripcionConcepto
+                                  .toUpperCase()
+                                  .includes("MATRICULA") &&
+                                form.values.alumno &&
+                                form.values.alumno.creditoAcumulado && (
+                                  <small className="block text-xs text-gray-600">
+                                    Saldo a favor:{" "}
+                                    {Number(
+                                      form.values.alumno.creditoAcumulado
+                                    ).toLocaleString()}
+                                  </small>
+                                )}
+                            </div>
+                          )}
+                        </Field>
+                      </td>
+                      <td className="border p-2 text-center text-sm">
+                        <button
+                          type="button"
+                          className="bg-red-500 hover:bg-red-600 text-white p-1 rounded text-xs transition-colors mx-auto block"
+                          onClick={() => remove(index)}
+                        >
+                          Eliminar
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan={8} className="text-center text-sm p-2">
+                    No hay datos
                   </td>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={8} className="text-center text-sm p-2">
-                  No hay datos
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    )}
-  </FieldArray>
-);
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </FieldArray>
+  );
+};
 
-// ----- Componente Principal -----
+// ----- Componente Principal: CobranzasForm -----
 const CobranzasForm: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-
   const [initialValues, setInitialValues] =
     useState<CobranzasFormValues>(defaultValues);
   const [selectedAlumnoId, setSelectedAlumnoId] = useState<number>(0);
-  // Estado para almacenar las inscripciones activas del alumno
   const [activeInscripciones, setActiveInscripciones] = useState<
     InscripcionResponse[]
   >([]);
 
-  // Datos unificados de cobranzas y alumno
+  // Datos de cobranzas (incluye bonificaciones y recargos)
   const { disciplinas, stocks, metodosPago, conceptos } = useCobranzasData();
   const { data: alumnoData } = useAlumnoData(selectedAlumnoId);
 
-  // Normalización de disciplinas
   const mappedDisciplinas: DisciplinaDetalleResponse[] = disciplinas.map(
     (disc) => ({
       ...disc,
@@ -627,16 +658,13 @@ const CobranzasForm: React.FC = () => {
     })
   );
 
-  // Filtrado de disciplinas en base a las inscripciones activas.
-  // Si no hay inscripciones activas, se limita la selección (arreglo vacío).
   const filteredDisciplinas =
     activeInscripciones.length > 0
       ? mappedDisciplinas.filter((disc) =>
           activeInscripciones.some((ins) => ins.disciplina.id === disc.id)
         )
-      : [];
+      : mappedDisciplinas;
 
-  // Hook para sincronizar los detalles (se ejecuta solo una vez para permitir edición manual)
   const SyncDetalles: React.FC<{ deudaData: AlumnoDataResponse }> = ({
     deudaData,
   }) => {
@@ -644,11 +672,6 @@ const CobranzasForm: React.FC = () => {
     return null;
   };
 
-  /**
-   * Manejo del cambio de alumno.
-   * Se actualiza el alumno en el formulario (buscando por ID) y normalizando los datos.
-   * Además, se obtienen automáticamente las inscripciones activas para filtrar las disciplinas.
-   */
   const handleAlumnoChange = useCallback(
     async (
       alumnoIdStr: string,
@@ -691,7 +714,6 @@ const CobranzasForm: React.FC = () => {
           inscripciones: [],
         });
       }
-      // Se obtienen automáticamente las inscripciones activas del alumno.
       try {
         const inscripcionesActivas =
           await inscripcionesApi.obtenerInscripcionesActivas(id);
@@ -703,7 +725,6 @@ const CobranzasForm: React.FC = () => {
     [alumnoData]
   );
 
-  // Cargar datos de pago si se pasa "id" en los query params.
   useEffect(() => {
     const idParam = searchParams.get("id");
     if (idParam) {
@@ -734,7 +755,11 @@ const CobranzasForm: React.FC = () => {
               bonificacionId: detalle.bonificacion
                 ? detalle.bonificacion.id
                 : null,
+              bonificacionNombre: detalle.bonificacion
+                ? detalle.bonificacion.descripcion
+                : "",
               recargoId: detalle.recargo ? detalle.recargo.id : null,
+              recargoNombre: detalle.recargo ? detalle.recargo.descripcion : "",
               aCobrar:
                 detalle.importePendiente == null ||
                 Number(detalle.importePendiente) === 0
@@ -776,7 +801,6 @@ const CobranzasForm: React.FC = () => {
     }
   }, [searchParams]);
 
-  // Función para agregar detalle.
   const handleAgregarDetalle = useCallback(
     (
       values: CobranzasFormValues,
@@ -792,7 +816,6 @@ const CobranzasForm: React.FC = () => {
           (det) => det.descripcionConcepto.trim() === desc.trim()
         );
 
-      // Agregar detalle basado en concepto seleccionado.
       if (values.conceptoSeleccionado) {
         const selectedConcept = conceptos.find(
           (c: ConceptoResponse) =>
@@ -825,7 +848,6 @@ const CobranzasForm: React.FC = () => {
           }
         }
       }
-      // Agregar detalle basado en disciplina/tarifa.
       if (values.disciplina && values.tarifa) {
         const selectedDisciplina = mappedDisciplinas.find(
           (disc) => disc.nombre === values.disciplina
@@ -871,7 +893,6 @@ const CobranzasForm: React.FC = () => {
           }
         }
       }
-      // Agregar detalle basado en stock seleccionado.
       if (values.stockSeleccionado) {
         const selectedStock = stocks.find(
           (s: StockResponse) => s.id.toString() === values.stockSeleccionado
@@ -928,12 +949,9 @@ const CobranzasForm: React.FC = () => {
     [conceptos, mappedDisciplinas, stocks]
   );
 
-  // onSubmit: Mapea los valores y envía el registro al backend.
   const onSubmit = async (values: CobranzasFormValues, actions: any) => {
     try {
-      const detallesFiltrados = values.detallePagos.filter(
-        (detalle) => Number(detalle.aCobrar) !== 0
-      );
+      const detalles = values.detallePagos;
       const pagoRegistroRequest: PagoRegistroRequest = {
         alumno: values.alumno,
         fecha: values.fecha,
@@ -942,27 +960,25 @@ const CobranzasForm: React.FC = () => {
         importeInicial: Number(values.totalACobrar),
         metodoPagoId: Number(values.metodoPagoId) || 0,
         activo: true,
-        detallePagos: detallesFiltrados.map<DetallePagoRegistroRequest>(
-          (d) => ({
-            id: d.id,
-            descripcionConcepto: d.descripcionConcepto,
-            conceptoId: d.conceptoId ?? null,
-            subConceptoId: d.subConceptoId ?? null,
-            importePendiente: d.importePendiente,
-            cuotaOCantidad: d.cuotaOCantidad,
-            valorBase: d.valorBase,
-            bonificacionId: d.bonificacionId ? Number(d.bonificacionId) : null,
-            recargoId: d.recargoId ? Number(d.recargoId) : null,
-            aCobrar: d.aCobrar,
-            cobrado: d.cobrado,
-            mensualidadId: d.mensualidadId ?? null,
-            matriculaId: d.matriculaId ?? null,
-            stockId: d.stockId ?? null,
-            version: d.version ?? null,
-            pagoId: d.pagoId ?? null,
-            autoGenerated: false,
-          })
-        ),
+        detallePagos: detalles.map<DetallePagoRegistroRequest>((d) => ({
+          id: d.id,
+          descripcionConcepto: d.descripcionConcepto,
+          conceptoId: d.conceptoId ?? null,
+          subConceptoId: d.subConceptoId ?? null,
+          importePendiente: d.importePendiente,
+          cuotaOCantidad: d.cuotaOCantidad,
+          valorBase: d.valorBase,
+          bonificacionId: d.bonificacionId ? Number(d.bonificacionId) : null,
+          recargoId: d.recargoId ? Number(d.recargoId) : null,
+          aCobrar: d.aCobrar,
+          cobrado: d.cobrado,
+          mensualidadId: d.mensualidadId ?? null,
+          matriculaId: d.matriculaId ?? null,
+          stockId: d.stockId ?? null,
+          version: d.version ?? null,
+          pagoId: d.pagoId ?? null,
+          autoGenerated: false,
+        })),
         pagoMedios: [],
       };
 
@@ -989,11 +1005,9 @@ const CobranzasForm: React.FC = () => {
         enableReinitialize
       >
         {({ values, setFieldValue }) => {
-          // Se obtiene el método de pago seleccionado para acceder a su recargo.
           const selectedMetodoPago = metodosPago.find(
             (mp: MetodoPagoResponse) => mp.id === Number(values.metodoPagoId)
           );
-          // Efecto: Al seleccionar un método de pago, se asigna totalCobrado = totalACobrar.
           useEffect(() => {
             if (values.metodoPagoId) {
               setFieldValue("totalCobrado", values.totalACobrar);
@@ -1067,6 +1081,16 @@ const CobranzasForm: React.FC = () => {
                 />
               </div>
               <div className="flex justify-end gap-4">
+                <button
+                  type="button"
+                  className="bg-red-500 p-2 rounded text-white"
+                  onClick={() => {
+                    setFieldValue("aplicarRecargo", false);
+                    toast.info("Recargo quitado");
+                  }}
+                >
+                  Quitar Recargo
+                </button>
                 <button
                   type="submit"
                   className="bg-green-500 p-2 rounded text-white"

@@ -1,6 +1,7 @@
 package ledance.servicios.caja;
 
 import ledance.dto.alumno.response.AlumnoResponse;
+import ledance.dto.bonificacion.response.BonificacionResponse;
 import ledance.dto.caja.CajaDetalleDTO;
 import ledance.dto.caja.CajaDiariaDTO;
 import ledance.dto.caja.RendicionDTO;
@@ -12,6 +13,7 @@ import ledance.dto.egreso.response.EgresoResponse;
 import ledance.dto.egreso.EgresoMapper;
 import ledance.dto.metodopago.response.MetodoPagoResponse;
 import ledance.dto.pago.PagoMapper;
+import ledance.dto.recargo.response.RecargoResponse;
 import ledance.dto.stock.response.StockResponse;
 import ledance.entidades.Egreso;
 import ledance.entidades.EstadoPago;
@@ -21,9 +23,11 @@ import ledance.repositorios.EgresoRepositorio;
 import ledance.repositorios.MetodoPagoRepositorio;
 import ledance.repositorios.PagoRepositorio;
 import ledance.servicios.alumno.AlumnoServicio;
+import ledance.servicios.bonificacion.BonificacionServicio;
 import ledance.servicios.concepto.ConceptoServicio;
 import ledance.servicios.disciplina.DisciplinaServicio;
 import ledance.servicios.pago.MetodoPagoServicio;
+import ledance.servicios.recargo.RecargoServicio;
 import ledance.servicios.stock.StockServicio;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,11 +49,13 @@ public class CajaServicio {
     private final ConceptoServicio conceptoServicio;
     private final StockServicio stockServicio;
     private final MetodoPagoServicio metodoPagoServicio;
+    private final BonificacionServicio bonificacionServicio;
+    private final RecargoServicio recargoServicio;
 
     public CajaServicio(PagoRepositorio pagoRepositorio,
                         EgresoRepositorio egresoRepositorio,
                         PagoMapper pagoMapper,
-                        EgresoMapper egresoMapper, MetodoPagoRepositorio metodoPagoRepositorio, AlumnoServicio alumnoServicio, DisciplinaServicio disciplinaServicio, ConceptoServicio conceptoServicio, StockServicio stockServicio, MetodoPagoServicio metodoPagoServicio) {
+                        EgresoMapper egresoMapper, MetodoPagoRepositorio metodoPagoRepositorio, AlumnoServicio alumnoServicio, DisciplinaServicio disciplinaServicio, ConceptoServicio conceptoServicio, StockServicio stockServicio, MetodoPagoServicio metodoPagoServicio, BonificacionServicio bonificacionServicio, RecargoServicio recargoServicio) {
         this.pagoRepositorio = pagoRepositorio;
         this.egresoRepositorio = egresoRepositorio;
         this.pagoMapper = pagoMapper;
@@ -60,6 +66,8 @@ public class CajaServicio {
         this.conceptoServicio = conceptoServicio;
         this.stockServicio = stockServicio;
         this.metodoPagoServicio = metodoPagoServicio;
+        this.bonificacionServicio = bonificacionServicio;
+        this.recargoServicio = recargoServicio;
     }
 
     // -------------------------------------------------------------------------
@@ -258,7 +266,11 @@ public class CajaServicio {
         // 5. Obtener listado de conceptos.
         List<ConceptoResponse> conceptos = conceptoServicio.listarConceptos();
 
+        List<BonificacionResponse> bonificaciones = bonificacionServicio.listarBonificaciones();
+
+        List<RecargoResponse> recargos = recargoServicio.listarRecargos();
+
         // 6. Armar y retornar el DTO unificado de cobranzas.
-        return new CobranzasDataResponse(alumnos, disciplinas, stocks, metodosPago, conceptos);
+        return new CobranzasDataResponse(alumnos, disciplinas, stocks, metodosPago, conceptos, bonificaciones, recargos);
     }
 }
