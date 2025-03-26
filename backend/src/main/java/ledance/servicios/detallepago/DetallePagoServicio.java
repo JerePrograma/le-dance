@@ -1,5 +1,6 @@
 package ledance.servicios.detallepago;
 
+import jakarta.persistence.EntityNotFoundException;
 import ledance.dto.pago.response.DetallePagoResponse;
 import ledance.entidades.DetallePago;
 import ledance.entidades.Recargo;
@@ -183,6 +184,69 @@ public class DetallePagoServicio {
         return responses;
     }
 
+    // =====================================================
+    // Métodos CRUD
+    // =====================================================
+
+    // Crear un nuevo DetallePago
+    public DetallePagoResponse crearDetallePago(DetallePago detalle) {
+        // Calcular importes antes de persistir
+        calcularImporte(detalle);
+        DetallePago detalleGuardado = detallePagoRepositorio.save(detalle);
+        log.info("DetallePago creado con id={}", detalleGuardado.getId());
+        return mapToDetallePagoResponse(detalleGuardado);
+    }
+
+    // Obtener un DetallePago por su ID
+    public DetallePagoResponse obtenerDetallePagoPorId(Long id) {
+        DetallePago detalle = detallePagoRepositorio.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("DetallePago con id " + id + " no encontrado"));
+        return mapToDetallePagoResponse(detalle);
+    }
+
+    // Actualizar un DetallePago existente
+    public DetallePagoResponse actualizarDetallePago(Long id, DetallePago detalleActualizado) {
+        DetallePago detalleExistente = detallePagoRepositorio.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("DetallePago con id " + id + " no encontrado"));
+
+        // Actualizar campos; dependiendo de tu lógica, puedes actualizar sólo ciertos atributos.
+        detalleExistente.setDescripcionConcepto(detalleActualizado.getDescripcionConcepto());
+        detalleExistente.setConcepto(detalleActualizado.getConcepto());
+        detalleExistente.setSubConcepto(detalleActualizado.getSubConcepto());
+        detalleExistente.setCuotaOCantidad(detalleActualizado.getCuotaOCantidad());
+        detalleExistente.setBonificacion(detalleActualizado.getBonificacion());
+        detalleExistente.setRecargo(detalleActualizado.getRecargo());
+        detalleExistente.setValorBase(detalleActualizado.getValorBase());
+        // Si es necesario, actualiza otros campos relacionados (importeInicial, importePendiente, aCobrar, etc.)
+
+        // Recalcular importes
+        calcularImporte(detalleExistente);
+        DetallePago detalleGuardado = detallePagoRepositorio.save(detalleExistente);
+        log.info("DetallePago actualizado con id={}", detalleGuardado.getId());
+        return mapToDetallePagoResponse(detalleGuardado);
+    }
+
+    // Eliminar un DetallePago por su ID
+    public void eliminarDetallePago(Long id) {
+        if (!detallePagoRepositorio.existsById(id)) {
+            throw new EntityNotFoundException("DetallePago con id " + id + " no encontrado");
+        }
+        detallePagoRepositorio.deleteById(id);
+        log.info("DetallePago eliminado con id={}", id);
+    }
+
+    // Listar todos los DetallePagos
+    public List<DetallePagoResponse> listarDetallesPagos() {
+        List<DetallePago> detalles = detallePagoRepositorio.findAll();
+        log.info("Listado de DetallePagos obtenido. Total registros: {}", detalles.size());
+        return detalles.stream()
+                .map(this::mapToDetallePagoResponse)
+                .collect(Collectors.toList());
+    }
+
+    // =====================================================
+    // Método privado para mappear a DTO
+    // =====================================================
     private DetallePagoResponse mapToDetallePagoResponse(DetallePago detalle) {
         String conceptoDesc = (detalle.getDescripcionConcepto() != null)
                 ? detalle.getDescripcionConcepto()

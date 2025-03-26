@@ -129,7 +129,9 @@ function normalizeAlumno(alumno: AlumnoResponse): AlumnoRegistroRequest {
     activo: alumno.activo,
     otrasNotas: alumno.otrasNotas,
     cuotaTotal: alumno.cuotaTotal,
-    inscripciones: alumno.inscripciones ? alumno.inscripciones.map(normalizeInscripcion) : [],
+    inscripciones: alumno.inscripciones
+      ? alumno.inscripciones.map(normalizeInscripcion)
+      : [],
   };
 }
 
@@ -152,7 +154,8 @@ const CobranzasFormHeader: React.FC<CobranzasFormHeaderProps> = ({
   const { values, setFieldValue } = useFormikContext<CobranzasFormValues>();
   const [nombreBusqueda, setNombreBusqueda] = useState("");
   const [sugerencias, setSugerencias] = useState<AlumnoResponse[]>([]);
-  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState<number>(-1);
+  const [activeSuggestionIndex, setActiveSuggestionIndex] =
+    useState<number>(-1);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const debouncedNombre = useDebounce(nombreBusqueda, 300);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -177,13 +180,15 @@ const CobranzasFormHeader: React.FC<CobranzasFormHeaderProps> = ({
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+      if (
+        wrapperRef.current &&
+        !wrapperRef.current.contains(e.target as Node)
+      ) {
         setShowSuggestions(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
-    return () =>
-      document.removeEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const handleSelectAlumno = async (alumno: AlumnoResponse) => {
@@ -290,33 +295,34 @@ const TotalsUpdater: React.FC<{ metodosPago: MetodoPagoResponse[] }> = ({
   const { values, setFieldValue } = useFormikContext<CobranzasFormValues>();
 
   useEffect(() => {
-    // Calcula el subtotal de los importes pendientes de cada detalle.
-    const computedSubtotal = values.detallePagos.reduce(
+    // Sumar todos los "importePendiente" para Total Importe.
+    const computedTotalImporte = values.detallePagos.reduce(
       (total, item) => total + Number(item.importePendiente || 0),
       0
     );
 
-    // Busca el método de pago seleccionado y obtiene su recargo (si lo tiene).
+    // Sumar todos los "aCobrar" para Total a Cobrar.
+    const computedTotalACobrar = values.detallePagos.reduce(
+      (total, item) => total + Number(item.aCobrar || 0),
+      0
+    );
+
+    // Incorporar el recargo (si corresponde) para el Total Importe.
     let recargo = 0;
     if (values.metodoPagoId) {
       const selectedMetodoPago = metodosPago.find(
-        (mp: MetodoPagoResponse) =>
-          mp.id === Number(values.metodoPagoId)
+        (mp: MetodoPagoResponse) => mp.id === Number(values.metodoPagoId)
       );
       if (selectedMetodoPago && selectedMetodoPago.recargo) {
         recargo = Number(selectedMetodoPago.recargo);
       }
     }
+    const newTotalImporte = computedTotalImporte + recargo;
 
-    // Suma el recargo al subtotal para obtener el total a cobrar.
-    const computedTotalACobrar = computedSubtotal + recargo;
-
-    // Actualiza totalACobrar si es distinto.
-    if (values.totalACobrar !== computedTotalACobrar) {
-      setFieldValue("totalACobrar", computedTotalACobrar);
+    // Actualizar los totales.
+    if (values.totalACobrar !== newTotalImporte) {
+      setFieldValue("totalACobrar", newTotalImporte);
     }
-
-    // Copia el valor de totalACobrar en totalCobrado.
     if (values.totalCobrado !== computedTotalACobrar) {
       setFieldValue("totalCobrado", computedTotalACobrar);
     }
@@ -531,11 +537,23 @@ const DetallesTable: React.FC = () => (
                   </td>
                   <td className="border p-2 text-center text-sm">
                     <Field name={`detallePagos.${index}.importePendiente`}>
-                      {({ field }: any) => (
+                      {({ field, form }: any) => (
                         <input
                           type="number"
                           {...field}
-                          readOnly
+                          onChange={(e) => {
+                            const newValue = e.target.value;
+                            // Actualiza importePendiente
+                            form.setFieldValue(
+                              `detallePagos.${index}.importePendiente`,
+                              newValue
+                            );
+                            // Siempre sincroniza aCobrar con el nuevo valor
+                            form.setFieldValue(
+                              `detallePagos.${index}.aCobrar`,
+                              newValue
+                            );
+                          }}
                           className="w-full px-2 py-1 border rounded text-center"
                         />
                       )}
@@ -587,11 +605,12 @@ const CobranzasForm: React.FC = () => {
     useState<CobranzasFormValues>(defaultValues);
   const [selectedAlumnoId, setSelectedAlumnoId] = useState<number>(0);
   // Estado para almacenar las inscripciones activas del alumno
-  const [activeInscripciones, setActiveInscripciones] = useState<InscripcionResponse[]>([]);
+  const [activeInscripciones, setActiveInscripciones] = useState<
+    InscripcionResponse[]
+  >([]);
 
   // Datos unificados de cobranzas y alumno
-  const { disciplinas, stocks, metodosPago, conceptos } =
-    useCobranzasData();
+  const { disciplinas, stocks, metodosPago, conceptos } = useCobranzasData();
   const { data: alumnoData } = useAlumnoData(selectedAlumnoId);
 
   // Normalización de disciplinas
@@ -613,9 +632,7 @@ const CobranzasForm: React.FC = () => {
   const filteredDisciplinas =
     activeInscripciones.length > 0
       ? mappedDisciplinas.filter((disc) =>
-          activeInscripciones.some(
-            (ins) => ins.disciplina.id === disc.id
-          )
+          activeInscripciones.some((ins) => ins.disciplina.id === disc.id)
         )
       : [];
 
@@ -650,8 +667,7 @@ const CobranzasForm: React.FC = () => {
       if (!alumnoInfo) {
         try {
           alumnoInfo = await alumnosApi.obtenerPorId(id);
-        } catch (error) {
-        }
+        } catch (error) {}
       }
       if (alumnoInfo) {
         await setFieldValue("alumno", normalizeAlumno(alumnoInfo));
@@ -677,7 +693,8 @@ const CobranzasForm: React.FC = () => {
       }
       // Se obtienen automáticamente las inscripciones activas del alumno.
       try {
-        const inscripcionesActivas = await inscripcionesApi.obtenerInscripcionesActivas(id);
+        const inscripcionesActivas =
+          await inscripcionesApi.obtenerInscripcionesActivas(id);
         setActiveInscripciones(inscripcionesActivas);
       } catch (error) {
         setActiveInscripciones([]);
@@ -925,25 +942,27 @@ const CobranzasForm: React.FC = () => {
         importeInicial: Number(values.totalACobrar),
         metodoPagoId: Number(values.metodoPagoId) || 0,
         activo: true,
-        detallePagos: detallesFiltrados.map<DetallePagoRegistroRequest>((d) => ({
-          id: d.id,
-          descripcionConcepto: d.descripcionConcepto,
-          conceptoId: d.conceptoId ?? null,
-          subConceptoId: d.subConceptoId ?? null,
-          importePendiente: d.importePendiente,
-          cuotaOCantidad: d.cuotaOCantidad,
-          valorBase: d.valorBase,
-          bonificacionId: d.bonificacionId ? Number(d.bonificacionId) : null,
-          recargoId: d.recargoId ? Number(d.recargoId) : null,
-          aCobrar: d.aCobrar,
-          cobrado: d.cobrado,
-          mensualidadId: d.mensualidadId ?? null,
-          matriculaId: d.matriculaId ?? null,
-          stockId: d.stockId ?? null,
-          version: d.version ?? null,
-          pagoId: d.pagoId ?? null,
-          autoGenerated: false,
-        })),
+        detallePagos: detallesFiltrados.map<DetallePagoRegistroRequest>(
+          (d) => ({
+            id: d.id,
+            descripcionConcepto: d.descripcionConcepto,
+            conceptoId: d.conceptoId ?? null,
+            subConceptoId: d.subConceptoId ?? null,
+            importePendiente: d.importePendiente,
+            cuotaOCantidad: d.cuotaOCantidad,
+            valorBase: d.valorBase,
+            bonificacionId: d.bonificacionId ? Number(d.bonificacionId) : null,
+            recargoId: d.recargoId ? Number(d.recargoId) : null,
+            aCobrar: d.aCobrar,
+            cobrado: d.cobrado,
+            mensualidadId: d.mensualidadId ?? null,
+            matriculaId: d.matriculaId ?? null,
+            stockId: d.stockId ?? null,
+            version: d.version ?? null,
+            pagoId: d.pagoId ?? null,
+            autoGenerated: false,
+          })
+        ),
         pagoMedios: [],
       };
 
@@ -972,8 +991,7 @@ const CobranzasForm: React.FC = () => {
         {({ values, setFieldValue }) => {
           // Se obtiene el método de pago seleccionado para acceder a su recargo.
           const selectedMetodoPago = metodosPago.find(
-            (mp: MetodoPagoResponse) =>
-              mp.id === Number(values.metodoPagoId)
+            (mp: MetodoPagoResponse) => mp.id === Number(values.metodoPagoId)
           );
           // Efecto: Al seleccionar un método de pago, se asigna totalCobrado = totalACobrar.
           useEffect(() => {
@@ -1060,7 +1078,9 @@ const CobranzasForm: React.FC = () => {
                 {selectedAlumnoId > 0 && (
                   <button
                     type="button"
-                    onClick={() => navigate(`/pagos/alumno/${selectedAlumnoId}`)}
+                    onClick={() =>
+                      navigate(`/pagos/alumno/${selectedAlumnoId}`)
+                    }
                     className="bg-blue-500 text-white p-2 rounded"
                     aria-label="Ver historial de pagos del alumno"
                   >

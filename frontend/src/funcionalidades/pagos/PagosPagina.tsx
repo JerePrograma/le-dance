@@ -90,7 +90,7 @@ const PaymentList: React.FC = () => {
                     actions={(fila) => (
                         <div className="flex gap-2">
                             <Boton
-                                onClick={() => navigate(`/pagos/formulario?id=${fila.id}`)}
+                                onClick={() => navigate(`/pagos/editar?id=${fila.id}`)}
                                 className="page-button-secondary"
                                 aria-label={`Editar pago ${fila.id}`}
                             >

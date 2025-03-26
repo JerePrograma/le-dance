@@ -141,6 +141,10 @@ export const otherProtectedRoutes = [
     Component: lazy(() => import("../funcionalidades/pagos/PagosPagina")),
   },
   {
+    path: "/pagos/editar",
+    Component: lazy(() => import("../funcionalidades/pagos/EditarPagoForm.tsx")),
+  },
+  {
     path: "/pagos/formulario",
     Component: lazy(() => import("../funcionalidades/pagos/PagosFormulario")),
   },
