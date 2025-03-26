@@ -12,7 +12,7 @@ import {
 import { toast } from "react-toastify";
 import pagosApi from "../../api/pagosApi";
 import alumnosApi from "../../api/alumnosApi";
-import inscripcionesApi from "../../api/inscripcionesApi"; // Importamos el API de inscripciones
+import inscripcionesApi from "../../api/inscripcionesApi";
 import { useCobranzasData } from "../../hooks/useCobranzasData";
 import { useAlumnoData } from "../../hooks/useAlumnoData";
 import useDebounce from "../../hooks/useDebounce";
@@ -129,14 +129,12 @@ function normalizeAlumno(alumno: AlumnoResponse): AlumnoRegistroRequest {
     activo: alumno.activo,
     otrasNotas: alumno.otrasNotas,
     cuotaTotal: alumno.cuotaTotal,
-    inscripciones: alumno.inscripciones
-      ? alumno.inscripciones.map(normalizeInscripcion)
-      : [],
+    inscripciones: alumno.inscripciones ? alumno.inscripciones.map(normalizeInscripcion) : [],
   };
 }
 
 // ----- Nuevo Subcomponente: CobranzasFormHeader -----
-// Mantiene el layout original y reemplaza el select de alumno por un input de búsqueda
+// Mantiene el layout original y reemplaza el select de alumno por un input de búsqueda.
 interface CobranzasFormHeaderProps {
   handleAlumnoChange: (
     alumnoIdStr: string,
@@ -154,8 +152,7 @@ const CobranzasFormHeader: React.FC<CobranzasFormHeaderProps> = ({
   const { values, setFieldValue } = useFormikContext<CobranzasFormValues>();
   const [nombreBusqueda, setNombreBusqueda] = useState("");
   const [sugerencias, setSugerencias] = useState<AlumnoResponse[]>([]);
-  const [activeSuggestionIndex, setActiveSuggestionIndex] =
-    useState<number>(-1);
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState<number>(-1);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const debouncedNombre = useDebounce(nombreBusqueda, 300);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -180,15 +177,13 @@ const CobranzasFormHeader: React.FC<CobranzasFormHeaderProps> = ({
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (
-        wrapperRef.current &&
-        !wrapperRef.current.contains(e.target as Node)
-      ) {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
         setShowSuggestions(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    return () =>
+      document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const handleSelectAlumno = async (alumno: AlumnoResponse) => {
@@ -288,31 +283,49 @@ const CobranzasFormHeader: React.FC<CobranzasFormHeaderProps> = ({
   );
 };
 
-// ----- Subcomponentes existentes -----
-const TotalsUpdater: React.FC<{ metodosPago: MetodoPagoResponse[] }> = () => {
+// ----- TotalsUpdater modificado -----
+const TotalsUpdater: React.FC<{ metodosPago: MetodoPagoResponse[] }> = ({
+  metodosPago,
+}) => {
   const { values, setFieldValue } = useFormikContext<CobranzasFormValues>();
 
   useEffect(() => {
-    const computedTotalACobrar = values.detallePagos.reduce(
+    // Calcula el subtotal de los importes pendientes de cada detalle.
+    const computedSubtotal = values.detallePagos.reduce(
       (total, item) => total + Number(item.importePendiente || 0),
       0
     );
-    const computedTotalCobrado = values.detallePagos.reduce(
-      (total, item) =>
-        total + (Number(item.aCobrar || 0) > 0 ? Number(item.aCobrar) : 0),
-      0
-    );
+
+    // Busca el método de pago seleccionado y obtiene su recargo (si lo tiene).
+    let recargo = 0;
+    if (values.metodoPagoId) {
+      const selectedMetodoPago = metodosPago.find(
+        (mp: MetodoPagoResponse) =>
+          mp.id === Number(values.metodoPagoId)
+      );
+      if (selectedMetodoPago && selectedMetodoPago.recargo) {
+        recargo = Number(selectedMetodoPago.recargo);
+      }
+    }
+
+    // Suma el recargo al subtotal para obtener el total a cobrar.
+    const computedTotalACobrar = computedSubtotal + recargo;
+
+    // Actualiza totalACobrar si es distinto.
     if (values.totalACobrar !== computedTotalACobrar) {
       setFieldValue("totalACobrar", computedTotalACobrar);
     }
-    if (values.totalCobrado !== computedTotalCobrado) {
-      setFieldValue("totalCobrado", computedTotalCobrado);
+
+    // Copia el valor de totalACobrar en totalCobrado.
+    if (values.totalCobrado !== computedTotalACobrar) {
+      setFieldValue("totalCobrado", computedTotalACobrar);
     }
-  }, [values.detallePagos, setFieldValue]);
+  }, [values.detallePagos, values.metodoPagoId, metodosPago, setFieldValue]);
 
   return null;
 };
 
+// ----- ConceptosSection -----
 interface ConceptosSectionProps {
   disciplinas: DisciplinaDetalleResponse[];
   stocks: StockResponse[];
@@ -438,6 +451,7 @@ const ConceptosSection: React.FC<ConceptosSectionProps> = ({
   );
 };
 
+// ----- DetallesTable -----
 const DetallesTable: React.FC = () => (
   <FieldArray name="detallePagos">
     {({ remove, form }) => (
@@ -572,13 +586,12 @@ const CobranzasForm: React.FC = () => {
   const [initialValues, setInitialValues] =
     useState<CobranzasFormValues>(defaultValues);
   const [selectedAlumnoId, setSelectedAlumnoId] = useState<number>(0);
-  // Estado para almacenar las inscripciones activas del alumno seleccionado
-  const [activeInscripciones, setActiveInscripciones] = useState<
-    InscripcionResponse[]
-  >([]);
+  // Estado para almacenar las inscripciones activas del alumno
+  const [activeInscripciones, setActiveInscripciones] = useState<InscripcionResponse[]>([]);
 
   // Datos unificados de cobranzas y alumno
-  const { disciplinas, stocks, metodosPago, conceptos } = useCobranzasData();
+  const { disciplinas, stocks, metodosPago, conceptos } =
+    useCobranzasData();
   const { data: alumnoData } = useAlumnoData(selectedAlumnoId);
 
   // Normalización de disciplinas
@@ -595,13 +608,16 @@ const CobranzasForm: React.FC = () => {
     })
   );
 
-  // Filtrado de disciplinas en base a las inscripciones activas
+  // Filtrado de disciplinas en base a las inscripciones activas.
+  // Si no hay inscripciones activas, se limita la selección (arreglo vacío).
   const filteredDisciplinas =
     activeInscripciones.length > 0
       ? mappedDisciplinas.filter((disc) =>
-          activeInscripciones.some((ins) => ins.disciplina.id === disc.id)
+          activeInscripciones.some(
+            (ins) => ins.disciplina.id === disc.id
+          )
         )
-      : mappedDisciplinas;
+      : [];
 
   // Hook para sincronizar los detalles (se ejecuta solo una vez para permitir edición manual)
   const SyncDetalles: React.FC<{ deudaData: AlumnoDataResponse }> = ({
@@ -614,7 +630,7 @@ const CobranzasForm: React.FC = () => {
   /**
    * Manejo del cambio de alumno.
    * Se actualiza el alumno en el formulario (buscando por ID) y normalizando los datos.
-   * Además, se obtienen automáticamente las inscripciones activas y se actualiza el estado para filtrar las disciplinas.
+   * Además, se obtienen automáticamente las inscripciones activas para filtrar las disciplinas.
    */
   const handleAlumnoChange = useCallback(
     async (
@@ -634,7 +650,8 @@ const CobranzasForm: React.FC = () => {
       if (!alumnoInfo) {
         try {
           alumnoInfo = await alumnosApi.obtenerPorId(id);
-        } catch (error) {}
+        } catch (error) {
+        }
       }
       if (alumnoInfo) {
         await setFieldValue("alumno", normalizeAlumno(alumnoInfo));
@@ -658,10 +675,9 @@ const CobranzasForm: React.FC = () => {
           inscripciones: [],
         });
       }
-      // Se obtiene automáticamente las inscripciones activas del alumno
+      // Se obtienen automáticamente las inscripciones activas del alumno.
       try {
-        const inscripcionesActivas =
-          await inscripcionesApi.obtenerInscripcionesActivas(id);
+        const inscripcionesActivas = await inscripcionesApi.obtenerInscripcionesActivas(id);
         setActiveInscripciones(inscripcionesActivas);
       } catch (error) {
         setActiveInscripciones([]);
@@ -670,7 +686,7 @@ const CobranzasForm: React.FC = () => {
     [alumnoData]
   );
 
-  // Cargar datos de pago si se pasa "id" en los query params
+  // Cargar datos de pago si se pasa "id" en los query params.
   useEffect(() => {
     const idParam = searchParams.get("id");
     if (idParam) {
@@ -743,7 +759,7 @@ const CobranzasForm: React.FC = () => {
     }
   }, [searchParams]);
 
-  // Función para agregar detalle (se mantiene igual)
+  // Función para agregar detalle.
   const handleAgregarDetalle = useCallback(
     (
       values: CobranzasFormValues,
@@ -759,7 +775,7 @@ const CobranzasForm: React.FC = () => {
           (det) => det.descripcionConcepto.trim() === desc.trim()
         );
 
-      // Agregar detalle basado en concepto seleccionado
+      // Agregar detalle basado en concepto seleccionado.
       if (values.conceptoSeleccionado) {
         const selectedConcept = conceptos.find(
           (c: ConceptoResponse) =>
@@ -792,7 +808,7 @@ const CobranzasForm: React.FC = () => {
           }
         }
       }
-      // Agregar detalle basado en disciplina/tarifa
+      // Agregar detalle basado en disciplina/tarifa.
       if (values.disciplina && values.tarifa) {
         const selectedDisciplina = mappedDisciplinas.find(
           (disc) => disc.nombre === values.disciplina
@@ -838,7 +854,7 @@ const CobranzasForm: React.FC = () => {
           }
         }
       }
-      // Agregar detalle basado en stock seleccionado
+      // Agregar detalle basado en stock seleccionado.
       if (values.stockSeleccionado) {
         const selectedStock = stocks.find(
           (s: StockResponse) => s.id.toString() === values.stockSeleccionado
@@ -909,27 +925,25 @@ const CobranzasForm: React.FC = () => {
         importeInicial: Number(values.totalACobrar),
         metodoPagoId: Number(values.metodoPagoId) || 0,
         activo: true,
-        detallePagos: detallesFiltrados.map<DetallePagoRegistroRequest>(
-          (d) => ({
-            id: d.id,
-            descripcionConcepto: d.descripcionConcepto,
-            conceptoId: d.conceptoId ?? null,
-            subConceptoId: d.subConceptoId ?? null,
-            importePendiente: d.importePendiente,
-            cuotaOCantidad: d.cuotaOCantidad,
-            valorBase: d.valorBase,
-            bonificacionId: d.bonificacionId ? Number(d.bonificacionId) : null,
-            recargoId: d.recargoId ? Number(d.recargoId) : null,
-            aCobrar: d.aCobrar,
-            cobrado: d.cobrado,
-            mensualidadId: d.mensualidadId ?? null,
-            matriculaId: d.matriculaId ?? null,
-            stockId: d.stockId ?? null,
-            version: d.version ?? null,
-            pagoId: d.pagoId ?? null,
-            autoGenerated: false,
-          })
-        ),
+        detallePagos: detallesFiltrados.map<DetallePagoRegistroRequest>((d) => ({
+          id: d.id,
+          descripcionConcepto: d.descripcionConcepto,
+          conceptoId: d.conceptoId ?? null,
+          subConceptoId: d.subConceptoId ?? null,
+          importePendiente: d.importePendiente,
+          cuotaOCantidad: d.cuotaOCantidad,
+          valorBase: d.valorBase,
+          bonificacionId: d.bonificacionId ? Number(d.bonificacionId) : null,
+          recargoId: d.recargoId ? Number(d.recargoId) : null,
+          aCobrar: d.aCobrar,
+          cobrado: d.cobrado,
+          mensualidadId: d.mensualidadId ?? null,
+          matriculaId: d.matriculaId ?? null,
+          stockId: d.stockId ?? null,
+          version: d.version ?? null,
+          pagoId: d.pagoId ?? null,
+          autoGenerated: false,
+        })),
         pagoMedios: [],
       };
 
@@ -955,100 +969,114 @@ const CobranzasForm: React.FC = () => {
         onSubmit={onSubmit}
         enableReinitialize
       >
-        {({ values, setFieldValue }) => (
-          <Form className="w-full">
-            <TotalsUpdater metodosPago={metodosPago} />
-            {alumnoData && <SyncDetalles deudaData={alumnoData} />}
-            {/* Se reemplaza el antiguo FormHeader por el nuevo header con búsqueda */}
-            <CobranzasFormHeader handleAlumnoChange={handleAlumnoChange} />
-            <ConceptosSection
-              // Se envía el arreglo de disciplinas filtrado según las inscripciones activas del alumno
-              disciplinas={filteredDisciplinas}
-              stocks={stocks}
-              conceptos={conceptos}
-              values={values}
-              setFieldValue={setFieldValue}
-              handleAgregarDetalle={handleAgregarDetalle}
-            />
-            <DetallesTable />
-            <div className="border p-4 mb-4">
-              <h2 className="font-bold mb-2">Totales y Pago</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block font-medium">Total Importe:</label>
-                  <input
-                    type="number"
-                    readOnly
-                    className="border p-2 w-full"
-                    value={values.totalACobrar}
-                  />
-                </div>
-                <div>
-                  <label className="block font-medium">Total Cobrado:</label>
-                  <Field
-                    name="totalCobrado"
-                    type="number"
-                    className="border p-2 w-full"
-                  />
-                  <small className="text-gray-500">
-                    Se autocompleta sumando el valor de A Cobrar de cada
-                    detalle, pero puedes modificarlo.
-                  </small>
-                </div>
-                <div>
-                  <label className="block font-medium">Método de Pago:</label>
-                  <Field
-                    as="select"
-                    name="metodoPagoId"
-                    className="border p-2 w-full"
-                  >
-                    <option value="">Seleccione un método de pago</option>
-                    {metodosPago.map((mp: MetodoPagoResponse) => (
-                      <option key={mp.id} value={mp.id}>
-                        {mp.descripcion}
-                      </option>
-                    ))}
-                  </Field>
+        {({ values, setFieldValue }) => {
+          // Se obtiene el método de pago seleccionado para acceder a su recargo.
+          const selectedMetodoPago = metodosPago.find(
+            (mp: MetodoPagoResponse) =>
+              mp.id === Number(values.metodoPagoId)
+          );
+          // Efecto: Al seleccionar un método de pago, se asigna totalCobrado = totalACobrar.
+          useEffect(() => {
+            if (values.metodoPagoId) {
+              setFieldValue("totalCobrado", values.totalACobrar);
+            }
+          }, [values.metodoPagoId, values.totalACobrar, setFieldValue]);
+
+          return (
+            <Form className="w-full">
+              <TotalsUpdater metodosPago={metodosPago} />
+              {alumnoData && <SyncDetalles deudaData={alumnoData} />}
+              <CobranzasFormHeader handleAlumnoChange={handleAlumnoChange} />
+              <ConceptosSection
+                disciplinas={filteredDisciplinas}
+                stocks={stocks}
+                conceptos={conceptos}
+                values={values}
+                setFieldValue={setFieldValue}
+                handleAgregarDetalle={handleAgregarDetalle}
+              />
+              <DetallesTable />
+              <div className="border p-4 mb-4">
+                <h2 className="font-bold mb-2">Totales y Pago</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block font-medium">Total Importe:</label>
+                    <input
+                      type="number"
+                      readOnly
+                      className="border p-2 w-full"
+                      value={values.totalACobrar}
+                    />
+                    {selectedMetodoPago && selectedMetodoPago.recargo && (
+                      <p className="text-sm text-gray-500">
+                        Recargo: {selectedMetodoPago.recargo}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block font-medium">Total Cobrado:</label>
+                    <input
+                      type="number"
+                      readOnly
+                      className="border p-2 w-full"
+                      value={values.totalCobrado}
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-medium">Método de Pago:</label>
+                    <Field
+                      as="select"
+                      name="metodoPagoId"
+                      className="border p-2 w-full"
+                    >
+                      <option value="">Seleccione un método de pago</option>
+                      {metodosPago.map((mp: MetodoPagoResponse) => (
+                        <option key={mp.id} value={mp.id}>
+                          {mp.descripcion}
+                        </option>
+                      ))}
+                    </Field>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="border p-4 mb-4">
-              <label className="block font-medium">Observaciones:</label>
-              <Field
-                as="textarea"
-                name="observaciones"
-                className="border p-2 w-full"
-                rows={3}
-              />
-            </div>
-            <div className="flex justify-end gap-4">
-              <button
-                type="submit"
-                className="bg-green-500 p-2 rounded text-white"
-              >
-                {searchParams.get("id")
-                  ? "Actualizar Cobranza"
-                  : "Registrar Cobranza"}
-              </button>
-              {selectedAlumnoId > 0 && (
+              <div className="border p-4 mb-4">
+                <label className="block font-medium">Observaciones:</label>
+                <Field
+                  as="textarea"
+                  name="observaciones"
+                  className="border p-2 w-full"
+                  rows={3}
+                />
+              </div>
+              <div className="flex justify-end gap-4">
                 <button
-                  type="button"
-                  onClick={() => navigate(`/pagos/alumno/${selectedAlumnoId}`)}
-                  className="bg-blue-500 text-white p-2 rounded"
-                  aria-label="Ver historial de pagos del alumno"
+                  type="submit"
+                  className="bg-green-500 p-2 rounded text-white"
                 >
-                  Ver Historial
+                  {searchParams.get("id")
+                    ? "Actualizar Cobranza"
+                    : "Registrar Cobranza"}
                 </button>
-              )}
-              <button
-                type="reset"
-                className="bg-gray-500 p-2 rounded text-white"
-              >
-                Cancelar
-              </button>
-            </div>
-          </Form>
-        )}
+                {selectedAlumnoId > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/pagos/alumno/${selectedAlumnoId}`)}
+                    className="bg-blue-500 text-white p-2 rounded"
+                    aria-label="Ver historial de pagos del alumno"
+                  >
+                    Ver Historial
+                  </button>
+                )}
+                <button
+                  type="reset"
+                  className="bg-gray-500 p-2 rounded text-white"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </Form>
+          );
+        }}
       </Formik>
     </ResponsiveContainer>
   );
