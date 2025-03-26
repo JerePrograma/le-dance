@@ -772,6 +772,7 @@ export interface DetallePagoRegistroRequest {
   cobrado?: boolean;
   conceptoId?: number | null;
   subConceptoId?: number | null;
+  importeInicial: number;
   importePendiente: number | null;
   mensualidadId?: number | null;
   matriculaId?: number | null;

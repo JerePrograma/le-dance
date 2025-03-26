@@ -49,6 +49,7 @@ const mapDetallePagos = (
       cobrado: det.cobrado ?? false,
       mensualidadId: det.mensualidadId ?? null,
       matriculaId: det.matriculaId ?? null,
+      importeInicial: det.importeInicial ?? null,
       stockId: det.stockId ?? null,
       pagoId: det.pagoId ?? null,
     };
