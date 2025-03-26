@@ -1,14 +1,11 @@
 "use client";
 
 import { useCallback } from "react";
-import { useNavigate } from "react-router-dom";
 import Boton from "../../componentes/comunes/Boton";
 import mensualidadesApi from "../../api/mensualidadesApi";
 import { toast } from "react-toastify";
 
 const MensualidadesPagina = () => {
-  const navigate = useNavigate();
-
   // Función placeholder para refrescar las inscripciones
   const fetchInscripciones = useCallback(() => {
     // Aquí iría la lógica para obtener las inscripciones

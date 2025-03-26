@@ -578,8 +578,7 @@ const CobranzasForm: React.FC = () => {
   >([]);
 
   // Datos unificados de cobranzas y alumno
-  const { alumnos, disciplinas, stocks, metodosPago, conceptos } =
-    useCobranzasData();
+  const { disciplinas, stocks, metodosPago, conceptos } = useCobranzasData();
   const { data: alumnoData } = useAlumnoData(selectedAlumnoId);
 
   // Normalización de disciplinas
@@ -635,9 +634,7 @@ const CobranzasForm: React.FC = () => {
       if (!alumnoInfo) {
         try {
           alumnoInfo = await alumnosApi.obtenerPorId(id);
-        } catch (error) {
-          alumnoInfo = null;
-        }
+        } catch (error) {}
       }
       if (alumnoInfo) {
         await setFieldValue("alumno", normalizeAlumno(alumnoInfo));
