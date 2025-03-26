@@ -3,9 +3,13 @@ package ledance.servicios.mensualidad;
 import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
+import ledance.dto.alumno.response.AlumnoResponse;
+import ledance.dto.bonificacion.response.BonificacionResponse;
+import ledance.dto.disciplina.response.DisciplinaResponse;
 import ledance.dto.mensualidad.MensualidadMapper;
 import ledance.dto.mensualidad.request.MensualidadRegistroRequest;
 import ledance.dto.mensualidad.response.MensualidadResponse;
+import ledance.dto.pago.response.DetallePagoResponse;
 import ledance.dto.reporte.ReporteMensualidadDTO;
 import ledance.entidades.*;
 import ledance.repositorios.*;
@@ -549,17 +553,54 @@ public class MensualidadServicio implements IMensualidadService {
     }
 
     public ReporteMensualidadDTO mapearReporte(Mensualidad mensualidad) {
+        // Buscar el DetallePago asociado de tipo MENSUALIDAD (se asume que existe al menos uno)
+        DetallePago detallePago = mensualidad.getDetallePagos().stream()
+                .filter(detalle -> detalle.getTipo() == TipoDetallePago.MENSUALIDAD)
+                .findFirst()
+                .orElse(null);
+
+        // Si no se encuentra un detalle de pago correspondiente, se puede optar por retornar null
+        if (detallePago == null) {
+            return null;
+        }
+
+        // Determinar si se debe considerar la mensualidad como abonada:
+        // - Si su estado es PAGADO, o
+        // - Si el importe pendiente es menor que el importe inicial (lo que indica que se realizaron abonos parciales)
+        boolean abonado = mensualidad.getEstado() == EstadoMensualidad.PAGADO
+                || (mensualidad.getImportePendiente() != null
+                && mensualidad.getImporteInicial() != null
+                && mensualidad.getImportePendiente() < mensualidad.getImporteInicial());
+        String estadoReporte = abonado ? "Abonado" : "Pendiente";
+
+        // Mapeo de datos relacionados (si cuentas con los mappers correspondientes)
+        AlumnoResponse alumnoResponse = null;
+        DisciplinaResponse disciplinaResponse = null;
+        BonificacionResponse bonificacionResponse = null;
+        // Ejemplo:
+        // alumnoResponse = alumnoMapper.toResponse(mensualidad.getInscripcion().getAlumno());
+        // disciplinaResponse = disciplinaMapper.toResponse(mensualidad.getInscripcion().getDisciplina());
+        // if (detallePago.getBonificacion() != null) {
+        //     bonificacionResponse = bonificacionMapper.toResponse(detallePago.getBonificacion());
+        // }
+
         return new ReporteMensualidadDTO(
-                mensualidad.getId(),
-                null,
-                "CUOTA",
-                mensualidad.getValorBase(),
-                null,
-                mensualidad.getImporteInicial(),
-                0.0,
-                mensualidad.getEstado() == EstadoMensualidad.PAGADO ? "Abonado" : "Pendiente",
-                null,
-                mensualidad.getDescripcion()
+                mensualidad.getId(),                                           // Id de la mensualidad
+                alumnoResponse,                                                // Alumno (a mapear si se requiere)
+                detallePago.getCuotaOCantidad() != null
+                        ? detallePago.getCuotaOCantidad()
+                        : "CUOTA",                                             // Tipo o cantidad, usando el valor del detalle o un valor por defecto
+                detallePago.getValorBase() != null
+                        ? detallePago.getValorBase()
+                        : mensualidad.getValorBase(),                          // Importe base (se prioriza el del detalle)
+                bonificacionResponse,                                            // Bonificación (si aplica)
+                detallePago.getImporteInicial() != null
+                        ? detallePago.getImporteInicial()
+                        : mensualidad.getImporteInicial(),                     // Total (usando el importe inicial del detalle o de la mensualidad)
+                0.0,                                                           // Recargo (puedes mapearlo si tienes el dato en detalle o mensualidad)
+                estadoReporte,                                                 // Estado determinado ("Abonado" o "Pendiente")
+                disciplinaResponse,                                              // Disciplina (a mapear si se requiere)
+                mensualidad.getDescripcion()                                   // Descripción adicional
         );
     }
 
@@ -576,10 +617,12 @@ public class MensualidadServicio implements IMensualidadService {
         return "CUOTA";
     }
 
-    public List<ReporteMensualidadDTO> buscarMensualidades(LocalDate fechaInicio, LocalDate fechaFin, String disciplinaNombre, String profesorNombre) {
+    public List<DetallePagoResponse> buscarMensualidades(LocalDate fechaInicio, LocalDate fechaFin, String disciplinaNombre, String profesorNombre) {
         log.info("Buscando mensualidades entre {} y {} con disciplina '{}' y profesor '{}'", fechaInicio, fechaFin, disciplinaNombre, profesorNombre);
+
         Specification<Mensualidad> spec = (root, query, cb) ->
                 cb.between(root.get("fechaCuota"), fechaInicio, fechaFin);
+
         if (disciplinaNombre != null && !disciplinaNombre.isEmpty()) {
             spec = spec.and((root, query, cb) -> {
                 Join<Mensualidad, Inscripcion> inscripcion = root.join("inscripcion");
@@ -595,11 +638,57 @@ public class MensualidadServicio implements IMensualidadService {
                 return cb.like(cb.lower(profesor.get("nombre")), "%" + profesorNombre.toLowerCase() + "%");
             });
         }
+
         List<Mensualidad> mensualidades = mensualidadRepositorio.findAll(spec);
         log.info("Total de mensualidades encontradas: {}", mensualidades.size());
-        return mensualidades.stream()
-                .map(this::mapearReporte)
-                .collect(Collectors.toList());
+
+        List<DetallePagoResponse> detallePagoResponses = new ArrayList<>();
+        // Para cada mensualidad, evaluamos la condición y mapeamos sus detalles de pago de tipo MENSUALIDAD
+        for (Mensualidad m : mensualidades) {
+            boolean procesar = m.getEstado() == EstadoMensualidad.PAGADO ||
+                    (m.getImportePendiente() != null && m.getImporteInicial() != null &&
+                            m.getImportePendiente() < m.getImporteInicial());
+            if (procesar && m.getDetallePagos() != null) {
+                List<DetallePago> detalles = m.getDetallePagos().stream()
+                        .filter(detalle -> detalle.getTipo() == TipoDetallePago.MENSUALIDAD)
+                        .collect(Collectors.toList());
+                for (DetallePago d : detalles) {
+                    DetallePagoResponse response = mapearDetallePagoResponse(d);
+                    if (response != null) {
+                        detallePagoResponses.add(response);
+                    }
+                }
+            }
+        }
+        return detallePagoResponses;
+    }
+
+    public DetallePagoResponse mapearDetallePagoResponse(DetallePago detalle) {
+        return new DetallePagoResponse(
+                detalle.getId(),
+                detalle.getVersion(),
+                detalle.getDescripcionConcepto(),
+                detalle.getCuotaOCantidad(),
+                detalle.getValorBase(),
+                detalle.getBonificacion() != null ? detalle.getBonificacion().getId() : null,
+                detalle.getBonificacion() != null ? detalle.getBonificacion().getDescripcion() : null,
+                detalle.getRecargo() != null ? detalle.getRecargo().getId() : null,
+                detalle.getaCobrar(),
+                detalle.getCobrado(),
+                detalle.getConcepto() != null ? detalle.getConcepto().getId() : null,
+                detalle.getSubConcepto() != null ? detalle.getSubConcepto().getId() : null,
+                detalle.getMensualidad() != null ? detalle.getMensualidad().getId() : null,
+                detalle.getMatricula() != null ? detalle.getMatricula().getId() : null,
+                detalle.getStock() != null ? detalle.getStock().getId() : null,
+                detalle.getImporteInicial(),
+                detalle.getImportePendiente(),
+                detalle.getTipo(),
+                detalle.getFechaRegistro(),
+                detalle.getPago() != null ? detalle.getPago().getId() : null,
+                detalle.getAlumno() != null
+                        ? detalle.getAlumno().getNombre() + " " + detalle.getAlumno().getApellido()
+                        : ""
+        );
     }
 
     public Mensualidad actualizarAbonoParcialMensualidad(Mensualidad mensualidad, double abonoRecibido) {

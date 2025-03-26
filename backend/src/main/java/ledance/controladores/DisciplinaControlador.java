@@ -128,4 +128,10 @@ public class DisciplinaControlador {
         return ResponseEntity.ok(disciplinas);
     }
 
+    @GetMapping("/buscar")
+    public ResponseEntity<List<DisciplinaResponse>> buscarPorNombre(@RequestParam("nombre") String nombre) {
+        List<DisciplinaResponse> disciplinas = disciplinaServicio.buscarPorNombre(nombre);
+        return ResponseEntity.ok(disciplinas);
+    }
+
 }

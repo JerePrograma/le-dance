@@ -1,5 +1,6 @@
 package ledance.controladores;
 
+import ledance.dto.pago.response.DetallePagoResponse;
 import ledance.dto.reporte.ReporteMensualidadDTO;
 import ledance.servicios.mensualidad.MensualidadServicio;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -31,15 +32,13 @@ public class ReporteMensualidadControlador {
      * Se utiliza Pageable para paginacion.
      */
     @GetMapping("/buscar")
-    public ResponseEntity<List<ReporteMensualidadDTO>> buscarMensualidades(
+    public ResponseEntity<List<DetallePagoResponse>> buscarMensualidades(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaInicio,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaFin,
             @RequestParam(required = false) String disciplinaNombre,
             @RequestParam(required = false) String profesorNombre
     ) {
-        List<ReporteMensualidadDTO> resultados = mensualidadServicio.buscarMensualidades(
-                fechaInicio, fechaFin, disciplinaNombre, profesorNombre
-        );
+        List<DetallePagoResponse> resultados = mensualidadServicio.buscarMensualidades(fechaInicio, fechaFin, disciplinaNombre, profesorNombre);
         return ResponseEntity.ok(resultados);
     }
 
