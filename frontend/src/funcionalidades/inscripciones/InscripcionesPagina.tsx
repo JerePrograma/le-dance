@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Tabla from "../../componentes/comunes/Tabla";
 import inscripcionesApi from "../../api/inscripcionesApi";
@@ -10,7 +10,7 @@ import { Pencil } from "lucide-react";
 import { toast } from "react-toastify";
 import ListaConInfiniteScroll from "../../componentes/comunes/ListaConInfiniteScroll";
 
-const itemsPerPage = 5;
+const estimatedRowHeight = 70; // Altura estimada por fila en píxeles
 
 const InscripcionesPagina = () => {
   const [inscripciones, setInscripciones] = useState<InscripcionResponse[]>([]);
@@ -18,9 +18,9 @@ const InscripcionesPagina = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
-  // Se utiliza visibleCount en lugar de currentPage para determinar cuántos elementos se muestran
-  const [visibleCount, setVisibleCount] = useState(itemsPerPage);
+  const [visibleCount, setVisibleCount] = useState(0);
   const navigate = useNavigate();
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const fetchInscripciones = useCallback(async () => {
     try {
@@ -40,13 +40,6 @@ const InscripcionesPagina = () => {
     fetchInscripciones();
   }, [fetchInscripciones]);
 
-  const calcularCostoInscripcion = (ins: InscripcionResponse) => {
-    const cuota = ins.disciplina?.valorCuota || 0;
-    const bonifPct = ins.bonificacion?.porcentajeDescuento || 0;
-    const bonifMonto = ins.bonificacion?.valorFijo || 0;
-    return cuota - bonifMonto - (cuota * bonifPct) / 100;
-  };
-
   // Agrupa las inscripciones por alumno
   const gruposInscripciones = useMemo(() => {
     return inscripciones.reduce((acc, ins) => {
@@ -63,7 +56,12 @@ const InscripcionesPagina = () => {
 
   const gruposConCosto = useMemo(() => {
     return gruposArray.map((grupo) => {
-      const costoTotal = grupo.inscripciones.reduce((sum, ins) => sum + calcularCostoInscripcion(ins), 0);
+      const costoTotal = grupo.inscripciones.reduce(
+        (sum, ins) => sum + (ins.disciplina?.valorCuota || 0) -
+          (ins.bonificacion?.valorFijo || 0) -
+          ((ins.disciplina?.valorCuota || 0) * (ins.bonificacion?.porcentajeDescuento || 0)) / 100,
+        0
+      );
       return { ...grupo, costoTotal };
     });
   }, [gruposArray]);
@@ -80,15 +78,31 @@ const InscripcionesPagina = () => {
     });
   }, [gruposConCosto, searchTerm, sortOrder]);
 
-  // Se obtiene un subconjunto de los grupos a mostrar según el visibleCount
+  // Se obtiene el subconjunto de los grupos a mostrar según el visibleCount
   const currentItems = useMemo(() => gruposFiltradosYOrdenados.slice(0, visibleCount), [gruposFiltradosYOrdenados, visibleCount]);
-  // Determina si hay más elementos para cargar
   const hasMore = useMemo(() => visibleCount < gruposFiltradosYOrdenados.length, [visibleCount, gruposFiltradosYOrdenados.length]);
+
+  // Calcula cuántos elementos caben en el contenedor y actualiza visibleCount
+  const adjustVisibleCount = useCallback(() => {
+    if (containerRef.current) {
+      const containerHeight = containerRef.current.getBoundingClientRect().height;
+      const itemsThatFit = Math.ceil(containerHeight / estimatedRowHeight);
+      setVisibleCount(itemsThatFit);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Ajusta la cantidad visible cuando se monta el componente o cambia el tamaño del contenedor
+    adjustVisibleCount();
+    // Opcional: Puedes agregar un listener para el resize
+    window.addEventListener("resize", adjustVisibleCount);
+    return () => window.removeEventListener("resize", adjustVisibleCount);
+  }, [adjustVisibleCount]);
 
   // Incrementa visibleCount para cargar más elementos
   const onLoadMore = useCallback(() => {
     if (hasMore) {
-      setVisibleCount((prev) => prev + itemsPerPage);
+      setVisibleCount((prev) => prev + estimatedRowHeight); // O sumar en bloques del mismo tamaño
     }
   }, [hasMore]);
 
@@ -99,10 +113,10 @@ const InscripcionesPagina = () => {
     return Array.from(nombresSet);
   }, [gruposConCosto]);
 
-  // Al cambiar el filtro se reinicia la cantidad de elementos visibles
+  // Reinicia visibleCount al cambiar el filtro
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
-    setVisibleCount(itemsPerPage);
+    adjustVisibleCount();
   };
 
   if (loading && inscripciones.length === 0)
@@ -110,7 +124,7 @@ const InscripcionesPagina = () => {
   if (error) return <div className="text-center py-4 text-destructive">{error}</div>;
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div ref={containerRef} className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Alumnos Activos</h1>
       </div>
