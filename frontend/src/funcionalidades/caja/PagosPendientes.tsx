@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useEffect, useMemo } from "react";
+import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Tabla from "../../componentes/comunes/Tabla";
 import Boton from "../../componentes/comunes/Boton";
@@ -14,14 +14,16 @@ import type { DetallePagoResponse } from "../../types/types";
 import ListaConInfiniteScroll from "../../componentes/comunes/ListaConInfiniteScroll";
 
 const tarifaOptions = ["CUOTA", "CLASE DE PRUEBA", "CLASE SUELTA"];
-const itemsPerPage = 5;
+const estimatedRowHeight = 70; // Altura estimada en píxeles de cada fila
+
+const itemsPerPage = 5; // Valor base en caso de no poder calcular (fallback)
 
 const DetallePagoList: React.FC = () => {
   const [detalles, setDetalles] = useState<DetallePagoResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Se utiliza visibleCount en lugar de currentPage
-  const [visibleCount, setVisibleCount] = useState(itemsPerPage);
+  // Usaremos visibleCount para determinar cuántos elementos mostrar
+  const [visibleCount, setVisibleCount] = useState<number>(itemsPerPage);
   const navigate = useNavigate();
 
   // Estados para filtros generales
@@ -29,7 +31,7 @@ const DetallePagoList: React.FC = () => {
   const [fechaFin, setFechaFin] = useState("");
   const [filtroTipo, setFiltroTipo] = useState("");
 
-  // Estados para los filtros secundarios según la opción elegida
+  // Estados para filtros secundarios
   const [disciplinas, setDisciplinas] = useState<any[]>([]);
   const [selectedDisciplina, setSelectedDisciplina] = useState("");
   const [selectedTarifa, setSelectedTarifa] = useState("");
@@ -42,25 +44,25 @@ const DetallePagoList: React.FC = () => {
   const [conceptos, setConceptos] = useState<any[]>([]);
   const [selectedConcepto, setSelectedConcepto] = useState("");
 
-  // Función para traer los detalles, aplicando filtros si existen.
-  const fetchDetalles = useCallback(
-    async (params: Record<string, string> = {}) => {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await pagosApi.filtrarDetalles(params);
-        setDetalles(data);
-        // Reiniciamos la cantidad visible al aplicar filtros o recargar datos
-        setVisibleCount(itemsPerPage);
-      } catch (error) {
-        toast.error("Error al cargar pagos pendientes");
-        setError("Error al cargar pagos pendientes");
-      } finally {
-        setLoading(false);
-      }
-    },
-    []
-  );
+  // Ref para el contenedor de la lista (para medir su altura)
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Función para traer los detalles aplicando filtros (si existen)
+  const fetchDetalles = useCallback(async (params: Record<string, string> = {}) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await pagosApi.filtrarDetalles(params);
+      setDetalles(data);
+      // Reiniciamos visibleCount al aplicar filtros o recargar datos
+      setVisibleCount(itemsPerPage);
+    } catch (error) {
+      toast.error("Error al cargar pagos pendientes");
+      setError("Error al cargar pagos pendientes");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     fetchDetalles();
@@ -111,7 +113,22 @@ const DetallePagoList: React.FC = () => {
     [detalles]
   );
 
-  // Se obtiene un subconjunto de los detalles no cobrados según visibleCount
+  // Ajustar visibleCount dinámicamente según la altura del contenedor
+  const adjustVisibleCount = useCallback(() => {
+    if (containerRef.current) {
+      const containerHeight = containerRef.current.getBoundingClientRect().height;
+      const itemsThatFit = Math.ceil(containerHeight / estimatedRowHeight);
+      setVisibleCount(itemsThatFit);
+    }
+  }, []);
+
+  useEffect(() => {
+    adjustVisibleCount();
+    window.addEventListener("resize", adjustVisibleCount);
+    return () => window.removeEventListener("resize", adjustVisibleCount);
+  }, [adjustVisibleCount]);
+
+  // Se obtiene el subconjunto de los detalles no cobrados según visibleCount
   const currentItems = useMemo(
     () => detallesNoCobrado.slice(0, visibleCount),
     [detallesNoCobrado, visibleCount]
@@ -123,14 +140,16 @@ const DetallePagoList: React.FC = () => {
     [visibleCount, detallesNoCobrado.length]
   );
 
-  // Incrementa visibleCount en bloques
+  // Incrementa visibleCount en bloques (puedes sumar en bloques de filas o en función de la altura)
   const onLoadMore = useCallback(() => {
     if (hasMore) {
-      setVisibleCount((prev) => prev + itemsPerPage);
+      // En este ejemplo, incrementamos en el número de elementos que caben en el contenedor
+      setVisibleCount((prev) => prev + Math.ceil(prev));
+      // Alternativamente: setVisibleCount(prev => prev + itemsPerPage);
     }
   }, [hasMore]);
 
-  // Al enviar el formulario se arma el objeto de parámetros.
+  // Al cambiar el filtro se reinicia visibleCount
   const handleFilterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const params: Record<string, string> = {};
@@ -165,13 +184,20 @@ const DetallePagoList: React.FC = () => {
           break;
       }
     }
-
     console.log("Filtros aplicados:", params);
     await fetchDetalles(params);
+    adjustVisibleCount(); // Reiniciamos visibleCount en función del contenedor
   };
 
+  // Para reiniciar el visibleCount al cambiar el término de búsqueda
+
+  if (loading && detalles.length === 0)
+    return <div className="text-center py-4">Cargando...</div>;
+  if (error)
+    return <div className="text-center py-4 text-destructive">{error}</div>;
+
   return (
-    <div className="page-container">
+    <div ref={containerRef} className="page-container">
       <h1 className="page-title">Pagos pendientes</h1>
 
       {/* Sección de filtros */}
@@ -182,26 +208,26 @@ const DetallePagoList: React.FC = () => {
               <label className="block font-medium">Desde</label>
               <input
                 type="date"
+                className="border p-2"
                 value={fechaInicio}
                 onChange={(e) => setFechaInicio(e.target.value)}
-                className="border p-2"
               />
             </div>
             <div>
               <label className="block font-medium">Hasta</label>
               <input
                 type="date"
+                className="border p-2"
                 value={fechaFin}
                 onChange={(e) => setFechaFin(e.target.value)}
-                className="border p-2"
               />
             </div>
             <div>
               <label className="block font-medium">Filtrar por:</label>
               <select
+                className="border p-2"
                 value={filtroTipo}
                 onChange={(e) => setFiltroTipo(e.target.value)}
-                className="border p-2"
               >
                 <option value="">Seleccionar...</option>
                 <option value="DISCIPLINAS">DISCIPLINAS</option>
@@ -215,9 +241,9 @@ const DetallePagoList: React.FC = () => {
                 <div>
                   <label className="block font-medium">Disciplina</label>
                   <select
+                    className="border p-2"
                     value={selectedDisciplina}
                     onChange={(e) => setSelectedDisciplina(e.target.value)}
-                    className="border p-2"
                   >
                     <option value="">Seleccionar disciplina...</option>
                     {disciplinas.map((d) => (
@@ -230,9 +256,9 @@ const DetallePagoList: React.FC = () => {
                 <div>
                   <label className="block font-medium">Tarifa</label>
                   <select
+                    className="border p-2"
                     value={selectedTarifa}
                     onChange={(e) => setSelectedTarifa(e.target.value)}
-                    className="border p-2"
                   >
                     <option value="">Seleccionar tarifa...</option>
                     {tarifaOptions.map((tarifa) => (
@@ -249,9 +275,9 @@ const DetallePagoList: React.FC = () => {
               <div>
                 <label className="block font-medium">Stock</label>
                 <select
+                  className="border p-2"
                   value={selectedStock}
                   onChange={(e) => setSelectedStock(e.target.value)}
-                  className="border p-2"
                 >
                   <option value="">Seleccionar stock...</option>
                   {stocks.map((s) => (
@@ -268,9 +294,9 @@ const DetallePagoList: React.FC = () => {
                 <div>
                   <label className="block font-medium">Sub Concepto</label>
                   <select
+                    className="border p-2"
                     value={selectedSubConcepto}
                     onChange={(e) => setSelectedSubConcepto(e.target.value)}
-                    className="border p-2"
                   >
                     <option value="">Seleccionar sub concepto...</option>
                     {subConceptos.map((sc) => (
@@ -283,9 +309,9 @@ const DetallePagoList: React.FC = () => {
                 <div>
                   <label className="block font-medium">Concepto</label>
                   <select
+                    className="border p-2"
                     value={selectedConcepto}
                     onChange={(e) => setSelectedConcepto(e.target.value)}
-                    className="border p-2"
                     disabled={!selectedSubConcepto || conceptos.length === 0}
                   >
                     <option value="">Seleccionar concepto...</option>
@@ -299,10 +325,7 @@ const DetallePagoList: React.FC = () => {
               </>
             )}
 
-            <Boton
-              type="submit"
-              className="bg-green-500 text-white p-2 rounded"
-            >
+            <Boton type="submit" className="bg-green-500 text-white p-2 rounded">
               Ver
             </Boton>
           </div>
@@ -312,9 +335,7 @@ const DetallePagoList: React.FC = () => {
       {/* Tabla de Detalles de Pago */}
       <div className="page-card">
         {loading && <div className="text-center py-4">Cargando...</div>}
-        {error && (
-          <div className="text-center py-4 text-destructive">{error}</div>
-        )}
+        {error && <div className="text-center py-4 text-destructive">{error}</div>}
         {!loading && !error && (
           <Tabla
             headers={[
@@ -349,20 +370,23 @@ const DetallePagoList: React.FC = () => {
                 </Boton>
               </div>
             )}
+            emptyMessage="No hay pagos pendientes"
           />
         )}
       </div>
 
       {/* Infinite Scroll */}
       {hasMore && (
-        <ListaConInfiniteScroll
-          onLoadMore={onLoadMore}
-          hasMore={hasMore}
-          loading={loading}
-          className="mt-4"
-        >
-          {loading && <div className="text-center py-2">Cargando más...</div>}
-        </ListaConInfiniteScroll>
+        <div className="py-4 border-t">
+          <ListaConInfiniteScroll
+            onLoadMore={onLoadMore}
+            hasMore={hasMore}
+            loading={loading}
+            className="justify-center"
+          >
+            {loading && <div className="text-center py-2">Cargando más...</div>}
+          </ListaConInfiniteScroll>
+        </div>
       )}
     </div>
   );

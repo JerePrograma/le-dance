@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useState, useCallback, useEffect, useMemo } from "react";
+import React, {
+  useState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import Tabla from "../../componentes/comunes/Tabla";
 import Boton from "../../componentes/comunes/Boton";
@@ -14,14 +20,17 @@ import type { DetallePagoResponse } from "../../types/types";
 import InfiniteScroll from "../../componentes/comunes/InfiniteScroll";
 
 const tarifaOptions = ["CUOTA", "CLASE DE PRUEBA", "CLASE SUELTA"];
+// Altura estimada (en px) de cada fila de la tabla (ajusta según tu diseño)
+const estimatedRowHeight = 70;
+// Valor base en caso de que no se pueda calcular: se usan 5 filas
+const itemsPerLoad = 5;
 
 const DetallePagoList: React.FC = () => {
   const [detalles, setDetalles] = useState<DetallePagoResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Eliminamos la paginación tradicional y usamos visibleCount
-  const [visibleCount, setVisibleCount] = useState<number>(0);
-  const itemsPerLoad = 5;
+  // Usamos visibleCount para determinar cuántos elementos mostrar
+  const [visibleCount, setVisibleCount] = useState<number>(itemsPerLoad);
   const navigate = useNavigate();
 
   // Estados para filtros generales
@@ -29,7 +38,7 @@ const DetallePagoList: React.FC = () => {
   const [fechaFin, setFechaFin] = useState("");
   const [filtroTipo, setFiltroTipo] = useState("");
 
-  // Estados para los filtros secundarios según la opción elegida
+  // Estados para filtros secundarios según la opción elegida
   const [disciplinas, setDisciplinas] = useState<any[]>([]);
   const [selectedDisciplina, setSelectedDisciplina] = useState("");
   const [selectedTarifa, setSelectedTarifa] = useState("");
@@ -42,7 +51,10 @@ const DetallePagoList: React.FC = () => {
   const [conceptos, setConceptos] = useState<any[]>([]);
   const [selectedConcepto, setSelectedConcepto] = useState("");
 
-  // Función para traer los detalles, aplicando filtros si existen.
+  // Ref para el contenedor de la lista (para medir su altura)
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Función para traer los detalles aplicando filtros (si existen)
   const fetchDetalles = useCallback(
     async (params: Record<string, string> = {}) => {
       try {
@@ -50,24 +62,24 @@ const DetallePagoList: React.FC = () => {
         setError(null);
         const data = await pagosApi.filtrarDetalles(params);
         setDetalles(data);
-        // Al aplicar filtros reiniciamos la cantidad de elementos visibles
+        // Al aplicar filtros, reiniciamos visibleCount con un valor base
         setVisibleCount(itemsPerLoad);
       } catch (error) {
-        toast.error("Error al cargar pagos pendientes");
-        setError("Error al cargar pagos pendientes");
+        toast.error("Error al cargar pagos cobrados");
+        setError("Error al cargar pagos cobrados");
       } finally {
         setLoading(false);
       }
     },
-    [itemsPerLoad]
+    []
   );
 
-  // Al montar el componente se trae la lista completa sin filtros.
+  // Se carga la lista completa al montar
   useEffect(() => {
     fetchDetalles();
   }, [fetchDetalles]);
 
-  // Carga de filtros secundarios según la categoría seleccionada.
+  // Actualizar filtros secundarios al cambiar la categoría
   useEffect(() => {
     if (filtroTipo === "DISCIPLINAS") {
       disciplinasApi
@@ -85,7 +97,7 @@ const DetallePagoList: React.FC = () => {
         .then((data) => setSubConceptos(data))
         .catch(() => toast.error("Error al cargar sub conceptos"));
     }
-    // Reiniciamos los filtros secundarios al cambiar la categoría
+    // Reiniciamos filtros secundarios
     setSelectedDisciplina("");
     setSelectedTarifa("");
     setSelectedStock("");
@@ -106,66 +118,71 @@ const DetallePagoList: React.FC = () => {
     }
   }, [filtroTipo, selectedSubConcepto]);
 
-  // Filtrar los detalles para mostrar solo aquellos que han sido cobrados (o ajustar según el requerimiento)
+  // Filtrar los detalles para mostrar solo aquellos que han sido cobrados
   const detallesNoCobrado = useMemo(
     () => detalles.filter((detalle) => detalle.cobrado),
     [detalles]
   );
 
-  // Los elementos actualmente visibles, basados en visibleCount
+  // Función que calcula cuántos elementos caben en el contenedor
+  const adjustVisibleCount = useCallback(() => {
+    if (containerRef.current) {
+      const containerHeight =
+        containerRef.current.getBoundingClientRect().height;
+      const itemsThatFit = Math.floor(containerHeight / estimatedRowHeight);
+      setVisibleCount(itemsThatFit);
+    }
+  }, []);
+
+  useEffect(() => {
+    adjustVisibleCount();
+    window.addEventListener("resize", adjustVisibleCount);
+    return () => window.removeEventListener("resize", adjustVisibleCount);
+  }, [adjustVisibleCount]);
+
+  // Los elementos actualmente visibles, según visibleCount
   const currentItems = useMemo(
     () => detallesNoCobrado.slice(0, visibleCount),
     [detallesNoCobrado, visibleCount]
   );
 
-  // Determina si quedan más elementos por mostrar
+  // Determina si hay más elementos por mostrar
   const hasMore = visibleCount < detallesNoCobrado.length;
 
-  // Función que incrementa la cantidad de elementos visibles
+  // Función que incrementa visibleCount en bloques
   const loadMore = useCallback(() => {
     setVisibleCount((prev) =>
       Math.min(prev + itemsPerLoad, detallesNoCobrado.length)
     );
-  }, [detallesNoCobrado.length, itemsPerLoad]);
+  }, [detallesNoCobrado.length]);
 
-  // Al enviar el formulario se arma el objeto de parámetros.
+  // Al enviar el formulario, se arma el objeto de parámetros y se reinicia visibleCount
   const handleFilterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const params: Record<string, string> = {};
     if (fechaInicio) params.fechaRegistroDesde = fechaInicio;
     if (fechaFin) params.fechaRegistroHasta = fechaFin;
-
     if (filtroTipo) {
       params.categoria = filtroTipo;
       switch (filtroTipo) {
         case "DISCIPLINAS":
-          if (selectedDisciplina) {
-            params.disciplina = selectedDisciplina;
-          }
-          if (selectedTarifa) {
-            params.tarifa = selectedTarifa;
-          }
+          if (selectedDisciplina) params.disciplina = selectedDisciplina;
+          if (selectedTarifa) params.tarifa = selectedTarifa;
           break;
         case "STOCK":
-          if (selectedStock) {
-            params.stock = selectedStock;
-          }
+          if (selectedStock) params.stock = selectedStock;
           break;
         case "CONCEPTOS":
-          if (selectedSubConcepto) {
-            params.subConcepto = selectedSubConcepto;
-          }
-          if (selectedConcepto) {
-            params.detalleConcepto = selectedConcepto;
-          }
+          if (selectedSubConcepto) params.subConcepto = selectedSubConcepto;
+          if (selectedConcepto) params.detalleConcepto = selectedConcepto;
           break;
         default:
           break;
       }
     }
-
     console.log("Filtros aplicados:", params);
     await fetchDetalles(params);
+    adjustVisibleCount();
   };
 
   if (loading && detalles.length === 0)
@@ -174,8 +191,8 @@ const DetallePagoList: React.FC = () => {
     return <div className="text-center py-4 text-destructive">{error}</div>;
 
   return (
-    <div className="page-container">
-      <h1 className="page-title">Pagos pendientes</h1>
+    <div ref={containerRef} className="page-container">
+      <h1 className="page-title">Pagos cobrados</h1>
 
       {/* Sección de filtros */}
       <div className="page-card mb-4">
@@ -185,26 +202,26 @@ const DetallePagoList: React.FC = () => {
               <label className="block font-medium">Desde</label>
               <input
                 type="date"
+                className="border p-2"
                 value={fechaInicio}
                 onChange={(e) => setFechaInicio(e.target.value)}
-                className="border p-2"
               />
             </div>
             <div>
               <label className="block font-medium">Hasta</label>
               <input
                 type="date"
+                className="border p-2"
                 value={fechaFin}
                 onChange={(e) => setFechaFin(e.target.value)}
-                className="border p-2"
               />
             </div>
             <div>
               <label className="block font-medium">Filtrar por:</label>
               <select
+                className="border p-2"
                 value={filtroTipo}
                 onChange={(e) => setFiltroTipo(e.target.value)}
-                className="border p-2"
               >
                 <option value="">Seleccionar...</option>
                 <option value="DISCIPLINAS">DISCIPLINAS</option>
@@ -212,15 +229,14 @@ const DetallePagoList: React.FC = () => {
                 <option value="CONCEPTOS">CONCEPTOS</option>
               </select>
             </div>
-
             {filtroTipo === "DISCIPLINAS" && (
               <>
                 <div>
                   <label className="block font-medium">Disciplina</label>
                   <select
+                    className="border p-2"
                     value={selectedDisciplina}
                     onChange={(e) => setSelectedDisciplina(e.target.value)}
-                    className="border p-2"
                   >
                     <option value="">Seleccionar disciplina...</option>
                     {disciplinas.map((d) => (
@@ -233,9 +249,9 @@ const DetallePagoList: React.FC = () => {
                 <div>
                   <label className="block font-medium">Tarifa</label>
                   <select
+                    className="border p-2"
                     value={selectedTarifa}
                     onChange={(e) => setSelectedTarifa(e.target.value)}
-                    className="border p-2"
                   >
                     <option value="">Seleccionar tarifa...</option>
                     {tarifaOptions.map((tarifa) => (
@@ -247,14 +263,13 @@ const DetallePagoList: React.FC = () => {
                 </div>
               </>
             )}
-
             {filtroTipo === "STOCK" && (
               <div>
                 <label className="block font-medium">Stock</label>
                 <select
+                  className="border p-2"
                   value={selectedStock}
                   onChange={(e) => setSelectedStock(e.target.value)}
-                  className="border p-2"
                 >
                   <option value="">Seleccionar stock...</option>
                   {stocks.map((s) => (
@@ -265,15 +280,14 @@ const DetallePagoList: React.FC = () => {
                 </select>
               </div>
             )}
-
             {filtroTipo === "CONCEPTOS" && (
               <>
                 <div>
                   <label className="block font-medium">Sub Concepto</label>
                   <select
+                    className="border p-2"
                     value={selectedSubConcepto}
                     onChange={(e) => setSelectedSubConcepto(e.target.value)}
-                    className="border p-2"
                   >
                     <option value="">Seleccionar sub concepto...</option>
                     {subConceptos.map((sc) => (
@@ -286,9 +300,9 @@ const DetallePagoList: React.FC = () => {
                 <div>
                   <label className="block font-medium">Concepto</label>
                   <select
+                    className="border p-2"
                     value={selectedConcepto}
                     onChange={(e) => setSelectedConcepto(e.target.value)}
-                    className="border p-2"
                     disabled={!selectedSubConcepto || conceptos.length === 0}
                   >
                     <option value="">Seleccionar concepto...</option>
@@ -301,7 +315,6 @@ const DetallePagoList: React.FC = () => {
                 </div>
               </>
             )}
-
             <Boton
               type="submit"
               className="bg-green-500 text-white p-2 rounded"
@@ -352,6 +365,7 @@ const DetallePagoList: React.FC = () => {
                 </Boton>
               </div>
             )}
+            emptyMessage="No hay pagos pendientes"
           />
         )}
       </div>
