@@ -1,6 +1,7 @@
-// ListaConInfiniteScroll.tsx
+"use client";
+
 import React from "react";
-import InfiniteScroll from "./InfiniteScroll"; // Tu componente base de infinite scroll
+import InfiniteScroll from "./InfiniteScroll";
 
 export interface ListaConInfiniteScrollProps {
   onLoadMore: () => void;

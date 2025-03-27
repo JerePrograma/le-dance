@@ -13,6 +13,10 @@ interface InfiniteScrollProps {
   children: React.ReactNode;
   /** Clases opcionales para el contenedor */
   className?: string;
+  /** Umbral para el IntersectionObserver (por defecto 0.1) */
+  threshold?: number;
+  /** Margen del root para el IntersectionObserver (por defecto '200px' para cargar con antelación) */
+  rootMargin?: string;
 }
 
 const InfiniteScroll: React.FC<InfiniteScrollProps> = ({
@@ -21,6 +25,8 @@ const InfiniteScroll: React.FC<InfiniteScrollProps> = ({
   loading,
   children,
   className,
+  threshold = 0.1,
+  rootMargin = "200px",
 }) => {
   const sentinelRef = useRef<HTMLDivElement>(null);
 
@@ -29,14 +35,15 @@ const InfiniteScroll: React.FC<InfiniteScrollProps> = ({
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && !loading && hasMore) {
+        const entry = entries[0];
+        if (entry.isIntersecting && !loading && hasMore) {
           onLoadMore();
         }
       },
       {
         root: null,
-        rootMargin: "1px", // Aumentamos el margen
-        threshold: 0.1,
+        rootMargin,
+        threshold,
       }
     );
 
@@ -47,7 +54,7 @@ const InfiniteScroll: React.FC<InfiniteScrollProps> = ({
         observer.unobserve(sentinelRef.current);
       }
     };
-  }, [loading, hasMore, onLoadMore]);
+  }, [loading, hasMore, onLoadMore, threshold, rootMargin]);
 
   return (
     <div className={className}>
