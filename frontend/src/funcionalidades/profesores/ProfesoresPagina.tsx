@@ -8,16 +8,16 @@ import Boton from "../../componentes/comunes/Boton"
 import { PlusCircle, Pencil, Trash2 } from "lucide-react"
 import type { ProfesorListadoResponse } from "../../types/types"
 import { toast } from "react-toastify"
-import Pagination from "../../componentes/comunes/Pagination"
+import ListaConInfiniteScroll from "../../componentes/comunes/ListaConInfiniteScroll"
 
 const itemsPerPage = 5
 
 const Profesores = () => {
   const [profesores, setProfesores] = useState<ProfesorListadoResponse[]>([])
-  const [currentPage, setCurrentPage] = useState(0)
+  const [visibleCount, setVisibleCount] = useState(itemsPerPage)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  // Estados nuevos para búsqueda y orden
+  // Estados para búsqueda y orden
   const [searchTerm, setSearchTerm] = useState("")
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
   const navigate = useNavigate()
@@ -54,25 +54,38 @@ const Profesores = () => {
     })
   }, [profesores, searchTerm, sortOrder])
 
-  const pageCount = useMemo(() => Math.ceil(profesoresFiltradosYOrdenados.length / itemsPerPage), [profesoresFiltradosYOrdenados.length])
-
+  // Subconjunto de profesores a mostrar
   const currentItems = useMemo(
-    () =>
-      profesoresFiltradosYOrdenados.slice(
-        currentPage * itemsPerPage,
-        (currentPage + 1) * itemsPerPage,
-      ),
-    [profesoresFiltradosYOrdenados, currentPage],
+    () => profesoresFiltradosYOrdenados.slice(0, visibleCount),
+    [profesoresFiltradosYOrdenados, visibleCount],
   )
 
-  const handlePageChange = useCallback(
-    (newPage: number) => {
-      if (newPage >= 0 && newPage < pageCount) {
-        setCurrentPage(newPage)
-      }
-    },
-    [pageCount],
-  )
+  // Determina si hay más elementos para cargar
+  const hasMore = useMemo(() => visibleCount < profesoresFiltradosYOrdenados.length, [
+    visibleCount,
+    profesoresFiltradosYOrdenados.length,
+  ])
+
+  // Función para cargar más elementos
+  const onLoadMore = useCallback(() => {
+    if (hasMore) {
+      setVisibleCount((prev) => prev + itemsPerPage)
+    }
+  }, [hasMore])
+
+  // Opciones únicas para el datalist (nombres completos)
+  const nombresUnicos = useMemo(() => {
+    const nombresSet = new Set(
+      profesores.map((profesor) => `${profesor.nombre} ${profesor.apellido}`),
+    )
+    return Array.from(nombresSet)
+  }, [profesores])
+
+  // Reinicia la cantidad visible al cambiar el filtro de búsqueda
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value)
+    setVisibleCount(itemsPerPage)
+  }
 
   const handleEliminarProfesor = async (id: number) => {
     try {
@@ -84,15 +97,8 @@ const Profesores = () => {
     }
   }
 
-  // Opciones únicas para el datalist (nombres completos)
-  const nombresUnicos = useMemo(() => {
-    const nombresSet = new Set(
-      profesores.map((profesor) => `${profesor.nombre} ${profesor.apellido}`),
-    )
-    return Array.from(nombresSet)
-  }, [profesores])
-
-  if (loading) return <div className="text-center py-4">Cargando...</div>
+  if (loading && profesores.length === 0)
+    return <div className="text-center py-4">Cargando...</div>
   if (error) return <div className="text-center py-4 text-destructive">{error}</div>
 
   return (
@@ -120,10 +126,7 @@ const Profesores = () => {
             list="nombres"
             type="text"
             value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value)
-              setCurrentPage(0)
-            }}
+            onChange={handleSearchChange}
             placeholder="Escribe o selecciona un nombre..."
             className="border rounded px-2 py-1"
           />
@@ -153,7 +156,12 @@ const Profesores = () => {
         <Tabla
           headers={["ID", "Nombre", "Apellido", "Acciones", "Activo"]}
           data={currentItems}
-          customRender={(fila) => [fila.id, fila.nombre, fila.apellido, fila.activo ? "Si" : "No"]}
+          customRender={(fila) => [
+            fila.id,
+            fila.nombre,
+            fila.apellido,
+            fila.activo ? "Si" : "No",
+          ]}
           actions={(fila) => (
             <div className="flex gap-2">
               <Boton
@@ -176,14 +184,16 @@ const Profesores = () => {
           )}
         />
 
-        {pageCount > 1 && (
+        {hasMore && (
           <div className="py-4 border-t">
-            <Pagination
-              currentPage={currentPage}
-              totalPages={pageCount}
-              onPageChange={handlePageChange}
+            <ListaConInfiniteScroll
+              onLoadMore={onLoadMore}
+              hasMore={hasMore}
+              loading={loading}
               className="justify-center"
-            />
+            >
+              {loading && <div className="text-center py-2">Cargando más...</div>}
+            </ListaConInfiniteScroll>
           </div>
         )}
       </div>

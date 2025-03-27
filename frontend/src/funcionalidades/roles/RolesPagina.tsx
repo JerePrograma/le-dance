@@ -1,68 +1,77 @@
-"use client"
+"use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react"
-import { useNavigate } from "react-router-dom"
-import Tabla from "../../componentes/comunes/Tabla"
-import api from "../../api/axiosConfig"
-import Pagination from "../../componentes/comunes/Pagination" // Importamos el nuevo componente de paginación
-import Boton from "../../componentes/comunes/Boton"
-import { PlusCircle, Pencil, Trash2 } from "lucide-react"
-import { toast } from "react-toastify"
+import { useEffect, useState, useCallback, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import Tabla from "../../componentes/comunes/Tabla";
+import api from "../../api/axiosConfig";
+import Boton from "../../componentes/comunes/Boton";
+import { PlusCircle, Pencil, Trash2 } from "lucide-react";
+import { toast } from "react-toastify";
+import ListaConInfiniteScroll from "../../componentes/comunes/ListaConInfiniteScroll";
 
 interface Rol {
-  id: number
-  descripcion: string
+  id: number;
+  descripcion: string;
 }
 
 const RolesPagina = () => {
-  const [roles, setRoles] = useState<Rol[]>([])
-  const [currentPage, setCurrentPage] = useState(0)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const itemsPerPage = 5
-  const navigate = useNavigate()
+  const [roles, setRoles] = useState<Rol[]>([]);
+  const [visibleCount, setVisibleCount] = useState(5);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const itemsPerPage = 5;
+  const navigate = useNavigate();
 
   const fetchRoles = useCallback(async () => {
     try {
-      setLoading(true)
-      setError(null)
-      const response = await api.get<Rol[]>("/roles")
-      setRoles(response.data)
+      setLoading(true);
+      setError(null);
+      const response = await api.get<Rol[]>("/roles");
+      setRoles(response.data);
     } catch (error) {
-      toast.error("Error al cargar roles:")
-      setError("Error al cargar roles.")
+      toast.error("Error al cargar roles:");
+      setError("Error al cargar roles.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
-    fetchRoles()
-  }, [fetchRoles])
+    fetchRoles();
+  }, [fetchRoles]);
 
-  const pageCount = useMemo(() => Math.ceil(roles.length / itemsPerPage), [roles.length])
+  // Calcula el subconjunto de roles a mostrar
   const currentItems = useMemo(
-    () => roles.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage),
-    [roles, currentPage],
-  )
+    () => roles.slice(0, visibleCount),
+    [roles, visibleCount]
+  );
+  // Determina si hay más roles por mostrar
+  const hasMore = useMemo(
+    () => visibleCount < roles.length,
+    [visibleCount, roles.length]
+  );
 
-  const handlePageChange = useCallback(
-    (newPage: number) => {
-      if (newPage >= 0 && newPage < pageCount) {
-        setCurrentPage(newPage)
-      }
-    },
-    [pageCount],
-  )
+  // Función que incrementa la cantidad de elementos visibles
+  const onLoadMore = useCallback(() => {
+    if (hasMore) {
+      setVisibleCount((prev) => prev + itemsPerPage);
+    }
+  }, [hasMore, itemsPerPage]);
 
-  if (loading) return <div className="text-center py-4">Cargando...</div>
-  if (error) return <div className="text-center py-4 text-destructive">{error}</div>
+  if (loading && roles.length === 0)
+    return <div className="text-center py-4">Cargando...</div>;
+  if (error)
+    return <div className="text-center py-4 text-destructive">{error}</div>;
 
   return (
     <div className="page-container">
       <h1 className="page-title">Roles</h1>
       <div className="page-button-group flex justify-end mb-4">
-        <Boton onClick={() => navigate("/roles/formulario")} className="page-button" aria-label="Registrar Nuevo Rol">
+        <Boton
+          onClick={() => navigate("/roles/formulario")}
+          className="page-button"
+          aria-label="Registrar Nuevo Rol"
+        >
           <PlusCircle className="w-5 h-5 mr-2" />
           Registrar Nuevo Rol
         </Boton>
@@ -81,7 +90,10 @@ const RolesPagina = () => {
                 <Pencil className="w-4 h-4 mr-2" />
                 Editar
               </Boton>
-              <Boton className="page-button-danger" aria-label={`Eliminar rol ${fila.descripcion}`}>
+              <Boton
+                className="page-button-danger"
+                aria-label={`Eliminar rol ${fila.descripcion}`}
+              >
                 <Trash2 className="w-4 h-4 mr-2" />
                 Eliminar
               </Boton>
@@ -90,12 +102,18 @@ const RolesPagina = () => {
           customRender={(fila) => [fila.id, fila.descripcion]}
         />
       </div>
-      {pageCount > 1 && (
-        <Pagination currentPage={currentPage} totalPages={pageCount} onPageChange={handlePageChange} className="mt-4" />
+      {hasMore && (
+        <ListaConInfiniteScroll
+          onLoadMore={onLoadMore}
+          hasMore={hasMore}
+          loading={loading}
+          className="mt-4"
+        >
+          {loading && <div className="text-center py-2">Cargando más...</div>}
+        </ListaConInfiniteScroll>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default RolesPagina
-
+export default RolesPagina;

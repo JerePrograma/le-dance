@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react"
 import { useNavigate } from "react-router-dom"
 import Tabla from "../../componentes/comunes/Tabla"
 import salonesApi from "../../api/salonesApi"
-import Pagination from "../../componentes/comunes/Pagination" // Importamos el nuevo componente de paginación
+import ListaConInfiniteScroll from "../../componentes/comunes/ListaConInfiniteScroll"
 import Boton from "../../componentes/comunes/Boton"
 import { PlusCircle, Pencil } from "lucide-react"
 import type { SalonResponse, Page } from "../../types/types"
@@ -22,12 +22,21 @@ const Salones = () => {
   const [error, setError] = useState<string | null>(null)
   const navigate = useNavigate()
 
+  // Función que carga una página de salones
   const fetchSalones = useCallback(async (page = 0) => {
     try {
       setLoading(true)
       setError(null)
       const response = await salonesApi.listarSalones(page)
-      setSalones(response)
+      setSalones((prevSalones) =>
+        page === 0
+          ? response
+          : {
+              ...response,
+              // Concatena los nuevos resultados con los ya cargados
+              content: [...prevSalones.content, ...response.content],
+            },
+      )
     } catch (error) {
       toast.error("Error al cargar salones:")
       setError("Error al cargar salones.")
@@ -36,18 +45,23 @@ const Salones = () => {
     }
   }, [])
 
+  // Carga inicial
   useEffect(() => {
-    fetchSalones()
+    fetchSalones(0)
   }, [fetchSalones])
 
-  const handlePageChange = useCallback(
-    (newPage: number) => {
-      fetchSalones(newPage)
-    },
-    [fetchSalones],
-  )
+  // Función para cargar la siguiente página
+  const onLoadMore = useCallback(() => {
+    if (salones.number < salones.totalPages - 1) {
+      fetchSalones(salones.number + 1)
+    }
+  }, [fetchSalones, salones.number, salones.totalPages])
 
-  if (loading) return <div className="text-center py-4">Cargando...</div>
+  // Determina si hay más páginas para cargar
+  const hasMore = salones.number < salones.totalPages - 1
+
+  if (loading && salones.content.length === 0)
+    return <div className="text-center py-4">Cargando...</div>
   if (error) return <div className="text-center py-4 text-destructive">{error}</div>
 
   return (
@@ -55,7 +69,11 @@ const Salones = () => {
       <h1 className="page-title">Salones</h1>
 
       <div className="page-button-group flex justify-end mb-4">
-        <Boton onClick={() => navigate("/salones/formulario")} className="page-button" aria-label="Ficha de Salones">
+        <Boton
+          onClick={() => navigate("/salones/formulario")}
+          className="page-button"
+          aria-label="Ficha de Salones"
+        >
           <PlusCircle className="w-5 h-5 mr-2" />
           Ficha de Salones
         </Boton>
@@ -69,7 +87,7 @@ const Salones = () => {
             <Boton
               onClick={() => navigate(`/salones/formulario?id=${fila.id}`)}
               className="page-button-secondary"
-              aria-label={`Editar salon ${fila.nombre}`}
+              aria-label={`Editar salón ${fila.nombre}`}
             >
               <Pencil className="w-4 h-4 mr-2" />
               Editar
@@ -79,17 +97,20 @@ const Salones = () => {
         />
       </div>
 
-      {salones.totalPages > 1 && (
-        <Pagination
-          currentPage={salones.number}
-          totalPages={salones.totalPages}
-          onPageChange={handlePageChange}
+      {/* Se muestra el componente de Infinite Scroll solo si hay más páginas */}
+      {hasMore && (
+        <ListaConInfiniteScroll
+          onLoadMore={onLoadMore}
+          hasMore={hasMore}
+          loading={loading}
           className="mt-4"
-        />
+        >
+          {/* Opcional: se puede incluir un indicador o mensaje */}
+          {loading && <div className="text-center py-2">Cargando más...</div>}
+        </ListaConInfiniteScroll>
       )}
     </div>
   )
 }
 
 export default Salones
-

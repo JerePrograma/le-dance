@@ -1,58 +1,66 @@
-"use client"
+"use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react"
-import { useNavigate } from "react-router-dom"
-import Tabla from "../../componentes/comunes/Tabla"
-import api from "../../api/axiosConfig"
-import Boton from "../../componentes/comunes/Boton"
-import { PlusCircle, Pencil, Trash2 } from "lucide-react"
-import type { BonificacionResponse } from "../../types/types"
-import Pagination from "../../componentes/comunes/Pagination"
-import { toast } from "react-toastify"
+import { useEffect, useState, useCallback, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import Tabla from "../../componentes/comunes/Tabla";
+import api from "../../api/axiosConfig";
+import Boton from "../../componentes/comunes/Boton";
+import { PlusCircle, Pencil, Trash2 } from "lucide-react";
+import type { BonificacionResponse } from "../../types/types";
+import { toast } from "react-toastify";
+import InfiniteScroll from "../../componentes/comunes/InfiniteScroll";
 
 const Bonificaciones = () => {
-  const [bonificaciones, setBonificaciones] = useState<BonificacionResponse[]>([])
-  const [currentPage, setCurrentPage] = useState(0)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const itemsPerPage = 5
-  const navigate = useNavigate()
+  const [bonificaciones, setBonificaciones] = useState<BonificacionResponse[]>(
+    []
+  );
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const itemsPerLoad = 5;
+  // visibleCount controla cuántos elementos se muestran actualmente
+  const [visibleCount, setVisibleCount] = useState<number>(0);
+  const navigate = useNavigate();
 
   const fetchBonificaciones = useCallback(async () => {
     try {
-      setLoading(true)
-      setError(null)
-      const response = await api.get<BonificacionResponse[]>("/bonificaciones")
-      setBonificaciones(response.data)
+      setLoading(true);
+      setError(null);
+      const response = await api.get<BonificacionResponse[]>("/bonificaciones");
+      setBonificaciones(response.data);
+      // Se muestran inicialmente los primeros itemsPerLoad elementos
+      setVisibleCount(itemsPerLoad);
     } catch (error) {
-      toast.error("Error al cargar bonificaciones:")
-      setError("Error al cargar bonificaciones.")
+      toast.error("Error al cargar bonificaciones:");
+      setError("Error al cargar bonificaciones.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [])
+  }, [itemsPerLoad]);
 
   useEffect(() => {
-    fetchBonificaciones()
-  }, [fetchBonificaciones])
+    fetchBonificaciones();
+  }, [fetchBonificaciones]);
 
-  const pageCount = useMemo(() => Math.ceil(bonificaciones.length / itemsPerPage), [bonificaciones.length])
+  // Los elementos que se muestran actualmente
   const currentItems = useMemo(
-    () => bonificaciones.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage),
-    [bonificaciones, currentPage],
-  )
+    () => bonificaciones.slice(0, visibleCount),
+    [bonificaciones, visibleCount]
+  );
 
-  const handlePageChange = useCallback(
-    (newPage: number) => {
-      if (newPage >= 0 && newPage < pageCount) {
-        setCurrentPage(newPage)
-      }
-    },
-    [pageCount],
-  )
+  // Determina si quedan más elementos por mostrar
+  const hasMore = visibleCount < bonificaciones.length;
 
-  if (loading) return <div className="text-center py-4">Cargando...</div>
-  if (error) return <div className="text-center py-4 text-destructive">{error}</div>
+  // Función para incrementar la cantidad de elementos visibles
+  const loadMore = useCallback(() => {
+    setVisibleCount((prev) =>
+      Math.min(prev + itemsPerLoad, bonificaciones.length)
+    );
+  }, [itemsPerLoad, bonificaciones.length]);
+
+  if (loading && bonificaciones.length === 0)
+    return <div className="text-center py-4">Cargando...</div>;
+  if (error && bonificaciones.length === 0)
+    return <div className="text-center py-4 text-destructive">{error}</div>;
 
   return (
     <div className="page-container">
@@ -69,26 +77,38 @@ const Bonificaciones = () => {
       </div>
       <div className="page-card">
         <Tabla
-          headers={["ID", "Descripcion", "Descuento (%)", "Descuento (monto)", "Activo", "Acciones"]}
+          headers={[
+            "ID",
+            "Descripcion",
+            "Descuento (%)",
+            "Descuento (monto)",
+            "Activo",
+            "Acciones",
+          ]}
           data={currentItems}
           customRender={(fila) => [
             fila.id,
             fila.descripcion,
-            fila.porcentajeDescuento, // Columna de descuento en porcentaje
-            fila.valorFijo, // Columna de descuento en monto fijo
+            fila.porcentajeDescuento,
+            fila.valorFijo,
             fila.activo ? "Si" : "No",
           ]}
           actions={(fila) => (
             <div className="flex gap-2">
               <Boton
-                onClick={() => navigate(`/bonificaciones/formulario?id=${fila.id}`)}
+                onClick={() =>
+                  navigate(`/bonificaciones/formulario?id=${fila.id}`)
+                }
                 className="page-button-secondary"
                 aria-label={`Editar bonificacion ${fila.descripcion}`}
               >
                 <Pencil className="w-4 h-4 mr-2" />
                 Editar
               </Boton>
-              <Boton className="page-button-danger" aria-label={`Eliminar bonificacion ${fila.descripcion}`}>
+              <Boton
+                className="page-button-danger"
+                aria-label={`Eliminar bonificacion ${fila.descripcion}`}
+              >
                 <Trash2 className="w-4 h-4 mr-2" />
                 Eliminar
               </Boton>
@@ -96,12 +116,17 @@ const Bonificaciones = () => {
           )}
         />
       </div>
-      {pageCount > 1 && (
-        <Pagination currentPage={currentPage} totalPages={pageCount} onPageChange={handlePageChange} className="mt-4" />
+      {hasMore && (
+        <InfiniteScroll
+          onLoadMore={loadMore}
+          hasMore={hasMore}
+          loading={loading}
+          className="mt-4"
+          children={undefined}
+        />
       )}
     </div>
-  )
-}
+  );
+};
 
-export default Bonificaciones
-
+export default Bonificaciones;

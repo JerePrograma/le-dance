@@ -3,7 +3,6 @@
 import React, { useState, useCallback, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Tabla from "../../componentes/comunes/Tabla";
-import Pagination from "../../componentes/comunes/Pagination";
 import Boton from "../../componentes/comunes/Boton";
 import { toast } from "react-toastify";
 import pagosApi from "../../api/pagosApi";
@@ -12,6 +11,7 @@ import stocksApi from "../../api/stocksApi";
 import subConceptosApi from "../../api/subConceptosApi";
 import conceptosApi from "../../api/conceptosApi";
 import type { DetallePagoResponse } from "../../types/types";
+import InfiniteScroll from "../../componentes/comunes/InfiniteScroll";
 
 const tarifaOptions = ["CUOTA", "CLASE DE PRUEBA", "CLASE SUELTA"];
 
@@ -19,8 +19,9 @@ const DetallePagoList: React.FC = () => {
   const [detalles, setDetalles] = useState<DetallePagoResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(0);
-  const itemsPerPage = 5;
+  // Eliminamos la paginación tradicional y usamos visibleCount
+  const [visibleCount, setVisibleCount] = useState<number>(0);
+  const itemsPerLoad = 5;
   const navigate = useNavigate();
 
   // Estados para filtros generales
@@ -49,7 +50,8 @@ const DetallePagoList: React.FC = () => {
         setError(null);
         const data = await pagosApi.filtrarDetalles(params);
         setDetalles(data);
-        setCurrentPage(0); // Reiniciamos la paginación al aplicar filtros
+        // Al aplicar filtros reiniciamos la cantidad de elementos visibles
+        setVisibleCount(itemsPerLoad);
       } catch (error) {
         toast.error("Error al cargar pagos pendientes");
         setError("Error al cargar pagos pendientes");
@@ -57,7 +59,7 @@ const DetallePagoList: React.FC = () => {
         setLoading(false);
       }
     },
-    []
+    [itemsPerLoad]
   );
 
   // Al montar el componente se trae la lista completa sin filtros.
@@ -104,33 +106,27 @@ const DetallePagoList: React.FC = () => {
     }
   }, [filtroTipo, selectedSubConcepto]);
 
-  // Filtrar los detalles para mostrar solo aquellos que NO han sido cobrados
+  // Filtrar los detalles para mostrar solo aquellos que han sido cobrados (o ajustar según el requerimiento)
   const detallesNoCobrado = useMemo(
     () => detalles.filter((detalle) => detalle.cobrado),
     [detalles]
   );
 
-  const pageCount = useMemo(
-    () => Math.ceil(detallesNoCobrado.length / itemsPerPage),
-    [detallesNoCobrado.length]
-  );
+  // Los elementos actualmente visibles, basados en visibleCount
   const currentItems = useMemo(
-    () =>
-      detallesNoCobrado.slice(
-        currentPage * itemsPerPage,
-        (currentPage + 1) * itemsPerPage
-      ),
-    [detallesNoCobrado, currentPage]
+    () => detallesNoCobrado.slice(0, visibleCount),
+    [detallesNoCobrado, visibleCount]
   );
 
-  const handlePageChange = useCallback(
-    (newPage: number) => {
-      if (newPage >= 0 && newPage < pageCount) {
-        setCurrentPage(newPage);
-      }
-    },
-    [pageCount]
-  );
+  // Determina si quedan más elementos por mostrar
+  const hasMore = visibleCount < detallesNoCobrado.length;
+
+  // Función que incrementa la cantidad de elementos visibles
+  const loadMore = useCallback(() => {
+    setVisibleCount((prev) =>
+      Math.min(prev + itemsPerLoad, detallesNoCobrado.length)
+    );
+  }, [detallesNoCobrado.length, itemsPerLoad]);
 
   // Al enviar el formulario se arma el objeto de parámetros.
   const handleFilterSubmit = async (e: React.FormEvent) => {
@@ -171,6 +167,11 @@ const DetallePagoList: React.FC = () => {
     console.log("Filtros aplicados:", params);
     await fetchDetalles(params);
   };
+
+  if (loading && detalles.length === 0)
+    return <div className="text-center py-4">Cargando...</div>;
+  if (error && detalles.length === 0)
+    return <div className="text-center py-4 text-destructive">{error}</div>;
 
   return (
     <div className="page-container">
@@ -336,7 +337,6 @@ const DetallePagoList: React.FC = () => {
               fila.importeInicial,
               fila.bonificacionId ? fila.bonificacionId : "-",
               fila.recargoId ? fila.recargoId : "-",
-              // Mostramos "Sí" o "No" según el valor de "cobrado"
               fila.cobrado ? "Sí" : "No",
             ]}
             actions={(fila) => (
@@ -356,14 +356,14 @@ const DetallePagoList: React.FC = () => {
         )}
       </div>
 
-      {pageCount > 1 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={pageCount}
-          onPageChange={handlePageChange}
-          className="mt-4"
-        />
-      )}
+      {/* Componente Infinite Scroll para cargar progresivamente más elementos */}
+      <InfiniteScroll
+        onLoadMore={loadMore}
+        hasMore={hasMore}
+        loading={loading}
+        className="mt-4"
+        children={undefined}
+      />
     </div>
   );
 };

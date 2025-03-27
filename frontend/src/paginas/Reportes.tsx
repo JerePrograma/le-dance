@@ -1,11 +1,13 @@
-import { useEffect, useState } from "react";
+"use client";
+
+import { useEffect, useState, useCallback, useMemo } from "react";
 import Tabla from "../componentes/comunes/Tabla";
 import Boton from "../componentes/comunes/Boton";
 import api from "../api/axiosConfig";
 import { saveAs } from "file-saver";
 import { Bar } from "react-chartjs-2";
-import Pagination from "../componentes/comunes/Pagination";
 import { toast } from "react-toastify";
+import ListaConInfiniteScroll from "../componentes/comunes/ListaConInfiniteScroll";
 
 // Interfaces de datos
 interface ReporteData {
@@ -31,7 +33,7 @@ interface Alumno {
 interface PaginatedResponse<T> {
   content: T[];
   totalPages: number;
-  // otros campos como totalElements, etc., segun el backend
+  // otros campos si son necesarios
 }
 
 const Reportes = () => {
@@ -44,6 +46,7 @@ const Reportes = () => {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [busqueda, setBusqueda] = useState("");
+  // Estado para llevar el control de la página actual y total de páginas
   const [paginaActual, setPaginaActual] = useState(0);
   const [totalPaginas, setTotalPaginas] = useState(0);
 
@@ -57,7 +60,6 @@ const Reportes = () => {
         toast.error("Error al cargar disciplinas:");
       }
     };
-
     const fetchAlumnos = async () => {
       try {
         const response = await api.get<Alumno[]>("/alumnos");
@@ -66,67 +68,80 @@ const Reportes = () => {
         toast.error("Error al cargar alumnos:");
       }
     };
-
     fetchDisciplinas();
     fetchAlumnos();
   }, []);
 
-  // Funcion para obtener los datos del reporte (con paginacion)
-  const obtenerDatosReporte = async (pagina = 0) => {
-    if (!tipoReporte) return;
-    setLoading(true);
-    setErrorMsg("");
-    let endpoint = "";
-    let params: Record<string, any> = { page: pagina };
-
-    switch (tipoReporte) {
-      case "Recaudacion por Disciplina":
-        endpoint = "/reportes/recaudacion-disciplina";
-        if (filtroDisciplina) {
-          params.disciplinaId = filtroDisciplina;
+  /**
+   * Función para cargar los datos del reporte.
+   * Si reset es true se reemplaza la lista (por ejemplo, al generar o refrescar el reporte);
+   * de lo contrario, se concatenan los datos.
+   */
+  const cargarReportes = useCallback(
+    async (pagina = 0, reset: boolean = false) => {
+      if (!tipoReporte) return;
+      setLoading(true);
+      setErrorMsg("");
+      let endpoint = "";
+      let params: Record<string, any> = { page: pagina };
+      switch (tipoReporte) {
+        case "Recaudacion por Disciplina":
+          endpoint = "/reportes/recaudacion-disciplina";
+          if (filtroDisciplina) {
+            params.disciplinaId = filtroDisciplina;
+          }
+          break;
+        case "Asistencias por Alumno":
+          endpoint = "/reportes/asistencias-alumno";
+          if (filtroAlumno) {
+            params.alumnoId = filtroAlumno;
+          }
+          break;
+        case "Asistencias por Disciplina":
+          endpoint = "/reportes/asistencias-disciplina";
+          if (filtroDisciplina) {
+            params.disciplinaId = filtroDisciplina;
+          }
+          break;
+        case "Asistencias por Disciplina y Alumno":
+          endpoint = "/reportes/asistencias-disciplina-alumno";
+          if (filtroDisciplina) {
+            params.disciplinaId = filtroDisciplina;
+          }
+          if (filtroAlumno) {
+            params.alumnoId = filtroAlumno;
+          }
+          break;
+        default:
+          toast.error("Tipo de reporte no válido");
+          setLoading(false);
+          return;
+      }
+      try {
+        const response = await api.get<PaginatedResponse<ReporteData>>(
+          endpoint,
+          { params }
+        );
+        if (reset) {
+          setDatos(response.data.content);
+        } else {
+          setDatos((prev) => [...prev, ...response.data.content]);
         }
-        break;
-      case "Asistencias por Alumno":
-        endpoint = "/reportes/asistencias-alumno";
-        if (filtroAlumno) {
-          params.alumnoId = filtroAlumno;
-        }
-        break;
-      case "Asistencias por Disciplina":
-        endpoint = "/reportes/asistencias-disciplina";
-        if (filtroDisciplina) {
-          params.disciplinaId = filtroDisciplina;
-        }
-        break;
-      case "Asistencias por Disciplina y Alumno":
-        endpoint = "/reportes/asistencias-disciplina-alumno";
-        if (filtroDisciplina) {
-          params.disciplinaId = filtroDisciplina;
-        }
-        if (filtroAlumno) {
-          params.alumnoId = filtroAlumno;
-        }
-        break;
-      default:
-        toast.error("Tipo de reporte no valido");
+        setTotalPaginas(response.data.totalPages);
+        setPaginaActual(pagina);
+      } catch (error) {
+        toast.error("Error al obtener el reporte:");
+        setErrorMsg(
+          "Ocurrió un error al obtener el reporte. Por favor, intenta de nuevo."
+        );
+      } finally {
         setLoading(false);
-        return;
-    }
+      }
+    },
+    [tipoReporte, filtroDisciplina, filtroAlumno]
+  );
 
-    try {
-      const response = await api.get<PaginatedResponse<ReporteData>>(endpoint, { params });
-      setDatos(response.data.content);
-      setTotalPaginas(response.data.totalPages);
-      setPaginaActual(pagina);
-    } catch (error) {
-      toast.error("Error al obtener el reporte:");
-      setErrorMsg("Ocurrio un error al obtener el reporte. Por favor, intenta de nuevo.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Funcion para exportar a Excel
+  // Función para exportar a Excel
   const exportarAExcel = async () => {
     try {
       const response = await api.get("/reportes/exportar/excel", {
@@ -138,15 +153,19 @@ const Reportes = () => {
     }
   };
 
-  // Filtrado local de los datos mediante busqueda
-  const datosFiltrados = datos.filter((dato) =>
-    Object.values(dato)
-      .join(" ")
-      .toLowerCase()
-      .includes(busqueda.toLowerCase())
+  // Filtrado local de los datos mediante el campo de búsqueda
+  const datosFiltrados = useMemo(
+    () =>
+      datos.filter((dato) =>
+        Object.values(dato)
+          .join(" ")
+          .toLowerCase()
+          .includes(busqueda.toLowerCase())
+      ),
+    [datos, busqueda]
   );
 
-  // Datos para el grafico (por ejemplo, monto total)
+  // Datos para el gráfico (por ejemplo, monto total)
   const chartData = {
     labels: datos.map((d) => d.nombre || "Sin nombre"),
     datasets: [
@@ -160,12 +179,15 @@ const Reportes = () => {
 
   return (
     <div className="page-container">
-      <h1 className="page-title">Generacion de Reportes</h1>
+      <h1 className="page-title">Generación de Reportes</h1>
 
       <div className="space-y-4 mb-6">
-        {/* Seleccion del tipo de reporte */}
+        {/* Selección del tipo de reporte */}
         <div>
-          <label htmlFor="tipoReporte" className="block text-sm font-medium text-foreground mb-1">
+          <label
+            htmlFor="tipoReporte"
+            className="block text-sm font-medium text-foreground mb-1"
+          >
             Selecciona el Tipo de Reporte:
           </label>
           <select
@@ -175,17 +197,29 @@ const Reportes = () => {
             className="form-input w-full"
           >
             <option value="">-- Seleccionar --</option>
-            <option value="Recaudacion por Disciplina">Recaudacion por Disciplina</option>
-            <option value="Asistencias por Alumno">Asistencias por Alumno</option>
-            <option value="Asistencias por Disciplina">Asistencias por Disciplina</option>
-            <option value="Asistencias por Disciplina y Alumno">Asistencias por Disciplina y Alumno</option>
+            <option value="Recaudacion por Disciplina">
+              Recaudación por Disciplina
+            </option>
+            <option value="Asistencias por Alumno">
+              Asistencias por Alumno
+            </option>
+            <option value="Asistencias por Disciplina">
+              Asistencias por Disciplina
+            </option>
+            <option value="Asistencias por Disciplina y Alumno">
+              Asistencias por Disciplina y Alumno
+            </option>
           </select>
         </div>
 
-        {/* Filtros condicionales segun el tipo de reporte */}
-        {(tipoReporte.includes("Disciplina") || tipoReporte === "Recaudacion por Disciplina") && (
+        {/* Filtros condicionales según el tipo de reporte */}
+        {(tipoReporte.includes("Disciplina") ||
+          tipoReporte === "Recaudacion por Disciplina") && (
           <div>
-            <label htmlFor="disciplina" className="block text-sm font-medium text-foreground mb-1">
+            <label
+              htmlFor="disciplina"
+              className="block text-sm font-medium text-foreground mb-1"
+            >
               Selecciona la Disciplina:
             </label>
             <select
@@ -206,7 +240,10 @@ const Reportes = () => {
 
         {tipoReporte.includes("Alumno") && (
           <div>
-            <label htmlFor="alumno" className="block text-sm font-medium text-foreground mb-1">
+            <label
+              htmlFor="alumno"
+              className="block text-sm font-medium text-foreground mb-1"
+            >
               Selecciona el Alumno:
             </label>
             <select
@@ -225,9 +262,12 @@ const Reportes = () => {
           </div>
         )}
 
-        {/* Campo de busqueda para filtrar localmente */}
+        {/* Campo de búsqueda para filtrar localmente */}
         <div>
-          <label htmlFor="busqueda" className="block text-sm font-medium text-foreground mb-1">
+          <label
+            htmlFor="busqueda"
+            className="block text-sm font-medium text-foreground mb-1"
+          >
             Buscar en Reporte:
           </label>
           <input
@@ -240,15 +280,18 @@ const Reportes = () => {
           />
         </div>
 
-        {/* Botones de accion */}
+        {/* Botones de acción */}
         <div className="flex space-x-4">
-          <Boton onClick={() => obtenerDatosReporte()} disabled={loading}>
+          <Boton onClick={() => cargarReportes(0, true)} disabled={loading}>
             Generar Reporte
           </Boton>
-          <Boton onClick={() => exportarAExcel()} disabled={loading}>
+          <Boton onClick={exportarAExcel} disabled={loading}>
             Exportar a Excel
           </Boton>
-          <Boton onClick={() => obtenerDatosReporte(paginaActual)} disabled={loading}>
+          <Boton
+            onClick={() => cargarReportes(paginaActual, true)}
+            disabled={loading}
+          >
             Refrescar Reporte
           </Boton>
         </div>
@@ -258,12 +301,19 @@ const Reportes = () => {
       {errorMsg && <p className="text-center text-red-600 py-4">{errorMsg}</p>}
       {loading && <p className="text-center py-4">Cargando...</p>}
 
-      {/* Renderizado de resultados, paginacion y grafico */}
+      {/* Renderizado de resultados, tabla, infinite scroll y gráfico */}
       {datosFiltrados.length > 0 && (
         <>
           <div className="page-table-container">
             <Tabla
-              headers={["ID", "Nombre", "Disciplina", "Cantidad", "Monto Total", "Fecha"]}
+              headers={[
+                "ID",
+                "Nombre",
+                "Disciplina",
+                "Cantidad",
+                "Monto Total",
+                "Fecha",
+              ]}
               data={datosFiltrados}
               customRender={(fila) => [
                 fila.id,
@@ -276,11 +326,17 @@ const Reportes = () => {
             />
           </div>
           <div className="mt-4">
-            <Pagination
-              currentPage={paginaActual}
-              totalPages={totalPaginas}
-              onPageChange={(newPage) => obtenerDatosReporte(newPage)}
-            />
+            <ListaConInfiniteScroll
+              onLoadMore={() => {
+                if (paginaActual + 1 < totalPaginas) {
+                  cargarReportes(paginaActual + 1);
+                }
+              }}
+              hasMore={paginaActual + 1 < totalPaginas}
+              loading={loading}
+              className="justify-center"
+              children={undefined}
+            ></ListaConInfiniteScroll>
           </div>
           <div className="mt-6">
             <Bar data={chartData} />

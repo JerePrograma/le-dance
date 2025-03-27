@@ -3,7 +3,6 @@
 import React, { useState, useCallback, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Tabla from "../../componentes/comunes/Tabla";
-import Pagination from "../../componentes/comunes/Pagination";
 import Boton from "../../componentes/comunes/Boton";
 import { toast } from "react-toastify";
 import pagosApi from "../../api/pagosApi";
@@ -12,15 +11,17 @@ import stocksApi from "../../api/stocksApi";
 import subConceptosApi from "../../api/subConceptosApi";
 import conceptosApi from "../../api/conceptosApi";
 import type { DetallePagoResponse } from "../../types/types";
+import ListaConInfiniteScroll from "../../componentes/comunes/ListaConInfiniteScroll";
 
 const tarifaOptions = ["CUOTA", "CLASE DE PRUEBA", "CLASE SUELTA"];
+const itemsPerPage = 5;
 
 const DetallePagoList: React.FC = () => {
   const [detalles, setDetalles] = useState<DetallePagoResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(0);
-  const itemsPerPage = 5;
+  // Se utiliza visibleCount en lugar de currentPage
+  const [visibleCount, setVisibleCount] = useState(itemsPerPage);
   const navigate = useNavigate();
 
   // Estados para filtros generales
@@ -49,7 +50,8 @@ const DetallePagoList: React.FC = () => {
         setError(null);
         const data = await pagosApi.filtrarDetalles(params);
         setDetalles(data);
-        setCurrentPage(0); // Reiniciamos la paginación al aplicar filtros
+        // Reiniciamos la cantidad visible al aplicar filtros o recargar datos
+        setVisibleCount(itemsPerPage);
       } catch (error) {
         toast.error("Error al cargar pagos pendientes");
         setError("Error al cargar pagos pendientes");
@@ -60,7 +62,6 @@ const DetallePagoList: React.FC = () => {
     []
   );
 
-  // Al montar el componente se trae la lista completa sin filtros.
   useEffect(() => {
     fetchDetalles();
   }, [fetchDetalles]);
@@ -110,27 +111,24 @@ const DetallePagoList: React.FC = () => {
     [detalles]
   );
 
-  const pageCount = useMemo(
-    () => Math.ceil(detallesNoCobrado.length / itemsPerPage),
-    [detallesNoCobrado.length]
-  );
+  // Se obtiene un subconjunto de los detalles no cobrados según visibleCount
   const currentItems = useMemo(
-    () =>
-      detallesNoCobrado.slice(
-        currentPage * itemsPerPage,
-        (currentPage + 1) * itemsPerPage
-      ),
-    [detallesNoCobrado, currentPage]
+    () => detallesNoCobrado.slice(0, visibleCount),
+    [detallesNoCobrado, visibleCount]
   );
 
-  const handlePageChange = useCallback(
-    (newPage: number) => {
-      if (newPage >= 0 && newPage < pageCount) {
-        setCurrentPage(newPage);
-      }
-    },
-    [pageCount]
+  // Determina si hay más elementos para cargar
+  const hasMore = useMemo(
+    () => visibleCount < detallesNoCobrado.length,
+    [visibleCount, detallesNoCobrado.length]
   );
+
+  // Incrementa visibleCount en bloques
+  const onLoadMore = useCallback(() => {
+    if (hasMore) {
+      setVisibleCount((prev) => prev + itemsPerPage);
+    }
+  }, [hasMore]);
 
   // Al enviar el formulario se arma el objeto de parámetros.
   const handleFilterSubmit = async (e: React.FormEvent) => {
@@ -336,7 +334,6 @@ const DetallePagoList: React.FC = () => {
               fila.importeInicial,
               fila.bonificacionId ? fila.bonificacionId : "-",
               fila.recargoId ? fila.recargoId : "-",
-              // Mostramos "Sí" o "No" según el valor de "cobrado"
               fila.cobrado ? "Sí" : "No",
             ]}
             actions={(fila) => (
@@ -356,13 +353,16 @@ const DetallePagoList: React.FC = () => {
         )}
       </div>
 
-      {pageCount > 1 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={pageCount}
-          onPageChange={handlePageChange}
+      {/* Infinite Scroll */}
+      {hasMore && (
+        <ListaConInfiniteScroll
+          onLoadMore={onLoadMore}
+          hasMore={hasMore}
+          loading={loading}
           className="mt-4"
-        />
+        >
+          {loading && <div className="text-center py-2">Cargando más...</div>}
+        </ListaConInfiniteScroll>
       )}
     </div>
   );

@@ -1,4 +1,3 @@
-// UsuariosPagina.tsx
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
@@ -8,15 +7,17 @@ import Boton from "../../componentes/comunes/Boton";
 import { PlusCircle, Pencil, Trash2 } from "lucide-react";
 import type { UsuarioResponse } from "../../types/types";
 import usuariosApi from "../../api/usuariosApi";
-import Pagination from "../../componentes/comunes/Pagination";
 import { toast } from "react-toastify";
+import ListaConInfiniteScroll from "../../componentes/comunes/ListaConInfiniteScroll";
+
+const itemsPerPage = 5;
 
 const UsuariosPagina = () => {
   const [usuarios, setUsuarios] = useState<UsuarioResponse[]>([]);
-  const [currentPage, setCurrentPage] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const itemsPerPage = 5;
+  // Se utiliza visibleCount en lugar de currentPage para la lógica de infinite scroll
+  const [visibleCount, setVisibleCount] = useState(itemsPerPage);
   const navigate = useNavigate();
 
   const fetchUsuarios = useCallback(async () => {
@@ -37,24 +38,24 @@ const UsuariosPagina = () => {
     fetchUsuarios();
   }, [fetchUsuarios]);
 
-  const pageCount = useMemo(
-    () => Math.ceil(usuarios.length / itemsPerPage),
-    [usuarios.length]
-  );
+  // Se obtiene el subconjunto de usuarios a mostrar, desde el inicio hasta visibleCount
   const currentItems = useMemo(
-    () =>
-      usuarios.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage),
-    [usuarios, currentPage]
+    () => usuarios.slice(0, visibleCount),
+    [usuarios, visibleCount]
   );
 
-  const handlePageChange = useCallback(
-    (newPage: number) => {
-      if (newPage >= 0 && newPage < pageCount) {
-        setCurrentPage(newPage);
-      }
-    },
-    [pageCount]
+  // Determina si existen más elementos para cargar
+  const hasMore = useMemo(
+    () => visibleCount < usuarios.length,
+    [visibleCount, usuarios.length]
   );
+
+  // Función que incrementa visibleCount en bloques
+  const onLoadMore = useCallback(() => {
+    if (hasMore) {
+      setVisibleCount((prev) => prev + itemsPerPage);
+    }
+  }, [hasMore]);
 
   const handleEliminarUsuario = useCallback(async (id: number) => {
     if (window.confirm("¿Seguro que deseas eliminar este usuario?")) {
@@ -67,7 +68,8 @@ const UsuariosPagina = () => {
     }
   }, []);
 
-  if (loading) return <div className="text-center py-4">Cargando...</div>;
+  if (loading && usuarios.length === 0)
+    return <div className="text-center py-4">Cargando...</div>;
   if (error)
     return <div className="text-center py-4 text-destructive">{error}</div>;
 
@@ -115,13 +117,15 @@ const UsuariosPagina = () => {
           )}
         />
       </div>
-      {pageCount > 1 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={pageCount}
-          onPageChange={handlePageChange}
+      {hasMore && (
+        <ListaConInfiniteScroll
+          onLoadMore={onLoadMore}
+          hasMore={hasMore}
+          loading={loading}
           className="mt-4"
-        />
+        >
+          {loading && <div className="text-center py-2">Cargando más...</div>}
+        </ListaConInfiniteScroll>
       )}
     </div>
   );

@@ -6,9 +6,9 @@ import Tabla from "../../componentes/comunes/Tabla";
 import api from "../../api/axiosConfig";
 import Boton from "../../componentes/comunes/Boton";
 import { PlusCircle, Pencil, Trash2 } from "lucide-react";
-import Pagination from "../../componentes/comunes/Pagination";
 import disciplinasApi from "../../api/disciplinasApi";
 import { toast } from "react-toastify";
+import ListaConInfiniteScroll from "../../componentes/comunes/ListaConInfiniteScroll";
 
 interface Disciplina {
   id: number;
@@ -16,14 +16,16 @@ interface Disciplina {
   horario: string;
 }
 
+const itemsPerPage = 5;
+
 const Disciplinas = () => {
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
-  const [currentPage, setCurrentPage] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
-  const itemsPerPage = 5;
+  // Se utiliza visibleCount para controlar cuántos elementos se muestran
+  const [visibleCount, setVisibleCount] = useState(itemsPerPage);
   const navigate = useNavigate();
 
   const fetchDisciplinas = useCallback(async () => {
@@ -44,6 +46,7 @@ const Disciplinas = () => {
     fetchDisciplinas();
   }, [fetchDisciplinas]);
 
+  // Filtrar y ordenar disciplinas según el término y orden de búsqueda
   const disciplinasFiltradasYOrdenadas = useMemo(() => {
     const filtradas = disciplinas.filter((disciplina) =>
       disciplina.nombre.toLowerCase().includes(searchTerm.toLowerCase())
@@ -51,29 +54,43 @@ const Disciplinas = () => {
     return filtradas.sort((a, b) => {
       const nombreA = a.nombre.toLowerCase();
       const nombreB = b.nombre.toLowerCase();
-      return sortOrder === "asc" ? nombreA.localeCompare(nombreB) : nombreB.localeCompare(nombreA);
+      return sortOrder === "asc"
+        ? nombreA.localeCompare(nombreB)
+        : nombreB.localeCompare(nombreA);
     });
   }, [disciplinas, searchTerm, sortOrder]);
 
-  const pageCount = useMemo(() => Math.ceil(disciplinasFiltradasYOrdenadas.length / itemsPerPage), [disciplinasFiltradasYOrdenadas.length]);
+  // Se obtiene el subconjunto de disciplinas a mostrar
   const currentItems = useMemo(
-    () => disciplinasFiltradasYOrdenadas.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage),
-    [disciplinasFiltradasYOrdenadas, currentPage, itemsPerPage]
+    () => disciplinasFiltradasYOrdenadas.slice(0, visibleCount),
+    [disciplinasFiltradasYOrdenadas, visibleCount]
   );
 
-  const handlePageChange = useCallback(
-    (newPage: number) => {
-      if (newPage >= 0 && newPage < pageCount) {
-        setCurrentPage(newPage);
-      }
-    },
-    [pageCount]
+  // Determina si hay más elementos para cargar
+  const hasMore = useMemo(
+    () => visibleCount < disciplinasFiltradasYOrdenadas.length,
+    [visibleCount, disciplinasFiltradasYOrdenadas.length]
   );
+
+  // Función que incrementa visibleCount en bloques de itemsPerPage
+  const onLoadMore = useCallback(() => {
+    if (hasMore) {
+      setVisibleCount((prev) => prev + itemsPerPage);
+    }
+  }, [hasMore]);
 
   const nombresUnicos = useMemo(() => {
-    const nombresSet = new Set(disciplinas.map((disciplina) => disciplina.nombre));
+    const nombresSet = new Set(
+      disciplinas.map((disciplina) => disciplina.nombre)
+    );
     return Array.from(nombresSet);
   }, [disciplinas]);
+
+  // Al cambiar el término de búsqueda se reinicia visibleCount
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+    setVisibleCount(itemsPerPage);
+  };
 
   const handleEliminarDisciplina = useCallback(async (id: number) => {
     if (window.confirm("¿Seguro que deseas eliminar esta disciplina?")) {
@@ -86,8 +103,10 @@ const Disciplinas = () => {
     }
   }, []);
 
-  if (loading) return <div className="text-center py-4">Cargando...</div>;
-  if (error) return <div className="text-center py-4 text-destructive">{error}</div>;
+  if (loading && disciplinas.length === 0)
+    return <div className="text-center py-4">Cargando...</div>;
+  if (error)
+    return <div className="text-center py-4 text-destructive">{error}</div>;
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -114,10 +133,7 @@ const Disciplinas = () => {
             list="nombres"
             type="text"
             value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setCurrentPage(0);
-            }}
+            onChange={handleSearchChange}
             placeholder="Escribe o selecciona un nombre..."
             className="border rounded px-2 py-1"
           />
@@ -147,11 +163,17 @@ const Disciplinas = () => {
         <Tabla
           headers={["ID", "Nombre", "Horario", "Acciones"]}
           data={currentItems}
-          customRender={(fila) => [fila.id, fila.nombre, fila.horario]}
-          actions={(fila) => (
+          customRender={(fila: Disciplina) => [
+            fila.id,
+            fila.nombre,
+            fila.horario,
+          ]}
+          actions={(fila: Disciplina) => (
             <div className="flex gap-2">
               <Boton
-                onClick={() => navigate(`/disciplinas/formulario?id=${fila.id}`)}
+                onClick={() =>
+                  navigate(`/disciplinas/formulario?id=${fila.id}`)
+                }
                 className="inline-flex items-center gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/90"
                 aria-label={`Editar disciplina ${fila.nombre}`}
               >
@@ -170,14 +192,18 @@ const Disciplinas = () => {
           )}
         />
 
-        {pageCount > 1 && (
+        {hasMore && (
           <div className="py-4 border-t">
-            <Pagination
-              currentPage={currentPage}
-              totalPages={pageCount}
-              onPageChange={handlePageChange}
+            <ListaConInfiniteScroll
+              onLoadMore={onLoadMore}
+              hasMore={hasMore}
+              loading={loading}
               className="justify-center"
-            />
+            >
+              {loading && (
+                <div className="text-center py-2">Cargando más...</div>
+              )}
+            </ListaConInfiniteScroll>
           </div>
         )}
       </div>
