@@ -1,6 +1,7 @@
 package ledance.controladores;
 
 import ledance.dto.reporte.observacion.ObservacionProfesorDTO;
+import ledance.dto.reporte.observacion.ObservacionProfesorRequest;
 import ledance.servicios.observaciones.ObservacionProfesorServicio;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,37 +21,18 @@ public class ObservacionProfesorControlador {
     /**
      * Crea una nueva observación para un profesor.
      *
-     * @param profesorId  el id del profesor
-     * @param fecha       la fecha de la observación (en formato ISO, por ejemplo "2025-03-27")
-     * @param observacion el texto de la observación (en el body)
+     * @param request contiene profesorId, fecha (en formato ISO) y observacion
      * @return el DTO de la observación creada
      */
     @PostMapping
     public ObservacionProfesorDTO crearObservacion(
-            @RequestParam Long profesorId,
-            @RequestParam String fecha,
-            @RequestBody String observacion) {
-
-        LocalDate localDate = LocalDate.parse(fecha);
-        return observacionProfesorServicio.crearObservacion(profesorId, localDate, observacion);
-    }
-
-    /**
-     * Actualiza una observación existente.
-     *
-     * @param id          el id de la observación a actualizar
-     * @param fecha       la nueva fecha de la observación (formato ISO)
-     * @param observacion el nuevo texto de la observación (en el body)
-     * @return el DTO de la observación actualizada
-     */
-    @PutMapping("/{id}")
-    public ObservacionProfesorDTO actualizarObservacion(
-            @PathVariable Long id,
-            @RequestParam String fecha,
-            @RequestBody String observacion) {
-
-        LocalDate localDate = LocalDate.parse(fecha);
-        return observacionProfesorServicio.actualizarObservacion(id, localDate, observacion);
+            @RequestBody ObservacionProfesorRequest request) {
+        // Se parsea la fecha desde el request
+        return observacionProfesorServicio.crearObservacion(
+                request.profesorId(),
+                LocalDate.parse(request.fecha()),
+                request.observacion()
+        );
     }
 
     /**

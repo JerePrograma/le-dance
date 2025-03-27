@@ -18,14 +18,13 @@ public class ObservacionProfesorServicio {
 
     private final ObservacionProfesorRepositorio observacionRepo;
     private final ProfesorRepositorio profesorRepo;
-    private final ObservacionProfesorMapper mapper;
+    private final ObservacionProfesorMapper observacionProfesorMapper;
 
     public ObservacionProfesorServicio(ObservacionProfesorRepositorio observacionRepo,
-                                       ProfesorRepositorio profesorRepo,
-                                       ObservacionProfesorMapper mapper) {
+                                       ProfesorRepositorio profesorRepo, ObservacionProfesorMapper observacionProfesorMapper) {
         this.observacionRepo = observacionRepo;
         this.profesorRepo = profesorRepo;
-        this.mapper = mapper;
+        this.observacionProfesorMapper = observacionProfesorMapper;
     }
 
     /**
@@ -45,7 +44,7 @@ public class ObservacionProfesorServicio {
         obs.setFecha(fecha);
         obs.setObservacion(observacionText);
         ObservacionProfesor saved = observacionRepo.save(obs);
-        return mapper.toDTO(saved);
+        return observacionProfesorMapper.toDTO(saved);
     }
 
     /**
@@ -63,7 +62,7 @@ public class ObservacionProfesorServicio {
         obs.setFecha(fecha);
         obs.setObservacion(observacionText);
         ObservacionProfesor updated = observacionRepo.save(obs);
-        return mapper.toDTO(updated);
+        return observacionProfesorMapper.toDTO(updated);
     }
 
     /**
@@ -88,7 +87,7 @@ public class ObservacionProfesorServicio {
     public ObservacionProfesorDTO obtenerObservacion(Long observacionId) {
         ObservacionProfesor obs = observacionRepo.findById(observacionId)
                 .orElseThrow(() -> new RuntimeException("Observación no encontrada con id: " + observacionId));
-        return mapper.toDTO(obs);
+        return observacionProfesorMapper.toDTO(obs);
     }
 
     /**
@@ -98,7 +97,7 @@ public class ObservacionProfesorServicio {
      */
     public List<ObservacionProfesorDTO> listarObservaciones() {
         return observacionRepo.findAll().stream()
-                .map(mapper::toDTO)
+                .map(observacionProfesorMapper::toDTO)
                 .collect(Collectors.toList());
     }
 
@@ -110,7 +109,7 @@ public class ObservacionProfesorServicio {
      */
     public List<ObservacionProfesorDTO> listarObservacionesPorProfesor(Long profesorId) {
         return observacionRepo.findByProfesorId(profesorId).stream()
-                .map(mapper::toDTO)
+                .map(observacionProfesorMapper::toDTO)
                 .collect(Collectors.toList());
     }
 
@@ -123,7 +122,7 @@ public class ObservacionProfesorServicio {
      */
     public List<ObservacionProfesorDTO> listarObservacionesEntreFechas(LocalDate inicio, LocalDate fin) {
         return observacionRepo.findByFechaBetween(inicio, fin).stream()
-                .map(mapper::toDTO)
+                .map(observacionProfesorMapper::toDTO)
                 .collect(Collectors.toList());
     }
 
@@ -139,7 +138,7 @@ public class ObservacionProfesorServicio {
         LocalDate inicio = LocalDate.of(anio, mes, 1);
         LocalDate fin = inicio.withDayOfMonth(inicio.lengthOfMonth());
         return observacionRepo.findByProfesorIdAndFechaBetween(profesorId, inicio, fin).stream()
-                .map(mapper::toDTO)
+                .map(observacionProfesorMapper::toDTO)
                 .collect(Collectors.toList());
     }
 }

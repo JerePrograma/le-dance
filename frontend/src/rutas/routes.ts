@@ -95,6 +95,12 @@ const PagosFormulario = lazy(
   () => import("../funcionalidades/pagos/PagosFormulario")
 );
 const CajaPagina = lazy(() => import("../funcionalidades/caja/CajaPagina"));
+const ConsultaObservacionesProfesores = lazy(
+  () =>
+    import(
+      "../funcionalidades/observaciones/ConsultaObservacionesProfesores.tsx"
+    )
+);
 const PagosPendientes = lazy(
   () => import("../funcionalidades/caja/PagosPendientes")
 );
@@ -178,6 +184,10 @@ export const otherProtectedRoutes = [
   { path: "/pagos/editar", Component: EditarPagoForm },
   { path: "/pagos/formulario", Component: PagosFormulario },
   { path: "/caja", Component: CajaPagina },
+  {
+    path: "/observaciones-profesores",
+    Component: ConsultaObservacionesProfesores,
+  },
   { path: "/pagos-pendientes", Component: PagosPendientes },
   { path: "/pagos-cobrados", Component: PagosCobrados },
   { path: "/debitos", Component: EgresoDebitoPagina },

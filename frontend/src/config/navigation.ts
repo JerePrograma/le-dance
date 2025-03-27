@@ -235,6 +235,12 @@ export const navigationItems: NavigationItem[] = [
         href: "/asistencias/alumnos",
         icon: AttendanceIcon,
       },
+      {
+        id: "observaciones-profesores",
+        label: "Observación profesores",
+        href: "/observaciones-profesores",
+        icon: AttendanceIcon,
+      },
     ],
   },
   {
