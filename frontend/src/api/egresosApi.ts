@@ -39,7 +39,8 @@ const listarEgresos = async (): Promise<EgresoResponse[]> => {
 // Listar egresos de tipo DEBITO
 const listarEgresosDebito = async (): Promise<EgresoResponse[]> => {
   const { data } = await api.get<EgresoResponse[]>("/egresos/debito");
-  return data;
+  console.log("Respuesta de egresos:", data);
+  return Array.isArray(data) ? data : [];
 };
 
 // Listar egresos de tipo EFECTIVO

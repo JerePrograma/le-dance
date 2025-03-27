@@ -35,7 +35,7 @@ export default function EgresosDebitoPagina() {
       setLoading(true);
       setError(null);
       const data = await egresosApi.listarEgresosDebito();
-      setEgresos(data);
+      setEgresos(Array.isArray(data) ? data : []);
       // Reiniciamos visibleCount al recargar datos
       setVisibleCount(itemsPerPage);
     } catch (err) {
