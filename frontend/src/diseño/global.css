@@ -338,6 +338,10 @@
     @apply px-[var(--container-padding)] mx-auto max-w-[var(--content-max-width)];
   }
 
+  .page-container {
+    min-height: 100vh; /* O un valor mayor si es necesario */
+  }
+
   /* Grid fluido */
   .grid-fluid {
     display: grid;
