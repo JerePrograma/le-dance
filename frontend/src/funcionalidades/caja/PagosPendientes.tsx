@@ -74,11 +74,12 @@ const DetallePagoList: React.FC = () => {
     []
   );
 
+  // Cargar datos al montar el componente
   useEffect(() => {
     fetchDetalles();
   }, [fetchDetalles]);
 
-  // Carga de filtros secundarios según la categoría seleccionada.
+  // Carga de filtros secundarios según la categoría seleccionada
   useEffect(() => {
     if (filtroTipo === "DISCIPLINAS") {
       disciplinasApi
@@ -96,6 +97,7 @@ const DetallePagoList: React.FC = () => {
         .then((data) => setSubConceptos(data))
         .catch(() => toast.error("Error al cargar sub conceptos"));
     }
+    // Reiniciamos filtros secundarios
     setSelectedDisciplina("");
     setSelectedTarifa("");
     setSelectedStock("");
@@ -193,8 +195,8 @@ const DetallePagoList: React.FC = () => {
     return <div className="text-center py-4 text-destructive">{error}</div>;
 
   return (
-    <div ref={containerRef} className="page-container">
-      <h1 className="page-title">Pagos pendientes</h1>
+    <div ref={containerRef} className="container mx-auto p-6 space-y-6">
+      <h1 className="text-3xl font-bold tracking-tight">Pagos pendientes</h1>
 
       {/* Sección de filtros */}
       <div className="page-card mb-4">

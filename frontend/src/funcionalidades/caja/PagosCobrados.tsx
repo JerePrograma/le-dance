@@ -119,7 +119,7 @@ const DetallePagoList: React.FC = () => {
   }, [filtroTipo, selectedSubConcepto]);
 
   // Filtrar los detalles para mostrar solo aquellos que han sido cobrados
-  const detallesNoCobrado = useMemo(
+  const detallesCobrado = useMemo(
     () => detalles.filter((detalle) => detalle.cobrado),
     [detalles]
   );
@@ -142,14 +142,14 @@ const DetallePagoList: React.FC = () => {
 
   // Se obtiene el subconjunto de los detalles cobrados según visibleCount
   const currentItems = useMemo(
-    () => detallesNoCobrado.slice(0, visibleCount),
-    [detallesNoCobrado, visibleCount]
+    () => detallesCobrado.slice(0, visibleCount),
+    [detallesCobrado, visibleCount]
   );
 
   // Determina si hay más elementos para cargar
   const hasMore = useMemo(
-    () => visibleCount < detallesNoCobrado.length,
-    [visibleCount, detallesNoCobrado.length]
+    () => visibleCount < detallesCobrado.length,
+    [visibleCount, detallesCobrado.length]
   );
 
   // Incrementa visibleCount en bloques
@@ -194,8 +194,8 @@ const DetallePagoList: React.FC = () => {
     return <div className="text-center py-4 text-destructive">{error}</div>;
 
   return (
-    <div ref={containerRef} className="page-container">
-      <h1 className="page-title">Pagos cobrados</h1>
+    <div ref={containerRef} className="container mx-auto p-6 space-y-6">
+      <h1 className="text-3xl font-bold tracking-tight">Pagos cobrados</h1>
 
       {/* Sección de filtros */}
       <div className="page-card mb-4">
@@ -347,7 +347,6 @@ const DetallePagoList: React.FC = () => {
             ]}
             data={currentItems}
             customRender={(fila) => {
-              // Mapeo de bonificación y recargo por su descripción usando los arrays del hook
               const bonificacionNombre =
                 fila.bonificacionId &&
                 bonificaciones.find((b) => b.id === fila.bonificacionId)
@@ -360,7 +359,6 @@ const DetallePagoList: React.FC = () => {
                 fila.conceptoId || fila.id,
                 fila.alumnoDisplay,
                 fila.descripcionConcepto,
-                // En esta columna se muestra el valor de "aCobrar"
                 fila.aCobrar,
                 bonificacionNombre || "-",
                 recargoNombre || "-",
@@ -378,9 +376,7 @@ const DetallePagoList: React.FC = () => {
           onLoadMore={onLoadMore}
           hasMore={hasMore}
           loading={loading}
-          className="justify-center"
-          children={undefined}
-        />
+          className="justify-center" children={undefined}        />
       </div>
     </div>
   );
