@@ -15,7 +15,7 @@ const PaymentList: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const itemsPerPage = 15; // o 20, según tu necesidad
+  const itemsPerPage = 25; // o 20, según tu necesidad
 
   const navigate = useNavigate();
   // Usamos un ref para controlar la página actual sin forzar re-render

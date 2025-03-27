@@ -10,7 +10,7 @@ import { toast } from "react-toastify";
 import type { MetodoPagoResponse } from "../../types/types";
 import ListaConInfiniteScroll from "../../componentes/comunes/ListaConInfiniteScroll";
 
-const itemsPerPage = 5;
+const itemsPerPage = 25;
 
 const MetodosPagoPagina = () => {
   const [metodos, setMetodos] = useState<MetodoPagoResponse[]>([]);

@@ -10,7 +10,7 @@ import type { ProfesorListadoResponse } from "../../types/types"
 import { toast } from "react-toastify"
 import ListaConInfiniteScroll from "../../componentes/comunes/ListaConInfiniteScroll"
 
-const itemsPerPage = 5
+const itemsPerPage = 25
 
 const Profesores = () => {
   const [profesores, setProfesores] = useState<ProfesorListadoResponse[]>([])

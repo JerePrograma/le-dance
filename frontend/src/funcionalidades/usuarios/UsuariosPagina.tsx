@@ -10,7 +10,7 @@ import usuariosApi from "../../api/usuariosApi";
 import { toast } from "react-toastify";
 import ListaConInfiniteScroll from "../../componentes/comunes/ListaConInfiniteScroll";
 
-const itemsPerPage = 5;
+const itemsPerPage = 25;
 
 const UsuariosPagina = () => {
   const [usuarios, setUsuarios] = useState<UsuarioResponse[]>([]);

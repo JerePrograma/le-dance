@@ -16,7 +16,7 @@ interface Disciplina {
   horario: string;
 }
 
-const itemsPerPage = 5;
+const itemsPerPage = 25;
 
 const Disciplinas = () => {
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);

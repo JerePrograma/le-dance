@@ -17,7 +17,7 @@ import type {
 } from "../../types/types";
 
 export default function EgresosDebitoPagina() {
-  const itemsPerPage = 5;
+  const itemsPerPage = 25;
 
   // Estados para egresos, infinite scroll y carga
   const [egresos, setEgresos] = useState<EgresoResponse[]>([]);

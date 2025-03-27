@@ -16,7 +16,7 @@ import { useCobranzasData } from "../../hooks/useCobranzasData";
 
 const tarifaOptions = ["CUOTA", "CLASE DE PRUEBA", "CLASE SUELTA"];
 const estimatedRowHeight = 70; // Altura estimada en píxeles de cada fila
-const itemsPerPage = 5; // Valor base en caso de no poder calcular (fallback)
+const itemsPerPage = 25; // Valor base en caso de no poder calcular (fallback)
 
 const DetallePagoList: React.FC = () => {
   const [detalles, setDetalles] = useState<DetallePagoResponse[]>([]);

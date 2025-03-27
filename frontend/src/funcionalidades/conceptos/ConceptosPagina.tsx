@@ -10,7 +10,7 @@ import type { ConceptoResponse } from "../../types/types";
 import { toast } from "react-toastify";
 import ListaConInfiniteScroll from "../../componentes/comunes/ListaConInfiniteScroll";
 
-const itemsPerPage = 5;
+const itemsPerPage = 25;
 
 const ConceptosPagina = () => {
   const [conceptos, setConceptos] = useState<ConceptoResponse[]>([]);

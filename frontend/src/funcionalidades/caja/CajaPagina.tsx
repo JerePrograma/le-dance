@@ -13,7 +13,7 @@ const CajaPagina: React.FC = () => {
   const [totalPages, setTotalPages] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const itemsPerPage = 5;
+  const itemsPerPage = 25;
   const navigate = useNavigate();
 
   const fetchCajas = useCallback(async () => {

@@ -19,7 +19,7 @@ const RolesPagina = () => {
   const [visibleCount, setVisibleCount] = useState(5);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const itemsPerPage = 5;
+  const itemsPerPage = 25;
   const navigate = useNavigate();
 
   const fetchRoles = useCallback(async () => {
