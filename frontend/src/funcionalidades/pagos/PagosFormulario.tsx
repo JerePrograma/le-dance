@@ -1129,31 +1129,10 @@ const CobranzasForm: React.FC = () => {
                       className="border p-2 w-full"
                       onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
                         const newMetodoId = e.target.value;
+                        // Actualizamos el método de pago y forzamos aplicar el recargo en TotalsUpdater
                         setFieldValue("metodoPagoId", newMetodoId);
-                        // Siempre reactivamos el recargo al cambiar de método
                         setFieldValue("aplicarRecargo", true);
-                        const selected =
-                          metodosPago.find(
-                            (mp: MetodoPagoResponse) =>
-                              mp.id === Number(newMetodoId)
-                          ) || null;
-                        if (selected && selected.recargo) {
-                          const updatedDetalles = values.detallePagos.map(
-                            (det: any) => ({
-                              ...det,
-                              recargoId: selected.recargo,
-                            })
-                          );
-                          setFieldValue("detallePagos", updatedDetalles);
-                        } else {
-                          const updatedDetalles = values.detallePagos.map(
-                            (det: any) => ({
-                              ...det,
-                              recargoId: null,
-                            })
-                          );
-                          setFieldValue("detallePagos", updatedDetalles);
-                        }
+                        // No actualizamos los detalles, para no interferir con los recargos ya asignados en cada detalle
                       }}
                     >
                       <option value="">Seleccione un método de pago</option>
