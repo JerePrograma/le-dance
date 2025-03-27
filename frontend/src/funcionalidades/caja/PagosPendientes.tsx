@@ -118,13 +118,16 @@ const DetallePagoList: React.FC = () => {
 
   // Filtrar los detalles para mostrar solo aquellos que NO han sido cobrados
   const detallesNoCobrado = useMemo(() => {
-    return Array.isArray(detalles) ? detalles.filter((detalle) => !detalle.cobrado) : [];
+    return Array.isArray(detalles)
+      ? detalles.filter((detalle) => !detalle.cobrado)
+      : [];
   }, [detalles]);
 
   // Ajustar visibleCount dinámicamente según la altura del contenedor
   const adjustVisibleCount = useCallback(() => {
     if (containerRef.current) {
-      const containerHeight = containerRef.current.getBoundingClientRect().height;
+      const containerHeight =
+        containerRef.current.getBoundingClientRect().height;
       const itemsThatFit = Math.ceil(containerHeight / estimatedRowHeight);
       setVisibleCount(itemsThatFit);
     }
@@ -314,7 +317,10 @@ const DetallePagoList: React.FC = () => {
                 </div>
               </>
             )}
-            <Boton type="submit" className="bg-green-500 text-white p-2 rounded">
+            <Boton
+              type="submit"
+              className="bg-green-500 text-white p-2 rounded"
+            >
               Ver
             </Boton>
           </div>
@@ -324,7 +330,9 @@ const DetallePagoList: React.FC = () => {
       {/* Tabla de Detalles de Pago */}
       <div className="page-card">
         {loading && <div className="text-center py-4">Cargando...</div>}
-        {error && <div className="text-center py-4 text-destructive">{error}</div>}
+        {error && (
+          <div className="text-center py-4 text-destructive">{error}</div>
+        )}
         {!loading && !error && (
           <Tabla
             headers={[
@@ -340,17 +348,16 @@ const DetallePagoList: React.FC = () => {
             customRender={(fila) => {
               const bonificacionNombre =
                 fila.bonificacionId &&
-                bonificaciones.find((b: any) => b.id === fila.bonificacionId)
+                bonificaciones.find((b) => b.id === fila.bonificacionId)
                   ?.descripcion;
               const recargoNombre =
                 fila.recargoId &&
-                recargos.find((r: any) => r.id === Number(fila.recargoId))
+                recargos.find((r) => r.id === Number(fila.recargoId))
                   ?.descripcion;
               return [
                 fila.conceptoId || fila.id,
                 fila.alumnoDisplay,
                 fila.descripcionConcepto,
-                // Mostramos el importe pendiente en la columna "Deuda"
                 fila.importePendiente,
                 bonificacionNombre || "-",
                 recargoNombre || "-",

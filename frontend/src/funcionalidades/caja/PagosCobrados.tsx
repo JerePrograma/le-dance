@@ -350,11 +350,11 @@ const DetallePagoList: React.FC = () => {
               // Mapeo de bonificación y recargo por su descripción usando los arrays del hook
               const bonificacionNombre =
                 fila.bonificacionId &&
-                bonificaciones.find((b: any) => b.id === fila.bonificacionId)
+                bonificaciones.find((b) => b.id === fila.bonificacionId)
                   ?.descripcion;
               const recargoNombre =
                 fila.recargoId &&
-                recargos.find((r: any) => r.id === Number(fila.recargoId))
+                recargos.find((r) => r.id === Number(fila.recargoId))
                   ?.descripcion;
               return [
                 fila.conceptoId || fila.id,
@@ -373,13 +373,15 @@ const DetallePagoList: React.FC = () => {
       </div>
 
       {/* Infinite Scroll */}
-      <InfiniteScroll
-        onLoadMore={onLoadMore}
-        hasMore={hasMore}
-        loading={loading}
-        className="justify-center"
-        children={undefined}
-      />
+      <div className="py-4 border-t">
+        <InfiniteScroll
+          onLoadMore={onLoadMore}
+          hasMore={hasMore}
+          loading={loading}
+          className="justify-center"
+          children={undefined}
+        />
+      </div>
     </div>
   );
 };
