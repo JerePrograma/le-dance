@@ -35,7 +35,7 @@ const InfiniteScroll: React.FC<InfiniteScrollProps> = ({
       },
       {
         root: null,
-        rootMargin: "10px", // Aumentamos el margen
+        rootMargin: "1px", // Aumentamos el margen
         threshold: 0.1,
       }
     );
