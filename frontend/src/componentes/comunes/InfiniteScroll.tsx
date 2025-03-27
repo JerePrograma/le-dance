@@ -83,7 +83,7 @@ const InfiniteScroll: React.FC<InfiniteScrollProps> = ({
         }
       },
       {
-        root: null,
+        root: fillAvailable ? containerRef.current : null, // Usar el contenedor como root si es scrollable
         rootMargin,
         threshold,
       }
@@ -96,7 +96,7 @@ const InfiniteScroll: React.FC<InfiniteScrollProps> = ({
         observer.unobserve(sentinelRef.current);
       }
     };
-  }, [loading, hasMore, onLoadMore, threshold, rootMargin]);
+  }, [loading, hasMore, onLoadMore, threshold, rootMargin, fillAvailable]);
 
   return (
     <div
