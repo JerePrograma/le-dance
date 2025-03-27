@@ -257,7 +257,7 @@ const CobranzasFormHeader: React.FC<CobranzasFormHeaderProps> = ({
             placeholder="Buscar por nombre..."
           />
           {showSuggestions && sugerencias.length > 0 && (
-            <ul className="absolute w-full bg-gray-500 border border-gray-700 mt-1 z-10 rounded-md shadow-lg">
+            <ul className="absolute w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 mt-1 z-10 rounded-md shadow-lg">
               {sugerencias.map((alumno, index) => (
                 <li
                   key={alumno.id}
@@ -265,8 +265,8 @@ const CobranzasFormHeader: React.FC<CobranzasFormHeaderProps> = ({
                   onMouseEnter={() => setActiveSuggestionIndex(index)}
                   className={`p-2 cursor-pointer ${
                     index === activeSuggestionIndex
-                      ? "bg-slate-600"
-                      : "hover:bg-gray-700"
+                      ? "bg-slate-200 dark:bg-slate-600"
+                      : "hover:bg-gray-200 dark:hover:bg-gray-700"
                   }`}
                 >
                   {alumno.nombre} {alumno.apellido}

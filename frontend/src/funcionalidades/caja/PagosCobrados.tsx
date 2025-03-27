@@ -7,7 +7,6 @@ import React, {
   useMemo,
   useRef,
 } from "react";
-import { useNavigate } from "react-router-dom";
 import Tabla from "../../componentes/comunes/Tabla";
 import Boton from "../../componentes/comunes/Boton";
 import { toast } from "react-toastify";
@@ -18,27 +17,25 @@ import subConceptosApi from "../../api/subConceptosApi";
 import conceptosApi from "../../api/conceptosApi";
 import type { DetallePagoResponse } from "../../types/types";
 import InfiniteScroll from "../../componentes/comunes/InfiniteScroll";
+// Se importa el hook que provee bonificaciones y recargos
+import { useCobranzasData } from "../../hooks/useCobranzasData";
 
 const tarifaOptions = ["CUOTA", "CLASE DE PRUEBA", "CLASE SUELTA"];
-// Altura estimada (en px) de cada fila de la tabla (ajusta según tu diseño)
-const estimatedRowHeight = 70;
-// Valor base en caso de que no se pueda calcular: se usan 5 filas
-const itemsPerLoad = 5;
+const estimatedRowHeight = 70; // Altura estimada en píxeles de cada fila
+const itemsPerPage = 5; // Valor base en caso de no poder calcular (fallback)
 
 const DetallePagoList: React.FC = () => {
   const [detalles, setDetalles] = useState<DetallePagoResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Usamos visibleCount para determinar cuántos elementos mostrar
-  const [visibleCount, setVisibleCount] = useState<number>(itemsPerLoad);
-  const navigate = useNavigate();
+  const [visibleCount, setVisibleCount] = useState<number>(itemsPerPage);
 
   // Estados para filtros generales
   const [fechaInicio, setFechaInicio] = useState("");
   const [fechaFin, setFechaFin] = useState("");
   const [filtroTipo, setFiltroTipo] = useState("");
 
-  // Estados para filtros secundarios según la opción elegida
+  // Estados para filtros secundarios
   const [disciplinas, setDisciplinas] = useState<any[]>([]);
   const [selectedDisciplina, setSelectedDisciplina] = useState("");
   const [selectedTarifa, setSelectedTarifa] = useState("");
@@ -54,6 +51,9 @@ const DetallePagoList: React.FC = () => {
   // Ref para el contenedor de la lista (para medir su altura)
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Se obtienen bonificaciones y recargos desde el hook
+  const { bonificaciones, recargos } = useCobranzasData();
+
   // Función para traer los detalles aplicando filtros (si existen)
   const fetchDetalles = useCallback(
     async (params: Record<string, string> = {}) => {
@@ -62,8 +62,8 @@ const DetallePagoList: React.FC = () => {
         setError(null);
         const data = await pagosApi.filtrarDetalles(params);
         setDetalles(data);
-        // Al aplicar filtros, reiniciamos visibleCount con un valor base
-        setVisibleCount(itemsPerLoad);
+        // Reiniciamos visibleCount al aplicar filtros o recargar datos
+        setVisibleCount(itemsPerPage);
       } catch (error) {
         toast.error("Error al cargar pagos cobrados");
         setError("Error al cargar pagos cobrados");
@@ -74,12 +74,12 @@ const DetallePagoList: React.FC = () => {
     []
   );
 
-  // Se carga la lista completa al montar
+  // Cargar la lista completa al montar
   useEffect(() => {
     fetchDetalles();
   }, [fetchDetalles]);
 
-  // Actualizar filtros secundarios al cambiar la categoría
+  // Carga de filtros secundarios según la categoría seleccionada.
   useEffect(() => {
     if (filtroTipo === "DISCIPLINAS") {
       disciplinasApi
@@ -124,7 +124,7 @@ const DetallePagoList: React.FC = () => {
     [detalles]
   );
 
-  // Función que calcula cuántos elementos caben en el contenedor
+  // Ajustar visibleCount dinámicamente según la altura del contenedor
   const adjustVisibleCount = useCallback(() => {
     if (containerRef.current) {
       const containerHeight =
@@ -140,21 +140,24 @@ const DetallePagoList: React.FC = () => {
     return () => window.removeEventListener("resize", adjustVisibleCount);
   }, [adjustVisibleCount]);
 
-  // Los elementos actualmente visibles, según visibleCount
+  // Se obtiene el subconjunto de los detalles cobrados según visibleCount
   const currentItems = useMemo(
     () => detallesNoCobrado.slice(0, visibleCount),
     [detallesNoCobrado, visibleCount]
   );
 
-  // Determina si hay más elementos por mostrar
-  const hasMore = visibleCount < detallesNoCobrado.length;
+  // Determina si hay más elementos para cargar
+  const hasMore = useMemo(
+    () => visibleCount < detallesNoCobrado.length,
+    [visibleCount, detallesNoCobrado.length]
+  );
 
-  // Función que incrementa visibleCount en bloques
-  const loadMore = useCallback(() => {
-    setVisibleCount((prev) =>
-      Math.min(prev + itemsPerLoad, detallesNoCobrado.length)
-    );
-  }, [detallesNoCobrado.length]);
+  // Incrementa visibleCount en bloques
+  const onLoadMore = useCallback(() => {
+    if (hasMore) {
+      setVisibleCount((prev) => prev + itemsPerPage);
+    }
+  }, [hasMore]);
 
   // Al enviar el formulario, se arma el objeto de parámetros y se reinicia visibleCount
   const handleFilterSubmit = async (e: React.FormEvent) => {
@@ -337,45 +340,44 @@ const DetallePagoList: React.FC = () => {
               "Código",
               "Alumno",
               "Concepto",
-              "Valor Base",
+              "Cobrado",
               "Bonificación",
               "Recargo",
               "Cobrados",
             ]}
             data={currentItems}
-            customRender={(fila) => [
-              fila.conceptoId || fila.id,
-              fila.alumnoDisplay,
-              fila.descripcionConcepto,
-              fila.importeInicial,
-              fila.bonificacionId ? fila.bonificacionId : "-",
-              fila.recargoId ? fila.recargoId : "-",
-              fila.cobrado ? "Sí" : "No",
-            ]}
-            actions={(fila) => (
-              <div className="flex gap-2">
-                <Boton
-                  onClick={() =>
-                    navigate(`/detalles-pago/formulario?id=${fila.id}`)
-                  }
-                  className="page-button-secondary"
-                  aria-label={`Editar detalle de pago ${fila.id}`}
-                >
-                  Editar
-                </Boton>
-              </div>
-            )}
+            customRender={(fila) => {
+              // Mapeo de bonificación y recargo por su descripción usando los arrays del hook
+              const bonificacionNombre =
+                fila.bonificacionId &&
+                bonificaciones.find((b: any) => b.id === fila.bonificacionId)
+                  ?.descripcion;
+              const recargoNombre =
+                fila.recargoId &&
+                recargos.find((r: any) => r.id === Number(fila.recargoId))
+                  ?.descripcion;
+              return [
+                fila.conceptoId || fila.id,
+                fila.alumnoDisplay,
+                fila.descripcionConcepto,
+                // En esta columna se muestra el valor de "aCobrar"
+                fila.aCobrar,
+                bonificacionNombre || "-",
+                recargoNombre || "-",
+                fila.cobrado ? "Sí" : "No",
+              ];
+            }}
             emptyMessage="No hay pagos pendientes"
           />
         )}
       </div>
 
-      {/* Componente Infinite Scroll para cargar progresivamente más elementos */}
+      {/* Infinite Scroll */}
       <InfiniteScroll
-        onLoadMore={loadMore}
+        onLoadMore={onLoadMore}
         hasMore={hasMore}
         loading={loading}
-        className="mt-4"
+        className="justify-center"
         children={undefined}
       />
     </div>

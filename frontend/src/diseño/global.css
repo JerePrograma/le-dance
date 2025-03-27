@@ -2,33 +2,28 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================= */
+/*      VARIABLES FLUIDAS        */
+/* ============================= */
 @layer base {
   :root {
     /* Colores del sistema - Modo Claro */
     --background: 20 50% 97%;
     --foreground: 20 10% 20%;
-
     --card: 0 0% 100%;
     --card-foreground: 20 10% 20%;
-
     --popover: 0 0% 100%;
     --popover-foreground: 20 10% 20%;
-
-    --primary: 350 70% 73%; /* Rosa EA899A */
+    --primary: 350 70% 73%;
     --primary-foreground: 210 40% 98%;
-
-    --secondary: 32 95% 75%; /* Melocotón */
+    --secondary: 32 95% 75%;
     --secondary-foreground: 20 10% 20%;
-
     --muted: 20 10% 96%;
     --muted-foreground: 20 10% 60%;
-
     --accent: 20 50% 90%;
     --accent-foreground: 20 10% 20%;
-
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
-
     --border: 20 10% 90%;
     --input: 20 10% 90%;
     --ring: 350 70% 73%;
@@ -36,18 +31,18 @@
     /* Radios y espaciado */
     --radius: 0.75rem;
 
-    /* Breakpoints como variables CSS */
+    /* Breakpoints (mobile-first) */
     --screen-sm: 640px;
     --screen-md: 768px;
     --screen-lg: 1024px;
     --screen-xl: 1280px;
     --screen-2xl: 1536px;
 
-    /* Ajustes responsive */
+    /* Layout responsivo */
     --sidebar-width: clamp(250px, 20vw, 300px);
     --sidebar-width-collapsed: clamp(3.5rem, 4vw, 4.5rem);
     --header-height: clamp(50px, 6vh, 70px);
-    --content-max-width: 100%; /* Antes: min(95vw, 1400px) */
+    --content-max-width: 100%;
     --container-padding: 1rem;
 
     /* Tipografía fluida */
@@ -61,14 +56,6 @@
     --text-4xl: clamp(2.25rem, 1.75rem + 2.5vw, 3rem);
     --text-5xl: clamp(3rem, 2.25rem + 3.75vw, 4rem);
 
-    @media (min-width: 640px) {
-      --container-padding: 1.5rem;
-    }
-
-    @media (min-width: 1024px) {
-      --container-padding: 2rem;
-    }
-
     /* Espaciado fluido */
     --spacing-1: clamp(0.25rem, 0.2rem + 0.25vw, 0.375rem);
     --spacing-2: clamp(0.5rem, 0.4rem + 0.5vw, 0.75rem);
@@ -79,38 +66,45 @@
     --spacing-10: clamp(2.5rem, 2rem + 2.5vw, 3.75rem);
   }
 
+  /* Ajustes responsivos para container padding */
+  @media (min-width: 640px) {
+    :root {
+      --container-padding: 1.5rem;
+    }
+  }
+  @media (min-width: 1024px) {
+    :root {
+      --container-padding: 2rem;
+    }
+  }
+
+  /* Modo Oscuro */
   .dark {
-    /* Colores del sistema - Modo Oscuro */
-    --background: 240 10% 10%; /* Negro profundo */
+    --background: 240 10% 10%;
     --foreground: 0 0% 98%;
-
-    --card: 240 10% 13%; /* Negro más claro para cards */
+    --card: 240 10% 13%;
     --card-foreground: 0 0% 98%;
-
     --popover: 240 10% 13%;
     --popover-foreground: 0 0% 98%;
-
-    --primary: 267 100% 65%; /* Púrpura brillante */
+    --primary: 267 100% 65%;
     --primary-foreground: 0 0% 98%;
-
-    --secondary: 240 10% 16%; /* Gris oscuro */
+    --secondary: 240 10% 16%;
     --secondary-foreground: 0 0% 98%;
-
     --muted: 240 10% 15%;
     --muted-foreground: 240 5% 65%;
-
     --accent: 267 100% 65%;
     --accent-foreground: 0 0% 98%;
-
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-
     --border: 240 10% 16%;
     --input: 240 10% 16%;
     --ring: 267 100% 65%;
   }
 }
 
+/* ============================= */
+/*          RESETEO BASE        */
+/* ============================= */
 @layer base {
   * {
     @apply border-border;
@@ -118,8 +112,6 @@
   body {
     @apply bg-background text-foreground;
   }
-
-  /* Ajustes de tipografía responsiva */
   h1 {
     font-size: var(--text-3xl);
     line-height: 1.2;
@@ -142,6 +134,9 @@
   }
 }
 
+/* ============================= */
+/*       COMPONENTES UI          */
+/* ============================= */
 @layer components {
   /* Gradientes */
   .bg-primary-gradient {
@@ -150,123 +145,102 @@
 
   /* Cards */
   .card {
-    @apply relative bg-card rounded-xl border border-border shadow-sm transition-all duration-200;
+    @apply relative bg-card rounded-xl border border-border shadow-sm transition-all duration-200 p-4 sm:p-6;
   }
-
   .card-hover {
     @apply hover:-translate-y-1 hover:shadow-lg hover:border-primary/50;
   }
-
   .card-header {
     @apply p-6 border-b border-border;
   }
-
   .card-content {
     @apply p-6;
   }
-
   .card-footer {
     @apply p-4 px-6 border-t border-border bg-muted;
   }
 
-  /* Efectos de hover */
+  /* Efectos y animaciones */
   .hover-effect {
     @apply transition-all duration-200 hover:scale-105;
   }
-
-  /* Animaciones */
   .fade-in {
     @apply animate-in fade-in duration-300;
   }
-
   .slide-in {
     @apply animate-in slide-in-from-bottom duration-300;
   }
 
-  /* Componentes de Form */
+  /* Formularios */
   .form {
     @apply flex flex-col gap-4 w-full max-w-[600px] mx-auto;
   }
-
   .form-group {
     @apply flex flex-col gap-2;
   }
-
   .form-row {
     @apply flex gap-4 flex-wrap;
   }
-
   .form-row > * {
     @apply flex-1 min-w-[250px];
   }
-
   .form-label {
     @apply block text-sm font-medium text-foreground mb-1;
   }
-
   .form-input,
   .form-select,
   .form-textarea {
     @apply w-full px-4 py-3 text-base leading-relaxed text-foreground bg-background border-2 border-border rounded-md transition-all
-    focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10
-    disabled:bg-muted disabled:cursor-not-allowed disabled:opacity-70;
+      focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 disabled:bg-muted disabled:cursor-not-allowed disabled:opacity-70;
   }
-
   .form-error {
     @apply text-sm text-destructive mt-1;
   }
-
   .form-help {
     @apply text-sm text-muted-foreground mt-1;
   }
-
   .form-actions {
     @apply flex justify-end gap-4 mt-6;
   }
 
-  /* Componentes de Layout */
+  /* Layout general */
   .layout {
     @apply flex min-h-screen bg-background;
   }
+  .page-container {
+    min-height: 100vh;
+  }
 
-  /* Componentes de Dashboard */
+  /* Dashboard */
   .dashboard {
     @apply min-h-screen p-4 bg-background sm:p-8;
   }
-
   .dashboard-header {
     @apply flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0 mb-8;
   }
-
   .dashboard-title {
     @apply text-2xl font-bold text-foreground sm:text-3xl;
   }
-
   .dashboard-grid {
-    @apply grid gap-4 grid-cols-1 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5;
+    @apply grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5;
   }
 
-  /* Componentes de Header */
+  /* Header fijo y responsive */
   .header {
     @apply fixed top-0 left-0 right-0 h-[var(--header-height)] bg-background/80 backdrop-blur-md border-b border-border z-30 transition-all;
   }
-
   .header-content {
-    @apply flex items-center justify-between h-full px-[var(--container-padding)] max-w-[var(--content-max-width)] mx-auto;
+    @apply flex items-center justify-between h-full px-[var(--container-padding)] mx-auto max-w-[var(--content-max-width)];
   }
-
   .header-brand {
     @apply flex items-center gap-3 text-xl font-bold text-primary no-underline;
   }
-
   .header-nav {
     @apply hidden md:flex items-center gap-6;
   }
-
   .header-nav-item {
     @apply text-foreground no-underline font-medium transition-colors hover:text-primary;
   }
-
   .header-actions {
     @apply flex items-center gap-4;
   }
@@ -275,132 +249,101 @@
   .mobile-menu-toggle {
     @apply md:hidden flex items-center justify-center w-10 h-10 text-foreground;
   }
-
   .mobile-menu {
     @apply fixed inset-0 z-50 bg-background pt-[var(--header-height)] transform transition-transform duration-300 ease-in-out;
     transform: translateX(-100%);
   }
-
   .mobile-menu.open {
     transform: translateX(0);
   }
-
   .mobile-menu-content {
     @apply h-full overflow-y-auto p-4;
   }
 
-  /* Componentes de Sidebar */
+  /* Sidebar responsive */
   .sidebar {
-    @apply fixed top-0 left-0 w-[var(--sidebar-width)] h-screen bg-background border-r border-border z-40 transition-transform flex flex-col;
+    @apply fixed top-0 left-0 h-screen bg-background border-r border-border z-40 transition-transform flex flex-col;
     transform: translateX(-100%);
   }
-
   @media (min-width: 768px) {
     .sidebar {
       transform: translateX(0);
     }
   }
-
   .sidebar-header {
     @apply h-[var(--header-height)] px-4 border-b border-border flex items-center justify-between;
   }
-
   .sidebar-content {
     @apply flex-1 overflow-y-auto p-4;
   }
-
   .sidebar-nav {
     @apply flex flex-col gap-2;
   }
-
   .sidebar-group {
     @apply mb-6;
   }
-
   .sidebar-group-title {
     @apply text-xs font-semibold uppercase text-muted-foreground px-4 py-2;
   }
-
   .sidebar-item {
     @apply flex items-center gap-3 px-4 py-2 text-foreground no-underline rounded-md transition-all hover:bg-muted hover:text-primary;
   }
-
   .sidebar-item.active {
     @apply bg-primary text-primary-foreground;
   }
 
-  /* Utilidades responsive */
+  /* Grids y contenedores fluidos */
   .responsive-grid {
     @apply grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
   }
-
   .responsive-container {
-    @apply px-[var(--container-padding)] mx-auto max-w-[var(--content-max-width)];
+    @apply mx-auto px-[var(--container-padding)] max-w-[var(--content-max-width)];
   }
-
-  .page-container {
-    min-height: 100vh; /* O un valor mayor si es necesario */
-  }
-
-  /* Grid fluido */
   .grid-fluid {
     display: grid;
     gap: var(--spacing-4);
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
   }
-
   .grid-fluid-sm {
     display: grid;
     gap: var(--spacing-4);
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
   }
-
   .grid-fluid-lg {
     display: grid;
     gap: var(--spacing-4);
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr));
   }
 
-  /* Ajustes para cards */
-  .card {
-    @apply p-4 sm:p-6;
-  }
-
-  /* Ajustes para tablas */
+  /* Tablas responsivas */
   .table-container {
     @apply overflow-x-auto -mx-4 sm:-mx-6 lg:-mx-8;
   }
-
   .table-content {
     @apply min-w-full divide-y divide-border;
   }
-
-  /* Tablas responsivas */
   .table-responsive {
     @apply w-full overflow-x-auto;
   }
-
   .table-responsive table {
     @apply min-w-full;
   }
 
-  /* Ajustes para formularios */
+  /* Formularios en grid */
   .form-grid {
     @apply grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2;
   }
 
-  /* Contenedores con aspect ratio */
+  /* Aspect Ratio para contenedores multimedia */
   .aspect-ratio {
     position: relative;
     width: 100%;
   }
-
   .aspect-ratio::before {
     content: "";
     display: block;
-    padding-top: 56.25%; /* 16:9 Aspect Ratio */
+    padding-top: 56.25%;
   }
-
   .aspect-ratio-content {
     position: absolute;
     top: 0;
@@ -408,55 +351,57 @@
     right: 0;
     bottom: 0;
   }
-
   .aspect-ratio-1-1::before {
-    padding-top: 100%; /* 1:1 Aspect Ratio */
+    padding-top: 100%;
   }
-
   .aspect-ratio-4-3::before {
-    padding-top: 75%; /* 4:3 Aspect Ratio */
+    padding-top: 75%;
   }
 }
 
+/* ============================= */
+/*        UTILIDADES EXTRA       */
+/* ============================= */
 @layer utilities {
+  /* Texto con gradiente */
   .text-gradient {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-400 dark:from-purple-600 dark:to-purple-400;
   }
 
-  /* Utilidades de visibilidad responsive */
+  /* Utilidades de visibilidad responsive (mobile-first) */
   .hidden-xs {
-    @media (max-width: 479px) {
-      display: none !important;
+    @apply hidden;
+  }
+  @media (min-width: 480px) {
+    .hidden-xs {
+      display: initial !important;
     }
   }
 
   .hidden-sm {
-    @media (max-width: 639px) {
-      display: none !important;
+    @apply hidden;
+  }
+  @media (min-width: 640px) {
+    .hidden-sm {
+      display: initial !important;
     }
   }
 
   .hidden-md {
-    @media (max-width: 767px) {
-      display: none !important;
+    @apply hidden;
+  }
+  @media (min-width: 768px) {
+    .hidden-md {
+      display: initial !important;
     }
   }
 
   .hidden-lg {
-    @media (max-width: 1023px) {
-      display: none !important;
-    }
+    @apply hidden;
   }
-
-  .visible-xs {
-    @media (min-width: 480px) {
-      display: none !important;
-    }
-  }
-
-  .visible-sm {
-    @media (min-width: 640px) {
-      display: none !important;
+  @media (min-width: 1024px) {
+    .hidden-lg {
+      display: initial !important;
     }
   }
 
@@ -465,7 +410,6 @@
     max-width: 100%;
     height: auto;
   }
-
   .img-cover {
     width: 100%;
     height: 100%;
@@ -476,6 +420,6 @@
   /* Fix para altura de viewport en móviles */
   .vh-fix {
     height: 100vh;
-    height: 100dvh; /* dynamic viewport height - mejor soporte en móviles */
+    height: 100dvh;
   }
 }

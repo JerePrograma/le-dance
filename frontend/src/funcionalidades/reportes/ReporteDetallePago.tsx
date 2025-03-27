@@ -15,7 +15,7 @@ interface FiltrosBusqueda {
   fechaInicio: string;
   fechaFin: string;
   disciplinaNombre: string; // Búsqueda por nombre de disciplina
-  profesorNombre: string;   // Búsqueda por nombre de profesor
+  profesorNombre: string; // Búsqueda por nombre de profesor
 }
 
 // Establecemos el mes actual en formato "YYYY-MM" como valor inicial
@@ -28,7 +28,9 @@ const ReporteDetallePago: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   // Estados para sugerencias de disciplina y profesor
-  const [sugerenciasDisciplinas, setSugerenciasDisciplinas] = useState<any[]>([]);
+  const [sugerenciasDisciplinas, setSugerenciasDisciplinas] = useState<any[]>(
+    []
+  );
   const [sugerenciasProfesores, setSugerenciasProfesores] = useState<any[]>([]);
 
   // Hooks de debounce para disciplina y profesor
@@ -55,16 +57,23 @@ const ReporteDetallePago: React.FC = () => {
       setError(null);
       try {
         // Función para transformar "YYYY-MM" en fecha inicio (primer día) y fecha fin (último día)
-        const transformarMesAFechas = (mesStr: string): { inicio: string; fin: string } => {
+        const transformarMesAFechas = (
+          mesStr: string
+        ): { inicio: string; fin: string } => {
           const [year, month] = mesStr.split("-").map(Number);
           const inicio = new Date(year, month - 1, 1);
           const fin = new Date(year, month, 0); // Último día del mes
           const formatear = (d: Date) =>
-            `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+            `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
+              2,
+              "0"
+            )}-${String(d.getDate()).padStart(2, "0")}`;
           return { inicio: formatear(inicio), fin: formatear(fin) };
         };
 
-        const { inicio: inicioFecha } = transformarMesAFechas(values.fechaInicio);
+        const { inicio: inicioFecha } = transformarMesAFechas(
+          values.fechaInicio
+        );
         const { fin: finFecha } = transformarMesAFechas(values.fechaFin);
 
         const params = {
@@ -74,10 +83,14 @@ const ReporteDetallePago: React.FC = () => {
           profesorNombre: values.profesorNombre || undefined,
         };
 
-        console.log("Llamando a /api/reportes/mensualidades/buscar con parámetros:", params);
+        console.log(
+          "Llamando a /api/reportes/mensualidades/buscar con parámetros:",
+          params
+        );
 
         // Se espera directamente un array de DetallePagoResponse
-        const response: DetallePagoResponse[] = await reporteMensualidadApi.listarReporte(params);
+        const response: DetallePagoResponse[] =
+          await reporteMensualidadApi.listarReporte(params);
         console.log("Respuesta recibida:", response);
         setResultados(response);
       } catch (err: any) {
@@ -94,7 +107,9 @@ const ReporteDetallePago: React.FC = () => {
     const buscarSugerenciasDisciplinas = async () => {
       if (debouncedDisciplinaBusqueda) {
         try {
-          const sugerencias = await disciplinasApi.buscarPorNombre(debouncedDisciplinaBusqueda);
+          const sugerencias = await disciplinasApi.buscarPorNombre(
+            debouncedDisciplinaBusqueda
+          );
           console.log("Sugerencias de disciplinas:", sugerencias);
           setSugerenciasDisciplinas(sugerencias);
         } catch (err) {
@@ -113,7 +128,9 @@ const ReporteDetallePago: React.FC = () => {
     const buscarSugerenciasProfesores = async () => {
       if (debouncedProfesorBusqueda) {
         try {
-          const sugerencias = await profesoresApi.buscarPorNombre(debouncedProfesorBusqueda);
+          const sugerencias = await profesoresApi.buscarPorNombre(
+            debouncedProfesorBusqueda
+          );
           console.log("Sugerencias de profesores:", sugerencias);
           setSugerenciasProfesores(sugerencias);
         } catch (err) {
@@ -130,7 +147,10 @@ const ReporteDetallePago: React.FC = () => {
   return (
     <div className="p-4">
       <h1 className="text-2xl font-bold mb-4">Reporte de Detalle de Pagos</h1>
-      <form onSubmit={formik.handleSubmit} className="mb-4 grid grid-cols-2 gap-4 relative">
+      <form
+        onSubmit={formik.handleSubmit}
+        className="mb-4 grid grid-cols-2 gap-4 relative"
+      >
         {/* Filtros de Fecha usando input type "month" */}
         <div>
           <label className="block font-medium">Mes Inicio:</label>
@@ -175,7 +195,7 @@ const ReporteDetallePago: React.FC = () => {
             className="border p-2 w-full"
           />
           {sugerenciasDisciplinas.length > 0 && (
-            <ul className="absolute bg-gray-500 border border-gray-700 mt-1 w-full z-10">
+            <ul className="absolute w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 mt-1 z-10 rounded-md shadow-lg">
               {sugerenciasDisciplinas.map((disciplina: any) => (
                 <li
                   key={disciplina.id}
@@ -183,7 +203,7 @@ const ReporteDetallePago: React.FC = () => {
                     formik.setFieldValue("disciplinaNombre", disciplina.nombre);
                     setSugerenciasDisciplinas([]);
                   }}
-                  className="p-2 bg-slate-600 cursor-pointer"
+                  className="bg-slate-200 dark:bg-slate-600 hover:bg-gray-200 dark:hover:bg-gray-700"
                 >
                   {disciplina.nombre}
                 </li>
@@ -206,15 +226,18 @@ const ReporteDetallePago: React.FC = () => {
             className="border p-2 w-full"
           />
           {sugerenciasProfesores.length > 0 && (
-            <ul className="absolute bg-gray-500 border border-gray-700 mt-1 w-full z-10">
+            <ul className="absolute bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 mt-1 z-10 rounded-md shadow-lg">
               {sugerenciasProfesores.map((profesor: any) => (
                 <li
                   key={profesor.id}
                   onClick={() => {
-                    formik.setFieldValue("profesorNombre", `${profesor.nombre} ${profesor.apellido}`);
+                    formik.setFieldValue(
+                      "profesorNombre",
+                      `${profesor.nombre} ${profesor.apellido}`
+                    );
                     setSugerenciasProfesores([]);
                   }}
-                  className="p-2 bg-slate-600 cursor-pointer"
+                  className="bg-slate-200 dark:bg-slate-600 hover:bg-gray-200 dark:hover:bg-gray-700"
                 >
                   {profesor.nombre} {profesor.apellido}
                 </li>
@@ -246,7 +269,7 @@ const ReporteDetallePago: React.FC = () => {
               "Valor Base",
               "Bonificacion",
               "Monto cobrado",
-              "Fecha Registro"
+              "Fecha Registro",
             ]}
             data={resultados}
             customRender={(item) => [
@@ -257,7 +280,7 @@ const ReporteDetallePago: React.FC = () => {
               item.importeInicial,
               item.bonificacionNombre,
               item.aCobrar,
-              item.fechaRegistro
+              item.fechaRegistro,
             ]}
           />
         )}

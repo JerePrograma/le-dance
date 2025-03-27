@@ -1,36 +1,38 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Tabla from "../../componentes/comunes/Tabla";
 import api from "../../api/axiosConfig";
 import Boton from "../../componentes/comunes/Boton";
 import { PlusCircle, Pencil, Trash2 } from "lucide-react";
 import { toast } from "react-toastify";
-import { PagoResponse } from "../../types/types";
+import type { PagoResponse } from "../../types/types";
 import InfiniteScroll from "../../componentes/comunes/InfiniteScroll";
 
 const PaymentList: React.FC = () => {
   const [pagos, setPagos] = useState<PagoResponse[]>([]);
-  const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const itemsPerPage = 15; // o 20, según tu necesidad
 
   const navigate = useNavigate();
+  // Usamos un ref para controlar la página actual sin forzar re-render
+  const pageRef = useRef(0);
 
   const fetchPagos = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      // Se asume que el endpoint acepta los parámetros "page" y "limit"
+      // Obtenemos la página actual del ref
+      const currentPage = pageRef.current;
       const response = await api.get<PagoResponse[]>(
-        `/pagos?page=${page}&limit=${itemsPerPage}`
+        `/pagos?page=${currentPage}&limit=${itemsPerPage}`
       );
       const nuevosPagos = response.data;
       setPagos((prev) => [...prev, ...nuevosPagos]);
-      setPage((prev) => prev + 1);
+      pageRef.current = currentPage + 1;
       if (nuevosPagos.length < itemsPerPage) {
         setHasMore(false);
       }
@@ -40,12 +42,12 @@ const PaymentList: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, itemsPerPage]);
+  }, [itemsPerPage]);
 
   // Carga inicial de datos
   useEffect(() => {
     fetchPagos();
-  }, []);
+  }, [fetchPagos]);
 
   const handleEliminar = async (id: number) => {
     try {
