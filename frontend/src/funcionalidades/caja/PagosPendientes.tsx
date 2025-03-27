@@ -1,12 +1,7 @@
 "use client";
 
-import React, {
-  useState,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-} from "react";
+import type React from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import Tabla from "../../componentes/comunes/Tabla";
 import Boton from "../../componentes/comunes/Boton";
 import { toast } from "react-toastify";
@@ -195,11 +190,16 @@ const DetallePagoList: React.FC = () => {
     return <div className="text-center py-4 text-destructive">{error}</div>;
 
   return (
-    <div ref={containerRef} className="container mx-auto p-6 space-y-6">
-      <h1 className="text-3xl font-bold tracking-tight">Pagos pendientes</h1>
+    <div
+      ref={containerRef}
+      className="container mx-auto p-6 flex flex-col h-screen"
+    >
+      <h1 className="text-3xl font-bold tracking-tight flex-none">
+        Pagos pendientes
+      </h1>
 
       {/* Sección de filtros */}
-      <div className="page-card mb-4">
+      <div className="page-card mb-4 flex-none">
         <form onSubmit={handleFilterSubmit}>
           <div className="flex gap-4 items-center mb-4">
             <div>
@@ -330,7 +330,7 @@ const DetallePagoList: React.FC = () => {
       </div>
 
       {/* Tabla de Detalles de Pago */}
-      <div className="page-card">
+      <div className="page-card flex-grow overflow-auto">
         {loading && <div className="text-center py-4">Cargando...</div>}
         {error && (
           <div className="text-center py-4 text-destructive">{error}</div>
@@ -372,7 +372,7 @@ const DetallePagoList: React.FC = () => {
       </div>
 
       {/* Infinite Scroll */}
-      <div className="py-4 border-t">
+      <div className="py-4 border-t flex-none">
         <ListaConInfiniteScroll
           onLoadMore={onLoadMore}
           hasMore={hasMore}
