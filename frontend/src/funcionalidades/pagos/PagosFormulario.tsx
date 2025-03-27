@@ -315,7 +315,6 @@ const TotalsUpdater: React.FC<{ metodosPago: MetodoPagoResponse[] }> = ({
     if (values.totalACobrar !== newTotalImporte) {
       setFieldValue("totalACobrar", newTotalImporte);
     }
-    // (El cálculo de totalCobrado sigue según tu lógica actual)
   }, [
     values.detallePagos,
     values.metodoPagoId,
@@ -1014,39 +1013,11 @@ const CobranzasForm: React.FC = () => {
           );
 
           useEffect(() => {
-            // Solo actualizamos si se debe aplicar recargo
-            if (values.metodoPagoId && values.aplicarRecargo) {
-              const selectedMetodoPago = metodosPago.find(
-                (mp: MetodoPagoResponse) =>
-                  mp.id === Number(values.metodoPagoId)
-              );
-              if (selectedMetodoPago && selectedMetodoPago.recargo) {
-                const updatedDetalles = values.detallePagos.map((det: any) => ({
-                  ...det,
-                  recargoId: selectedMetodoPago.recargo,
-                }));
-                setFieldValue("detallePagos", updatedDetalles);
-              } else {
-                const updatedDetalles = values.detallePagos.map((det: any) => ({
-                  ...det,
-                  recargoId: null,
-                }));
-                setFieldValue("detallePagos", updatedDetalles);
-              }
-            }
-          }, [
-            values.metodoPagoId,
-            values.aplicarRecargo,
-            metodosPago,
-            setFieldValue,
-          ]);
-
-          useEffect(() => {
             if (values.metodoPagoId) {
               setFieldValue("totalCobrado", values.totalACobrar);
             }
           }, [values.metodoPagoId, values.totalACobrar, setFieldValue]);
-
+          
           // Aquí definimos la función para quitar el recargo
           const handleQuitarRecargo = useCallback(() => {
             // Desactivamos el recargo para el total
