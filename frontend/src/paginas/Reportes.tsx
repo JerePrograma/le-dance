@@ -334,7 +334,7 @@ const Reportes = () => {
               }}
               hasMore={paginaActual + 1 < totalPaginas}
               loading={loading}
-              className="justify-center"
+              className="justify-center w-full"
               children={undefined}
             ></ListaConInfiniteScroll>
           </div>

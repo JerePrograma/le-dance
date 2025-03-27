@@ -377,7 +377,7 @@ const DetallePagoList: React.FC = () => {
           onLoadMore={onLoadMore}
           hasMore={hasMore}
           loading={loading}
-          className="justify-center"
+          className="justify-center w-full"
         >
           {loading && <div className="text-center py-2">Cargando más...</div>}
         </ListaConInfiniteScroll>

@@ -122,7 +122,7 @@ const SubConceptos = () => {
             onLoadMore={loadMore}
             hasMore={hasMore}
             loading={loading}
-            className="justify-center"
+            className="justify-center w-full"
             children={undefined}
           />
         </div>

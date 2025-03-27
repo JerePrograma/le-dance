@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import type React from "react";
 import InfiniteScroll from "./InfiniteScroll";
 
 export interface ListaConInfiniteScrollProps {
@@ -9,6 +9,10 @@ export interface ListaConInfiniteScrollProps {
   loading: boolean;
   className?: string;
   children: React.ReactNode;
+  /** Si es true, el contenedor ocupará todo el espacio disponible */
+  fillAvailable?: boolean;
+  /** Altura máxima del contenedor (solo se usa si fillAvailable es false) */
+  maxHeight?: string;
 }
 
 const ListaConInfiniteScroll: React.FC<ListaConInfiniteScrollProps> = ({
@@ -17,14 +21,17 @@ const ListaConInfiniteScroll: React.FC<ListaConInfiniteScrollProps> = ({
   loading,
   className,
   children,
+  fillAvailable = true,
+  maxHeight,
 }) => {
-  // Simplemente renderiza el InfiniteScroll pasándole las props
   return (
     <InfiniteScroll
       onLoadMore={onLoadMore}
       hasMore={hasMore}
       loading={loading}
       className={className}
+      fillAvailable={fillAvailable}
+      maxHeight={maxHeight}
     >
       {children}
     </InfiniteScroll>
