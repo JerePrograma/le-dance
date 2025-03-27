@@ -8,6 +8,11 @@ import {
   otherProtectedRoutes,
 } from "./routes";
 
+
+//////////////////////////
+// Componente principal //
+//////////////////////////
+
 const AppRouter: React.FC = () => {
   return (
     <Suspense fallback={<div>Cargando...</div>}>
@@ -22,15 +27,17 @@ const AppRouter: React.FC = () => {
           {protectedRoutes.map(({ path, Component }) => (
             <Route key={path} path={path} element={<Component />} />
           ))}
+        </Route>
 
-          {/* Rutas solo para ADMINISTRADOR */}
-          <Route element={<ProtectedRoute requiredRole="ADMINISTRADOR" />}>
-            {adminRoutes.map(({ path, Component }) => (
-              <Route key={path} path={path} element={<Component />} />
-            ))}
-          </Route>
+        {/* Rutas solo para ADMINISTRADOR */}
+        <Route element={<ProtectedRoute requiredRole="ADMINISTRADOR" />}>
+          {adminRoutes.map(({ path, Component }) => (
+            <Route key={path} path={path} element={<Component />} />
+          ))}
+        </Route>
 
-          {/* Otras rutas protegidas */}
+        {/* Otras rutas protegidas */}
+        <Route element={<ProtectedRoute />}>
           {otherProtectedRoutes.map(({ path, Component }) => (
             <Route key={path} path={path} element={<Component />} />
           ))}

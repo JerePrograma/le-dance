@@ -118,32 +118,37 @@ const InscripcionesPagina = () => {
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">
-          Inscripciones por Alumno
+          Alumnos Activos
         </h1>
       </div>
 
       <div className="flex flex-col sm:flex-row sm:justify-between gap-4">
-        <div>
-          <label htmlFor="search" className="mr-2 font-medium">
-            Buscar por nombre:
-          </label>
-          <input
-            id="search"
-            list="nombres"
-            type="text"
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setCurrentPage(0);
-            }}
-            placeholder="Escribe o selecciona un nombre..."
-            className="border rounded px-2 py-1"
-          />
-          <datalist id="nombres">
-            {nombresUnicos.map((nombre) => (
-              <option key={nombre} value={nombre} />
-            ))}
-          </datalist>
+        <div className="flex items-center gap-4">
+          <div>
+            <label htmlFor="search" className="mr-2 font-medium">
+              Buscar por nombre:
+            </label>
+            <input
+              id="search"
+              list="nombres"
+              type="text"
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(0);
+              }}
+              placeholder="Escribe o selecciona un nombre..."
+              className="border rounded px-2 py-1"
+            />
+            <datalist id="nombres">
+              {nombresUnicos.map((nombre) => (
+                <option key={nombre} value={nombre} />
+              ))}
+            </datalist>
+          </div>
+          <div className="font-medium">
+            Alumnos activos = {gruposFiltradosYOrdenados.length}
+          </div>
         </div>
         <div>
           <label htmlFor="sortOrder" className="mr-2 font-medium">

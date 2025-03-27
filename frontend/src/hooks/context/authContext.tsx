@@ -1,9 +1,23 @@
-"use client";
-
-import React, { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+// authContext.tsx
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../api/axiosConfig";
 import { toast } from "react-toastify";
+
+// Definimos la interfaz del perfil de usuario
+export interface UserProfile {
+  id: number;
+  nombre: string;
+  email?: string;
+  rol: string;
+  // Otros campos que devuelva tu endpoint de perfil
+}
 
 interface AuthContextProps {
   isAuth: boolean;
@@ -12,7 +26,7 @@ interface AuthContextProps {
   logout: () => void;
   accessToken: string | null;
   refreshToken: string | null;
-  rol: string | null;
+  user: UserProfile | null;
   hasRole: (role: string) => boolean;
 }
 
@@ -26,15 +40,18 @@ export const useAuth = (): AuthContextProps => {
   return context;
 };
 
-export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
   const [isAuth, setIsAuth] = useState(false);
   const [loading, setLoading] = useState(true);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState<string | null>(null);
-  const [rol, setRol] = useState<string | null>(null);
+  const [user, setUser] = useState<UserProfile | null>(null);
 
   const navigate = useNavigate();
 
+  // Al montar, intentamos cargar los tokens y obtener el perfil del usuario
   useEffect(() => {
     const storedAccess = localStorage.getItem("accessToken");
     const storedRefresh = localStorage.getItem("refreshToken");
@@ -43,18 +60,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setAccessToken(storedAccess);
       setRefreshToken(storedRefresh);
       setIsAuth(true);
-      // Obtener el perfil para establecer el rol
-      api.get("/usuarios/perfil")
+      // Obtener el perfil completo del usuario
+      api
+        .get("/usuarios/perfil")
         .then((response) => {
-          setRol(response.data.rol);
+          setUser(response.data);
         })
         .catch((error) => {
-          toast.error("Error al obtener el perfil:", error);
+          toast.error("Error al obtener el perfil", error);
+        })
+        .finally(() => {
+          // Ahora solo marcamos loading en false al finalizar la petición
+          setLoading(false);
         });
+    } else {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
+  // Si no está autenticado, redirige a login (excepto en rutas públicas)
   useEffect(() => {
     if (loading) return;
     const publicPaths = ["/login", "/registro"];
@@ -63,21 +87,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [loading, isAuth, navigate]);
 
-  const login = async (nombreUsuario: string, contrasena: string): Promise<void> => {
-    const { data } = await api.post("/login", { nombreUsuario, contrasena });
-
-    localStorage.setItem("accessToken", data.accessToken);
-    localStorage.setItem("refreshToken", data.refreshToken);
-
-    setAccessToken(data.accessToken);
-    setRefreshToken(data.refreshToken);
-    setIsAuth(true);
-
+  const login = async (
+    nombreUsuario: string,
+    contrasena: string
+  ): Promise<void> => {
     try {
+      const { data } = await api.post("/login", { nombreUsuario, contrasena });
+      localStorage.setItem("accessToken", data.accessToken);
+      localStorage.setItem("refreshToken", data.refreshToken);
+
+      setAccessToken(data.accessToken);
+      setRefreshToken(data.refreshToken);
+      setIsAuth(true);
+
+      // Obtener perfil completo del usuario luego del login
       const profileResponse = await api.get("/usuarios/perfil");
-      setRol(profileResponse.data.rol);
+      setUser(profileResponse.data);
     } catch (error) {
-      toast.error("Error al obtener el perfil:");
+      toast.error("Error al iniciar sesión");
+      throw error;
     }
   };
 
@@ -86,17 +114,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setAccessToken(null);
     setRefreshToken(null);
     setIsAuth(false);
-    setRol(null);
+    setUser(null);
     navigate("/login");
   };
 
+  // Comparación insensible a mayúsculas para mayor robustez
   const hasRole = (role: string): boolean => {
-    return rol !== null && rol === role;
+    return (
+      user !== null &&
+      user.rol.trim().toUpperCase() === role.trim().toUpperCase()
+    );
   };
 
   return (
     <AuthContext.Provider
-      value={{ isAuth, loading, login, logout, accessToken, refreshToken, rol, hasRole }}
+      value={{
+        isAuth,
+        loading,
+        login,
+        logout,
+        accessToken,
+        refreshToken,
+        user,
+        hasRole,
+      }}
     >
       {children}
     </AuthContext.Provider>

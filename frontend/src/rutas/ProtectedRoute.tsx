@@ -11,19 +11,20 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   redirectPath = "/login",
   requiredRole,
 }) => {
-  const { isAuth, loading, hasRole } = useAuth();
+  const { isAuth, loading, user, hasRole } = useAuth();
 
-  if (loading) {
-    // Se podría reemplazar por un componente de carga personalizado
-    return <div>Cargando...</div>;
+  // Mientras se carga el perfil, muestra un indicador de carga
+  if (loading || (isAuth && !user)) {
+    return <div>Cargando perfil...</div>;
   }
 
+  // Si no está autenticado, redirige
   if (!isAuth) {
     return <Navigate to={redirectPath} replace />;
   }
 
+  // Si se requiere un rol y el usuario no lo tiene, redirige a no autorizado
   if (requiredRole && !hasRole(requiredRole)) {
-    // Redirige a la ruta "No autorizado" si el usuario no cumple el rol requerido
     return <Navigate to="/unauthorized" replace />;
   }
 

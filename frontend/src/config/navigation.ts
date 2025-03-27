@@ -269,7 +269,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: "Alumnos activos",
         icon: ClipboardList,
-        label: "Inscripciones",
+        label: "Alumnos activos",
         href: "/inscripciones",
         description: "Gestión de Inscripciones",
       },
