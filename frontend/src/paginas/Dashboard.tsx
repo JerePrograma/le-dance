@@ -145,19 +145,6 @@ const Dashboard: React.FC = () => {
           Bienvenido al sistema de gestión LE DANCE
         </p>
       </div>
-
-      {/* Categorías */}
-      <section className="space-y-4">
-        <h2 className="text-2xl font-semibold tracking-tight">
-          Gestión del Sistema
-        </h2>
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4">
-          {categories.map((category) => (
-            <CategoryCard key={category.id} item={category} />
-          ))}
-        </div>
-      </section>
-
       {/* Accesos Directos */}
       {singleItems.length > 0 && (
         <section className="space-y-4">
@@ -171,6 +158,17 @@ const Dashboard: React.FC = () => {
           </div>
         </section>
       )}
+      {/* Categorías */}
+      <section className="space-y-4">
+        <h2 className="text-2xl font-semibold tracking-tight">
+          Gestión del Sistema
+        </h2>
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4">
+          {categories.map((category) => (
+            <CategoryCard key={category.id} item={category} />
+          ))}
+        </div>
+      </section>
     </div>
   );
 };
