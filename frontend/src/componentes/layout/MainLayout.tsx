@@ -23,7 +23,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
             className={`flex-1 w-full transition-all duration-300 px-[var(--container-padding)] py-[clamp(1rem,2vh,2rem)] ${isExpanded ? "md:ml-[var(--sidebar-width)]" : "md:ml-[var(--sidebar-width-collapsed)]"}`}
           >
             {/* Contenedor principal sin restricción de ancho máximo */}
-            <div className="mx-auto w-full">
+            <div className="page-container mx-auto w-full min-h-[100vh]">
               {children}
             </div>
           </main>
