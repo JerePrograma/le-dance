@@ -1,8 +1,6 @@
 "use client";
 
-// components/comunes/Tabla.tsx
 import type { ReactNode } from "react";
-import { useRef, useEffect } from "react";
 import {
   Table,
   TableBody,
@@ -20,11 +18,6 @@ interface TablaProps<T extends Record<string, any>> {
   customRender?: (row: T) => (string | number | ReactNode)[];
   footer?: ReactNode;
   emptyMessage?: string;
-  // Props para infinite scroll
-  hasMore?: boolean;
-  onLoadMore?: () => void;
-  loading?: boolean;
-  // Prop para altura personalizada
   className?: string;
 }
 
@@ -35,40 +28,8 @@ const Tabla = <T extends Record<string, any>>({
   customRender,
   footer,
   emptyMessage = "No hay datos disponibles",
-  hasMore = false,
-  onLoadMore,
-  loading = false,
   className = "",
 }: TablaProps<T>) => {
-  const sentinelRef = useRef<HTMLDivElement>(null);
-
-  // Configurar IntersectionObserver para infinite scroll si es necesario
-  useEffect(() => {
-    if (!hasMore || !onLoadMore || !sentinelRef.current) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const entry = entries[0];
-        if (entry.isIntersecting && !loading && hasMore) {
-          onLoadMore();
-        }
-      },
-      {
-        root: null,
-        rootMargin: "200px",
-        threshold: 0.1,
-      }
-    );
-
-    observer.observe(sentinelRef.current);
-
-    return () => {
-      if (sentinelRef.current) {
-        observer.unobserve(sentinelRef.current);
-      }
-    };
-  }, [loading, hasMore, onLoadMore]);
-
   return (
     <div className={`w-full h-full flex flex-col ${className}`}>
       {/* Versión para pantallas medianas y grandes */}
@@ -134,17 +95,6 @@ const Tabla = <T extends Record<string, any>>({
           </TableBody>
           {footer && <TableFooter>{footer}</TableFooter>}
         </Table>
-
-        {/* Elemento sentinel para infinite scroll */}
-        {hasMore && <div ref={sentinelRef} className="h-4 w-full" />}
-
-        {/* Indicador de carga */}
-        {loading && hasMore && (
-          <div className="py-3 text-center text-sm text-muted-foreground flex items-center justify-center gap-2">
-            <div className="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
-            <span>Cargando más...</span>
-          </div>
-        )}
       </div>
 
       {/* Versión para móviles (cards en lugar de tabla) */}
@@ -192,17 +142,6 @@ const Tabla = <T extends Record<string, any>>({
         ) : (
           <div className="text-center p-6 bg-card rounded-lg border border-border text-muted-foreground">
             {emptyMessage}
-          </div>
-        )}
-
-        {/* Elemento sentinel para infinite scroll en móvil */}
-        {hasMore && <div ref={sentinelRef} className="h-4 w-full" />}
-
-        {/* Indicador de carga en móvil */}
-        {loading && hasMore && (
-          <div className="py-3 text-center text-sm text-muted-foreground flex items-center justify-center gap-2">
-            <div className="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
-            <span>Cargando más...</span>
           </div>
         )}
       </div>

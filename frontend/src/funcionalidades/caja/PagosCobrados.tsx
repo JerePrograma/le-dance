@@ -1,7 +1,12 @@
 "use client";
 
-import type React from "react";
-import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import React, {
+  useState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+} from "react";
 import Tabla from "../../componentes/comunes/Tabla";
 import Boton from "../../componentes/comunes/Boton";
 import { toast } from "react-toastify";
@@ -11,14 +16,15 @@ import stocksApi from "../../api/stocksApi";
 import subConceptosApi from "../../api/subConceptosApi";
 import conceptosApi from "../../api/conceptosApi";
 import type { DetallePagoResponse } from "../../types/types";
-// Se importa el hook que provee bonificaciones y recargos
 import { useCobranzasData } from "../../hooks/useCobranzasData";
+import ListaConInfiniteScroll from "../../componentes/comunes/ListaConInfiniteScroll";
 
 const tarifaOptions = ["CUOTA", "CLASE DE PRUEBA", "CLASE SUELTA"];
-const estimatedRowHeight = 70; // Altura estimada en píxeles de cada fila
-const itemsPerPage = 25; // Valor base en caso de no poder calcular (fallback)
+const estimatedRowHeight = 70; // Altura estimada por fila (en píxeles)
+const itemsPerPage = 25; // Valor base (fallback)
 
 const DetallePagoList: React.FC = () => {
+  // Estados de datos y carga
   const [detalles, setDetalles] = useState<DetallePagoResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,22 +48,22 @@ const DetallePagoList: React.FC = () => {
   const [conceptos, setConceptos] = useState<any[]>([]);
   const [selectedConcepto, setSelectedConcepto] = useState("");
 
-  // Ref para el contenedor de la lista (para medir su altura)
+  // Refs para calcular alturas
   const containerRef = useRef<HTMLDivElement>(null);
   const tableContainerRef = useRef<HTMLDivElement>(null);
 
-  // Se obtienen bonificaciones y recargos desde el hook
+  // Hook para bonificaciones y recargos
   const { bonificaciones, recargos } = useCobranzasData();
 
-  // Función para traer los detalles aplicando filtros (si existen)
+  // Función para cargar detalles (aplicando filtros si existen)
   const fetchDetalles = useCallback(
     async (params: Record<string, string> = {}) => {
       try {
         setLoading(true);
         setError(null);
         const data = await pagosApi.filtrarDetalles(params);
-        setDetalles(data);
-        // Reiniciamos visibleCount al aplicar filtros o recargar datos
+        setDetalles(Array.isArray(data) ? data : []);
+        // Reiniciamos visibleCount al recargar datos
         setVisibleCount(itemsPerPage);
       } catch (error) {
         toast.error("Error al cargar pagos cobrados");
@@ -69,12 +75,12 @@ const DetallePagoList: React.FC = () => {
     []
   );
 
-  // Cargar la lista completa al montar
+  // Cargar datos al montar
   useEffect(() => {
     fetchDetalles();
   }, [fetchDetalles]);
 
-  // Carga de filtros secundarios según la categoría seleccionada.
+  // Cargar filtros secundarios según la categoría seleccionada
   useEffect(() => {
     if (filtroTipo === "DISCIPLINAS") {
       disciplinasApi
@@ -113,45 +119,19 @@ const DetallePagoList: React.FC = () => {
     }
   }, [filtroTipo, selectedSubConcepto]);
 
-  // Filtrar los detalles para mostrar solo aquellos que han sido cobrados
-  const detallesCobrado = useMemo(
-    () => detalles.filter((detalle) => detalle.cobrado),
-    [detalles]
-  );
+  // Filtrar detalles para mostrar solo los que hayan sido cobrados
+  const detallesCobrado = useMemo(() => {
+    return detalles.filter((detalle) => detalle.cobrado);
+  }, [detalles]);
 
-  // Ajustar visibleCount dinámicamente según la altura del contenedor
+  // Ajustar visibleCount según la altura del contenedor principal
   const adjustVisibleCount = useCallback(() => {
     if (containerRef.current) {
       const containerHeight =
         containerRef.current.getBoundingClientRect().height;
-      const itemsThatFit = Math.floor(containerHeight / estimatedRowHeight);
+      const itemsThatFit = Math.ceil(containerHeight / estimatedRowHeight);
       setVisibleCount(itemsThatFit);
     }
-  }, []);
-
-  // Ajustar la altura de la tabla para que ocupe todo el espacio disponible
-  useEffect(() => {
-    const adjustTableHeight = () => {
-      if (tableContainerRef.current) {
-        const windowHeight = window.innerHeight;
-        const tableRect = tableContainerRef.current.getBoundingClientRect();
-        const tableTop = tableRect.top;
-
-        // Calculamos la altura disponible (restamos un pequeño margen)
-        const availableHeight = windowHeight - tableTop - 10;
-
-        // Aplicamos la altura calculada
-        tableContainerRef.current.style.height = `${availableHeight}px`;
-      }
-    };
-
-    // Ajustamos la altura inicialmente y en cada resize
-    adjustTableHeight();
-    window.addEventListener("resize", adjustTableHeight);
-
-    return () => {
-      window.removeEventListener("resize", adjustTableHeight);
-    };
   }, []);
 
   useEffect(() => {
@@ -160,7 +140,23 @@ const DetallePagoList: React.FC = () => {
     return () => window.removeEventListener("resize", adjustVisibleCount);
   }, [adjustVisibleCount]);
 
-  // Se obtiene el subconjunto de los detalles cobrados según visibleCount
+  // Ajustar la altura del contenedor de la tabla para ocupar todo el espacio disponible
+  useEffect(() => {
+    const adjustTableHeight = () => {
+      if (tableContainerRef.current) {
+        const windowHeight = window.innerHeight;
+        const tableRect = tableContainerRef.current.getBoundingClientRect();
+        const availableHeight = windowHeight - tableRect.top - 10;
+        tableContainerRef.current.style.height = `${availableHeight}px`;
+      }
+    };
+
+    adjustTableHeight();
+    window.addEventListener("resize", adjustTableHeight);
+    return () => window.removeEventListener("resize", adjustTableHeight);
+  }, []);
+
+  // Subconjunto de datos a mostrar según visibleCount
   const currentItems = useMemo(
     () => detallesCobrado.slice(0, visibleCount),
     [detallesCobrado, visibleCount]
@@ -172,14 +168,14 @@ const DetallePagoList: React.FC = () => {
     [visibleCount, detallesCobrado.length]
   );
 
-  // Incrementa visibleCount en bloques
+  // Función para cargar más datos (incrementa visibleCount)
   const onLoadMore = useCallback(() => {
     if (hasMore) {
       setVisibleCount((prev) => prev + itemsPerPage);
     }
   }, [hasMore]);
 
-  // Al enviar el formulario, se arma el objeto de parámetros y se reinicia visibleCount
+  // Manejo del envío del filtro
   const handleFilterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const params: Record<string, string> = {};
@@ -215,6 +211,7 @@ const DetallePagoList: React.FC = () => {
 
   return (
     <div ref={containerRef} className="flex flex-col h-screen overflow-hidden">
+      {/* Header */}
       <div className="flex-none p-6 pb-2">
         <h1 className="text-3xl font-bold tracking-tight">Pagos cobrados</h1>
       </div>
@@ -352,17 +349,18 @@ const DetallePagoList: React.FC = () => {
         </div>
       </div>
 
-      {/* Tabla de Detalles de Pago - Ahora con altura calculada dinámicamente */}
+      {/* Tabla de Detalles de Pago con infinite scroll */}
       <div
         ref={tableContainerRef}
         className="flex-grow px-6 pb-0 overflow-hidden"
       >
         <div className="page-card h-full">
-          {loading && <div className="text-center py-4">Cargando...</div>}
-          {error && (
-            <div className="text-center py-4 text-destructive">{error}</div>
-          )}
-          {!loading && !error && (
+          <ListaConInfiniteScroll
+            onLoadMore={onLoadMore}
+            hasMore={hasMore}
+            loading={loading}
+            fillAvailable={true}
+          >
             <Tabla
               headers={[
                 "Código",
@@ -394,11 +392,8 @@ const DetallePagoList: React.FC = () => {
                 ];
               }}
               emptyMessage="No hay pagos cobrados"
-              hasMore={hasMore}
-              onLoadMore={onLoadMore}
-              loading={loading}
             />
-          )}
+          </ListaConInfiniteScroll>
         </div>
       </div>
     </div>

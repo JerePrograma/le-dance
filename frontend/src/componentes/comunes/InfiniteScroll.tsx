@@ -1,7 +1,6 @@
 "use client";
 
-import type React from "react";
-import { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState } from "react";
 
 interface InfiniteScrollProps {
   /** Función a ejecutar para cargar más elementos */
@@ -10,15 +9,15 @@ interface InfiniteScrollProps {
   hasMore: boolean;
   /** Bandera que indica si se están cargando elementos */
   loading: boolean;
-  /** Contenido que se desea renderizar (lista de elementos) */
+  /** Contenido a renderizar (lista de elementos) */
   children: React.ReactNode;
   /** Clases opcionales para el contenedor */
   className?: string;
   /** Umbral para el IntersectionObserver (por defecto 0.2) */
   threshold?: number;
-  /** Margen del root para el IntersectionObserver (por defecto '300px' para cargar con antelación) */
+  /** Margen del root para el IntersectionObserver (por defecto '300px') */
   rootMargin?: string;
-  /** Altura máxima del contenedor (por defecto 'auto' para adaptarse al contenido) */
+  /** Altura máxima del contenedor (por defecto 'auto') */
   maxHeight?: string;
   /** Si es true, el contenedor ocupará todo el espacio disponible */
   fillAvailable?: boolean;
@@ -39,39 +38,25 @@ const InfiniteScroll: React.FC<InfiniteScrollProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerHeight, setContainerHeight] = useState<string>(maxHeight);
 
-  // Efecto para ajustar la altura del contenedor si fillAvailable es true
+  // Ajuste de altura si fillAvailable es true
   useEffect(() => {
     if (fillAvailable && containerRef.current) {
       const updateHeight = () => {
-        const container = containerRef.current;
-        if (!container) return;
-
-        // Calculamos la posición del contenedor respecto al viewport
-        const rect = container.getBoundingClientRect();
-        const topPosition = rect.top;
-
-        // Calculamos el espacio disponible hasta el final de la ventana
-        // Restamos un pequeño margen para evitar scroll innecesario
-        const availableHeight = window.innerHeight - topPosition - 20;
-
-        // Aseguramos que la altura mínima sea razonable
+        const rect = containerRef.current!.getBoundingClientRect();
+        const availableHeight = window.innerHeight - rect.top - 20;
         const newHeight = Math.max(300, availableHeight);
         setContainerHeight(`${newHeight}px`);
       };
 
-      // Actualizamos la altura inicialmente y en cada resize
       updateHeight();
       window.addEventListener("resize", updateHeight);
-
-      return () => {
-        window.removeEventListener("resize", updateHeight);
-      };
+      return () => window.removeEventListener("resize", updateHeight);
     } else {
       setContainerHeight(maxHeight);
     }
   }, [fillAvailable, maxHeight]);
 
-  // Efecto para el IntersectionObserver
+  // Configuración del IntersectionObserver
   useEffect(() => {
     if (!sentinelRef.current) return;
 
@@ -83,7 +68,8 @@ const InfiniteScroll: React.FC<InfiniteScrollProps> = ({
         }
       },
       {
-        root: fillAvailable ? containerRef.current : null, // Usar el contenedor como root si es scrollable
+        // Si el contenedor es scrollable, usamos éste como raíz
+        root: fillAvailable ? containerRef.current : null,
         rootMargin,
         threshold,
       }
@@ -92,9 +78,7 @@ const InfiniteScroll: React.FC<InfiniteScrollProps> = ({
     observer.observe(sentinelRef.current);
 
     return () => {
-      if (sentinelRef.current) {
-        observer.unobserve(sentinelRef.current);
-      }
+      if (sentinelRef.current) observer.unobserve(sentinelRef.current);
     };
   }, [loading, hasMore, onLoadMore, threshold, rootMargin, fillAvailable]);
 
@@ -111,7 +95,7 @@ const InfiniteScroll: React.FC<InfiniteScrollProps> = ({
     >
       <div className="flex-grow">{children}</div>
 
-      {/* Elemento sentinel para detectar el final del scroll */}
+      {/* Sentinel para detectar el final */}
       <div
         ref={sentinelRef}
         className="w-full h-4"
