@@ -1022,8 +1022,12 @@ const CobranzasForm: React.FC = () => {
           );
 
           useEffect(() => {
-            if (values.metodoPagoId) {
-              setFieldValue("aplicarRecargo", true);
+            // Solo actualizamos si se debe aplicar recargo
+            if (values.metodoPagoId && values.aplicarRecargo) {
+              const selectedMetodoPago = metodosPago.find(
+                (mp: MetodoPagoResponse) =>
+                  mp.id === Number(values.metodoPagoId)
+              );
               if (selectedMetodoPago && selectedMetodoPago.recargo) {
                 const updatedDetalles = values.detallePagos.map((det: any) => ({
                   ...det,
@@ -1038,7 +1042,12 @@ const CobranzasForm: React.FC = () => {
                 setFieldValue("detallePagos", updatedDetalles);
               }
             }
-          }, [values.metodoPagoId]);
+          }, [
+            values.metodoPagoId,
+            values.aplicarRecargo,
+            metodosPago,
+            setFieldValue,
+          ]);
 
           useEffect(() => {
             if (values.metodoPagoId) {
@@ -1048,7 +1057,7 @@ const CobranzasForm: React.FC = () => {
 
           // Aquí definimos la función para quitar el recargo
           const handleQuitarRecargo = useCallback(() => {
-            // Desactivamos el recargo en el formulario
+            // Desactivamos el recargo
             setFieldValue("aplicarRecargo", false);
             console.log("Antes de quitar recargo:", values.detallePagos);
 
@@ -1057,7 +1066,7 @@ const CobranzasForm: React.FC = () => {
                 return {
                   ...detalle,
                   recargoId: null,
-                  // Se utiliza el valor de importeInicial, que ya debería estar definido
+                  // Se reinicia usando el importeInicial
                   importePendiente: detalle.importeInicial,
                   aCobrar: detalle.importeInicial,
                 };
@@ -1121,7 +1130,7 @@ const CobranzasForm: React.FC = () => {
                       onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
                         const newMetodoId = e.target.value;
                         setFieldValue("metodoPagoId", newMetodoId);
-                        // Al cambiar el método, reactivamos el recargo:
+                        // Siempre reactivamos el recargo al cambiar de método
                         setFieldValue("aplicarRecargo", true);
                         const selected =
                           metodosPago.find(
