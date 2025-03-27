@@ -11,7 +11,6 @@ import stocksApi from "../../api/stocksApi";
 import subConceptosApi from "../../api/subConceptosApi";
 import conceptosApi from "../../api/conceptosApi";
 import type { DetallePagoResponse } from "../../types/types";
-import ListaConInfiniteScroll from "../../componentes/comunes/InfiniteScroll";
 // Se importa el hook que provee bonificaciones y recargos
 import { useCobranzasData } from "../../hooks/useCobranzasData";
 
@@ -45,6 +44,7 @@ const DetallePagoList: React.FC = () => {
 
   // Ref para el contenedor de la lista (para medir su altura)
   const containerRef = useRef<HTMLDivElement>(null);
+  const tableContainerRef = useRef<HTMLDivElement>(null);
 
   // Se obtienen bonificaciones y recargos desde el hook (o de otra fuente)
   const { bonificaciones, recargos } = useCobranzasData();
@@ -130,6 +130,31 @@ const DetallePagoList: React.FC = () => {
     }
   }, []);
 
+  // Ajustar la altura de la tabla para que ocupe todo el espacio disponible
+  useEffect(() => {
+    const adjustTableHeight = () => {
+      if (tableContainerRef.current) {
+        const windowHeight = window.innerHeight;
+        const tableRect = tableContainerRef.current.getBoundingClientRect();
+        const tableTop = tableRect.top;
+
+        // Calculamos la altura disponible (restamos un pequeño margen)
+        const availableHeight = windowHeight - tableTop - 10;
+
+        // Aplicamos la altura calculada
+        tableContainerRef.current.style.height = `${availableHeight}px`;
+      }
+    };
+
+    // Ajustamos la altura inicialmente y en cada resize
+    adjustTableHeight();
+    window.addEventListener("resize", adjustTableHeight);
+
+    return () => {
+      window.removeEventListener("resize", adjustTableHeight);
+    };
+  }, []);
+
   useEffect(() => {
     adjustVisibleCount();
     window.addEventListener("resize", adjustVisibleCount);
@@ -190,197 +215,192 @@ const DetallePagoList: React.FC = () => {
     return <div className="text-center py-4 text-destructive">{error}</div>;
 
   return (
-    <div
-      ref={containerRef}
-      className="container mx-auto p-6 flex flex-col h-screen"
-    >
-      <h1 className="text-3xl font-bold tracking-tight flex-none">
-        Pagos pendientes
-      </h1>
+    <div ref={containerRef} className="flex flex-col h-screen overflow-hidden">
+      <div className="flex-none p-6 pb-2">
+        <h1 className="text-3xl font-bold tracking-tight">Pagos pendientes</h1>
+      </div>
 
       {/* Sección de filtros */}
-      <div className="page-card mb-4 flex-none">
-        <form onSubmit={handleFilterSubmit}>
-          <div className="flex gap-4 items-center mb-4">
-            <div>
-              <label className="block font-medium">Desde</label>
-              <input
-                type="date"
-                className="border p-2"
-                value={fechaInicio}
-                onChange={(e) => setFechaInicio(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block font-medium">Hasta</label>
-              <input
-                type="date"
-                className="border p-2"
-                value={fechaFin}
-                onChange={(e) => setFechaFin(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block font-medium">Filtrar por:</label>
-              <select
-                className="border p-2"
-                value={filtroTipo}
-                onChange={(e) => setFiltroTipo(e.target.value)}
-              >
-                <option value="">Seleccionar...</option>
-                <option value="DISCIPLINAS">DISCIPLINAS</option>
-                <option value="STOCK">STOCK</option>
-                <option value="CONCEPTOS">CONCEPTOS</option>
-              </select>
-            </div>
-            {filtroTipo === "DISCIPLINAS" && (
-              <>
-                <div>
-                  <label className="block font-medium">Disciplina</label>
-                  <select
-                    className="border p-2"
-                    value={selectedDisciplina}
-                    onChange={(e) => setSelectedDisciplina(e.target.value)}
-                  >
-                    <option value="">Seleccionar disciplina...</option>
-                    {disciplinas.map((d) => (
-                      <option key={d.id} value={d.nombre || d.descripcion}>
-                        {d.nombre || d.descripcion}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block font-medium">Tarifa</label>
-                  <select
-                    className="border p-2"
-                    value={selectedTarifa}
-                    onChange={(e) => setSelectedTarifa(e.target.value)}
-                  >
-                    <option value="">Seleccionar tarifa...</option>
-                    {tarifaOptions.map((tarifa) => (
-                      <option key={tarifa} value={tarifa}>
-                        {tarifa}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </>
-            )}
-            {filtroTipo === "STOCK" && (
+      <div className="flex-none px-6 pb-4">
+        <div className="page-card">
+          <form onSubmit={handleFilterSubmit}>
+            <div className="flex gap-4 items-center mb-4">
               <div>
-                <label className="block font-medium">Stock</label>
+                <label className="block font-medium">Desde</label>
+                <input
+                  type="date"
+                  className="border p-2"
+                  value={fechaInicio}
+                  onChange={(e) => setFechaInicio(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block font-medium">Hasta</label>
+                <input
+                  type="date"
+                  className="border p-2"
+                  value={fechaFin}
+                  onChange={(e) => setFechaFin(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block font-medium">Filtrar por:</label>
                 <select
                   className="border p-2"
-                  value={selectedStock}
-                  onChange={(e) => setSelectedStock(e.target.value)}
+                  value={filtroTipo}
+                  onChange={(e) => setFiltroTipo(e.target.value)}
                 >
-                  <option value="">Seleccionar stock...</option>
-                  {stocks.map((s) => (
-                    <option key={s.id} value={s.nombre || s.descripcion}>
-                      {s.nombre || s.descripcion}
-                    </option>
-                  ))}
+                  <option value="">Seleccionar...</option>
+                  <option value="DISCIPLINAS">DISCIPLINAS</option>
+                  <option value="STOCK">STOCK</option>
+                  <option value="CONCEPTOS">CONCEPTOS</option>
                 </select>
               </div>
-            )}
-            {filtroTipo === "CONCEPTOS" && (
-              <>
+              {filtroTipo === "DISCIPLINAS" && (
+                <>
+                  <div>
+                    <label className="block font-medium">Disciplina</label>
+                    <select
+                      className="border p-2"
+                      value={selectedDisciplina}
+                      onChange={(e) => setSelectedDisciplina(e.target.value)}
+                    >
+                      <option value="">Seleccionar disciplina...</option>
+                      {disciplinas.map((d) => (
+                        <option key={d.id} value={d.nombre || d.descripcion}>
+                          {d.nombre || d.descripcion}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block font-medium">Tarifa</label>
+                    <select
+                      className="border p-2"
+                      value={selectedTarifa}
+                      onChange={(e) => setSelectedTarifa(e.target.value)}
+                    >
+                      <option value="">Seleccionar tarifa...</option>
+                      {tarifaOptions.map((tarifa) => (
+                        <option key={tarifa} value={tarifa}>
+                          {tarifa}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
+              {filtroTipo === "STOCK" && (
                 <div>
-                  <label className="block font-medium">Sub Concepto</label>
+                  <label className="block font-medium">Stock</label>
                   <select
                     className="border p-2"
-                    value={selectedSubConcepto}
-                    onChange={(e) => setSelectedSubConcepto(e.target.value)}
+                    value={selectedStock}
+                    onChange={(e) => setSelectedStock(e.target.value)}
                   >
-                    <option value="">Seleccionar sub concepto...</option>
-                    {subConceptos.map((sc) => (
-                      <option key={sc.id} value={sc.descripcion}>
-                        {sc.descripcion}
+                    <option value="">Seleccionar stock...</option>
+                    {stocks.map((s) => (
+                      <option key={s.id} value={s.nombre || s.descripcion}>
+                        {s.nombre || s.descripcion}
                       </option>
                     ))}
                   </select>
                 </div>
-                <div>
-                  <label className="block font-medium">Concepto</label>
-                  <select
-                    className="border p-2"
-                    value={selectedConcepto}
-                    onChange={(e) => setSelectedConcepto(e.target.value)}
-                    disabled={!selectedSubConcepto || conceptos.length === 0}
-                  >
-                    <option value="">Seleccionar concepto...</option>
-                    {conceptos.map((c) => (
-                      <option key={c.id} value={c.descripcion}>
-                        {c.descripcion}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </>
-            )}
-            <Boton
-              type="submit"
-              className="bg-green-500 text-white p-2 rounded"
-            >
-              Ver
-            </Boton>
-          </div>
-        </form>
+              )}
+              {filtroTipo === "CONCEPTOS" && (
+                <>
+                  <div>
+                    <label className="block font-medium">Sub Concepto</label>
+                    <select
+                      className="border p-2"
+                      value={selectedSubConcepto}
+                      onChange={(e) => setSelectedSubConcepto(e.target.value)}
+                    >
+                      <option value="">Seleccionar sub concepto...</option>
+                      {subConceptos.map((sc) => (
+                        <option key={sc.id} value={sc.descripcion}>
+                          {sc.descripcion}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block font-medium">Concepto</label>
+                    <select
+                      className="border p-2"
+                      value={selectedConcepto}
+                      onChange={(e) => setSelectedConcepto(e.target.value)}
+                      disabled={!selectedSubConcepto || conceptos.length === 0}
+                    >
+                      <option value="">Seleccionar concepto...</option>
+                      {conceptos.map((c) => (
+                        <option key={c.id} value={c.descripcion}>
+                          {c.descripcion}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
+              <Boton
+                type="submit"
+                className="bg-green-500 text-white p-2 rounded"
+              >
+                Ver
+              </Boton>
+            </div>
+          </form>
+        </div>
       </div>
 
-      {/* Tabla de Detalles de Pago */}
-      <div className="page-card flex-grow overflow-auto">
-        {loading && <div className="text-center py-4">Cargando...</div>}
-        {error && (
-          <div className="text-center py-4 text-destructive">{error}</div>
-        )}
-        {!loading && !error && (
-          <Tabla
-            headers={[
-              "Código",
-              "Alumno",
-              "Concepto",
-              "Deuda",
-              "Bonificación",
-              "Recargo",
-              "Cobrados",
-            ]}
-            data={currentItems}
-            customRender={(fila) => {
-              const bonificacionNombre =
-                fila.bonificacionId &&
-                bonificaciones.find((b) => b.id === fila.bonificacionId)
-                  ?.descripcion;
-              const recargoNombre =
-                fila.recargoId &&
-                recargos.find((r) => r.id === Number(fila.recargoId))
-                  ?.descripcion;
-              return [
-                fila.conceptoId || fila.id,
-                fila.alumnoDisplay,
-                fila.descripcionConcepto,
-                fila.importePendiente,
-                bonificacionNombre || "-",
-                recargoNombre || "-",
-                fila.cobrado ? "Sí" : "No",
-              ];
-            }}
-            emptyMessage="No hay pagos pendientes"
-          />
-        )}
-      </div>
-
-      {/* Infinite Scroll */}
-      <div className="py-4 border-t flex-none">
-        <ListaConInfiniteScroll
-          onLoadMore={onLoadMore}
-          hasMore={hasMore}
-          loading={loading}
-          className="justify-center w-full"
-        >
-          {loading && <div className="text-center py-2">Cargando más...</div>}
-        </ListaConInfiniteScroll>
+      {/* Tabla de Detalles de Pago - Ahora con altura calculada dinámicamente */}
+      <div
+        ref={tableContainerRef}
+        className="flex-grow px-6 pb-0 overflow-hidden"
+      >
+        <div className="page-card h-full">
+          {loading && <div className="text-center py-4">Cargando...</div>}
+          {error && (
+            <div className="text-center py-4 text-destructive">{error}</div>
+          )}
+          {!loading && !error && (
+            <Tabla
+              headers={[
+                "Código",
+                "Alumno",
+                "Concepto",
+                "Deuda",
+                "Bonificación",
+                "Recargo",
+                "Cobrados",
+              ]}
+              data={currentItems}
+              customRender={(fila) => {
+                const bonificacionNombre =
+                  fila.bonificacionId &&
+                  bonificaciones.find((b) => b.id === fila.bonificacionId)
+                    ?.descripcion;
+                const recargoNombre =
+                  fila.recargoId &&
+                  recargos.find((r) => r.id === Number(fila.recargoId))
+                    ?.descripcion;
+                return [
+                  fila.conceptoId || fila.id,
+                  fila.alumnoDisplay,
+                  fila.descripcionConcepto,
+                  fila.importePendiente,
+                  bonificacionNombre || "-",
+                  recargoNombre || "-",
+                  fila.cobrado ? "Sí" : "No",
+                ];
+              }}
+              emptyMessage="No hay pagos pendientes"
+              hasMore={hasMore}
+              onLoadMore={onLoadMore}
+              loading={loading}
+            />
+          )}
+        </div>
       </div>
     </div>
   );
