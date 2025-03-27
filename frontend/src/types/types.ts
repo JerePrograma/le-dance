@@ -926,3 +926,16 @@ export interface CobranzasDataResponse {
   bonificaciones: BonificacionResponse[];
   recargos: RecargoResponse[];
 }
+
+export type ObservacionProfesorResponse = {
+  id: number;
+  profesorId: number;
+  fecha: string; // ISO date string
+  observacion: string;
+};
+
+export type ObservacionProfesorRequest = {
+  profesorId: number;
+  fecha: string; // ISO date string
+  observacion: string;
+};
