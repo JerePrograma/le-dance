@@ -52,6 +52,7 @@ const mapDetallePagos = (
       importeInicial: det.importeInicial ?? null,
       stockId: det.stockId ?? null,
       pagoId: det.pagoId ?? null,
+      tieneRecargo: det.tieneRecargo
     };
 
     console.log("[mapDetallePagos] Detalle mapeado:", mappedDetail);

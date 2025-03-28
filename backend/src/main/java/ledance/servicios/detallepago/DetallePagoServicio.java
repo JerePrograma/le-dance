@@ -64,9 +64,11 @@ public class DetallePagoServicio {
             log.info("[calcularImporte] Detalle id={} (No Mensualidad): Descuento calculado = {}",
                     detalle.getId(), descuento);
         }
-
-        double recargo = (detalle.getRecargo() != null) ? obtenerValorRecargo(detalle, base) : 0.0;
-        log.info("[calcularImporte] Detalle id={} : Recargo calculado = {}", detalle.getId(), recargo);
+        double recargo = 0;
+        if (detalle.getTieneRecargo()) {
+            recargo = (detalle.getRecargo() != null) ? obtenerValorRecargo(detalle, base) : 0.0;
+            log.info("[calcularImporte] Detalle id={} : Recargo calculado = {}", detalle.getId(), recargo);
+        }
 
         double importeInicial = base - descuento + recargo;
         log.info("[calcularImporte] Detalle id={} : ImporteInicial calculado = {}", detalle.getId(), importeInicial);

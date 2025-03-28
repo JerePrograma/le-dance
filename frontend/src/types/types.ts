@@ -756,6 +756,7 @@ export interface DetallePagoResponse {
   fechaRegistro: string;
   pagoId?: number | null;
   alumnoDisplay: string;
+  tieneRecargo: boolean;
 }
 
 // DetallePagoRegistroRequest.ts
@@ -778,6 +779,7 @@ export interface DetallePagoRegistroRequest {
   matriculaId?: number | null;
   stockId?: number | null;
   pagoId?: number | null; // <-- Nuevo atributo
+  tieneRecargo: boolean;
 }
 
 export type DetallePagoRegistroRequestExt = DetallePagoRegistroRequest & {
@@ -822,6 +824,7 @@ export interface CobranzasFormValues {
   autoRemoved: number[];
   pagoParcial: number;
   aplicarRecargo: boolean;
+  tieneRecargo: boolean;
 }
 
 // --- Para la cobranza ---

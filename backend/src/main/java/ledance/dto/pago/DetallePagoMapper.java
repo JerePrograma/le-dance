@@ -30,12 +30,14 @@ public interface DetallePagoMapper {
     @Mapping(target = "cuotaOCantidad", source = "cuotaOCantidad")
     @Mapping(target = "tipo", expression = "java( determineTipo(request) )")
     @Mapping(target = "aCobrar", source = "aCobrar")
+    @Mapping(target = "tieneRecargo", source = "tieneRecargo")
     DetallePago toEntity(DetallePagoRegistroRequest request);
 
     // Actualizacion de entidad existente
     @Mapping(target = "id", expression = "java( (request.id() != null && request.id() == 0) ? null : request.id() )")
     @Mapping(target = "version", ignore = true)
     @Mapping(target = "alumno", source = "alumno")
+    @Mapping(target = "tieneRecargo", source = "tieneRecargo")
     @Mapping(target = "mensualidad", source = "mensualidadId", qualifiedByName = "mapMensualidad")
     @Mapping(target = "matricula", source = "matriculaId", qualifiedByName = "mapMatricula")
     @Mapping(target = "stock", source = "stockId", qualifiedByName = "mapStock")
@@ -81,6 +83,7 @@ public interface DetallePagoMapper {
     @Mapping(target = "stockId", expression = "java(detallePago.getStock() != null ? detallePago.getStock().getId() : null)")
     @Mapping(target = "pagoId", expression = "java(detallePago.getPago() != null ? detallePago.getPago().getId() : null)")
     @Mapping(target = "alumnoDisplay", expression = "java(detallePago.getAlumno().getNombre() + \", \" + detallePago.getAlumno().getApellido())")
+    @Mapping(target = "tieneRecargo", source = "tieneRecargo")
     DetallePagoResponse toDTO(DetallePago detallePago);
 
     // Metodos helper para asociaciones

@@ -82,6 +82,7 @@ public class PagoServicio {
 
         Pago pagoFinal;
         Pago ultimoPagoActivo = paymentProcessor.obtenerUltimoPagoPendienteEntidad(alumnoPersistido.getId());
+        asignarMetodoYPersistir(ultimoPagoActivo, request.metodoPagoId());
 
         if (esAbonoParcial(ultimoPagoActivo, request)) {
             pagoFinal = procesarAbonoParcial(ultimoPagoActivo, request);
@@ -111,8 +112,12 @@ public class PagoServicio {
      */
     private void asignarMetodoYPersistir(Pago pago, Long metodoPagoId) {
         Optional<MetodoPago> metodoPagoOpt = metodoPagoRepositorio.findById(metodoPagoId);
-        metodoPagoOpt.ifPresent(pago::setMetodoPago);
-        paymentProcessor.recalcularTotales(pago);
+        if (metodoPagoOpt.isPresent()) {
+            pago.setMetodoPago(metodoPagoOpt.get());
+        } else {
+            MetodoPago metodoPago = metodoPagoRepositorio.findByDescripcionContainingIgnoreCase("EFECTIVO");
+            pago.setMetodoPago(metodoPago);
+        }
     }
 
     /**
@@ -365,9 +370,10 @@ public class PagoServicio {
             detalle.setBonificacion(dto.bonificacionId() != null
                     ? bonificacionRepositorio.findById(dto.bonificacionId()).orElse(null)
                     : null);
-            detalle.setRecargo(dto.recargoId() != null
-                    ? recargoRepositorio.findById(dto.recargoId()).orElse(null)
-                    : null);
+            if (dto.recargoId() != null) {
+                detalle.setRecargo(recargoRepositorio.findById(dto.recargoId()).orElse(null));
+                detalle.setTieneRecargo(true);
+            }
             // Se podria actualizar otros campos segun necesidad.
             return detalle;
         } else {
@@ -390,9 +396,10 @@ public class PagoServicio {
             nuevo.setBonificacion(dto.bonificacionId() != null
                     ? bonificacionRepositorio.findById(dto.bonificacionId()).orElse(null)
                     : null);
-            nuevo.setRecargo(dto.recargoId() != null
-                    ? recargoRepositorio.findById(dto.recargoId()).orElse(null)
-                    : null);
+            if (dto.recargoId() != null) {
+                nuevo.setRecargo(recargoRepositorio.findById(dto.recargoId()).orElse(null));
+                nuevo.setTieneRecargo(true);
+            }
             return nuevo;
         }
     }
@@ -596,23 +603,6 @@ public class PagoServicio {
                 .filter(p -> p.getEstadoPago() != EstadoPago.ANULADO)
                 .map(pagoMapper::toDTO)
                 .collect(Collectors.toList());
-    }
-
-    @Transactional
-    public void generarCuotasParaAlumnosActivos() {
-        List<Inscripcion> inscripcionesActivas = inscripcionRepositorio.findByEstado(EstadoInscripcion.ACTIVA);
-        for (Inscripcion inscripcion : inscripcionesActivas) {
-            Pago nuevoPago = new Pago();
-            nuevoPago.setFecha(LocalDate.now());
-            nuevoPago.setFechaVencimiento(LocalDate.now().plusDays(30));
-            nuevoPago.setMonto(inscripcion.getDisciplina().getValorCuota());
-            nuevoPago.setSaldoRestante(inscripcion.getDisciplina().getValorCuota());
-            // En lugar de setActivo(true), asignamos EstadoPago.ACTIVO
-            nuevoPago.setEstadoPago(EstadoPago.ACTIVO);
-            nuevoPago.setAlumno(inscripcion.getAlumno());
-            paymentProcessor.verificarSaldoRestante(nuevoPago);
-            pagoRepositorio.save(nuevoPago);
-        }
     }
 
     public PagoResponse obtenerUltimoPagoPorAlumno(Long alumnoId) {

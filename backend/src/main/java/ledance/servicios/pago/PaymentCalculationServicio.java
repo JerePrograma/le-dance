@@ -56,6 +56,10 @@ public class PaymentCalculationServicio {
     double calcularImporteInicial(DetallePago detalle, Inscripcion inscripcion, boolean esMatricula) {
         log.info("[calcularImporteInicial] Iniciando calculo para DetallePago id={}", detalle.getId());
         double base = detalle.getValorBase();
+        if (!detalle.getTieneRecargo() || detalle.getTieneRecargo() == null) {
+            detalle.setImportePendiente(detalle.getImporteInicial());
+            detalle.setRecargo(null);
+        }
         log.info("[calcularImporteInicial] Valor base obtenido: {} para DetallePago id={}", base, detalle.getId());
 
         if (esMatricula) {
@@ -91,81 +95,54 @@ public class PaymentCalculationServicio {
      * - El monto abonado no exceda el importe pendiente.
      * - Se actualicen los campos aCobrar e importePendiente correctamente.
      */
-    // 5. Procesar abono: asegura que el abono se aplique de forma unica
+    // Método corregido para procesar correctamente los abonos y actualizar estados
     void procesarAbono(DetallePago detalle, Double montoAbono, Double importeInicialCalculado) {
-        log.info("[procesarAbono] Iniciando procesamiento para DetallePago id={}. MontoAbono recibido: {}, ImporteInicialCalculado: {}",
-                detalle.getId(), montoAbono, importeInicialCalculado);
-        if (montoAbono == null) {
-            montoAbono = 0.0;
-        }
-        if (montoAbono < 0) {
-            log.error("[procesarAbono] Monto de abono negativo detectado para DetallePago id={}", detalle.getId());
-            throw new IllegalArgumentException("El monto del abono no puede ser negativo.");
-        }
+        log.info("[procesarAbono] Procesando abono para DetallePago id={}", detalle.getId());
 
-        // Si no se ha asignado el importeInicial y tenemos un importeInicialCalculado, se asigna
+        if (montoAbono == null || montoAbono < 0) {
+            throw new IllegalArgumentException("Monto del abono inválido.");
+        }
+        // Si no existe importe inicial, asignarlo
         if (detalle.getImporteInicial() == null && importeInicialCalculado != null) {
             detalle.setImporteInicial(importeInicialCalculado);
-            log.info("[procesarAbono] Se asigna importeInicial={} para DetallePago id={}", importeInicialCalculado, detalle.getId());
-        } else {
-            log.info("[procesarAbono] DetallePago id={} ya posee importeInicial establecido: {}", detalle.getId(), detalle.getImporteInicial());
         }
-        // Si el importePendiente es null, se asigna el importeInicialCalculado si está disponible
+        Double importePendienteActual = null;
+
         if (detalle.getImportePendiente() == null) {
-            if (importeInicialCalculado != null) {
-                detalle.setImportePendiente(importeInicialCalculado);
-                log.info("[procesarAbono] Se asigna importePendiente={} desde importeInicialCalculado para DetallePago id={}", importeInicialCalculado, detalle.getId());
-            } else {
-                log.warn("[procesarAbono] DetallePago id={} - ImportePendiente y importeInicialCalculado son null", detalle.getId());
-            }
+            importePendienteActual = importeInicialCalculado;
+        } else {
+            importePendienteActual = detalle.getImportePendiente();
+        }
+        if (!detalle.getTieneRecargo() || detalle.getTieneRecargo() == null) {
+            detalle.setImportePendiente(detalle.getImporteInicial());
+            detalle.setTieneRecargo(false);
         }
 
-        // Calcular el importe pendiente actual, usando importePendiente o importeInicial como respaldo
-        double importePendienteActual = (detalle.getImportePendiente() != null)
-                ? detalle.getImportePendiente()
-                : detalle.getImporteInicial();
-        log.info("[procesarAbono] DetallePago id={} - Importe pendiente actual antes de abono: {}", detalle.getId(), importePendienteActual);
-
-        // Aplicar el abono sin exceder el importe pendiente
         if (montoAbono > importePendienteActual) {
-            log.info("[procesarAbono] MontoAbono {} excede el ImportePendienteActual {}. Se ajusta MontoAbono a ImportePendienteActual.",
-                    montoAbono, importePendienteActual);
             montoAbono = importePendienteActual;
         }
+
         detalle.setaCobrar(montoAbono);
-        log.info("[procesarAbono] DetallePago id={} - Abono aplicado (aCobrar): {}", detalle.getId(), montoAbono);
+        detalle.setImportePendiente(importePendienteActual - montoAbono);
 
-        // Actualizar el importe pendiente
-        double nuevoPendiente = importePendienteActual - montoAbono;
-        detalle.setImportePendiente(nuevoPendiente);
-        log.info("[procesarAbono] DetallePago id={} - Nuevo importe pendiente calculado: {}", detalle.getId(), nuevoPendiente);
-
-        // Si el importe pendiente es 0 o menor, marcar como cobrado y actualizar estados de Mensualidad o Matricula
-        if (nuevoPendiente <= 0.0) {
-            detalle.setCobrado(true);
+        // Marcar como cobrado si no queda importe pendiente
+        if (detalle.getImportePendiente() <= 0) {
             detalle.setImportePendiente(0.0);
-            log.info("[procesarAbono] DetallePago id={} marcado como cobrado, ya que el importe pendiente es 0.", detalle.getId());
+            detalle.setCobrado(true);
 
-            if (detalle.getTipo().equals(TipoDetallePago.MENSUALIDAD)) {
-                if (detalle.getMensualidad() != null) {
-                    detalle.getMensualidad().setEstado(EstadoMensualidad.PAGADO);
-                    log.info("[procesarAbono] DetallePago id={} - Mensualidad actualizada a PAGADO.", detalle.getId());
-                } else {
-                    log.warn("[procesarAbono] DetallePago id={} - Mensualidad es null, no se puede actualizar el estado.", detalle.getId());
-                }
-            } else if (detalle.getTipo().equals(TipoDetallePago.MATRICULA)) {
-                if (detalle.getMatricula() != null) {
-                    detalle.getMatricula().setPagada(true);
-                    log.info("[procesarAbono] DetallePago id={} - Matrícula marcada como pagada.", detalle.getId());
-                } else {
-                    log.warn("[procesarAbono] DetallePago id={} - Matrícula es null, no se puede marcar como pagada.", detalle.getId());
-                }
+            if (detalle.getTipo() == TipoDetallePago.MENSUALIDAD && detalle.getMensualidad() != null) {
+                detalle.getMensualidad().setEstado(EstadoMensualidad.PAGADO);
+            }
+
+            if (detalle.getTipo() == TipoDetallePago.MATRICULA && detalle.getMatricula() != null) {
+                detalle.getMatricula().setPagada(true);
             }
         } else {
-            log.info("[procesarAbono] DetallePago id={} permanece sin marcar como cobrado. Importe pendiente: {}", detalle.getId(), nuevoPendiente);
+            detalle.setCobrado(false);
         }
 
-        log.info("[procesarAbono] Procesamiento finalizado para DetallePago id={}", detalle.getId());
+        log.info("[procesarAbono] Finalizado procesamiento para DetallePago id={}, pendiente restante: {}",
+                detalle.getId(), detalle.getImportePendiente());
     }
 
     // ============================================================
@@ -175,7 +152,7 @@ public class PaymentCalculationServicio {
     // 4. Procesar y calcular cada detalle (unifica calculos y marca como cobrado si corresponde)
     public void procesarYCalcularDetalle(Pago pago, DetallePago detalle, Inscripcion inscripcion) {
         log.info("[procesarYCalcularDetalle] Iniciando procesamiento para DetallePago id={}", detalle.getId());
-
+        detalle.setImportePendiente(detalle.getImporteInicial());
         // Normalización de la descripción
         String descripcion = Optional.ofNullable(detalle.getDescripcionConcepto())
                 .orElse("")
@@ -188,7 +165,10 @@ public class PaymentCalculationServicio {
         TipoDetallePago tipo = determinarTipoDetalle(descripcion);
         detalle.setTipo(tipo);
         log.info("[procesarYCalcularDetalle] Detalle id={} - Tipo determinado: {}", detalle.getId(), tipo);
-
+        if (!detalle.getTieneRecargo() || detalle.getTieneRecargo() == null) {
+            detalle.setImportePendiente(detalle.getImporteInicial());
+            detalle.setRecargo(null);
+        }
         // Lógica específica según el tipo
         switch (tipo) {
             case MENSUALIDAD:
@@ -400,6 +380,10 @@ public class PaymentCalculationServicio {
      */
     void calcularMensualidad(DetallePago detalle, Inscripcion inscripcion) {
         // Calcular el importeInicial para el detalle (sin procesar el abono aun)
+        if (!detalle.getTieneRecargo() || detalle.getTieneRecargo() == null) {
+            detalle.setImportePendiente(detalle.getImporteInicial());
+            detalle.setRecargo(null);
+        }
         double importeInicialCalculado = calcularImporteInicial(detalle, inscripcion, false);
         log.info("[calcularMensualidad] DetallePago id={} - Importe Inicial calculado: {}", detalle.getId(), importeInicialCalculado);
 

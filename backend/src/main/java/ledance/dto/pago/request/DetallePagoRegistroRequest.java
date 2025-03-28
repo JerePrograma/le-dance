@@ -20,7 +20,8 @@ public record DetallePagoRegistroRequest(
         Long mensualidadId,
         Long matriculaId,
         Long stockId,
-        Long pagoId   // <-- Nuevo campo: ID del Pago asociado (opcional)
+        Long pagoId,   // <-- Nuevo campo: ID del Pago asociado (opcional)
+        Boolean tieneRecargo
 ) {
     public DetallePagoRegistroRequest {
         if (cobrado == null) {

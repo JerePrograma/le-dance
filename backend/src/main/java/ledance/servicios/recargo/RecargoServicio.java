@@ -154,6 +154,7 @@ public class RecargoServicio {
                             if (optDetalle.isPresent()) {
                                 DetallePago detalle = optDetalle.get();
                                 detalle.setRecargo(recargo15);
+                                detalle.setTieneRecargo(true);
                                 log.info("Recalculando importe en DetallePago id={} para recargo de día 15", detalle.getId());
                                 recalcularImporteDetalle(detalle);
                             } else {
@@ -213,6 +214,7 @@ public class RecargoServicio {
                             if (optDetalle.isPresent()) {
                                 DetallePago detalle = optDetalle.get();
                                 detalle.setRecargo(recargo1);
+                                detalle.setTieneRecargo(true);
                                 log.info("Recalculando importe en DetallePago id={} para recargo de día 1", detalle.getId());
                                 recalcularImporteDetalle(detalle);
                             } else {
@@ -257,7 +259,7 @@ public class RecargoServicio {
     /**
      * Recalcula el importe pendiente de una mensualidad, sumando el recargo (calculado sobre el importeInicial) y descontando el monto abonado.
      */
-    private void recalcularImporteMensualidad(Mensualidad m) {
+    public void recalcularImporteMensualidad(Mensualidad m) {
         double base = m.getImporteInicial();
         double recargoValue = calcularRecargo(m.getRecargo(), base);
         double nuevoTotal = base + recargoValue;
@@ -271,9 +273,12 @@ public class RecargoServicio {
     /**
      * Recalcula el importe pendiente de un DetallePago, sumando el recargo (calculado sobre el importeInicial) y descontando lo que ya se haya cobrado (aCobrar).
      */
-    private void recalcularImporteDetalle(DetallePago detalle) {
+    public void recalcularImporteDetalle(DetallePago detalle) {
         double base = detalle.getImporteInicial();
-        double recargoValue = calcularRecargo(detalle.getRecargo(), base);
+        double recargoValue = 0;
+        if (detalle.getTieneRecargo()) {
+            recargoValue = calcularRecargo(detalle.getRecargo(), base);
+        }
         double nuevoTotal = base + recargoValue;
         double nuevoPendiente = nuevoTotal - detalle.getaCobrar();
         detalle.setImportePendiente(nuevoPendiente);

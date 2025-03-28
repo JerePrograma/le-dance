@@ -16,7 +16,7 @@ const Bonificaciones = () => {
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const itemsPerLoad = 5;
+  const itemsPerLoad = 25;
   // visibleCount controla cuántos elementos se muestran actualmente
   const [visibleCount, setVisibleCount] = useState<number>(0);
   const navigate = useNavigate();

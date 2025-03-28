@@ -82,6 +82,9 @@ public class DetallePago {
     @Column(name = "fecha_registro", nullable = false)
     private LocalDate fechaRegistro;
 
+    @Column(name = "tiene_recargo")
+    private Boolean tieneRecargo = false;
+
     // Getters y Setters para aCobrar (u otros metodos personalizados)
     public Double getaCobrar() {
         return aCobrar;

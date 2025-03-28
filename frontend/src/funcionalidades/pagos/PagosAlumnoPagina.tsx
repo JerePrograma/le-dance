@@ -19,7 +19,7 @@ const PaymentListByAlumno: React.FC = () => {
   const [visibleCount, setVisibleCount] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const itemsPerLoad = 5; // o la cantidad que desees mostrar de a poco
+  const itemsPerLoad = 25; // o la cantidad que desees mostrar de a poco
 
   // Función para obtener TODOS los pagos filtrados por alumno
   const fetchPagos = useCallback(async () => {
