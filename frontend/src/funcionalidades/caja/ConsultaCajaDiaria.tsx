@@ -157,6 +157,9 @@ const ConsultaCajaDiaria: React.FC = () => {
     }
   };
 
+  const sortedPagos = [...pagos].sort((a, b) => b.id - a.id);
+  const sortedEgresos = [...egresos].sort((a, b) => b.id - a.id);
+
   // --------------------------------------------------------------------------
   // Render
   // --------------------------------------------------------------------------
@@ -188,7 +191,7 @@ const ConsultaCajaDiaria: React.FC = () => {
         ) : (
           <Tabla
             headers={["Recibo", "Codigo", "Alumno", "Observaciones", "Importe"]}
-            data={pagos}
+            data={sortedPagos}
             customRender={(p: PagoDelDia) => [
               p.id, // Recibo
               p.alumno?.id || "",
@@ -205,7 +208,7 @@ const ConsultaCajaDiaria: React.FC = () => {
           <h2 className="font-semibold mb-2">Egresos del día</h2>
           <Tabla
             headers={["ID", "Observaciones", "Monto"]}
-            data={egresos}
+            data={sortedEgresos}
             customRender={(e: EgresoDelDia) => [
               e.id,
               e.observaciones,

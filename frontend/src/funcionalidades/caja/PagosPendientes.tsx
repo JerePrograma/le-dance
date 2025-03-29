@@ -210,6 +210,8 @@ const DetallePagoList: React.FC = () => {
   if (error)
     return <div className="text-center py-4 text-destructive">{error}</div>;
 
+  const sortedItems = [...currentItems].sort((a, b) => b.id - a.id);
+
   return (
     <div ref={containerRef} className="flex flex-col h-screen overflow-hidden">
       {/* Header */}
@@ -372,7 +374,7 @@ const DetallePagoList: React.FC = () => {
                 "Recargo",
                 "Cobrados",
               ]}
-              data={currentItems}
+              data={sortedItems}
               customRender={(fila) => {
                 const bonificacionNombre =
                   fila.bonificacionId &&

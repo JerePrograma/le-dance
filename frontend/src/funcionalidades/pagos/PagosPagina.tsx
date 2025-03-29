@@ -67,6 +67,8 @@ const PaymentList: React.FC = () => {
     return <div className="text-center py-4 text-destructive">{error}</div>;
   }
 
+  const sortedPagos = [...pagos].sort((a, b) => b.id - a.id);
+
   return (
     <div className="page-container">
       <h1 className="page-title">Pagos</h1>
@@ -81,6 +83,7 @@ const PaymentList: React.FC = () => {
         </Boton>
       </div>
       <div className="page-card">
+        {/* Ordenar pagos de forma descendente por id */}
         <Tabla
           headers={[
             "ID",
@@ -91,7 +94,7 @@ const PaymentList: React.FC = () => {
             "Estado",
             "Acciones",
           ]}
-          data={pagos}
+          data={[...sortedPagos].sort((a, b) => b.id - a.id)}
           customRender={(fila) => [
             fila.id,
             fila.fecha,
@@ -128,9 +131,7 @@ const PaymentList: React.FC = () => {
         loading={loading}
         className="mt-4"
         children={undefined}
-      >
-        {/* Puedes dejar el contenedor vacío o agregar un mensaje extra */}
-      </InfiniteScroll>
+      />
     </div>
   );
 };

@@ -74,6 +74,8 @@ const PaymentListByAlumno: React.FC = () => {
   if (error && pagos.length === 0)
     return <div className="text-center py-4 text-destructive">{error}</div>;
 
+  const sortedPagos = [...currentItems].sort((a, b) => b.id - a.id);
+
   return (
     <div className="page-container">
       <h1 className="page-title">Pagos del Alumno {alumnoId}</h1>
@@ -98,7 +100,7 @@ const PaymentListByAlumno: React.FC = () => {
             "Estado",
             "Acciones",
           ]}
-          data={currentItems}
+          data={sortedPagos}
           customRender={(fila) => [
             fila.id,
             fila.fecha,

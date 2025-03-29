@@ -242,6 +242,9 @@ export default function EgresosDebitoPagina() {
     return <div className="p-4 text-center">Cargando...</div>;
   if (error) return <div className="p-4 text-center text-red-600">{error}</div>;
 
+  const sortedItemPagos = [...currentItemsPagos].sort((a, b) => b.id - a.id);
+  const sortedItem = [...currentItems].sort((a, b) => b.id - a.id);
+
   return (
     <div className="page-container p-4">
       <h1 className="text-2xl font-bold mb-4">Egresos - Tipo DEBITO</h1>
@@ -294,7 +297,7 @@ export default function EgresosDebitoPagina() {
               "Recargo",
               "Cobrados",
             ]}
-            data={currentItemsPagos}
+            data={sortedItemPagos}
             customRender={(fila: DetallePagoResponse) => [
               fila.conceptoId || fila.id,
               fila.alumnoDisplay,
@@ -351,7 +354,7 @@ export default function EgresosDebitoPagina() {
       <div className="border p-2 rounded-md bg-background text-foreground">
         <Tabla
           headers={["ID", "Fecha", "Monto", "Observaciones"]}
-          data={currentItems}
+          data={sortedItem}
           customRender={renderRow}
           actions={renderActions}
           emptyMessage="No hay egresos registrados"
