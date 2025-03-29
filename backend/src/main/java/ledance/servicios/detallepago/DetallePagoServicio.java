@@ -68,6 +68,8 @@ public class DetallePagoServicio {
         if (detalle.getTieneRecargo()) {
             recargo = (detalle.getRecargo() != null) ? obtenerValorRecargo(detalle, base) : 0.0;
             log.info("[calcularImporte] Detalle id={} : Recargo calculado = {}", detalle.getId(), recargo);
+        }else {
+            recargo = 0;
         }
 
         double importeInicial = base - descuento + recargo;
@@ -91,7 +93,7 @@ public class DetallePagoServicio {
                     detalle.getId(), descuentoFijo, descuentoPorcentaje, totalDescuento);
             return totalDescuento;
         }
-        log.info("[calcularDescuento] Detalle id={} sin bonificacion, descuento=0", detalle.getId());
+        log.info("[calcularDescuento] Detalle id={} sin bonificación, descuento=0", detalle.getId());
         return 0.0;
     }
 
@@ -99,10 +101,10 @@ public class DetallePagoServicio {
         Recargo recargo = detalle.getRecargo();
         if (recargo != null) {
             int diaActual = LocalDate.now().getDayOfMonth();
-            log.info("[obtenerValorRecargo] Detalle id={} | Dia actual={} | Dia de aplicacion={}",
+            log.info("[obtenerValorRecargo] Detalle id={} | Día actual={} | Día de aplicación={}",
                     detalle.getId(), diaActual, recargo.getDiaDelMesAplicacion());
             if (diaActual != recargo.getDiaDelMesAplicacion()) {
-                log.info("[obtenerValorRecargo] Dia actual no coincide; recargo=0");
+                log.info("[obtenerValorRecargo] Día actual no coincide; recargo=0");
                 return 0.0;
             }
             double recargoFijo = recargo.getValorFijo() != null ? recargo.getValorFijo() : 0.0;

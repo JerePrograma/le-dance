@@ -88,7 +88,9 @@ public class StockServicio {
     public boolean obtenerStockPorNombre(String nombre) {
         String nombreNormalizado = nombre.trim();
         log.info("[obtenerStockPorNombre] Valor recibido: '{}', normalizado a: '{}'", nombre, nombreNormalizado);
-        return stockRepositorio.findByNombreIgnoreCase(nombreNormalizado).isPresent();
+        boolean existe = stockRepositorio.findByNombreIgnoreCase(nombreNormalizado).isPresent();
+        log.info("[obtenerStockPorNombre] Resultado: {}", existe);
+        return existe;
     }
 
     @Transactional

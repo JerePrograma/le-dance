@@ -1002,8 +1002,6 @@ public class MensualidadServicio implements IMensualidadService {
         log.info("[procesarAbonoMensualidad] Abono recibido: {}", abonoRecibido);
         if (!detalle.getTieneRecargo() || detalle.getTieneRecargo() == null) {
             mensualidad.setRecargo(null);
-            mensualidad.setImportePendiente(mensualidad.getImporteInicial());
-            detalle.setImportePendiente(detalle.getImporteInicial());
             detalle.setRecargo(null);
         }
         // Actualizar el abono parcial en la mensualidad
