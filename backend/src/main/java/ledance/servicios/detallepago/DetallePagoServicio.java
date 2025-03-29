@@ -10,6 +10,7 @@ import ledance.repositorios.DetallePagoRepositorio;
 import org.flywaydb.core.internal.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
@@ -142,9 +143,7 @@ public class DetallePagoServicio {
                     cb.lessThanOrEqualTo(root.get("fechaRegistro"), fechaRegistroHasta));
         }
 
-        // Filtrado por disciplina:
-        // Si se envía también tarifa se busca que inicie con "DISCIPLINA - TARIFA",
-        // de lo contrario se usa un patrón que encuentre la cadena en cualquier parte.
+        // Filtrado por disciplina
         if (StringUtils.hasText(disciplina)) {
             String pattern;
             if (StringUtils.hasText(tarifa)) {
@@ -177,17 +176,17 @@ public class DetallePagoServicio {
                     cb.like(root.get("descripcionConcepto"), pattern));
         }
 
-        // Ejecutar la consulta con la Specification compuesta
-        List<DetallePago> detalles = detallePagoRepositorio.findAll(spec);
+        // Ejecutar la consulta con la Specification compuesta y ordenar de forma descendente por id
+        List<DetallePago> detalles = detallePagoRepositorio.findAll(spec, Sort.by(Sort.Direction.DESC, "id"));
         log.info("Consulta realizada. Número de registros encontrados: {}", detalles.size());
 
         // Conversión de las entidades a DTOs
         List<DetallePagoResponse> responses = detalles.stream()
                 .map(detallePagoMapper::toDTO)
-                .toList();
+                .collect(Collectors.toList());
         log.info("Conversión a DetallePagoResponse completada. Regresando respuesta.");
 
-        return responses.stream().sorted().collect(Collectors.toList());
+        return responses;
     }
 
     // =====================================================

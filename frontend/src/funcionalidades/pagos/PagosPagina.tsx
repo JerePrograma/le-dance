@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import Tabla from "../../componentes/comunes/Tabla";
 import api from "../../api/axiosConfig";
 import Boton from "../../componentes/comunes/Boton";
-import { PlusCircle, Pencil, Trash2 } from "lucide-react";
+import { PlusCircle } from "lucide-react";
 import { toast } from "react-toastify";
 import type { PagoResponse } from "../../types/types";
 import InfiniteScroll from "../../componentes/comunes/InfiniteScroll";
@@ -48,16 +48,6 @@ const PaymentList: React.FC = () => {
   useEffect(() => {
     fetchPagos();
   }, [fetchPagos]);
-
-  const handleEliminar = async (id: number) => {
-    try {
-      await api.delete(`/pagos/${id}`);
-      // Actualiza la lista eliminando el pago sin necesidad de volver a cargar todos los datos
-      setPagos((prev) => prev.filter((pago) => pago.id !== id));
-    } catch (error) {
-      toast.error("Error al eliminar pago");
-    }
-  };
 
   // Mientras no se hayan cargado elementos iniciales, muestra un mensaje
   if (loading && pagos.length === 0) {
@@ -103,26 +93,6 @@ const PaymentList: React.FC = () => {
             fila.saldoRestante,
             fila.estadoPago,
           ]}
-          actions={(fila) => (
-            <div className="flex gap-2">
-              <Boton
-                onClick={() => navigate(`/pagos/editar?id=${fila.id}`)}
-                className="page-button-secondary"
-                aria-label={`Editar pago ${fila.id}`}
-              >
-                <Pencil className="w-4 h-4 mr-2" />
-                Editar
-              </Boton>
-              <Boton
-                onClick={() => handleEliminar(fila.id)}
-                className="page-button-danger"
-                aria-label={`Eliminar pago ${fila.id}`}
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Eliminar
-              </Boton>
-            </div>
-          )}
         />
       </div>
       <InfiniteScroll
