@@ -286,19 +286,47 @@ public class MensualidadServicio implements IMensualidadService {
     }
 
     private void mensajeAplicarRecargo(Mensualidad mensualidad, Recargo recargo) {
-        log.info("Aplicando recargo de día {} a mensualidad id={}", recargo.getDiaDelMesAplicacion(), mensualidad.getId());
+        log.info("[mensajeAplicarRecargo] INICIO - Evaluando mensualidad id={}, esClon={}",
+                mensualidad.getId(), mensualidad.getEsClon());
+
+        if (Boolean.TRUE.equals(mensualidad.getEsClon())) {
+            log.info("[mensajeAplicarRecargo] Mensualidad id={} es CLON. NO se aplicará recargo.",
+                    mensualidad.getId());
+            return;
+        }
+
+        log.info("[mensajeAplicarRecargo] Mensualidad id={} NO es clon. Aplicando recargo de día {}",
+                mensualidad.getId(), recargo.getDiaDelMesAplicacion());
+
         mensualidad.setRecargo(recargo);
         mensualidadRepositorio.save(mensualidad);
-        recargoServicio.recalcularImporteMensualidad(mensualidad);
+        log.info("[mensajeAplicarRecargo] Recargo guardado en mensualidad id={}", mensualidad.getId());
 
-        Optional<DetallePago> optDetalle = detallePagoRepositorio.findByMensualidad(mensualidad);
+        recargoServicio.recalcularImporteMensualidad(mensualidad);
+        log.info("[mensajeAplicarRecargo] Importe mensualidad id={} recalculado tras aplicar recargo.",
+                mensualidad.getId());
+
+        Optional<DetallePago> optDetalle = detallePagoRepositorio
+                .findByMensualidadAndEsClon(mensualidad, false);
+
         if (optDetalle.isPresent()) {
             DetallePago detalle = optDetalle.get();
             detalle.setRecargo(recargo);
             detalle.setTieneRecargo(true);
-            log.info("Recalculando importe en DetallePago id={} para recargo", detalle.getId());
+            detallePagoRepositorio.save(detalle);
+            log.info("[mensajeAplicarRecargo] Recargo asignado y guardado al DetallePago id={}",
+                    detalle.getId());
+
             recargoServicio.recalcularImporteDetalle(detalle);
+            log.info("[mensajeAplicarRecargo] Importe DetallePago id={} recalculado tras aplicar recargo.",
+                    detalle.getId());
+        } else {
+            log.warn("[mensajeAplicarRecargo] No se encontró DetallePago NO-clon para la mensualidad id={}.",
+                    mensualidad.getId());
         }
+
+        log.info("[mensajeAplicarRecargo] FIN - Procesamiento completado para mensualidad id={}",
+                mensualidad.getId());
     }
 
     @Override
@@ -404,7 +432,7 @@ public class MensualidadServicio implements IMensualidadService {
             } else {
                 log.info("Mensualidad id {} ya tiene asignado el recargo adecuado.", mensualidad.getId());
                 recargoServicio.recalcularImporteMensualidad(mensualidad);
-                detallePagoRepositorio.findByMensualidad(mensualidad)
+                detallePagoRepositorio.findByMensualidadAndEsClon(mensualidad, mensualidad.getEsClon())
                         .ifPresent(recargoServicio::recalcularImporteDetalle);
             }
         } else {

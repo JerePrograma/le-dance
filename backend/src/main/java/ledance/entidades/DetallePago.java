@@ -86,7 +86,7 @@ public class DetallePago {
     private Boolean tieneRecargo = false;
 
     @Column(name = "es_clon")
-    private Boolean esClon;
+    private Boolean esClon = false;
 
     // Getters y Setters para aCobrar (u otros metodos personalizados)
     public Double getaCobrar() {

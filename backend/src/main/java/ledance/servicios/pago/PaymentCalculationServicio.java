@@ -309,7 +309,12 @@ public class PaymentCalculationServicio {
         log.info("[calcularMatricula] Iniciando procesamiento para DetallePago id={}", detalle.getId());
 
         // Calcular el importe inicial para matricula (se usa el flag 'true' para indicar que es matricula)
-        double importeInicialCalculado = calcularImporteInicial(detalle, null, true);
+        double importeInicialCalculado;
+        if (detalle.getEsClon()) {
+            importeInicialCalculado = detalle.getImporteInicial();
+        } else {
+            importeInicialCalculado = calcularImporteInicial(detalle, null, true);
+        }
         log.info("[calcularMatricula] Detalle id={} - Importe Inicial calculado: {}", detalle.getId(), importeInicialCalculado);
 
         // Actualizamos el importe inicial en el detalle; no se llama a procesarAbono aqui
@@ -376,28 +381,53 @@ public class PaymentCalculationServicio {
      * Calcula el importe inicial de una mensualidad para un DetallePago, usando la inscripcion (si está disponible)
      * para aplicar descuentos y recargos.
      */
-    void calcularMensualidad(DetallePago detalle, Inscripcion inscripcion) {
+    @Transactional
+    public void calcularMensualidad(DetallePago detalle, Inscripcion inscripcion) {
         log.info("[calcularMensualidad] INICIO cálculo para DetallePago id={}", detalle.getId());
 
-        // Si el detalle no tiene recargo, se fuerza a null
-        if (!detalle.getTieneRecargo()) {
+        // Validar que el importe inicial venga desde el frontend
+        if (detalle.getImporteInicial() != null && detalle.getImporteInicial() > 0) {
+            log.info("[calcularMensualidad] Utilizando importeInicial proporcionado por frontend para Detalle id={}: {}",
+                    detalle.getId(), detalle.getImporteInicial());
+        } else {
+            log.info("[calcularMensualidad] No se proporcionó importeInicial desde frontend, se procederá al cálculo interno para Detalle id={}", detalle.getId());
+            double importeCalculado = calcularImporteInicial(detalle, inscripcion, false);
+            detalle.setImporteInicial(importeCalculado);
+            log.info("[calcularMensualidad] Importe inicial calculado y asignado internamente: {} para Detalle id={}", importeCalculado, detalle.getId());
+        }
+
+        // Si el importePendiente viene del frontend, lo respetamos, si no, igualamos a importeInicial
+        if (detalle.getImportePendiente() != null && detalle.getImportePendiente() >= 0) {
+            log.info("[calcularMensualidad] Utilizando importePendiente proporcionado por frontend para Detalle id={}: {}",
+                    detalle.getId(), detalle.getImportePendiente());
+        } else {
+            detalle.setImportePendiente(detalle.getImporteInicial());
+            log.info("[calcularMensualidad] No se proporcionó importePendiente desde frontend, se asigna importePendiente igual a importeInicial: {} para Detalle id={}",
+                    detalle.getImportePendiente(), detalle.getId());
+        }
+
+        // Si tiene recargo
+        if (!Boolean.TRUE.equals(detalle.getTieneRecargo())) {
             detalle.setRecargo(null);
             log.info("[calcularMensualidad] Se omite recargo para Detalle id={} (tieneRecargo=false o nulo)", detalle.getId());
         } else {
             log.info("[calcularMensualidad] Detalle id={} tiene recargo asignado: {}", detalle.getId(), detalle.getRecargo());
         }
 
-        // Calcular el importe inicial usando el método centralizado
-        double importeInicialCalculado = calcularImporteInicial(detalle, inscripcion, false);
-        log.info("[calcularMensualidad] Para Detalle id={}, importeInicialCalculado={}", detalle.getId(), importeInicialCalculado);
+        // Marcar detalle como cobrado si importe pendiente es cero
+        if (detalle.getImportePendiente() <= 0.0) {
+            detalle.setCobrado(true);
+            detalle.setImportePendiente(0.0);
+            log.info("[calcularMensualidad] Detalle id={} marcado como cobrado (importe pendiente 0).", detalle.getId());
+        } else {
+            detalle.setCobrado(false);
+            log.info("[calcularMensualidad] Detalle id={} marcado como NO cobrado (importe pendiente > 0).", detalle.getId());
+        }
 
-        // Asignar el importe inicial calculado
-        detalle.setImporteInicial(importeInicialCalculado);
-        log.info("[calcularMensualidad] Asignado importeInicial={} a Detalle id={}", importeInicialCalculado, detalle.getId());
-
-        // Persistir el detalle para que se actualicen los valores en la entidad administrada
-        detalle = detallePagoRepositorio.save(detalle);
-        log.info("[calcularMensualidad] FIN cálculo. Detalle id={} persistido con importeInicial={}", detalle.getId(), detalle.getImporteInicial());
+        // Persistir cambios
+        detallePagoRepositorio.save(detalle);
+        log.info("[calcularMensualidad] FIN cálculo. Detalle id={} persistido con importeInicial={} e importePendiente={}",
+                detalle.getId(), detalle.getImporteInicial(), detalle.getImportePendiente());
     }
 
     /**

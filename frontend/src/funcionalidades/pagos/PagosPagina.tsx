@@ -64,6 +64,13 @@ const PaymentList: React.FC = () => {
       <h1 className="page-title">Pagos</h1>
       <div className="page-button-group flex justify-end mb-4">
         <Boton
+          type="button"
+          onClick={() => navigate("/pagos/formulario")}
+          className="page-button-secondary"
+        >
+          Volver a Pagos
+        </Boton>
+        <Boton
           onClick={() => navigate("/pagos/formulario")}
           className="page-button"
           aria-label="Registrar nuevo pago"

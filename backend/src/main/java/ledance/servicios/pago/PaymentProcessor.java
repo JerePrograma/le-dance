@@ -71,48 +71,37 @@ public class PaymentProcessor {
 
     // Método corregido para recalcular correctamente los totales
     public void recalcularTotales(Pago pago) {
-        log.info("[recalcularTotales] Iniciando recalculo de totales para Pago ID: {}", pago.getId());
+        log.info("[recalcularTotales] Recalculo iniciando para Pago ID: {}", pago.getId());
 
         BigDecimal montoTotalAbonado = BigDecimal.ZERO;
-        BigDecimal saldoTotalPendiente = BigDecimal.ZERO;
+        BigDecimal montoTotalOriginal = BigDecimal.ZERO;
 
         for (DetallePago detalle : pago.getDetallePagos()) {
-            log.info("[recalcularTotales] Procesando DetallePago id={}", detalle.getId());
-            // Asignamos siempre el alumno para asegurar consistencia
             detalle.setAlumno(pago.getAlumno());
-            log.info("[recalcularTotales] Alumno asignado al detalle id={}", detalle.getId());
 
-            // Aquí NO reiniciamos importePendiente, usamos el valor ya actualizado en el proceso de abono
             double abonoAplicado = (detalle.getaCobrar() != null) ? detalle.getaCobrar() : 0.0;
-            log.info("[recalcularTotales] Detalle id={} - abono aplicado: {}", detalle.getId(), abonoAplicado);
             montoTotalAbonado = montoTotalAbonado.add(BigDecimal.valueOf(abonoAplicado));
 
-            double importePendiente = (detalle.getImportePendiente() != null) ? detalle.getImportePendiente() : 0.0;
-            log.info("[recalcularTotales] Detalle id={} - importe pendiente actual: {}", detalle.getId(), importePendiente);
-            saldoTotalPendiente = saldoTotalPendiente.add(BigDecimal.valueOf(importePendiente));
+            double importeInicialDetalle = detalle.getImporteInicial() != null ? detalle.getImporteInicial() : 0.0;
+            montoTotalOriginal = montoTotalOriginal.add(BigDecimal.valueOf(importeInicialDetalle));
         }
 
-        double montoFinal = montoTotalAbonado.doubleValue();
-        log.info("[recalcularTotales] Suma de abonos y pendientes: {} + {} = {}",
-                montoTotalAbonado, saldoTotalPendiente, montoFinal);
-
-        pago.setMonto(montoFinal);
-        log.info("[recalcularTotales] Monto total asignado al pago: {}", pago.getMonto());
-
+        pago.setMonto(montoTotalOriginal.doubleValue());
         pago.setMontoPagado(montoTotalAbonado.doubleValue());
-        log.info("[recalcularTotales] Monto abonado asignado al pago: {}", pago.getMontoPagado());
 
-        pago.setSaldoRestante(saldoTotalPendiente.doubleValue());
-        log.info("[recalcularTotales] Saldo restante asignado al pago: {}", pago.getSaldoRestante());
+        double saldoRestanteCalculado = pago.getMonto() - pago.getMontoPagado();
 
-        if (saldoTotalPendiente.compareTo(BigDecimal.ZERO) == 0) {
+        // Forzar que saldoRestante NUNCA sea negativo
+        if (saldoRestanteCalculado <= 0) {
+            saldoRestanteCalculado = 0.0;
             pago.setEstadoPago(EstadoPago.HISTORICO);
-            log.info("[recalcularTotales] Saldo pendiente es 0. Pago id={} marcado como HISTORICO", pago.getId());
         } else {
             pago.setEstadoPago(EstadoPago.ACTIVO);
-            log.info("[recalcularTotales] Saldo pendiente es mayor que 0. Pago id={} marcado como ACTIVO", pago.getId());
         }
-        log.info("[recalcularTotales] Recalculo finalizado para Pago ID: {}: Monto={}, Pagado={}, SaldoRestante={}",
+
+        pago.setSaldoRestante(saldoRestanteCalculado);
+
+        log.info("[recalcularTotales] Finalizado para Pago ID: {}: Monto={}, Pagado={}, SaldoRestante={}",
                 pago.getId(), pago.getMonto(), pago.getMontoPagado(), pago.getSaldoRestante());
     }
 
@@ -426,13 +415,23 @@ public class PaymentProcessor {
         for (DetallePago detalle : pagoHistorico.getDetallePagos()) {
             log.info("[clonarDetallesConPendiente] Procesando DetallePago: ID={}, descripción='{}', importePendiente={}",
                     detalle.getId(), detalle.getDescripcionConcepto(), detalle.getImportePendiente());
-            // Si el detalle no tiene recargo, se limpia esa asociación (según la lógica de negocio)
-            if (!detalle.getTieneRecargo()) {
-                detalle.setRecargo(null);
-            }
+
             // Sólo clonar si tiene saldo pendiente (importePendiente > 0)
             if (detalle.getImportePendiente() != null && detalle.getImportePendiente() > 0.0) {
                 DetallePago nuevoDetalle = clonarDetallePago(detalle, nuevoPago);
+                if (!detalle.getTieneRecargo()) {
+                    nuevoDetalle.setRecargo(null);
+                }
+                Mensualidad originalMensualidad = detalle.getMensualidad();
+                if (originalMensualidad != null) {
+                    // Aquí se debe copiar solo los datos necesarios desde la originalMensualidad
+                    originalMensualidad.setEsClon(true);
+                    originalMensualidad.setDescripcion(originalMensualidad.getDescripcion());
+                    nuevoDetalle.setMensualidad(originalMensualidad);
+                } else {
+                    nuevoDetalle.setMensualidad(null);
+                }
+
                 nuevoPago.getDetallePagos().add(nuevoDetalle);
                 log.info("[clonarDetallesConPendiente] Detalle clonado. ID antiguo: {}, importePendiente: {}",
                         detalle.getId(), detalle.getImportePendiente());
@@ -490,67 +489,46 @@ public class PaymentProcessor {
     // Método corregido para clonar detalle considerando correctamente el pendiente
     private DetallePago clonarDetallePago(DetallePago original, Pago nuevoPago) {
         log.info("[clonarDetallePago] Clonando DetallePago. Original ID: {}", original.getId());
+
         DetallePago clone = new DetallePago();
-        log.info("[clonarDetallePago] Objeto DetallePago instanciado.");
+        clone.setEsClon(true);               // Clon siempre true
+        original.setEsClon(false);           // Original siempre false
 
-        // Marcar este DetallePago como clon para futuras consultas
-        clone.setEsClon(true);
-
-        // Propiedades básicas y asociaciones
-        log.info("[clonarDetallePago] Asignando descripcionConcepto.");
         clone.setDescripcionConcepto(original.getDescripcionConcepto());
-
-        log.info("[clonarDetallePago] Asignando concepto.");
         clone.setConcepto(original.getConcepto());
-
-        log.info("[clonarDetallePago] Asignando subConcepto.");
         clone.setSubConcepto(original.getSubConcepto());
-
-        log.info("[clonarDetallePago] Asignando cuotaOCantidad.");
         clone.setCuotaOCantidad(original.getCuotaOCantidad());
-
-        log.info("[clonarDetallePago] Asignando bonificacion.");
         clone.setBonificacion(original.getBonificacion());
 
         if (original.getTieneRecargo()) {
-            log.info("[clonarDetallePago] Original tiene recargo, asignando recargo.");
             clone.setRecargo(original.getRecargo());
         }
 
-        log.info("[clonarDetallePago] Asignando valorBase.");
         clone.setValorBase(original.getValorBase());
-
-        log.info("[clonarDetallePago] Asignando tipo.");
         clone.setTipo(original.getTipo());
-
-        log.info("[clonarDetallePago] Asignando fechaRegistro (actual).");
         clone.setFechaRegistro(LocalDate.now());
 
-        // Calcular el importe pendiente a usar para la clonación
-        log.info("[clonarDetallePago] Calculando importePendienteRestante.");
         double importePendienteRestante = original.getImportePendiente() != null
                 ? original.getImportePendiente()
                 : original.getImporteInicial();
-        log.info("[clonarDetallePago] Importe pendiente restante calculado: {}", importePendienteRestante);
 
-        log.info("[clonarDetallePago] Asignando importeInicial e importePendiente.");
         clone.setImporteInicial(importePendienteRestante);
         clone.setImportePendiente(importePendienteRestante);
-
-        log.info("[clonarDetallePago] Asignando alumno desde nuevoPago.");
         clone.setAlumno(nuevoPago.getAlumno());
 
-        clone.setMensualidad(original.getMensualidad());
+        Mensualidad originalMensualidad = original.getMensualidad();
+        if (originalMensualidad != null) {
+            // Aquí se debe copiar solo los datos necesarios desde la originalMensualidad
+            originalMensualidad.setEsClon(true);
+            originalMensualidad.setDescripcion(originalMensualidad.getDescripcion());
+            clone.setMensualidad(originalMensualidad);
+        } else {
+            clone.setMensualidad(null);
+        }
 
         clone.setMatricula(original.getMatricula());
-
-        log.info("[clonarDetallePago] Asignando stock.");
         clone.setStock(original.getStock());
-
-        log.info("[clonarDetallePago] Asignando flag cobrado (true si importePendienteRestante es 0).");
         clone.setCobrado(importePendienteRestante == 0);
-
-        log.info("[clonarDetallePago] Asignando nuevo pago.");
         clone.setPago(nuevoPago);
 
         log.info("[clonarDetallePago] Clonación completada, retornando clone.");
@@ -785,6 +763,7 @@ public class PaymentProcessor {
                     return metodoPagoRepositorio.findByDescripcionContainingIgnoreCase("EFECTIVO");
                 });
         pago.setMetodoPago(metodoPago);
+        pagoRepositorio.save(pago);
         log.info("[asignarMetodoYPersistir] Método de pago asignado: {}", metodoPago);
 
         // Si alguno de los detalles tiene recargo, se aplica el recargo del método de pago

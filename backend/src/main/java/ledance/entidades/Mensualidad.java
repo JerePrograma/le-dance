@@ -70,5 +70,5 @@ public class Mensualidad {
     private Double importePendiente;
 
     @Column(name = "es_clon")
-    private Boolean esClon;
+    private Boolean esClon = false;
 }
