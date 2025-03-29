@@ -68,7 +68,7 @@ public class DetallePagoServicio {
         if (detalle.getTieneRecargo()) {
             recargo = (detalle.getRecargo() != null) ? obtenerValorRecargo(detalle, base) : 0.0;
             log.info("[calcularImporte] Detalle id={} : Recargo calculado = {}", detalle.getId(), recargo);
-        }else {
+        } else {
             recargo = 0;
         }
 
@@ -99,7 +99,7 @@ public class DetallePagoServicio {
 
     public double obtenerValorRecargo(DetallePago detalle, double base) {
         Recargo recargo = detalle.getRecargo();
-        if(!detalle.getTieneRecargo()){
+        if (!detalle.getTieneRecargo()) {
             return 0.0;
         }
         if (recargo != null) {
@@ -184,10 +184,10 @@ public class DetallePagoServicio {
         // Conversión de las entidades a DTOs
         List<DetallePagoResponse> responses = detalles.stream()
                 .map(detallePagoMapper::toDTO)
-                .collect(Collectors.toList());
+                .toList();
         log.info("Conversión a DetallePagoResponse completada. Regresando respuesta.");
 
-        return responses;
+        return responses.stream().sorted().collect(Collectors.toList());
     }
 
     // =====================================================
