@@ -499,10 +499,12 @@ const DetallesTable: React.FC = () => {
                         b.id ===
                         (detalle.bonificacionId ?? detalle.bonificacion?.id)
                     )?.descripcion || "";
-                  const recargoNombre =
-                    recargos.find(
-                      (r: RecargoResponse) => r.id === Number(detalle.recargoId)
-                    )?.descripcion || "";
+                  const recargoNombre = detalle.tieneRecargo
+                    ? recargos.find(
+                        (r: RecargoResponse) =>
+                          r.id === Number(detalle.recargoId)
+                      )?.descripcion || ""
+                    : "";
                   return (
                     <tr key={index} className="hover:bg-gray-50">
                       <td className="border p-2 text-center text-sm">

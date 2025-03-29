@@ -162,8 +162,10 @@ public class PaymentCalculationServicio {
         TipoDetallePago tipo = determinarTipoDetalle(descripcion);
         detalle.setTipo(tipo);
         log.info("[procesarYCalcularDetalle] Detalle id={} - Tipo determinado: {}", detalle.getId(), tipo);
-
-        if (!detalle.getTieneRecargo() || detalle.getTieneRecargo() == null) {
+        if (detalle.getTieneRecargo() == null) {
+            detalle.setTieneRecargo(false);
+        }
+        if (!detalle.getTieneRecargo()) {
             detalle.setRecargo(null);
             log.info("[procesarYCalcularDetalle] Se omite recargo para Detalle id={} (tieneRecargo=false o nulo)", detalle.getId());
         }

@@ -84,6 +84,10 @@ public class PagoServicio {
         // Obtener último pago activo pendiente
         Pago ultimoPagoActivo = paymentProcessor.obtenerUltimoPagoPendienteEntidad(alumnoPersistido.getId());
         log.info("[registrarPago] Último pago activo obtenido: {}", ultimoPagoActivo);
+        if (ultimoPagoActivo == null) {
+            ultimoPagoActivo = crearNuevoPago(alumnoPersistido, request);
+            log.info("[registrarPago] No se encontró pago activo. Se creó un nuevo pago: {}", ultimoPagoActivo);
+        }
 
         // Asignar método de pago al último pago activo, si existe
         asignarMetodoYPersistir(ultimoPagoActivo, request.metodoPagoId());

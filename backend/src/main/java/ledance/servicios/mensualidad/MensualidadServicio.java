@@ -649,10 +649,16 @@ public class MensualidadServicio implements IMensualidadService {
         detalle.setPago(pagoPendiente);
         log.info("[registrarDetallePagoMensualidad] Pago pendiente asociado al DetallePago: id={}", pagoPendiente.getId());
 
-        // --- Aplicar recargo si la mensualidad tiene asignado uno ---
-        if (mensualidad.getRecargo() != null) {
+        // --- Aplicar recargo si la mensualidad tiene asignado uno Y si el flag 'tieneRecargo' lo permite ---
+        // Se verifica si el front end indica explícitamente que NO se debe aplicar recargo.
+        if (detalle.getTieneRecargo() != null && !detalle.getTieneRecargo()) {
+            log.info("[registrarDetallePagoMensualidad] El detalle indica que NO se debe aplicar recargo (tieneRecargo=false).");
+            detalle.setRecargo(null);
+            detalle.setImportePendiente(importeInicial - aCobrar);
+        } else if (mensualidad.getRecargo() != null) {
             Recargo recargo = mensualidad.getRecargo();
             detalle.setRecargo(recargo);
+            // Si el flag no estaba definido, se establece en true (aplicar recargo)
             detalle.setTieneRecargo(true);
             log.info("[registrarDetallePagoMensualidad] Se asigna recargo al DetallePago: id del recargo={}", recargo.getId());
             // Calcular el valor del recargo sobre la base
@@ -1012,6 +1018,40 @@ public class MensualidadServicio implements IMensualidadService {
         log.info("[procesarAbonoMensualidad] Mensualidad id={} actualizada: ImporteInicial={}, MontoAbonado={}, ImportePendiente={}, Estado={}",
                 nuevaMensualidad.getId(), nuevaMensualidad.getImporteInicial(), nuevaMensualidad.getMontoAbonado(), nuevaMensualidad.getImportePendiente(), nuevaMensualidad.getEstado());
 
+    }
+
+    /**
+     * Aplica el recargo al detalle si y sólo si el flag 'tieneRecargo' es true.
+     * Si viene en false, se asegura de que no se aplique recargo.
+     *
+     * @param detalle       El detalle de pago a procesar.
+     * @param mensualidad   La mensualidad asociada.
+     * @param importeInicial El importe base sin recargo.
+     * @param aCobrar       El monto ya abonado.
+     */
+    private void aplicarRecargoSiCorresponde(DetallePago detalle, Mensualidad mensualidad, double importeInicial, double aCobrar) {
+        // Si el detalle viene marcado explícitamente sin recargo, no se aplica
+        if (detalle.getTieneRecargo() != null && !detalle.getTieneRecargo()) {
+            detalle.setRecargo(null);
+            detalle.setImportePendiente(importeInicial - aCobrar);
+            return;
+        }
+
+        // Si la mensualidad tiene recargo asignado, se aplica
+        if (mensualidad.getRecargo() != null) {
+            Recargo recargo = mensualidad.getRecargo();
+            detalle.setRecargo(recargo);
+            // Aseguramos que el flag se establezca en true si no fue forzado en false
+            detalle.setTieneRecargo(true);
+            double recargoValue = calcularRecargo(importeInicial, recargo);
+            double nuevoTotal = importeInicial + recargoValue;
+            double nuevoPendiente = nuevoTotal - aCobrar;
+            detalle.setImportePendiente(nuevoPendiente);
+        } else {
+            // En caso de no tener recargo asignado en la mensualidad, se deja sin recargo.
+            detalle.setRecargo(null);
+            detalle.setImportePendiente(importeInicial - aCobrar);
+        }
     }
 
 }

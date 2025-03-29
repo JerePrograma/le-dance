@@ -215,13 +215,50 @@ public class PaymentProcessor {
             log.info("[esPagoHistoricoAplicable] No se puede aplicar pago histórico: pago o detallePagos es nulo.");
             return false;
         }
+
+        // Si el request trae detalles, intentar emparejar cada uno y "limpiar" el recargo si corresponde
+        List<DetallePago> detallesHistoricos = ultimoPendiente.getDetallePagos();
+        List<DetallePagoRegistroRequest> detallesRequest = request.detallePagos();
+
+        // Si la cantidad de detalles coincide, se asume que están en el mismo orden
+        if (detallesHistoricos.size() == detallesRequest.size()) {
+            for (int i = 0; i < detallesHistoricos.size(); i++) {
+                DetallePago hist = detallesHistoricos.get(i);
+                DetallePagoRegistroRequest reqDetalle = detallesRequest.get(i);
+                if (reqDetalle.tieneRecargo() != null && !reqDetalle.tieneRecargo()) {
+                    log.info("[esPagoHistoricoAplicable] Para detalle '{}' se indica que NO se debe aplicar recargo.",
+                            reqDetalle.descripcionConcepto());
+                    hist.setRecargo(null);
+                    hist.setTieneRecargo(false);
+                    // Recalcular el importe pendiente sin recargo (suponiendo que el importeInicial es el valor base)
+                    hist.setImportePendiente(hist.getImporteInicial());
+                }
+            }
+        } else {
+            // Si las cantidades no coinciden, se hace un emparejamiento por descripción (u otro criterio)
+            for (DetallePagoRegistroRequest reqDetalle : detallesRequest) {
+                Optional<DetallePago> optHist = detallesHistoricos.stream()
+                        .filter(hist -> hist.getDescripcionConcepto().equalsIgnoreCase(reqDetalle.descripcionConcepto()))
+                        .findFirst();
+                if (optHist.isPresent() && reqDetalle.tieneRecargo() != null && !reqDetalle.tieneRecargo()) {
+                    log.info("[esPagoHistoricoAplicable] Para detalle '{}' se indica que NO se debe aplicar recargo.",
+                            reqDetalle.descripcionConcepto());
+                    DetallePago hist = optHist.get();
+                    hist.setRecargo(null);
+                    hist.setTieneRecargo(false);
+                    hist.setImportePendiente(hist.getImporteInicial());
+                }
+            }
+        }
+
+        // Calcular el total pendiente a partir de los detalles (ya "limpiados" en caso de no aplicar recargo)
         double totalPendienteHistorico = ultimoPendiente.getDetallePagos().stream()
                 .filter(detalle -> detalle.getImportePendiente() != null
                         && detalle.getImportePendiente() > 0.0
                         && !detalle.getCobrado())
                 .mapToDouble(DetallePago::getImportePendiente)
                 .sum();
-        log.info("[esPagoHistoricoAplicable] Total pendiente en pago histórico: {}", totalPendienteHistorico);
+        log.info("[esPagoHistoricoAplicable] Total pendiente en pago histórico (después de limpiar recargos si corresponde): {}", totalPendienteHistorico);
 
         double totalAAbonarRequest = request.detallePagos().stream()
                 .mapToDouble(dto -> dto.aCobrar() != null ? dto.aCobrar() : 0.0)

@@ -99,6 +99,9 @@ public class DetallePagoServicio {
 
     public double obtenerValorRecargo(DetallePago detalle, double base) {
         Recargo recargo = detalle.getRecargo();
+        if(!detalle.getTieneRecargo()){
+            return 0.0;
+        }
         if (recargo != null) {
             int diaActual = LocalDate.now().getDayOfMonth();
             log.info("[obtenerValorRecargo] Detalle id={} | Día actual={} | Día de aplicación={}",

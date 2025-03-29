@@ -29,7 +29,6 @@ public class RecargoServicio {
     private final RecargoMapper recargoMapper;
     private final MensualidadRepositorio mensualidadRepositorio;
     private final DetallePagoRepositorio detallePagoRepositorio;
-    private final DetallePagoServicio detallePagoServicio;
     private final ProcesoEjecutadoRepositorio procesoEjecutadoRepositorio;
 
     public RecargoServicio(RecargoRepositorio recargoRepositorio, RecargoMapper recargoMapper, MensualidadRepositorio mensualidadRepositorio, DetallePagoRepositorio detallePagoRepositorio, DetallePagoServicio detallePagoServicio, ProcesoEjecutadoRepositorio procesoEjecutadoRepositorio) {
@@ -37,7 +36,6 @@ public class RecargoServicio {
         this.recargoMapper = recargoMapper;
         this.mensualidadRepositorio = mensualidadRepositorio;
         this.detallePagoRepositorio = detallePagoRepositorio;
-        this.detallePagoServicio = detallePagoServicio;
         this.procesoEjecutadoRepositorio = procesoEjecutadoRepositorio;
     }
 
@@ -78,17 +76,6 @@ public class RecargoServicio {
         Recargo recargo = recargoRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Recargo no encontrado con id: " + id));
         recargoRepositorio.delete(recargo);
-    }
-
-    /**
-     * Metodo que devuelve los recargos que deben aplicarse en una fecha especifica.
-     */
-    @Transactional(readOnly = true)
-    public List<RecargoResponse> obtenerRecargosParaFecha(LocalDate fecha) {
-        int diaDelMes = fecha.getDayOfMonth();
-        return recargoRepositorio.findByDiaDelMesAplicacion(diaDelMes).stream()
-                .map(recargoMapper::toResponse)
-                .toList();
     }
 
     /**
