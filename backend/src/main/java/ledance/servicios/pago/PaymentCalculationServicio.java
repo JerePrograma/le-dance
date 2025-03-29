@@ -237,8 +237,14 @@ public class PaymentCalculationServicio {
             procesarAbono(detalle, detalle.getaCobrar(), detalle.getImporteInicial());
         }
 
-        // 9. Finalmente, si el importe pendiente es 0 o menor, marcar el detalle como cobrado
-        if (detalle.getImportePendiente() <= 0.0) {
+        // Asegurar importePendiente no nulo antes de comparar
+        Double importePendiente = detalle.getImportePendiente();
+        if (importePendiente == null) {
+            importePendiente = 0.0;
+            detalle.setImportePendiente(importePendiente);
+        }
+
+        if (importePendiente <= 0.0) {
             detalle.setCobrado(true);
             detalle.setImportePendiente(0.0);
             log.info("[procesarYCalcularDetalle] Detalle id={} marcado como cobrado (importe pendiente 0).", detalle.getId());
