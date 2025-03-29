@@ -209,8 +209,10 @@ const DetallePagoList: React.FC = () => {
   if (error && detalles.length === 0)
     return <div className="text-center py-4 text-destructive">{error}</div>;
 
-  const sortedItems = [...currentItems].sort((a, b) => b.id - a.id);
-
+  const sortedItems = [...currentItems].sort(
+    (a, b) => Number(b.id) - Number(a.id)
+  );
+  
   return (
     <div ref={containerRef} className="flex flex-col h-screen overflow-hidden">
       {/* Header */}
