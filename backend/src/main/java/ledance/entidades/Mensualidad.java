@@ -68,4 +68,7 @@ public class Mensualidad {
     private List<DetallePago> detallePagos;
 
     private Double importePendiente;
+
+    @Column(name = "es_clon")
+    private Boolean esClon;
 }

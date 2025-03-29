@@ -1,5 +1,8 @@
 package ledance.controladores;
 
+import jakarta.validation.Valid;
+import ledance.dto.pago.DetallePagoMapper;
+import ledance.dto.pago.request.DetallePagoRegistroRequest;
 import ledance.dto.pago.request.PagoMedioRegistroRequest;
 import ledance.dto.pago.request.PagoRegistroRequest;
 import ledance.dto.pago.response.DetallePagoResponse;
@@ -27,10 +30,12 @@ public class PagoControlador {
     private static final Logger log = LoggerFactory.getLogger(PagoControlador.class);
     private final PagoServicio pagoServicio;
     private final DetallePagoServicio detallePagoServicio;
+    private final DetallePagoMapper detallePagoMapper;
 
-    public PagoControlador(PagoServicio pagoServicio, DetallePagoServicio detallePagoServicio) {
+    public PagoControlador(PagoServicio pagoServicio, DetallePagoServicio detallePagoServicio, DetallePagoMapper detallePagoMapper) {
         this.pagoServicio = pagoServicio;
         this.detallePagoServicio = detallePagoServicio;
+        this.detallePagoMapper = detallePagoMapper;
     }
 
     @PostMapping
@@ -174,6 +179,13 @@ public class PagoControlador {
         );
 
         return detalles.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(detalles);
+    }
+
+
+    @PostMapping("/verificar")
+    public ResponseEntity<Void> verificarMensualidad(@Valid @RequestBody DetallePagoRegistroRequest request) {
+        detallePagoServicio.verificarMensualidadNoDuplicada(detallePagoMapper.toEntity(request));
+        return ResponseEntity.ok().build();
     }
 
 }

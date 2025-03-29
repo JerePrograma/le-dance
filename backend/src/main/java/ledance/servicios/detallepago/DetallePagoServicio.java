@@ -1,18 +1,23 @@
 package ledance.servicios.detallepago;
 
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.validation.Valid;
 import ledance.dto.pago.DetallePagoMapper;
+import ledance.dto.pago.request.DetallePagoRegistroRequest;
 import ledance.dto.pago.response.DetallePagoResponse;
 import ledance.entidades.DetallePago;
+import ledance.entidades.Mensualidad;
 import ledance.entidades.Recargo;
 import ledance.entidades.TipoDetallePago;
 import ledance.repositorios.DetallePagoRepositorio;
+import ledance.repositorios.MensualidadRepositorio;
 import org.flywaydb.core.internal.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -27,10 +32,12 @@ public class DetallePagoServicio {
     private static final Logger log = LoggerFactory.getLogger(DetallePagoServicio.class);
     private final DetallePagoRepositorio detallePagoRepositorio;
     private final DetallePagoMapper detallePagoMapper;
+    private final MensualidadRepositorio mensualidadRepositorio;
 
-    public DetallePagoServicio(DetallePagoRepositorio detallePagoRepositorio, DetallePagoMapper detallePagoMapper) {
+    public DetallePagoServicio(DetallePagoRepositorio detallePagoRepositorio, DetallePagoMapper detallePagoMapper, MensualidadRepositorio mensualidadRepositorio) {
         this.detallePagoRepositorio = detallePagoRepositorio;
         this.detallePagoMapper = detallePagoMapper;
+        this.mensualidadRepositorio = mensualidadRepositorio;
     }
 
     /**
@@ -111,8 +118,8 @@ public class DetallePagoServicio {
                 log.info("[obtenerValorRecargo] Día actual no coincide; recargo=0");
                 return 0.0;
             }
-            double recargoFijo = recargo.getValorFijo() != null ? recargo.getValorFijo() : 0.0;
-            double recargoPorcentaje = recargo.getPorcentaje() != null ? (recargo.getPorcentaje() / 100.0 * base) : 0.0;
+            double recargoFijo = (recargo.getValorFijo() != null) ? recargo.getValorFijo() : 0.0;
+            double recargoPorcentaje = (recargo.getPorcentaje() != null) ? (recargo.getPorcentaje() / 100.0 * base) : 0.0;
             double totalRecargo = recargoFijo + recargoPorcentaje;
             log.info("[obtenerValorRecargo] Detalle id={} | Recargo fijo={} | %={} | Total Recargo={}",
                     detalle.getId(), recargoFijo, recargoPorcentaje, totalRecargo);
@@ -249,8 +256,24 @@ public class DetallePagoServicio {
                 .collect(Collectors.toList());
     }
 
-    // =====================================================
-    // Método privado para mappear a DTO
-    // =====================================================
+    @Transactional
+    public void verificarMensualidadNoDuplicada(DetallePago detalle) {
+        Long alumnoId = detalle.getAlumno().getId();
+        String descripcion = detalle.getDescripcionConcepto();
+        log.info("Verificando existencia de mensualidad o detalle de pago para alumnoId={} con descripción '{}'", alumnoId, descripcion);
+
+        // Verificar si ya existe una mensualidad para el alumno con la misma descripción
+        Optional<Mensualidad> mensualidadOpt = mensualidadRepositorio.findByInscripcionAlumnoIdAndDescripcionIgnoreCase(alumnoId, descripcion);
+
+        // Verificar si existe un DetallePago de tipo MENSUALIDAD para el mismo alumno y con la misma descripción
+        boolean existeDetalleDuplicado = detallePagoRepositorio.existsByAlumnoIdAndDescripcionConceptoIgnoreCaseAndTipo(
+                alumnoId, descripcion, TipoDetallePago.MENSUALIDAD
+        );
+
+        if (mensualidadOpt.isPresent() || existeDetalleDuplicado) {
+            log.error("Ya existe una mensualidad o detalle de pago con descripción '{}' para alumnoId={}", descripcion, alumnoId);
+            throw new IllegalStateException("MENSUALIDAD YA COBRADA");
+        }
+    }
 
 }

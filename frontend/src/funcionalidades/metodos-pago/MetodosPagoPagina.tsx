@@ -86,7 +86,7 @@ const MetodosPagoPagina = () => {
       </div>
       <div className="page-card">
         <Tabla
-          headers={["ID", "Descripción", "Recargo", "Acciones"]}
+          headers={["ID", "Descripción", "Recargo"]}
           data={currentItems}
           actions={(fila: MetodoPagoResponse) => (
             <div className="flex gap-2">

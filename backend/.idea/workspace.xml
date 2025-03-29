@@ -6,9 +6,23 @@
   <component name="ChangeListManager">
     <list default="true" id="ccb8f120-972c-4a18-b18b-4ae7da723dfa" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/MensualidadControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/MensualidadControlador.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/PagoControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/PagoControlador.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/entidades/DetallePago.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/entidades/DetallePago.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/entidades/Mensualidad.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/entidades/Mensualidad.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/repositorios/DetallePagoRepositorio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/repositorios/DetallePagoRepositorio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/repositorios/MensualidadRepositorio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/repositorios/MensualidadRepositorio.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/detallepago/DetallePagoServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/detallepago/DetallePagoServicio.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/pagos/PagosAlumnoPagina.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/pagos/PagosAlumnoPagina.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/pagos/PagosPagina.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/pagos/PagosPagina.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/inscripcion/InscripcionServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/inscripcion/InscripcionServicio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/mensualidad/MensualidadServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/mensualidad/MensualidadServicio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/pago/PagoServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/pago/PagoServicio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/pago/PaymentCalculationServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/pago/PaymentCalculationServicio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/pago/PaymentProcessor.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/pago/PaymentProcessor.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/stock/StockServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/stock/StockServicio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/api/pagosApi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/api/pagosApi.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/caja/ConsultaCajaDiaria.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/caja/ConsultaCajaDiaria.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/metodos-pago/MetodosPagoPagina.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/metodos-pago/MetodosPagoPagina.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/pagos/PagosFormulario.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/pagos/PagosFormulario.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -67,6 +81,7 @@
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
     &quot;Spring Boot.Main.executor&quot;: &quot;Run&quot;,
+    &quot;extract.method.default.visibility&quot;: &quot;private&quot;,
     &quot;git-widget-placeholder&quot;: &quot;main&quot;,
     &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
     &quot;last_opened_file_path&quot;: &quot;C:/Users/Jerem/OneDrive/Documentos/preneur_challenge&quot;,
@@ -160,7 +175,8 @@
       <workItem from="1743116237135" duration="15049000" />
       <workItem from="1743185721016" duration="652000" />
       <workItem from="1743186915786" duration="8347000" />
-      <workItem from="1743212532241" duration="1462000" />
+      <workItem from="1743212532241" duration="26380000" />
+      <workItem from="1743250053527" duration="607000" />
     </task>
     <servers />
   </component>

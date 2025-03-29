@@ -1,9 +1,11 @@
 package ledance.servicios.pago;
 
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 import ledance.entidades.*;
 import ledance.repositorios.ConceptoRepositorio;
+import ledance.repositorios.DetallePagoRepositorio;
 import ledance.repositorios.DisciplinaRepositorio;
 import ledance.servicios.detallepago.DetallePagoServicio;
 import ledance.servicios.matricula.MatriculaServicio;
@@ -18,6 +20,9 @@ import java.util.Optional;
 @Service
 public class PaymentCalculationServicio {
 
+    @PersistenceContext
+    private jakarta.persistence.EntityManager entityManager;
+
     private static final Logger log = LoggerFactory.getLogger(PaymentCalculationServicio.class);
 
     private final MatriculaServicio matriculaServicio;
@@ -26,18 +31,20 @@ public class PaymentCalculationServicio {
     private final DetallePagoServicio detallePagoServicio;
     private final ConceptoRepositorio conceptoRepositorio;
     private final DisciplinaRepositorio disciplinaRepositorio;
+    private final DetallePagoRepositorio detallePagoRepositorio;
 
     public PaymentCalculationServicio(MatriculaServicio matriculaServicio,
                                       MensualidadServicio mensualidadServicio,
                                       StockServicio stockServicio,
                                       DetallePagoServicio detallePagoServicio,
-                                      ConceptoRepositorio conceptoRepositorio, DisciplinaRepositorio disciplinaRepositorio) {
+                                      ConceptoRepositorio conceptoRepositorio, DisciplinaRepositorio disciplinaRepositorio, DetallePagoRepositorio detallePagoRepositorio) {
         this.matriculaServicio = matriculaServicio;
         this.mensualidadServicio = mensualidadServicio;
         this.stockServicio = stockServicio;
         this.detallePagoServicio = detallePagoServicio;
         this.conceptoRepositorio = conceptoRepositorio;
         this.disciplinaRepositorio = disciplinaRepositorio;
+        this.detallePagoRepositorio = detallePagoRepositorio;
     }
 
     // ============================================================
@@ -58,7 +65,7 @@ public class PaymentCalculationServicio {
         double base = detalle.getValorBase();
         log.info("[calcularImporteInicial] Valor base obtenido: {} para DetallePago id={}", base, detalle.getId());
 
-        if (!detalle.getTieneRecargo() || detalle.getTieneRecargo() == null) {
+        if (!detalle.getTieneRecargo()) {
             detalle.setRecargo(null);
             log.info("[calcularImporteInicial] Se omite recargo para Detalle id={} (tieneRecargo=false o nulo)", detalle.getId());
         }
@@ -84,10 +91,6 @@ public class PaymentCalculationServicio {
         return importeInicial;
     }
 
-    // ============================================================
-    // METODO UNIFICADO: PROCESAR EL ABONO
-    // ============================================================
-
     /**
      * Procesa el abono de un detalle, asegurandose de que:
      * - El monto abonado no exceda el importe pendiente.
@@ -104,18 +107,12 @@ public class PaymentCalculationServicio {
         if (detalle.getImporteInicial() == null && importeInicialCalculado != null) {
             detalle.setImporteInicial(importeInicialCalculado);
         }
-        Double importePendienteActual = null;
+        // Usamos el importe pendiente actual; si es null, se asume que es igual al importe inicial
+        Double importePendienteActual = (detalle.getImportePendiente() == null)
+                ? detalle.getImporteInicial()
+                : detalle.getImportePendiente();
 
-        if (detalle.getImportePendiente() == null) {
-            importePendienteActual = importeInicialCalculado;
-        } else {
-            importePendienteActual = detalle.getImportePendiente();
-        }
-        if (!detalle.getTieneRecargo() || detalle.getTieneRecargo() == null) {
-            detalle.setImportePendiente(detalle.getImporteInicial());
-            detalle.setTieneRecargo(false);
-        }
-
+        // Limitar el monto del abono al importe pendiente
         if (montoAbono > importePendienteActual) {
             montoAbono = importePendienteActual;
         }
@@ -131,7 +128,6 @@ public class PaymentCalculationServicio {
             if (detalle.getTipo() == TipoDetallePago.MENSUALIDAD && detalle.getMensualidad() != null) {
                 detalle.getMensualidad().setEstado(EstadoMensualidad.PAGADO);
             }
-
             if (detalle.getTipo() == TipoDetallePago.MATRICULA && detalle.getMatricula() != null) {
                 detalle.getMatricula().setPagada(true);
             }
@@ -147,101 +143,110 @@ public class PaymentCalculationServicio {
     // METODO CENTRAL UNIFICADO: PROCESAR Y CALCULAR DETALLE
     // ============================================================
 
-    // 4. Procesar y calcular cada detalle (unifica calculos y marca como cobrado si corresponde)
+    /**
+     * Refactor de procesarYCalcularDetalle:
+     * - Se normaliza la descripción y se determina el tipo.
+     * - Según el tipo se invoca la lógica específica de cálculo.
+     * - Finalmente, se procesa el abono central y se marca el detalle como cobrado si el importe pendiente es 0.
+     */
+    @Transactional
     public void procesarYCalcularDetalle(Pago pago, DetallePago detalle, Inscripcion inscripcion) {
-        log.info("[procesarYCalcularDetalle] Iniciando procesamiento para DetallePago id={}", detalle.getId());
-        detalle.setImportePendiente(detalle.getImporteInicial());
-        log.info("[procesarYCalcularDetalle] Se asigna importePendiente={} al DetallePago id={}", detalle.getImporteInicial(), detalle.getId());
+        // 1. Asegurarse de que el pago ya esté persistido
+        if (pago.getId() == null) {
+            // Persistimos y forzamos un flush para asignarle un ID
+            entityManager.persist(pago);
+            entityManager.flush();
+            log.info("[procesarYCalcularDetalle] Pago persistido previamente con id={}", pago.getId());
+        }
 
-        // Normalizar descripción
-        String descripcion = Optional.ofNullable(detalle.getDescripcionConcepto()).orElse("").trim().toUpperCase();
+        // 2. Si el detalle aún no está persistido, persistirlo para que tenga ID
+        if (detalle.getId() == null) {
+            detalle = detallePagoRepositorio.save(detalle);
+            log.info("[procesarYCalcularDetalle] DetallePago persistido inicialmente con id={}", detalle.getId());
+        }
+
+        // 3. Normalizar la descripción
+        String descripcion = Optional.ofNullable(detalle.getDescripcionConcepto())
+                .orElse("")
+                .trim()
+                .toUpperCase();
         detalle.setDescripcionConcepto(descripcion);
         log.info("[procesarYCalcularDetalle] Detalle id={} - Descripción normalizada: '{}'", detalle.getId(), descripcion);
 
-        // Determinar tipo de detalle
+        // 4. Determinar el tipo del detalle según la descripción
         TipoDetallePago tipo = determinarTipoDetalle(descripcion);
         detalle.setTipo(tipo);
         log.info("[procesarYCalcularDetalle] Detalle id={} - Tipo determinado: {}", detalle.getId(), tipo);
-        if (detalle.getTieneRecargo() == null) {
-            detalle.setTieneRecargo(false);
-        }
-        if (!detalle.getTieneRecargo()) {
+
+        // 5. Si no tiene recargo, forzamos que sea null
+        if (!Boolean.TRUE.equals(detalle.getTieneRecargo())) {
             detalle.setRecargo(null);
             log.info("[procesarYCalcularDetalle] Se omite recargo para Detalle id={} (tieneRecargo=false o nulo)", detalle.getId());
         }
 
-        // Lógica específica según el tipo
+        // 6. Lógica específica según el tipo del detalle
         switch (tipo) {
             case MENSUALIDAD:
+                // Ejecutar el cálculo de la cuota.
+                // Se decide cuál método usar según si se encontró inscripción o se trata de "CLASE DE PRUEBA"
                 if (inscripcion != null) {
-                    log.info("[procesarYCalcularDetalle] Inscripción encontrada para Detalle id={}", detalle.getId());
+                    log.info("[procesarYCalcularDetalle - MENSUALIDAD] Inscripción encontrada para Detalle id={}", detalle.getId());
                     calcularMensualidad(detalle, inscripcion);
-                    log.info("[procesarYCalcularDetalle] Método calcularMensualidad ejecutado para Detalle id={}", detalle.getId());
+                } else if (descripcion.contains("CLASE DE PRUEBA")) {
+                    log.info("[procesarYCalcularDetalle - MENSUALIDAD] 'CLASE DE PRUEBA' detectada para Detalle id={}", detalle.getId());
+                    procesarClaseDePrueba(detalle, descripcion, pago);
                 } else {
-                    if (descripcion.contains("CLASE DE PRUEBA")) {
-                        log.info("[procesarYCalcularDetalle] 'CLASE DE PRUEBA' detectada para Detalle id={}", detalle.getId());
-                        procesarClaseDePrueba(detalle, descripcion, pago);
-                    } else {
-                        log.warn("[procesarYCalcularDetalle] No se encontró inscripción para Detalle id={} y no es CLASE DE PRUEBA. Se procederá con cálculo genérico.", detalle.getId());
-                        calcularMensualidad(detalle, inscripcion); // inscripcion es nulo, se debe manejar
-                    }
+                    log.warn("[procesarYCalcularDetalle - MENSUALIDAD] No se encontró inscripción para Detalle id={} y no es CLASE DE PRUEBA. Se procede con cálculo genérico.", detalle.getId());
+                    calcularMensualidad(detalle, null);
                 }
+                // Una vez calculado el detalle de cuota, se actualiza el abono a nivel de mensualidad.
+                if (descripcion.contains("CUOTA")) {
+                    Mensualidad mensualidad = mensualidadServicio.obtenerOMarcarPendienteMensualidad(
+                            pago.getAlumno().getId(), detalle.getDescripcionConcepto());
+                    log.info("[procesarYCalcularDetalle - MENSUALIDAD] Mensualidad obtenida para abono: id={}", mensualidad.getId());
+                    mensualidadServicio.procesarAbonoMensualidad(mensualidad, detalle);
+                }
+                // Luego, NO se llama al procesarAbono genérico para evitar duplicidad
                 break;
             case MATRICULA:
                 log.info("[procesarYCalcularDetalle] Tipo MATRICULA detectado para Detalle id={}", detalle.getId());
                 aplicarDescuentoCreditoEnMatricula(pago, detalle);
-                log.info("[procesarYCalcularDetalle] Descuento de crédito aplicado para MATRICULA en Detalle id={}", detalle.getId());
                 calcularMatricula(detalle, pago);
-                log.info("[procesarYCalcularDetalle] Método calcularMatricula ejecutado para Detalle id={}", detalle.getId());
                 break;
             case STOCK:
                 log.info("[procesarYCalcularDetalle] Tipo STOCK detectado para Detalle id={}", detalle.getId());
                 calcularStock(detalle);
-                log.info("[procesarYCalcularDetalle] Método calcularStock ejecutado para Detalle id={}", detalle.getId());
                 break;
             default:
                 log.info("[procesarYCalcularDetalle] Tipo DEFAULT detectado para Detalle id={}", detalle.getId());
                 if (descripcion.contains("CLASE SUELTA")) {
-                    log.info("[procesarYCalcularDetalle] 'CLASE SUELTA' detectada para Detalle id={}", detalle.getId());
                     calcularConceptoGeneral(detalle);
-                    Alumno alumno = pago.getAlumno();
-                    double creditoActual = (alumno.getCreditoAcumulado() != null) ? alumno.getCreditoAcumulado() : 0.0;
-                    log.info("[procesarYCalcularDetalle] Acumulando crédito por CLASE SUELTA: {} para Detalle id={}", detalle.getaCobrar(), detalle.getId());
-                    alumno.setCreditoAcumulado(creditoActual + detalle.getaCobrar());
-                    log.info("[procesarYCalcularDetalle] Nuevo crédito acumulado del alumno: {} (anterior: {})", (creditoActual + detalle.getaCobrar()), creditoActual);
+                    double creditoActual = (pago.getAlumno().getCreditoAcumulado() != null)
+                            ? pago.getAlumno().getCreditoAcumulado() : 0.0;
+                    pago.getAlumno().setCreditoAcumulado(creditoActual + detalle.getaCobrar());
                 } else {
-                    log.info("[procesarYCalcularDetalle] Ejecutando cálculo general para Detalle id={}", detalle.getId());
                     calcularConceptoGeneral(detalle);
                 }
                 break;
         }
+
         log.info("[procesarYCalcularDetalle] Cálculo específico finalizado para Detalle id={}", detalle.getId());
 
-        if (tipo != TipoDetallePago.STOCK) {
-            log.info("[procesarYCalcularDetalle] Iniciando procesamiento de abono centralizado para Detalle id={}. aCobrar: {}, Importe Inicial: {}",
-                    detalle.getId(), detalle.getaCobrar(), detalle.getImporteInicial());
+        // Procesar abono centralizado solo para tipos que no sean MENSUALIDAD ni STOCK
+        if (tipo != TipoDetallePago.STOCK && tipo != TipoDetallePago.MENSUALIDAD) {
             procesarAbono(detalle, detalle.getaCobrar(), detalle.getImporteInicial());
-            log.info("[procesarYCalcularDetalle] Procesamiento de abono centralizado finalizado para Detalle id={}", detalle.getId());
-        } else {
-            log.info("[procesarYCalcularDetalle] Tipo STOCK: se omite abono central para Detalle id={}", detalle.getId());
         }
 
-        if (tipo == TipoDetallePago.MENSUALIDAD && descripcion.contains("CUOTA")) {
-            log.info("[procesarYCalcularDetalle] Iniciando actualización de mensualidad para Detalle id={}", detalle.getId());
-            Mensualidad mensualidad = mensualidadServicio.obtenerOMarcarPendienteMensualidad(
-                    pago.getAlumno().getId(), detalle.getDescripcionConcepto());
-            mensualidadServicio.procesarAbonoMensualidad(mensualidad, detalle);
-            log.info("[procesarYCalcularDetalle] Mensualidad actualizada para Detalle id={}", detalle.getId());
-        }
-
+        // 9. Finalmente, si el importe pendiente es 0 o menor, marcar el detalle como cobrado
         if (detalle.getImportePendiente() <= 0.0) {
             detalle.setCobrado(true);
             detalle.setImportePendiente(0.0);
-            log.info("[procesarYCalcularDetalle] Detalle id={} marcado como cobrado, ya que el importe pendiente es 0.", detalle.getId());
-        } else {
-            log.info("[procesarYCalcularDetalle] Detalle id={} - Importe pendiente tras abono: {}", detalle.getId(), detalle.getImportePendiente());
+            log.info("[procesarYCalcularDetalle] Detalle id={} marcado como cobrado (importe pendiente 0).", detalle.getId());
         }
-        log.info("[procesarYCalcularDetalle] Procesamiento finalizado para DetallePago id={}", detalle.getId());
+
+        // 10. Guardar los cambios finales del detalle
+        detalle = detallePagoRepositorio.save(detalle);
+        log.info("[procesarYCalcularDetalle] Procesamiento finalizado para Detalle id={}", detalle.getId());
     }
 
     private void procesarClaseDePrueba(DetallePago detalle, String descripcion, Pago pago) {
@@ -368,19 +373,31 @@ public class PaymentCalculationServicio {
     }
 
     /**
-     * Calcula el detalle de tipo MENSUALIDAD.
-     * Se aplican descuentos y recargos, utilizando la inscripcion si esta disponible.
+     * Calcula el importe inicial de una mensualidad para un DetallePago, usando la inscripcion (si está disponible)
+     * para aplicar descuentos y recargos.
      */
     void calcularMensualidad(DetallePago detalle, Inscripcion inscripcion) {
-        log.info("[calcularMensualidad] Iniciando cálculo de mensualidad para DetallePago id={}", detalle.getId());
-        if (!detalle.getTieneRecargo() || detalle.getTieneRecargo() == null) {
+        log.info("[calcularMensualidad] INICIO cálculo para DetallePago id={}", detalle.getId());
+
+        // Si el detalle no tiene recargo, se fuerza a null
+        if (!detalle.getTieneRecargo()) {
             detalle.setRecargo(null);
             log.info("[calcularMensualidad] Se omite recargo para Detalle id={} (tieneRecargo=false o nulo)", detalle.getId());
+        } else {
+            log.info("[calcularMensualidad] Detalle id={} tiene recargo asignado: {}", detalle.getId(), detalle.getRecargo());
         }
+
+        // Calcular el importe inicial usando el método centralizado
         double importeInicialCalculado = calcularImporteInicial(detalle, inscripcion, false);
-        log.info("[calcularMensualidad] DetallePago id={} - Importe Inicial calculado: {}", detalle.getId(), importeInicialCalculado);
+        log.info("[calcularMensualidad] Para Detalle id={}, importeInicialCalculado={}", detalle.getId(), importeInicialCalculado);
+
+        // Asignar el importe inicial calculado
         detalle.setImporteInicial(importeInicialCalculado);
-        log.info("[calcularMensualidad] Proceso de cálculo finalizado para DetallePago id={}", detalle.getId());
+        log.info("[calcularMensualidad] Asignado importeInicial={} a Detalle id={}", importeInicialCalculado, detalle.getId());
+
+        // Persistir el detalle para que se actualicen los valores en la entidad administrada
+        detalle = detallePagoRepositorio.save(detalle);
+        log.info("[calcularMensualidad] FIN cálculo. Detalle id={} persistido con importeInicial={}", detalle.getId(), detalle.getImporteInicial());
     }
 
     /**
@@ -465,6 +482,7 @@ public class PaymentCalculationServicio {
     /**
      * Determina el tipo de detalle basado en la descripcion normalizada.
      */
+    @Transactional
     public TipoDetallePago determinarTipoDetalle(String descripcionConcepto) {
         if (descripcionConcepto == null) {
             return TipoDetallePago.CONCEPTO;
@@ -503,4 +521,78 @@ public class PaymentCalculationServicio {
         log.info("[calcularDescuentoPorInscripcion] Total descuento para Inscripción id={} es: {}", inscripcion.getId(), totalDescuento);
         return totalDescuento;
     }
+
+
+    /**
+     * Reatacha las asociaciones de un DetallePago (alumno, mensualidad, matricula, stock)
+     * para garantizar que las entidades esten en estado managed y evitar errores de detached.
+     *
+     * @param detalle el objeto DetallePago a reatachar.
+     * @param pago    el objeto Pago asociado.
+     */
+    @Transactional
+    public void reatacharAsociaciones(DetallePago detalle, Pago pago) {
+        log.info("[reatacharAsociaciones] INICIO: Reatachamiento para DetallePago id={}", detalle.getId());
+
+        // Verificar y asignar 'aCobrar'
+        log.info("[reatacharAsociaciones] Valor de aCobrar ANTES: {}", detalle.getaCobrar());
+        if (detalle.getaCobrar() == null) {
+            detalle.setaCobrar(0.0);
+            log.info("[reatacharAsociaciones] Se asignó aCobrar=0.0 para DetallePago id={}", detalle.getId());
+        }
+        log.info("[reatacharAsociaciones] Valor de aCobrar DESPUÉS: {}", detalle.getaCobrar());
+
+        // Verificar y asignar el Alumno
+        log.info("[reatacharAsociaciones] Valor de detalle.getAlumno() ANTES: {}",
+                (detalle.getAlumno() != null ? detalle.getAlumno().getId() : "null"));
+        if (detalle.getAlumno() == null && pago.getAlumno() != null) {
+            log.info("[reatacharAsociaciones] Se asignará el alumno del pago: {}", pago.getAlumno().getId());
+            detalle.setAlumno(pago.getAlumno());
+            log.info("[reatacharAsociaciones] Valor de detalle.getAlumno() DESPUÉS: {}",
+                    (detalle.getAlumno() != null ? detalle.getAlumno().getId() : "null"));
+        } else {
+            log.info("[reatacharAsociaciones] No se asigna alumno. detalle.getAlumno() = {} y pago.getAlumno() = {}",
+                    (detalle.getAlumno() != null ? detalle.getAlumno().getId() : "null"),
+                    (pago.getAlumno() != null ? pago.getAlumno().getId() : "null"));
+        }
+
+        // Reatachar Mensualidad, si existe
+        if (detalle.getMensualidad() != null && detalle.getMensualidad().getId() != null) {
+            log.info("[reatacharAsociaciones] Valor de detalle.getMensualidad() ANTES: {}", detalle.getMensualidad().getId());
+            Mensualidad managedMensualidad = entityManager.find(Mensualidad.class, detalle.getMensualidad().getId());
+            if (managedMensualidad != null) {
+                detalle.setMensualidad(managedMensualidad);
+                log.info("[reatacharAsociaciones] Mensualidad reatachada: {}", managedMensualidad.getId());
+            } else {
+                log.warn("[reatacharAsociaciones] No se encontró Mensualidad con id={}", detalle.getMensualidad().getId());
+            }
+        }
+
+        // Reatachar Matrícula, si existe
+        if (detalle.getMatricula() != null && detalle.getMatricula().getId() != null) {
+            log.info("[reatacharAsociaciones] Valor de detalle.getMatricula() ANTES: {}", detalle.getMatricula().getId());
+            Matricula managedMatricula = entityManager.find(Matricula.class, detalle.getMatricula().getId());
+            if (managedMatricula != null) {
+                detalle.setMatricula(managedMatricula);
+                log.info("[reatacharAsociaciones] Matrícula reatachada: {}", managedMatricula.getId());
+            } else {
+                log.warn("[reatacharAsociaciones] No se encontró Matrícula con id={}", detalle.getMatricula().getId());
+            }
+        }
+
+        // Reatachar Stock, si existe
+        if (detalle.getStock() != null && detalle.getStock().getId() != null) {
+            log.info("[reatacharAsociaciones] Valor de detalle.getStock() ANTES: {}", detalle.getStock().getId());
+            Stock managedStock = entityManager.find(Stock.class, detalle.getStock().getId());
+            if (managedStock != null) {
+                detalle.setStock(managedStock);
+                log.info("[reatacharAsociaciones] Stock reatachado: {}", managedStock.getId());
+            } else {
+                log.warn("[reatacharAsociaciones] No se encontró Stock con id={}", detalle.getStock().getId());
+            }
+        }
+
+        log.info("[reatacharAsociaciones] FIN: Reatachamiento finalizado para DetallePago id={}", detalle.getId());
+    }
+
 }

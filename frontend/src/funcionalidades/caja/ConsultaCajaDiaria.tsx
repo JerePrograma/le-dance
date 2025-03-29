@@ -45,9 +45,11 @@ export interface EgresoRegistroRequest {
 }
 
 const ConsultaCajaDiaria: React.FC = () => {
-  const [fecha, setFecha] = useState<string>(
-    new Date().toISOString().split("T")[0]
-  );
+  const fechaAuto = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Argentina/Buenos_Aires",
+  }).format(new Date());
+  const [fecha, setFecha] = useState<string>(fechaAuto);
+
   const [data, setData] = useState<CajaDetalleDTO | null>(null);
   const [loading, setLoading] = useState(false);
 

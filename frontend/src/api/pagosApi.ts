@@ -9,6 +9,7 @@ import type {
   PagoParcialRequest,
   DetallePagoResponse,
   AlumnoResponse,
+  DetallePagoRegistroRequest,
 } from "../types/types";
 
 const registrarPago = async (
@@ -137,6 +138,11 @@ const obtenerUltimoPagoPorAlumno = async (
   return data;
 };
 
+const verificarMensualidad = async (
+  request: DetallePagoRegistroRequest
+): Promise<void> => {
+  await api.post("/pagos/verificar", request);
+};
 /**
  * Endpoint para filtrar DetallePagos.
  * Los parámetros son opcionales y se envían en la query string.
@@ -149,7 +155,9 @@ const filtrarDetalles = async (params: {
   subConcepto?: string;
   disciplina?: string;
 }): Promise<DetallePagoResponse[]> => {
-  const { data } = await api.get<DetallePagoResponse[]>("/pagos/filtrar", { params });
+  const { data } = await api.get<DetallePagoResponse[]>("/pagos/filtrar", {
+    params,
+  });
   return data;
 };
 
@@ -171,6 +179,7 @@ const pagosApi = {
   obtenerCobranzaPorAlumno, // Agregado aqui
   obtenerUltimoPagoPorAlumno,
   filtrarDetalles, // Agregamos el nuevo endpoint
+  verificarMensualidad,
 };
 
 export default pagosApi;

@@ -3,6 +3,7 @@ package ledance.controladores;
 import jakarta.validation.Valid;
 import ledance.dto.mensualidad.request.MensualidadRegistroRequest;
 import ledance.dto.mensualidad.response.MensualidadResponse;
+import ledance.dto.pago.request.DetallePagoRegistroRequest;
 import ledance.servicios.mensualidad.MensualidadServicio;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
