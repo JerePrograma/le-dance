@@ -91,7 +91,7 @@ public class PagoServicio {
             pagoFinal = ultimoPagoActivo;
             log.info("[registrarPago] Se utiliza el pago activo existente: {}", pagoFinal);
         }
-
+        pagoFinal.setObservaciones(request.observaciones());
         // Asignar el método de pago y persistir el pago final.
         paymentProcessor.asignarMetodoYPersistir(pagoFinal, request.metodoPagoId());
         log.info("[registrarPago] Método de pago asignado al pago final id={}", pagoFinal.getId());
@@ -145,7 +145,6 @@ public class PagoServicio {
             log.info("[procesarAbonoParcial] CASO 1 - No hay detalles pendientes");
             log.debug("[procesarAbonoParcial] Total detalles en pago actualizado: {}",
                     pagoActualizado.getDetallePagos().size());
-
             log.info("[procesarAbonoParcial] Marcando pago como histórico - ID: {}", pagoActualizado.getId());
             paymentProcessor.marcarPagoComoHistorico(pagoActualizado);
             log.info("[procesarAbonoParcial] Pago marcado como {} - ID: {}",
@@ -162,7 +161,7 @@ public class PagoServicio {
             paymentProcessor.marcarPagoComoHistorico(pagoActualizado);
             log.info("[procesarAbonoParcial] Pago original ahora es {} - ID: {}",
                     pagoActualizado.getEstadoPago(), pagoActualizado.getId());
-
+            pagoActivo.setObservaciones(request.observaciones());
             log.info("[procesarAbonoParcial] Nuevo pago creado - ID: {}, Estado: {}",
                     nuevoPago.getId(), nuevoPago.getEstadoPago());
             log.debug("[procesarAbonoParcial] Detalles del nuevo pago: {}", nuevoPago.getDetallePagos());
@@ -190,6 +189,7 @@ public class PagoServicio {
     private Pago crearNuevoPago(Alumno alumno, PagoRegistroRequest request) {
         log.info("[crearNuevoPago] Iniciando creación de nuevo Pago para alumno id={}", alumno.getId());
         Pago nuevoPago = pagoMapper.toEntity(request);
+        nuevoPago.setObservaciones(request.observaciones());
         log.info("[crearNuevoPago] Pago mapeado: fecha={}, fechaVencimiento={}, importeInicial={}",
                 nuevoPago.getFecha(), nuevoPago.getFechaVencimiento(), nuevoPago.getImporteInicial());
         if (nuevoPago.getImporteInicial() == null) {

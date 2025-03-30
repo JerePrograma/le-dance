@@ -101,7 +101,7 @@ public class PdfService {
                     pago.getAlumno().getNombre() + "        Alumno Nº: " + pago.getAlumno().getId()));
 
             // Línea separadora
-            Paragraph linea = new Paragraph("_______________________________________________________________________________________");
+            Paragraph linea = new Paragraph("______________________________________________________________________________");
             document.add(linea);
             document.add(new Paragraph(" "));
 
@@ -159,7 +159,7 @@ public class PdfService {
             document.add(new Paragraph(pago.getObservaciones(), new Font(Font.HELVETICA, 10, Font.NORMAL)));
 
             document.add(new Paragraph(" "));
-            document.add(new Paragraph("_______________________________________________________________________________________"));
+            document.add(new Paragraph("______________________________________________________________________________"));
             document.add(new Paragraph(" "));
 
             // 7. Total
