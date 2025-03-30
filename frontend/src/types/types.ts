@@ -754,7 +754,7 @@ export interface DetallePagoResponse {
   importePendiente: number;
   tipo: string;
   fechaRegistro: string;
-  pagoId?: number | null;
+  pagoId: number | null;
   alumnoDisplay: string;
   tieneRecargo: boolean;
 }
@@ -803,7 +803,7 @@ export interface PagoMedioResponse {
 export interface CobranzasFormValues {
   id?: number;
   totalACobrar: number;
-  reciboNro: string;
+  reciboNro: number;
   alumno: AlumnoRegistroRequest;
   alumnoId?: number;
   fecha: string;

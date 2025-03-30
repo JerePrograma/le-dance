@@ -1,26 +1,39 @@
 package ledance.controladores;
 
 import jakarta.validation.Valid;
+import ledance.dto.cobranza.CobranzaDTO;
 import ledance.dto.pago.DetallePagoMapper;
 import ledance.dto.pago.request.DetallePagoRegistroRequest;
 import ledance.dto.pago.request.PagoMedioRegistroRequest;
 import ledance.dto.pago.request.PagoRegistroRequest;
 import ledance.dto.pago.response.DetallePagoResponse;
 import ledance.dto.pago.response.PagoResponse;
-import ledance.dto.cobranza.CobranzaDTO;
 import ledance.servicios.detallepago.DetallePagoServicio;
 import ledance.servicios.pago.PagoServicio;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 @RestController
 @RequestMapping("/api/pagos")
@@ -36,6 +49,31 @@ public class PagoControlador {
         this.pagoServicio = pagoServicio;
         this.detallePagoServicio = detallePagoServicio;
         this.detallePagoMapper = detallePagoMapper;
+    }
+
+    @GetMapping("/recibo/{pagoId}")
+    public ResponseEntity<Resource> descargarRecibo(@PathVariable Long pagoId) {
+        try {
+            Path pdfPath = Paths.get("/opt/ledance/pdfs/recibo_" + pagoId + ".pdf");
+
+            if (!Files.exists(pdfPath)) {
+                return ResponseEntity.notFound().build();
+            }
+
+            ByteArrayResource resource = new ByteArrayResource(Files.readAllBytes(pdfPath));
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDisposition(
+                    ContentDisposition.inline()
+                            .filename("recibo_" + pagoId + ".pdf")
+                            .build()
+            );
+
+            return new ResponseEntity<>(resource, headers, HttpStatus.OK);
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     @PostMapping
@@ -183,8 +221,10 @@ public class PagoControlador {
 
 
     @PostMapping("/verificar")
-    public ResponseEntity<Void> verificarMensualidad(@Valid @RequestBody DetallePagoRegistroRequest request) {
+    public ResponseEntity<Void> verificarMensualidadOMatricula(@Valid @RequestBody DetallePagoRegistroRequest request) {
         detallePagoServicio.verificarMensualidadNoDuplicada(detallePagoMapper.toEntity(request));
+        detallePagoServicio.verificarMatriculaNoDuplicada(detallePagoMapper.toEntity(request));
+
         return ResponseEntity.ok().build();
     }
 

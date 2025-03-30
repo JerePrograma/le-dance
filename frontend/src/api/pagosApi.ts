@@ -12,10 +12,16 @@ import type {
   DetallePagoRegistroRequest,
 } from "../types/types";
 
+const descargarRecibo = (pagoId: number) => {
+window.open(`/api/api/pagos/recibo/${pagoId}`, "_blank");
+};
+
 const registrarPago = async (
   pago: PagoRegistroRequest
 ): Promise<PagoResponse> => {
   const { data } = await api.post<PagoResponse>("/pagos", pago);
+  // Podés usarlo así, si querés dar un delay:
+  setTimeout(() => descargarRecibo(data.id), 500);
   return data;
 };
 
@@ -138,7 +144,7 @@ const obtenerUltimoPagoPorAlumno = async (
   return data;
 };
 
-const verificarMensualidad = async (
+const verificarMensualidadOMatricula = async (
   request: DetallePagoRegistroRequest
 ): Promise<void> => {
   await api.post("/pagos/verificar", request);
@@ -179,7 +185,7 @@ const pagosApi = {
   obtenerCobranzaPorAlumno, // Agregado aqui
   obtenerUltimoPagoPorAlumno,
   filtrarDetalles, // Agregamos el nuevo endpoint
-  verificarMensualidad,
+  verificarMensualidadOMatricula,
 };
 
 export default pagosApi;

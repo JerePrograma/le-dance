@@ -1,9 +1,6 @@
 package ledance.repositorios;
 
-import ledance.entidades.DetallePago;
-import ledance.entidades.EstadoPago;
-import ledance.entidades.Mensualidad;
-import ledance.entidades.TipoDetallePago;
+import ledance.entidades.*;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -42,4 +39,5 @@ public interface DetallePagoRepositorio extends JpaRepository<DetallePago, Long>
     boolean existsByAlumnoIdAndDescripcionConceptoIgnoreCaseAndTipo(Long alumnoId, String descripcion, TipoDetallePago tipo);
 
     Optional<DetallePago> findByMensualidadAndEsClon(Mensualidad mensualidad, Boolean esClon);
+
 }

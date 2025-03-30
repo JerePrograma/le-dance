@@ -30,9 +30,11 @@ public class SecurityConfigurations {
                 .csrf(AbstractHttpConfigurer::disable)  // ✅ Desactiva CSRF
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(req -> {
+                    req.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll();
                     req.requestMatchers(HttpMethod.POST, "/api/login").permitAll();
                     req.requestMatchers(HttpMethod.POST, "/api/usuarios/registro").permitAll();
                     req.requestMatchers("/api/roles").permitAll();
+                    req.requestMatchers(HttpMethod.GET, "/api/pagos/recibo/**").permitAll();
                     req.anyRequest().authenticated();
                 })
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)

@@ -71,7 +71,7 @@ const generatePeriodos = (numMeses = 12): string[] => {
 // Valores iniciales para el formulario.
 const defaultValues: CobranzasFormValues = {
   id: 0,
-  reciboNro: "AUTO-001",
+  reciboNro: 0,
   alumno: {
     id: 0,
     nombre: "",
@@ -731,7 +731,7 @@ const EditarPagoForm: React.FC = () => {
           setInitialValues({
             ...defaultValues,
             id: pagoData.id,
-            reciboNro: pagoData.id.toString(),
+            reciboNro: pagoData.id,
             alumno: pagoData.alumno
               ? normalizeAlumno(pagoData.alumno)
               : defaultValues.alumno,

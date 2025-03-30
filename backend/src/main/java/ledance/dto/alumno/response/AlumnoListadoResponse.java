@@ -20,5 +20,6 @@ public record AlumnoListadoResponse(
         Boolean autorizadoParaSalirSolo,
         Boolean activo,
         String otrasNotas,
-        Double cuotaTotal
+        Double cuotaTotal,
+        Double creditoAcumulado
 ) { }

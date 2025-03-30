@@ -69,10 +69,10 @@ const generatePeriodos = (numMeses = 12): string[] => {
   return periodos;
 };
 
-// Valores iniciales para el formulario.
+// ----- Valores iniciales -----
 const defaultValues: CobranzasFormValues = {
   id: 0,
-  reciboNro: "AUTO-001",
+  reciboNro: 0,
   alumno: {
     id: 0,
     nombre: "",
@@ -293,6 +293,7 @@ const CobranzasFormHeader: React.FC<CobranzasFormHeaderProps> = ({
 };
 
 // ----- TotalsUpdater -----
+// Calcula y actualiza totalACobrar sumando importes pendientes y recargo según método de pago.
 const TotalsUpdater: React.FC<{ metodosPago: MetodoPagoResponse[] }> = ({
   metodosPago,
 }) => {
@@ -454,6 +455,7 @@ const ConceptosSection: React.FC<ConceptosSectionProps> = ({
 };
 
 // ----- DetallesTable -----
+// Muestra cada detalle y permite actualizar manualmente "importePendiente" lo que a su vez actualiza "aCobrar"
 const DetallesTable: React.FC = () => {
   const { bonificaciones, recargos } = useCobranzasData();
   return (
@@ -560,12 +562,10 @@ const DetallesTable: React.FC = () => {
                                   newValue
                                 );
                                 // Si no se modificó manualmente aCobrar, se actualiza con el nuevo valor
-                                {
-                                  form.setFieldValue(
-                                    `detallePagos.${index}.aCobrar`,
-                                    newValue
-                                  );
-                                }
+                                form.setFieldValue(
+                                  `detallePagos.${index}.aCobrar`,
+                                  newValue
+                                );
                               }}
                               className="w-full px-2 py-1 border rounded text-center"
                             />
@@ -679,15 +679,20 @@ const CobranzasForm: React.FC = () => {
       ) => Promise<void | FormikErrors<CobranzasFormValues>>
     ) => {
       const id = Number(alumnoIdStr);
+      // Actualizamos el alumnoId en el formulario
       await setFieldValue("alumnoId", id);
+      // Actualizamos el estado local que controla el alumno seleccionado
       setSelectedAlumnoId(id);
       await setFieldValue("matriculaRemoved", false);
-      let alumnoInfo = alumnoData?.alumno;
-      if (!alumnoInfo) {
-        try {
-          alumnoInfo = await alumnosApi.obtenerPorId(id);
-        } catch (error) {}
+
+      // Siempre obtenemos los datos frescos del alumno directamente de la API
+      let alumnoInfo;
+      try {
+        alumnoInfo = await alumnosApi.obtenerPorId(id);
+      } catch (error) {
+        alumnoInfo = null;
       }
+
       if (alumnoInfo) {
         await setFieldValue("alumno", normalizeAlumno(alumnoInfo));
       } else {
@@ -710,6 +715,7 @@ const CobranzasForm: React.FC = () => {
           inscripciones: [],
         });
       }
+
       try {
         const inscripcionesActivas =
           await inscripcionesApi.obtenerInscripcionesActivas(id);
@@ -717,8 +723,10 @@ const CobranzasForm: React.FC = () => {
       } catch (error) {
         setActiveInscripciones([]);
       }
+
+      console.log("Alumno seleccionado:", alumnoInfo);
     },
-    [alumnoData]
+    [] // Eliminamos la dependencia de alumnoData para evitar cierres obsoletos
   );
 
   useEffect(() => {
@@ -730,7 +738,7 @@ const CobranzasForm: React.FC = () => {
           setInitialValues({
             ...defaultValues,
             id: pagoData.id,
-            reciboNro: pagoData.id.toString(),
+            reciboNro: pagoData.id,
             alumno: pagoData.alumno
               ? normalizeAlumno(pagoData.alumno)
               : defaultValues.alumno,
@@ -743,7 +751,6 @@ const CobranzasForm: React.FC = () => {
               subConceptoId: detalle.subConceptoId ?? null,
               cuotaOCantidad: detalle.cuotaOCantidad || "1",
               valorBase: detalle.valorBase,
-              // Si importeInicial no viene, se asigna el valorBase (o el valor que corresponda)
               importeInicial: detalle.importeInicial ?? detalle.valorBase,
               importePendiente:
                 detalle.importePendiente == null ||
@@ -781,8 +788,6 @@ const CobranzasForm: React.FC = () => {
                   : Number(detalle.importePendiente)),
               0
             ),
-            // Inicialmente, totalCobrado se calcula igual que totalACobrar,
-            // pero luego se actualizará en tiempo real basado en "aCobrar" de cada detalle.
             totalCobrado: pagoData.detallePagos.reduce(
               (sum: number, detalle: any) =>
                 sum +
@@ -807,140 +812,293 @@ const CobranzasForm: React.FC = () => {
       values: CobranzasFormValues,
       setFieldValue: (field: string, value: any) => void
     ) => {
+      console.log(">>> [handleAgregarDetalle] START");
+      console.log("Valores iniciales recibidos:", values);
+
       const newDetails = [...values.detallePagos];
       let added = false;
 
-      const isDuplicate = (concept: number) =>
-        newDetails.some((detalle) => detalle.conceptoId === concept);
+      // Verificadores de duplicados
+      const isDuplicate = (conceptId: number) =>
+        newDetails.some((detalle) => detalle.conceptoId === conceptId);
+
       const isDuplicateString = (desc: string) =>
         newDetails.some(
           (det) => det.descripcionConcepto.trim() === desc.trim()
         );
 
-      // Agregar detalle por concepto (ejemplo: desde lista de conceptos)
+      // ─────────────────────────────────────────────────────────
+      // (1) Agregar detalle por concepto (ej. desde lista de 'conceptos')
+      // ─────────────────────────────────────────────────────────
       if (values.conceptoSeleccionado) {
+        console.log(
+          "Se ha seleccionado un concepto:",
+          values.conceptoSeleccionado
+        );
+
+        // 1.a) Encontrar el concepto según el ID
         const selectedConcept = conceptos.find(
           (c: ConceptoResponse) =>
             c.id.toString() === values.conceptoSeleccionado
         );
+
         if (selectedConcept) {
-          if (isDuplicate(selectedConcept.id)) {
-            toast.error("Concepto ya se encuentra agregado");
+          console.log(
+            "[handleAgregarDetalle] Concepto encontrado:",
+            selectedConcept
+          );
+
+          // Detectamos si el concepto es MATRÍCULA según la descripción
+          const descMayus = (selectedConcept.descripcion || "").toUpperCase();
+          console.log(
+            "[handleAgregarDetalle] Revisión de 'MATRICULA' en la descripción:",
+            descMayus
+          );
+
+          if (descMayus.includes("MATRICULA")) {
+            // Caso MATRÍCULA: se aplica la lógica de descuento del crédito acumulado
+            console.log("[handleAgregarDetalle] → Es MATRÍCULA.");
+            let credit = Number(values.alumno?.creditoAcumulado || 0);
+            const originalPrice = selectedConcept.precio;
+            // Se usa el crédito disponible, sin sobrepasar el precio
+            const usado = Math.min(originalPrice, credit);
+            const total = Math.max(0, originalPrice - usado);
+            const conceptoDetalle = `MATRICULA ${new Date().getFullYear()}`;
+
+            try {
+              await pagosApi.verificarMensualidadOMatricula({
+                id: 0,
+                version: 0,
+                alumno: values.alumno,
+                descripcionConcepto: conceptoDetalle,
+                aCobrar: total,
+                cobrado: false,
+                pagoId: null,
+                valorBase: total,
+              } as unknown as DetallePagoRegistroRequest);
+
+              console.log(
+                "[handleAgregarDetalle] Verificación de Matrícula OK!"
+              );
+
+              // Actualizamos el crédito acumulado en el form
+              setFieldValue("alumno.creditoAcumulado", credit - usado);
+
+              // Se hace el push del detalle con el precio ajustado
+              newDetails.push({
+                id: 0,
+                descripcionConcepto: conceptoDetalle,
+                conceptoId: selectedConcept.id,
+                subConceptoId: null,
+                cuotaOCantidad: "1",
+                valorBase: total,
+                importeInicial: total,
+                importePendiente: total,
+                bonificacionId: null,
+                recargoId: null,
+                aCobrar: total,
+                cobrado: false,
+                mensualidadId: null,
+                matriculaId: null,
+                stockId: null,
+                version: selectedConcept.version,
+                autoGenerated: false,
+                pagoId: null,
+                tieneRecargo: true,
+                modifiedACobrar: false,
+              } as DetallePagoRegistroRequestExt);
+
+              added = true;
+            } catch (error) {
+              console.error(
+                "[handleAgregarDetalle] Error al verificar Matrícula:",
+                error
+              );
+              toast.error("MATRÍCULA YA COBRADA");
+              return;
+            }
           } else {
-            newDetails.push({
-              id: 0,
-              descripcionConcepto: String(selectedConcept.descripcion),
-              conceptoId: selectedConcept.id,
-              subConceptoId: null,
-              cuotaOCantidad: "1",
-              valorBase: selectedConcept.precio,
-              importeInicial: selectedConcept.precio,
-              importePendiente: selectedConcept.precio,
-              bonificacionId: null,
-              recargoId: null,
-              aCobrar: selectedConcept.precio,
-              cobrado: false,
-              mensualidadId: null,
-              matriculaId: null,
-              stockId: null,
-              version: selectedConcept.version,
-              autoGenerated: false,
-              pagoId: null,
-              tieneRecargo: true,
-              modifiedACobrar: false, // <-- Agregado
-            } as DetallePagoRegistroRequestExt);
-            added = true;
+            // Si NO es MATRÍCULA, se revisa duplicidad y se agrega el detalle normal
+            if (isDuplicate(selectedConcept.id)) {
+              toast.error("Concepto ya se encuentra agregado");
+              console.log(
+                "[handleAgregarDetalle] El concepto ya se encontraba duplicado."
+              );
+            } else {
+              newDetails.push({
+                id: 0,
+                descripcionConcepto: String(selectedConcept.descripcion),
+                conceptoId: selectedConcept.id,
+                subConceptoId: null,
+                cuotaOCantidad: "1",
+                valorBase: selectedConcept.precio,
+                importeInicial: selectedConcept.precio,
+                importePendiente: selectedConcept.precio,
+                bonificacionId: null,
+                recargoId: null,
+                aCobrar: selectedConcept.precio,
+                cobrado: false,
+                mensualidadId: null,
+                matriculaId: null,
+                stockId: null,
+                version: selectedConcept.version,
+                autoGenerated: false,
+                pagoId: null,
+                tieneRecargo: true,
+                modifiedACobrar: false,
+              } as DetallePagoRegistroRequestExt);
+              added = true;
+              console.log(
+                "[handleAgregarDetalle] Agregado un nuevo detalle con Concepto ID:",
+                selectedConcept.id
+              );
+            }
           }
+        } else {
+          console.log(
+            "[handleAgregarDetalle] No se encontró ningún concepto con ID:",
+            values.conceptoSeleccionado
+          );
         }
       }
 
-      // Cuando se elige DISCIPLINA + TARIFA (CUOTA) + PERIODO, se procede a agregar el detalle
-      if (values.disciplina && values.tarifa) {
-        const selectedDisciplina = mappedDisciplinas.find(
-          (disc) => disc.nombre === values.disciplina
+      // ─────────────────────────────────────────────────────────
+      // (2) Caso disciplina/tarifa (ej. MENSUALIDAD, CLASE SUELTA, etc.)
+      // ─────────────────────────────────────────────────────────
+      let total = 0;
+      let conceptoDetalle = "";
+
+      const selectedDisciplina = mappedDisciplinas.find(
+        (disc) => disc.nombre === values.disciplina
+      );
+      if (selectedDisciplina) {
+        console.log(
+          "[handleAgregarDetalle] Disciplina encontrada:",
+          selectedDisciplina
         );
-        if (selectedDisciplina) {
-          let precio = 0;
-          let tarifaLabel = "";
-          if (values.tarifa === "CUOTA") {
-            precio = selectedDisciplina.valorCuota;
-            tarifaLabel = "CUOTA";
-          } else if (values.tarifa === "CLASE_SUELTA") {
-            precio = selectedDisciplina.claseSuelta || 0;
-            tarifaLabel = "CLASE SUELTA";
-          } else if (values.tarifa === "CLASE_PRUEBA") {
-            precio = selectedDisciplina.clasePrueba || 0;
-            tarifaLabel = "CLASE DE PRUEBA";
-          }
-          const cantidad = Number(values.cantidad) || 1;
-          const total = precio * cantidad;
-          const conceptoDetalle = `${selectedDisciplina.nombre} - ${tarifaLabel} - ${values.periodoMensual}`;
 
-          // Antes de agregar, verificamos en el backend si ya existe un detalle/ mensualidad con este concepto
-          try {
-            await pagosApi.verificarMensualidad({
-              id: 0,
-              version: 0,
-              alumno: values.alumno,
-              descripcionConcepto: conceptoDetalle,
-              cuotaOCantidad: "1",
-              valorBase: total,
-              bonificacionId: null,
-              recargoId: null,
-              aCobrar: total,
-              cobrado: false,
-              conceptoId: selectedDisciplina.id,
-              subConceptoId: null,
-              mensualidadId: null,
-              matriculaId: null,
-              stockId: null,
-              pagoId: null,
-              tieneRecargo: true,
-            } as unknown as DetallePagoRegistroRequest);
-          } catch (error) {
-            toast.error("MENSUALIDAD YA COBRADA");
-            return; // Sale sin agregar el detalle.
-          }
+        let precio = 0;
+        let tarifaLabel = "";
+        if (values.tarifa === "CUOTA") {
+          precio = selectedDisciplina.valorCuota;
+          tarifaLabel = "CUOTA";
+        } else if (values.tarifa === "CLASE_SUELTA") {
+          precio = selectedDisciplina.claseSuelta || 0;
+          tarifaLabel = "CLASE SUELTA";
+        } else if (values.tarifa === "CLASE_PRUEBA") {
+          precio = selectedDisciplina.clasePrueba || 0;
+          tarifaLabel = "CLASE DE PRUEBA";
+        }
 
-          if (isDuplicateString(conceptoDetalle)) {
-            toast.error("Concepto ya se encuentra agregado");
-          } else {
-            newDetails.push({
-              id: 0,
-              descripcionConcepto: conceptoDetalle,
-              conceptoId: selectedDisciplina.id,
-              subConceptoId: null,
-              cuotaOCantidad: cantidad.toString(),
-              valorBase: total,
-              importeInicial: total,
-              importePendiente: total,
-              bonificacionId: null,
-              recargoId: null,
-              aCobrar: total,
-              cobrado: false,
-              mensualidadId: null,
-              matriculaId: null,
-              stockId: null,
-              autoGenerated: false,
-              pagoId: null,
-              tieneRecargo: true,
-            } as DetallePagoRegistroRequestExt);
-            added = true;
-          }
+        const cantidad = Number(values.cantidad) || 1;
+        total = precio * cantidad;
+        conceptoDetalle = `${selectedDisciplina.nombre} - ${tarifaLabel} - ${values.periodoMensual}`;
+
+        console.log(
+          "[handleAgregarDetalle] conceptoDetalle (disciplina):",
+          conceptoDetalle
+        );
+        console.log("[handleAgregarDetalle] total calculado:", total);
+
+        try {
+          console.log(
+            "[handleAgregarDetalle] Verificando MensualidadOMatricula para:",
+            conceptoDetalle
+          );
+          await pagosApi.verificarMensualidadOMatricula({
+            id: 0,
+            version: 0,
+            alumno: values.alumno,
+            descripcionConcepto: conceptoDetalle,
+            cuotaOCantidad: "1",
+            valorBase: total,
+            bonificacionId: null,
+            recargoId: null,
+            aCobrar: total,
+            cobrado: false,
+            conceptoId: selectedDisciplina.id,
+            subConceptoId: null,
+            mensualidadId: null,
+            matriculaId: null,
+            stockId: null,
+            pagoId: null,
+            tieneRecargo: true,
+          } as unknown as DetallePagoRegistroRequest);
+
+          console.log(
+            "[handleAgregarDetalle] Verificación exitosa para disciplina/tarifa:",
+            conceptoDetalle
+          );
+        } catch (error) {
+          console.error(
+            "[handleAgregarDetalle] Error al verificar Mensualidad/Matrícula:",
+            error
+          );
+          toast.error("MENSUALIDAD YA COBRADA");
+          return;
+        }
+
+        if (isDuplicateString(conceptoDetalle)) {
+          toast.error("Concepto ya se encuentra agregado");
+          console.log(
+            "[handleAgregarDetalle] El conceptoDetalle ya estaba duplicado:",
+            conceptoDetalle
+          );
+        } else {
+          newDetails.push({
+            id: 0,
+            descripcionConcepto: conceptoDetalle,
+            conceptoId: selectedDisciplina.id,
+            subConceptoId: null,
+            cuotaOCantidad: cantidad.toString(),
+            valorBase: total,
+            importeInicial: total,
+            importePendiente: total,
+            bonificacionId: null,
+            recargoId: null,
+            aCobrar: total,
+            cobrado: false,
+            mensualidadId: null,
+            matriculaId: null,
+            stockId: null,
+            autoGenerated: false,
+            pagoId: null,
+            tieneRecargo: true,
+          } as DetallePagoRegistroRequestExt);
+          added = true;
+          console.log(
+            "[handleAgregarDetalle] → Agregado nuevo detalle (disciplina/tarifa):",
+            conceptoDetalle
+          );
         }
       }
 
-      // Agregar detalle por STOCK, etc.
+      // ─────────────────────────────────────────────────────────
+      // (3) Agregar detalle por STOCK
+      // ─────────────────────────────────────────────────────────
       if (values.stockSeleccionado) {
+        console.log(
+          "[handleAgregarDetalle] Procesando STOCK seleccionado:",
+          values.stockSeleccionado
+        );
+
         const selectedStock = stocks.find(
           (s: StockResponse) => s.id.toString() === values.stockSeleccionado
         );
+
         if (selectedStock) {
+          console.log(
+            "[handleAgregarDetalle] selectedStock encontrado:",
+            selectedStock
+          );
+
           const cantidad = Number(values.cantidad) || 1;
           const total = selectedStock.precio * cantidad;
           const stockDesc = selectedStock.nombre;
+
           if (isDuplicateString(stockDesc)) {
             toast.error("Concepto ya se encuentra agregado");
+            console.log("[handleAgregarDetalle] STOCK duplicado:", stockDesc);
           } else {
             newDetails.push({
               id: 0,
@@ -964,13 +1122,22 @@ const CobranzasForm: React.FC = () => {
               tieneRecargo: true,
             } as DetallePagoRegistroRequestExt);
             added = true;
+            console.log(
+              "[handleAgregarDetalle] → Agregado nuevo detalle STOCK:",
+              stockDesc
+            );
           }
         }
       }
 
+      // ─────────────────────────────────────────────────────────
+      // (4) Final: si se agregó algo, actualizar el form
+      // ─────────────────────────────────────────────────────────
       if (added) {
+        console.log(
+          "[handleAgregarDetalle] Detalle(s) agregado(s). Actualizando form state..."
+        );
         setFieldValue("detallePagos", newDetails);
-        // No es necesario recalcular aquí, ya que el useEffect se encargará de actualizar "totalCobrado"
         setFieldValue("conceptoSeleccionado", "");
         setFieldValue("stockSeleccionado", "");
         setFieldValue("cantidad", 1);
@@ -980,13 +1147,17 @@ const CobranzasForm: React.FC = () => {
         !values.stockSeleccionado
       ) {
         toast.error("Seleccione al menos un conjunto de campos para agregar");
+        console.log(
+          "[handleAgregarDetalle] No se agregaron detalles y no hay valores en concepto/disciplina/stock."
+        );
       }
+
+      console.log("<<< [handleAgregarDetalle] END");
     },
     [conceptos, mappedDisciplinas, stocks]
   );
 
   const onSubmit = async (values: CobranzasFormValues, actions: any) => {
-    // Validación: si no hay detalles, se muestra un error y se interrumpe el envío
     if (!values.detallePagos || values.detallePagos.length === 0) {
       toast.error("No hay nada que cobrar");
       return;
@@ -994,7 +1165,6 @@ const CobranzasForm: React.FC = () => {
     try {
       const { detallePagos, alumno, fecha, totalACobrar, metodoPagoId } =
         values;
-
       const pagoRegistroRequest: PagoRegistroRequest = {
         alumno,
         fecha,
@@ -1003,7 +1173,7 @@ const CobranzasForm: React.FC = () => {
         importeInicial: Number(totalACobrar),
         metodoPagoId: Number(metodoPagoId) || 0,
         activo: true,
-        detallePagos: detallePagos.map<DetallePagoRegistroRequest>((d) => ({
+        detallePagos: detallePagos.map((d) => ({
           id: d.id,
           descripcionConcepto: d.descripcionConcepto,
           conceptoId: d.conceptoId ?? null,
@@ -1015,7 +1185,6 @@ const CobranzasForm: React.FC = () => {
           recargoId: d.recargoId ? Number(d.recargoId) : null,
           aCobrar: d.aCobrar,
           cobrado: d.cobrado,
-          // Se envía siempre el importeInicial proveniente del formulario
           importeInicial: d.importeInicial,
           mensualidadId: d.mensualidadId ?? null,
           matriculaId: d.matriculaId ?? null,
@@ -1028,7 +1197,33 @@ const CobranzasForm: React.FC = () => {
         pagoMedios: [],
       };
 
-      await pagosApi.registrarPago(pagoRegistroRequest);
+      const observacionesAutomáticas = values.detallePagos
+        .map((detalle) => {
+          const aCobrar = Number(detalle.aCobrar || 0);
+          const pendiente = Number(detalle.importePendiente || 0);
+          const concepto = detalle.descripcionConcepto || "";
+
+          if (aCobrar === 0) {
+            return `DEUDA ${concepto}`;
+          } else if (aCobrar === pendiente) {
+            return `SALDA ${concepto}`;
+          } else if (aCobrar < pendiente) {
+            return `CTA ${concepto}`;
+          } else {
+            return null;
+          }
+        })
+        .filter((linea) => linea !== null)
+        .join("\n");
+
+      console.log("Información de pago a enviar:", pagoRegistroRequest);
+
+      // Se espera que registrarPago devuelva el objeto PagoResponse, con la propiedad 'id'
+      const response = await pagosApi.registrarPago(pagoRegistroRequest);
+
+      // Abrir el PDF en una nueva pestaña utilizando el id del pago
+      window.open(`/api/api/pagos/recibo/${response.id}`, "_blank");
+
       toast.success("Cobranza registrada correctamente");
       actions.resetForm();
       navigate(`/pagos/alumno/${values.alumno.id}`);
@@ -1051,7 +1246,7 @@ const CobranzasForm: React.FC = () => {
         enableReinitialize
       >
         {({ values, setFieldValue }) => {
-          // Si no hay método de pago seleccionado, se asigna EFECTIVO por defecto
+          // Autoselección: si no hay método de pago, se asigna "EFECTIVO" por defecto
           useEffect(() => {
             if (!values.metodoPagoId && metodosPago.length > 0) {
               const efectivo = metodosPago.find(
@@ -1064,7 +1259,7 @@ const CobranzasForm: React.FC = () => {
             }
           }, [values.metodoPagoId, metodosPago, setFieldValue]);
 
-          // Nuevo useEffect para actualizar "totalCobrado" en tiempo real
+          // Actualiza totalCobrado en función de los "aCobrar" de cada detalle
           useEffect(() => {
             const nuevoTotalCobrado = values.detallePagos.reduce(
               (sum: number, detalle: any) => sum + Number(detalle.aCobrar || 0),
@@ -1075,7 +1270,7 @@ const CobranzasForm: React.FC = () => {
             }
           }, [values.detallePagos, setFieldValue, values.totalCobrado]);
 
-          // Al cambiar el método de pago, se reactiva el recargo
+          // Al cambiar el método de pago se reactiva el recargo y se reinician los importes de cada detalle
           const selectedMetodoPago = metodosPago.find(
             (mp: MetodoPagoResponse) => mp.id === Number(values.metodoPagoId)
           );
@@ -1086,13 +1281,9 @@ const CobranzasForm: React.FC = () => {
             }
           }, [values.metodoPagoId, values.totalACobrar, setFieldValue]);
 
-          // Aquí definimos la función para quitar el recargo
+          // Función para quitar recargo: se desactiva y se reinician importes pendientes en cada detalle
           const handleQuitarRecargo = useCallback(() => {
-            // Desactivamos el recargo general
             setFieldValue("aplicarRecargo", false);
-            console.log("Antes de quitar recargo:", values.detallePagos);
-
-            // Para cada detalle, se reinician los importes (usando el importeInicial) y se marca tieneRecargo en false
             const updatedDetalles = values.detallePagos.map((detalle: any) => ({
               ...detalle,
               importePendiente: detalle.importeInicial,
@@ -1103,7 +1294,6 @@ const CobranzasForm: React.FC = () => {
             toast.info(
               "Recargo quitado. Se actualizó 'tieneRecargo' a false y se reiniciaron los importes pendientes."
             );
-            console.log("Después de quitar recargo:", updatedDetalles);
           }, [setFieldValue, values.detallePagos]);
 
           return (
@@ -1156,8 +1346,6 @@ const CobranzasForm: React.FC = () => {
                         const newMetodoId = e.target.value;
                         setFieldValue("metodoPagoId", newMetodoId);
                         setFieldValue("aplicarRecargo", true);
-
-                        // Buscar el método de pago seleccionado y su recargo
                         const selectedMetodo = metodosPago.find(
                           (mp: MetodoPagoResponse) =>
                             mp.id === Number(newMetodoId)
@@ -1166,8 +1354,6 @@ const CobranzasForm: React.FC = () => {
                           selectedMetodo && selectedMetodo.recargo
                             ? Number(selectedMetodo.recargo)
                             : 0;
-
-                        // Para cada detalle, reiniciamos aCobrar al valor por defecto y marcamos que no fue modificado manualmente
                         const updatedDetalles = values.detallePagos.map(
                           (detalle: any) => {
                             const defaultValue =
@@ -1183,8 +1369,6 @@ const CobranzasForm: React.FC = () => {
                           }
                         );
                         setFieldValue("detallePagos", updatedDetalles);
-
-                        // Se calcula la suma de todos los aCobrar (ya reseteados) y se le suma el recargo
                         const computedImporte = updatedDetalles.reduce(
                           (sum: number, detalle: any) =>
                             sum + Number(detalle.aCobrar || 0),

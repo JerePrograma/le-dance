@@ -169,7 +169,6 @@ public class InscripcionServicio implements IInscripcionServicio {
             nuevoPago.setSaldoRestante(0.0);
             // Definir el estado y observaciones (opcional)
             nuevoPago.setEstadoPago(EstadoPago.ACTIVO);
-            nuevoPago.setObservaciones("Pago pendiente creado automaticamente durante la inscripcion.");
             pagoPendiente = nuevoPago;
             log.info("[obtenerOCrearPagoPendiente] Nuevo pago creado para alumno id={} con ID={}", alumno.getId(), nuevoPago.getId());
         } else {

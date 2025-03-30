@@ -224,8 +224,8 @@ public class MensualidadServicio implements IMensualidadService {
                 mensualidad.setDescripcion(descripcionEsperada);
                 mensualidad = mensualidadRepositorio.save(mensualidad);
                 if (!detallePagoRepositorio.existsByMensualidadId(mensualidad.getId())) {
-                    DetallePago detalle = registrarDetallePagoMensualidad(mensualidad, null);
-                    log.info("DetallePago creado para mensualidad id {}: detalle id {}", mensualidad.getId(), detalle.getId());
+                    registrarDetallePagoMensualidad(mensualidad);
+                    log.info("DetallePago creado para mensualidad id {}: detalle id {}", mensualidad.getId());
                 }
             } else {
                 log.info("No existe mensualidad para inscripcion id {} en el periodo; creando nueva mensualidad.", inscripcion.getId());
@@ -244,8 +244,8 @@ public class MensualidadServicio implements IMensualidadService {
                 log.info("Mensualidad creada para inscripcion id {}: mensualidad id {}, importe pendiente = {}",
                         inscripcion.getId(), mensualidad.getId(), mensualidad.getImporteInicial());
 
-                DetallePago detalle = registrarDetallePagoMensualidad(mensualidad, null);
-                log.info("DetallePago creado para mensualidad id {}: detalle id {}", mensualidad.getId(), detalle.getId());
+                registrarDetallePagoMensualidad(mensualidad);
+                log.info("DetallePago creado para mensualidad id {}: detalle id {}", mensualidad.getId());
             }
 
             // --- Aplicar recargo basado en el primer día del mes generado ---
