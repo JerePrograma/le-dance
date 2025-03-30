@@ -889,7 +889,10 @@ const CobranzasForm: React.FC = () => {
                 id: 0,
                 descripcionConcepto: conceptoDetalle,
                 conceptoId: selectedConcept.id,
-                subConceptoId: null,
+                // Asignamos también el subConceptoId obtenido del concepto, si existe
+                subConceptoId: selectedConcept.subConcepto
+                  ? selectedConcept.subConcepto.id
+                  : null,
                 cuotaOCantidad: "1",
                 valorBase: total,
                 importeInicial: total,
@@ -929,7 +932,10 @@ const CobranzasForm: React.FC = () => {
                 id: 0,
                 descripcionConcepto: String(selectedConcept.descripcion),
                 conceptoId: selectedConcept.id,
-                subConceptoId: null,
+                // Aquí se asigna el subConceptoId obtenido del concepto (si existe)
+                subConceptoId: selectedConcept.subConcepto
+                  ? selectedConcept.subConcepto.id
+                  : null,
                 cuotaOCantidad: "1",
                 valorBase: selectedConcept.precio,
                 importeInicial: selectedConcept.precio,

@@ -98,55 +98,88 @@ public class PaymentCalculationServicio {
      */
     // Método corregido para procesar correctamente los abonos y actualizar estados
     void procesarAbono(DetallePago detalle, Double montoAbono, Double importeInicialCalculado) {
-        log.info("[procesarAbono] Procesando abono para DetallePago id={}", detalle.getId());
+        // 1. Inicio y validaciones iniciales
+        log.info("[procesarAbono] INICIO - Procesando abono para DetallePago ID: {}", detalle.getId());
+        log.debug("[procesarAbono] Parámetros recibidos - MontoAbono: {}, ImporteInicialCalculado: {}",
+                montoAbono, importeInicialCalculado);
+        log.debug("[procesarAbono] Estado inicial del detalle: {}", detalle.toString());
 
+        // 2. Validación de monto de abono
         if (montoAbono == null || montoAbono < 0) {
+            log.error("[procesarAbono] ERROR - Monto de abono inválido: {}", montoAbono);
             throw new IllegalArgumentException("Monto del abono inválido.");
         }
+        log.info("[procesarAbono] Monto de abono validado: {}", montoAbono);
 
-        // Asegurar importeInicial
+        // 3. Gestión de importe inicial
+        log.info("[procesarAbono] Verificando importe inicial del detalle");
         if (detalle.getImporteInicial() == null) {
+            log.info("[procesarAbono] Importe inicial no definido - Asignando valor");
             if (importeInicialCalculado != null) {
+                log.debug("[procesarAbono] Usando importe inicial calculado: {}", importeInicialCalculado);
                 detalle.setImporteInicial(importeInicialCalculado);
             } else {
-                // Valor por defecto si todo falla
+                log.warn("[procesarAbono] Usando monto de abono como importe inicial (valor por defecto)");
                 detalle.setImporteInicial(montoAbono);
             }
         }
+        log.debug("[procesarAbono] Importe inicial final: {}", detalle.getImporteInicial());
 
-        // Asegurar importe pendiente
+        // 4. Cálculo de importe pendiente
+        log.info("[procesarAbono] Calculando importe pendiente actual");
         Double importePendienteActual = (detalle.getImportePendiente() == null)
                 ? detalle.getImporteInicial()
                 : detalle.getImportePendiente();
+        log.debug("[procesarAbono] Importe pendiente calculado: {}", importePendienteActual);
 
-        // Si sigue siendo null, hay un problema de flujo
         if (importePendienteActual == null) {
+            log.error("[procesarAbono] ERROR - No se puede determinar el importe pendiente");
             throw new IllegalStateException("No se puede determinar el importe pendiente.");
         }
 
-        // Limitar el monto del abono
+        // 5. Ajuste de monto de abono
+        log.info("[procesarAbono] Ajustando monto de abono al mínimo entre {} y {}", montoAbono, importePendienteActual);
         montoAbono = Math.min(montoAbono, importePendienteActual);
+        log.debug("[procesarAbono] Monto de abono ajustado: {}", montoAbono);
 
+        // 6. Actualización de valores
+        log.info("[procesarAbono] Actualizando valores del detalle");
         detalle.setaCobrar(montoAbono);
-        detalle.setImportePendiente(importePendienteActual - montoAbono);
+        log.debug("[procesarAbono] aCobrar asignado: {}", detalle.getaCobrar());
 
-        // Marcar como cobrado si corresponde
-        if (detalle.getImportePendiente() <= 0) {
+        double nuevoPendiente = importePendienteActual - montoAbono;
+        detalle.setImportePendiente(nuevoPendiente);
+        log.debug("[procesarAbono] Nuevo importe pendiente: {}", nuevoPendiente);
+
+        // 7. Gestión de estado de cobro
+        if (nuevoPendiente <= 0) {
+            log.info("[procesarAbono] Detalle completamente pagado - Marcando como cobrado");
             detalle.setImportePendiente(0.0);
             detalle.setCobrado(true);
+            log.debug("[procesarAbono] Estado cobrado actualizado: {}", detalle.getCobrado());
 
+            // 7.1 Actualización de entidades relacionadas
             if (detalle.getTipo() == TipoDetallePago.MENSUALIDAD && detalle.getMensualidad() != null) {
+                log.info("[procesarAbono] Actualizando estado de mensualidad a PAGADO");
                 detalle.getMensualidad().setEstado(EstadoMensualidad.PAGADO);
+                log.debug("[procesarAbono] Estado mensualidad actualizado: {}",
+                        detalle.getMensualidad().getEstado());
             }
+
             if (detalle.getTipo() == TipoDetallePago.MATRICULA && detalle.getMatricula() != null) {
+                log.info("[procesarAbono] Marcando matrícula como pagada");
                 detalle.getMatricula().setPagada(true);
+                log.debug("[procesarAbono] Estado matrícula actualizado: {}",
+                        detalle.getMatricula().getPagada());
             }
         } else {
+            log.info("[procesarAbono] Detalle parcialmente pagado - Pendiente restante: {}", nuevoPendiente);
             detalle.setCobrado(false);
         }
 
-        log.info("[procesarAbono] Finalizado procesamiento para DetallePago id={}, pendiente restante: {}",
-                detalle.getId(), detalle.getImportePendiente());
+        log.info("[procesarAbono] FIN - Procesamiento completado para DetallePago ID: {} | Pendiente final: {} | Cobrado: {}",
+                detalle.getId(), detalle.getImportePendiente(), detalle.getCobrado());
+        log.debug("[procesarAbono] Estado final del detalle: {}", detalle.toString());
     }
 
     // ============================================================
@@ -220,18 +253,75 @@ public class PaymentCalculationServicio {
                 log.info("[procesarYCalcularDetalle] Procesando stock");
                 calcularStock(detalle);
                 break;
-
             default:
-                log.info("[procesarYCalcularDetalle] Procesando concepto general");
-                calcularConceptoGeneral(detalle);
-                if (descripcion.contains("CLASE SUELTA")) {
-                    log.info("[procesarYCalcularDetalle] Procesando clase suelta");
-                    double creditoActual = Optional.ofNullable(detalle.getAlumno().getCreditoAcumulado()).orElse(0.0);
-                    log.info("[procesarYCalcularDetalle] Credito actual: {}", creditoActual);
-                    double nuevoCredito = creditoActual + detalle.getaCobrar();
-                    log.info("[procesarYCalcularDetalle] Nuevo crédito: {}", nuevoCredito);
-                    detalle.getAlumno().setCreditoAcumulado(nuevoCredito);
+                // 1. Inicio de procesamiento para concepto general
+                log.info("[procesarYCalcularDetalle] INICIO - Procesando CONCEPTO GENERAL | Detalle ID: {} | Descripción: '{}'",
+                        detalle.getId(), detalle.getDescripcionConcepto());
+
+                // 2. Asignación de tipo CONCEPTO
+                log.debug("[procesarYCalcularDetalle] Asignando tipo CONCEPTO al detalle");
+                detalle.setTipo(TipoDetallePago.CONCEPTO);
+                log.info("[procesarYCalcularDetalle] Tipo asignado: {}", detalle.getTipo());
+
+                // 3. Gestión del Concepto principal
+                if (detalle.getConcepto() != null && detalle.getConcepto().getId() != null) {
+                    log.info("[procesarYCalcularDetalle] Buscando Concepto en BD | ID: {}", detalle.getConcepto().getId());
+
+                    Concepto managedConcepto = entityManager.find(Concepto.class, detalle.getConcepto().getId());
+                    if (managedConcepto != null) {
+                        // 3.1 Reattach del Concepto
+                        log.debug("[procesarYCalcularDetalle] Concepto encontrado | ID: {} | Nombre: '{}'",
+                                managedConcepto.getId(), managedConcepto.getDescripcion());
+                        detalle.setConcepto(managedConcepto);
+                        log.info("[procesarYCalcularDetalle] Concepto reatachado exitosamente");
+
+                        // 3.2 Gestión del SubConcepto
+                        if (detalle.getSubConcepto() == null && managedConcepto.getSubConcepto() != null) {
+                            log.debug("[procesarYCalcularDetalle] Propagando SubConcepto desde Concepto principal");
+                            detalle.setSubConcepto(managedConcepto.getSubConcepto());
+                            log.info("[procesarYCalcularDetalle] SubConcepto asignado | ID: {} | Nombre: '{}'",
+                                    managedConcepto.getSubConcepto().getId(), managedConcepto.getSubConcepto().getDescripcion());
+                        } else {
+                            log.debug("[procesarYCalcularDetalle] SubConcepto no asignado - Razón: {}",
+                                    (detalle.getSubConcepto() != null ? "ya existente" : "no disponible en Concepto"));
+                        }
+                    } else {
+                        log.warn("[procesarYCalcularDetalle] ADVERTENCIA - Concepto no encontrado en BD | ID Solicitado: {}",
+                                detalle.getConcepto().getId());
+                    }
+                } else {
+                    log.warn("[procesarYCalcularDetalle] ADVERTENCIA - Detalle sin Concepto válido | Concepto: {} | ID: {}",
+                            (detalle.getConcepto() != null ? "presente" : "ausente"),
+                            (detalle.getConcepto() != null ? detalle.getConcepto().getId() : "N/A"));
                 }
+
+                // 4. Cálculo del concepto general
+                log.info("[procesarYCalcularDetalle] Invocando cálculo para concepto general");
+                calcularConceptoGeneral(detalle);
+                log.debug("[procesarYCalcularDetalle] Resultados cálculo - aCobrar: {} | Pendiente: {}",
+                        detalle.getaCobrar(), detalle.getImportePendiente());
+
+                // 5. Procesamiento especial para CLASE SUELTA
+                if (descripcion.contains("CLASE SUELTA")) {
+                    log.info("[procesarYCalcularDetalle] DETECTADO CLASE SUELTA - Actualizando crédito del alumno");
+
+                    double creditoActual = Optional.ofNullable(detalle.getAlumno().getCreditoAcumulado()).orElse(0.0);
+                    log.debug("[procesarYCalcularDetalle] Crédito actual del alumno ID {}: {}",
+                            detalle.getAlumno().getId(), creditoActual);
+
+                    double nuevoCredito = creditoActual + detalle.getaCobrar();
+                    log.info("[procesarYCalcularDetalle] Nuevo crédito calculado: {} + {} = {}",
+                            creditoActual, detalle.getaCobrar(), nuevoCredito);
+
+                    detalle.getAlumno().setCreditoAcumulado(nuevoCredito);
+                    log.info("[procesarYCalcularDetalle] Crédito actualizado para alumno ID {} | Nuevo valor: {}",
+                            detalle.getAlumno().getId(), nuevoCredito);
+                } else {
+                    log.debug("[procesarYCalcularDetalle] No es clase suelta - No se modifica crédito");
+                }
+
+                log.info("[procesarYCalcularDetalle] FIN - Procesamiento completado para CONCEPTO GENERAL | Detalle ID: {}",
+                        detalle.getId());
                 break;
         }
 
@@ -649,19 +739,49 @@ public class PaymentCalculationServicio {
      */
     @Transactional
     public TipoDetallePago determinarTipoDetalle(String descripcionConcepto) {
+        // 1. Validación inicial y normalización
+        log.info("[determinarTipoDetalle] INICIO - Determinando tipo para descripción: '{}'", descripcionConcepto);
+
         if (descripcionConcepto == null) {
+            log.warn("[determinarTipoDetalle] Descripción nula - Asignando tipo CONCEPTO por defecto");
             return TipoDetallePago.CONCEPTO;
         }
+
         String conceptoNorm = descripcionConcepto.trim().toUpperCase();
-        if (existeStockConNombre(conceptoNorm)) {
-            return TipoDetallePago.STOCK;
-        } else if (conceptoNorm.startsWith("MATRICULA")) {
+        log.debug("[determinarTipoDetalle] Descripción normalizada: '{}'", conceptoNorm);
+
+        // 2. Verificación de MATRÍCULA
+        if (conceptoNorm.startsWith("MATRICULA")) {
+            log.info("[determinarTipoDetalle] Tipo MATRICULA detectado - Patrón: 'MATRICULA'");
             return TipoDetallePago.MATRICULA;
-        } else if (conceptoNorm.contains("CUOTA") || conceptoNorm.contains("CLASE SUELTA") || conceptoNorm.contains("CLASE DE PRUEBA")) {
-            return TipoDetallePago.MENSUALIDAD;
-        } else {
-            return TipoDetallePago.CONCEPTO;
         }
+
+        // 3. Verificación de MENSUALIDAD
+        if (conceptoNorm.contains("CUOTA") ||
+                conceptoNorm.contains("CLASE SUELTA") ||
+                conceptoNorm.contains("CLASE DE PRUEBA")) {
+
+            String patron = "";
+            if (conceptoNorm.contains("CUOTA")) patron = "CUOTA";
+            else if (conceptoNorm.contains("CLASE SUELTA")) patron = "CLASE SUELTA";
+            else patron = "CLASE DE PRUEBA";
+
+            log.info("[determinarTipoDetalle] Tipo MENSUALIDAD detectado - Patrón: '{}'", patron);
+            return TipoDetallePago.MENSUALIDAD;
+        }
+
+        // 4. Verificación de STOCK
+        log.debug("[determinarTipoDetalle] Verificando existencia en stock");
+        if (existeStockConNombre(conceptoNorm)) {
+            log.info("[determinarTipoDetalle] Tipo STOCK detectado - Existe en inventario");
+            return TipoDetallePago.STOCK;
+        } else {
+            log.debug("[determinarTipoDetalle] No existe coincidencia en stock");
+        }
+
+        // 5. Tipo por defecto
+        log.info("[determinarTipoDetalle] Asignando tipo CONCEPTO por defecto");
+        return TipoDetallePago.CONCEPTO;
     }
 
     /**
@@ -699,31 +819,38 @@ public class PaymentCalculationServicio {
     public void reatacharAsociaciones(DetallePago detalle, Pago pago) {
         log.info("[reatacharAsociaciones] INICIO: Reatachamiento para DetallePago id={}", detalle.getId());
 
-        // Verificar y asignar 'aCobrar'
-        log.info("[reatacharAsociaciones] Valor de aCobrar ANTES: {}", detalle.getaCobrar());
+        // Asignar 'aCobrar' si es nulo
         if (detalle.getaCobrar() == null) {
             detalle.setaCobrar(0.0);
             log.info("[reatacharAsociaciones] Se asignó aCobrar=0.0 para DetallePago id={}", detalle.getId());
         }
-        log.info("[reatacharAsociaciones] Valor de aCobrar DESPUÉS: {}", detalle.getaCobrar());
 
-        // Verificar y asignar el Alumno
-        log.info("[reatacharAsociaciones] Valor de detalle.getAlumno() ANTES: {}",
-                (detalle.getAlumno() != null ? detalle.getAlumno().getId() : "null"));
+        // Reatachar Alumno
         if (detalle.getAlumno() == null && pago.getAlumno() != null) {
-            log.info("[reatacharAsociaciones] Se asignará el alumno del pago: {}", pago.getAlumno().getId());
+            log.info("[reatacharAsociaciones] Se asignará el alumno del pago a DetallePago");
             detalle.setAlumno(pago.getAlumno());
-            log.info("[reatacharAsociaciones] Valor de detalle.getAlumno() DESPUÉS: {}",
-                    (detalle.getAlumno() != null ? detalle.getAlumno().getId() : "null"));
         } else {
-            log.info("[reatacharAsociaciones] No se asigna alumno. detalle.getAlumno() = {} y pago.getAlumno() = {}",
-                    (detalle.getAlumno() != null ? detalle.getAlumno().getId() : "null"),
-                    (pago.getAlumno() != null ? pago.getAlumno().getId() : "null"));
+            log.info("[reatacharAsociaciones] Alumno ya asignado: {}",
+                    (detalle.getAlumno() != null ? detalle.getAlumno().getId() : "null"));
+        }
+
+        if ((detalle.getConcepto() == null || detalle.getConcepto().getId() == null) && detalle.getConcepto() != null) {
+            Concepto managedConcepto = entityManager.find(Concepto.class, detalle.getConcepto());
+            if (managedConcepto != null) {
+                detalle.setConcepto(managedConcepto);
+                log.info("[reatacharAsociaciones] Concepto reatachado desde conceptoId: {}", managedConcepto.getId());
+                if (detalle.getSubConcepto() == null && managedConcepto.getSubConcepto() != null) {
+                    detalle.setSubConcepto(managedConcepto.getSubConcepto());
+                    log.info("[reatacharAsociaciones] SubConcepto reatachado: {}", managedConcepto.getSubConcepto().getId());
+                }
+            } else {
+                log.warn("[reatacharAsociaciones] No se encontró Concepto con id={}", detalle.getConcepto());
+            }
         }
 
         // Reatachar Mensualidad, si existe
         if (detalle.getMensualidad() != null && detalle.getMensualidad().getId() != null) {
-            log.info("[reatacharAsociaciones] Valor de detalle.getMensualidad() ANTES: {}", detalle.getMensualidad().getId());
+            log.info("[reatacharAsociaciones] Reatachando Mensualidad para DetallePago id={}", detalle.getId());
             Mensualidad managedMensualidad = entityManager.find(Mensualidad.class, detalle.getMensualidad().getId());
             if (managedMensualidad != null) {
                 detalle.setMensualidad(managedMensualidad);
@@ -735,7 +862,7 @@ public class PaymentCalculationServicio {
 
         // Reatachar Matrícula, si existe
         if (detalle.getMatricula() != null && detalle.getMatricula().getId() != null) {
-            log.info("[reatacharAsociaciones] Valor de detalle.getMatricula() ANTES: {}", detalle.getMatricula().getId());
+            log.info("[reatacharAsociaciones] Reatachando Matrícula para DetallePago id={}", detalle.getId());
             Matricula managedMatricula = entityManager.find(Matricula.class, detalle.getMatricula().getId());
             if (managedMatricula != null) {
                 detalle.setMatricula(managedMatricula);
@@ -747,7 +874,7 @@ public class PaymentCalculationServicio {
 
         // Reatachar Stock, si existe
         if (detalle.getStock() != null && detalle.getStock().getId() != null) {
-            log.info("[reatacharAsociaciones] Valor de detalle.getStock() ANTES: {}", detalle.getStock().getId());
+            log.info("[reatacharAsociaciones] Reatachando Stock para DetallePago id={}", detalle.getId());
             Stock managedStock = entityManager.find(Stock.class, detalle.getStock().getId());
             if (managedStock != null) {
                 detalle.setStock(managedStock);

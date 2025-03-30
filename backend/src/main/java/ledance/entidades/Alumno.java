@@ -56,7 +56,7 @@ public class Alumno {
     private Double creditoAcumulado = 0.0;
 
     @EqualsAndHashCode.Exclude
-    @OneToMany(mappedBy = "alumno", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "alumno", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     private List<Inscripcion> inscripciones = new ArrayList<>();
 

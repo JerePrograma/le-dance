@@ -9,6 +9,7 @@ import ledance.dto.pago.request.PagoRegistroRequest;
 import ledance.dto.pago.response.DetallePagoResponse;
 import ledance.dto.pago.response.PagoResponse;
 import ledance.servicios.detallepago.DetallePagoServicio;
+import ledance.servicios.matricula.MatriculaServicio;
 import ledance.servicios.pago.PagoServicio;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,11 +45,13 @@ public class PagoControlador {
     private final PagoServicio pagoServicio;
     private final DetallePagoServicio detallePagoServicio;
     private final DetallePagoMapper detallePagoMapper;
+    private final MatriculaServicio matriculaServicio;
 
-    public PagoControlador(PagoServicio pagoServicio, DetallePagoServicio detallePagoServicio, DetallePagoMapper detallePagoMapper) {
+    public PagoControlador(PagoServicio pagoServicio, DetallePagoServicio detallePagoServicio, DetallePagoMapper detallePagoMapper, MatriculaServicio matriculaServicio) {
         this.pagoServicio = pagoServicio;
         this.detallePagoServicio = detallePagoServicio;
         this.detallePagoMapper = detallePagoMapper;
+        this.matriculaServicio = matriculaServicio;
     }
 
     @GetMapping("/recibo/{pagoId}")
@@ -187,28 +190,51 @@ public class PagoControlador {
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
             LocalDate fechaRegistroHasta,
 
-            // Para filtrar por concepto (o nombre completo del concepto)
+            // Filtro para concepto (nombre completo o descripción)
             @RequestParam(required = false) String detalleConcepto,
 
-            // Para filtrar por stock (se usará el nombre de Stock)
+            // Filtro para stock (se usará el nombre o ID de Stock)
             @RequestParam(required = false) String stock,
 
-            // Para filtrar por sub concepto (subConcepto.descripcion)
+            // Filtro para sub concepto (SubConcepto.descripcion)
             @RequestParam(required = false) String subConcepto,
 
-            // Para filtrar por disciplinas (se usa el campo descripcionConcepto)
-            // Si se envía tarifa, se espera que el formato sea: "DISCIPLINA - TARIFA"
+            // Filtro para disciplinas (se usa el campo descripcionConcepto de Mensualidad)
+            // Si se envía tarifa, se espera el formato: "DISCIPLINA - TARIFA"
             @RequestParam(required = false) String disciplina,
 
             // Parámetro adicional para el filtro de tarifa
-            @RequestParam(required = false) String tarifa
-    ) {
-        log.info("Filtrando detalles de pago con parametros: fechaRegistroDesde={}, fechaRegistroHasta={}, detalleConcepto={}, stock={}, subConcepto={}, disciplina={}, tarifa={}",
-                fechaRegistroDesde, fechaRegistroHasta, detalleConcepto, stock, subConcepto, disciplina, tarifa);
+            @RequestParam(required = false) String tarifa,
 
+            // Parámetro opcional para indicar la categoría directamente
+            @RequestParam(required = false) String categoria
+    ) {
+        log.info("Filtrando detalles de pago con parámetros: fechaRegistroDesde={}, fechaRegistroHasta={}, detalleConcepto={}, stock={}, subConcepto={}, disciplina={}, tarifa={}, categoria={}",
+                fechaRegistroDesde, fechaRegistroHasta, detalleConcepto, stock, subConcepto, disciplina, tarifa, categoria);
+
+        // Si no se envía explícitamente la categoría, se la infiere según los parámetros disponibles
+        if (categoria == null || categoria.trim().isEmpty()) {
+            if (stock != null && !stock.trim().isEmpty()) {
+                categoria = "STOCK";
+            } else if ((subConcepto != null && !subConcepto.trim().isEmpty()) ||
+                    (detalleConcepto != null && !detalleConcepto.trim().isEmpty())) {
+                categoria = "CONCEPTOS";
+            } else if (disciplina != null && !disciplina.trim().isEmpty()) {
+                // Si el parámetro 'disciplina' trae también tarifa en formato "DISCIPLINA - TARIFA"
+                if (disciplina.contains("-")) {
+                    String[] parts = disciplina.split("-");
+                    disciplina = parts[0].trim();
+                    tarifa = parts[1].trim();
+                }
+                categoria = "DISCIPLINAS";
+            }
+        }
+
+        // Llamada al servicio pasando los parámetros en el orden correcto
         List<DetallePagoResponse> detalles = detallePagoServicio.filtrarDetalles(
                 fechaRegistroDesde,
                 fechaRegistroHasta,
+                categoria,
                 disciplina,
                 tarifa,
                 stock,
@@ -219,11 +245,10 @@ public class PagoControlador {
         return detalles.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(detalles);
     }
 
-
     @PostMapping("/verificar")
     public ResponseEntity<Void> verificarMensualidadOMatricula(@Valid @RequestBody DetallePagoRegistroRequest request) {
         detallePagoServicio.verificarMensualidadNoDuplicada(detallePagoMapper.toEntity(request));
-        detallePagoServicio.verificarMatriculaNoDuplicada(detallePagoMapper.toEntity(request));
+        matriculaServicio.verificarMatriculaNoDuplicada(detallePagoMapper.toEntity(request));
 
         return ResponseEntity.ok().build();
     }

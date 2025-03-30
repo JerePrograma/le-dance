@@ -1,6 +1,9 @@
 package ledance.servicios.detallepago;
 
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
 import ledance.dto.pago.DetallePagoMapper;
 import ledance.dto.pago.response.DetallePagoResponse;
 import ledance.entidades.*;
@@ -16,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -159,68 +163,106 @@ public class DetallePagoServicio {
     public List<DetallePagoResponse> filtrarDetalles(
             LocalDate fechaRegistroDesde,
             LocalDate fechaRegistroHasta,
+            String categoria,         // Se espera: DISCIPLINAS, STOCK, CONCEPTOS o MATRICULA
             String disciplina,
             String tarifa,
             String stock,
             String subConcepto,
             String detalleConcepto
     ) {
-        Specification<DetallePago> spec = Specification.where(null);
+        Specification<DetallePago> spec = Specification.where(filtrarPorFechaRegistro(fechaRegistroDesde, fechaRegistroHasta));
 
-        // Filtrado por rango de fecha (fechaRegistro)
-        if (fechaRegistroDesde != null) {
-            spec = spec.and((root, query, cb) ->
-                    cb.greaterThanOrEqualTo(root.get("fechaRegistro"), fechaRegistroDesde));
-        }
-        if (fechaRegistroHasta != null) {
-            spec = spec.and((root, query, cb) ->
-                    cb.lessThanOrEqualTo(root.get("fechaRegistro"), fechaRegistroHasta));
+        if (StringUtils.hasText(categoria)) {
+            spec = spec.and(filtrarPorCategoria(categoria, disciplina, tarifa, stock, subConcepto, detalleConcepto));
         }
 
-        // Filtrado por disciplina
-        if (StringUtils.hasText(disciplina)) {
-            String pattern;
-            if (StringUtils.hasText(tarifa)) {
-                pattern = (disciplina + " - " + tarifa).toUpperCase() + "%";
-            } else {
-                pattern = "%" + disciplina.toUpperCase() + "%";
-            }
-            spec = spec.and((root, query, cb) ->
-                    cb.like(root.get("descripcionConcepto"), pattern));
-        }
-
-        // Filtrado por Stock (usa el campo stock.nombre)
-        if (StringUtils.hasText(stock)) {
-            String pattern = "%" + stock.toLowerCase() + "%";
-            spec = spec.and((root, query, cb) ->
-                    cb.like(cb.lower(root.get("stock").get("nombre")), pattern));
-        }
-
-        // Filtrado por SubConcepto (usa subConcepto.descripcion)
-        if (StringUtils.hasText(subConcepto)) {
-            String pattern = "%" + subConcepto.toLowerCase() + "%";
-            spec = spec.and((root, query, cb) ->
-                    cb.like(cb.lower(root.get("subConcepto").get("descripcion")), pattern));
-        }
-
-        // Filtrado por Concepto (usando el campo descripcionConcepto)
-        if (StringUtils.hasText(detalleConcepto)) {
-            String pattern = "%" + detalleConcepto.toUpperCase() + "%";
-            spec = spec.and((root, query, cb) ->
-                    cb.like(root.get("descripcionConcepto"), pattern));
-        }
-
-        // Ejecutar la consulta con la Specification compuesta y ordenar de forma descendente por id
         List<DetallePago> detalles = detallePagoRepositorio.findAll(spec, Sort.by(Sort.Direction.DESC, "id"));
         log.info("Consulta realizada. Número de registros encontrados: {}", detalles.size());
 
-        // Conversión de las entidades a DTOs
         List<DetallePagoResponse> responses = detalles.stream()
                 .map(detallePagoMapper::toDTO)
                 .collect(Collectors.toList());
         log.info("Conversión a DetallePagoResponse completada. Regresando respuesta.");
 
         return responses;
+    }
+
+    private Specification<DetallePago> filtrarPorFechaRegistro(LocalDate desde, LocalDate hasta) {
+        return (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (desde != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("fechaRegistro"), desde));
+            }
+            if (hasta != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("fechaRegistro"), hasta));
+            }
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+    }
+
+    private Specification<DetallePago> filtrarPorCategoria(
+            String categoria,
+            String disciplina,
+            String tarifa,
+            String stock,
+            String subConcepto,
+            String detalleConcepto
+    ) {
+        return (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            String categoriaUpper = categoria.toUpperCase();
+
+            switch (categoriaUpper) {
+                case "DISCIPLINAS":
+                    // Filtrado para MENSUALIDAD: si se pasa disciplina, se busca por el patrón en descripción.
+                    if (StringUtils.hasText(disciplina)) {
+                        String pattern = StringUtils.hasText(tarifa)
+                                ? (disciplina + " - " + tarifa).toUpperCase() + "%"
+                                : "%" + disciplina.toUpperCase() + "%";
+                        predicates.add(cb.like(root.get("descripcionConcepto"), pattern));
+                    } else {
+                        predicates.add(cb.equal(root.get("tipo"), TipoDetallePago.MENSUALIDAD));
+                    }
+                    break;
+                case "STOCK":
+                    // Filtro para STOCK: búsqueda en el nombre del stock.
+                    if (StringUtils.hasText(stock)) {
+                        String pattern = "%" + stock.toLowerCase() + "%";
+                        predicates.add(cb.like(cb.lower(root.get("stock").get("nombre")), pattern));
+                    } else {
+                        predicates.add(cb.equal(root.get("tipo"), TipoDetallePago.STOCK));
+                    }
+                    break;
+                case "CONCEPTOS":
+                case "MATRICULA":
+                    // Filtra registros de tipo CONCEPTO (incluyendo MATRICULA)
+                    predicates.add(cb.equal(root.get("tipo"), TipoDetallePago.CONCEPTO));
+
+                    if (StringUtils.hasText(subConcepto)) {
+                        // Convertimos el parámetro a mayúsculas para una comparación uniforme.
+                        String pattern = "%" + subConcepto.toUpperCase() + "%";
+                        // Predicate para el subconcepto asignado directamente
+                        Predicate pDirect = cb.like(cb.upper(root.get("subConcepto").get("descripcion")), pattern);
+                        // Se realiza un LEFT JOIN con 'concepto' para obtener el subconcepto relacionado, si existe.
+                        Join<DetallePago, Concepto> joinConcepto = root.join("concepto", JoinType.LEFT);
+                        Predicate pViaConcepto = cb.like(cb.upper(joinConcepto.get("subConcepto").get("descripcion")), pattern);
+                        // Se combinan ambas condiciones
+                        predicates.add(cb.or(pDirect, pViaConcepto));
+                    }
+
+                    if (StringUtils.hasText(detalleConcepto)) {
+                        // Dado que en prePersist/preUpdate se fuerza a mayúsculas la descripción del concepto,
+                        // convertimos el parámetro a mayúsculas.
+                        String pattern = "%" + detalleConcepto.toUpperCase() + "%";
+                        predicates.add(cb.like(root.get("descripcionConcepto"), pattern));
+                    }
+                    break;
+                default:
+                    // Si la categoría no coincide, se puede optar por no aplicar ningún filtro adicional.
+                    break;
+            }
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
     }
 
     // =====================================================
@@ -306,40 +348,5 @@ public class DetallePagoServicio {
         }
     }
 
-    @Transactional
-    public void verificarMatriculaNoDuplicada(DetallePago detalle) {
-        Long alumnoId = detalle.getAlumno().getId();
-        String descripcion = detalle.getDescripcionConcepto();
-        log.info("[verificarMatriculaNoDuplicada] Verificando existencia de matrícula o detalle de pago para alumnoId={} con descripción '{}'",
-                alumnoId, descripcion);
-
-        // Solo se verifica si la descripción contiene "MATRICULA"
-        if (descripcion != null && descripcion.toUpperCase().contains("MATRICULA")) {
-            // Ejemplo: Se busca la matrícula para el alumno para el año actual.
-            int anioActual = LocalDate.now().getYear();
-            log.info("[verificarMatriculaNoDuplicada] Buscando matrícula para alumnoId={} en el año {}", alumnoId, anioActual);
-            Optional<Matricula> matriculaOpt = matriculaRepositorio.findByAlumnoIdAndAnio(alumnoId, anioActual);
-
-            if (matriculaOpt.isPresent()) {
-                Matricula matricula = matriculaOpt.get();
-                log.info("[verificarMatriculaNoDuplicada] Matrícula encontrada: id={}, pagada={}", matricula.getId(), matricula.getPagada());
-                // Si la matrícula ya está pagada, se considera duplicada.
-                log.info("[verificarMatriculaNoDuplicada] Matrícula ya pagada para alumnoId={}", alumnoId);
-                // Verificar si existe un detalle de pago de tipo MATRÍCULA duplicado.
-                boolean existeDetalleDuplicado = detallePagoRepositorio.existsByAlumnoIdAndDescripcionConceptoIgnoreCaseAndTipo(
-                        alumnoId, descripcion, TipoDetallePago.MATRICULA);
-                log.info("[verificarMatriculaNoDuplicada] Resultado verificación detalle duplicado: {}", existeDetalleDuplicado);
-                if (existeDetalleDuplicado) {
-                    log.error("[verificarMatriculaNoDuplicada] Ya existe una matrícula o detalle de pago con descripción '{}' para alumnoId={}",
-                            descripcion, alumnoId);
-                    throw new IllegalStateException("MATRICULA YA COBRADA");
-                }
-            } else {
-                log.info("[verificarMatriculaNoDuplicada] No se encontró matrícula para alumnoId={} en el año {}", alumnoId, anioActual);
-            }
-        } else {
-            log.info("[verificarMatriculaNoDuplicada] La descripción '{}' no contiene 'MATRICULA', no se realiza verificación.", descripcion);
-        }
-    }
 
 }

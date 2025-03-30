@@ -6,10 +6,13 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface SubConceptoRepositorio extends JpaRepository<SubConcepto, Long> {
 
     @Query("SELECT s FROM SubConcepto s WHERE LOWER(s.descripcion) LIKE LOWER(CONCAT('%', ?1, '%'))")
     List<SubConcepto> buscarPorDescripcion(String descripcion);
+
+    Optional<SubConcepto>  findByDescripcionIgnoreCase(String descripcion);
 }

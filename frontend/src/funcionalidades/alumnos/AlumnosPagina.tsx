@@ -1,3 +1,7 @@
+// Refactor del componente Alumnos para agregar:
+// 1. Ordenamiento por ID
+// 2. Filtro por estado (Activo/Inactivo)
+
 "use client";
 
 import React, {
@@ -19,6 +23,7 @@ interface AlumnoListado {
   id: number;
   nombre: string;
   apellido: string;
+  activo: boolean;
 }
 
 const itemsPerPage = 15;
@@ -31,7 +36,11 @@ const Alumnos: React.FC = () => {
   const [visibleCount, setVisibleCount] = useState<number>(itemsPerPage);
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState<"id" | "nombre">("id");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [filterActivo, setFilterActivo] = useState<
+    "todos" | "activos" | "inactivos"
+  >("todos");
 
   const containerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -56,20 +65,39 @@ const Alumnos: React.FC = () => {
   }, [fetchAlumnos]);
 
   const alumnosFiltrados = useMemo(() => {
-    return alumnos
-      .filter((alumno) =>
-        `${alumno.nombre} ${alumno.apellido}`
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase())
-      )
-      .sort((a, b) => {
-        const nombreA = `${a.nombre} ${a.apellido}`.toLowerCase();
-        const nombreB = `${b.nombre} ${b.apellido}`.toLowerCase();
-        return sortOrder === "asc"
-          ? nombreA.localeCompare(nombreB)
-          : nombreB.localeCompare(nombreA);
-      });
-  }, [alumnos, searchTerm, sortOrder]);
+    let filtrados = alumnos;
+
+    if (filterActivo !== "todos") {
+      filtrados = filtrados.filter(
+        (a) => a.activo === (filterActivo === "activos")
+      );
+    }
+
+    filtrados = filtrados.filter((alumno) =>
+      `${alumno.nombre} ${alumno.apellido}`
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase())
+    );
+
+    return filtrados.sort((a, b) => {
+      let aVal: string | number;
+      let bVal: string | number;
+
+      if (sortBy === "id") {
+        aVal = a.id;
+        bVal = b.id;
+      } else {
+        aVal = `${a.nombre} ${a.apellido}`.toLowerCase();
+        bVal = `${b.nombre} ${b.apellido}`.toLowerCase();
+      }
+
+      if (sortOrder === "asc") {
+        return aVal > bVal ? 1 : -1;
+      } else {
+        return aVal < bVal ? 1 : -1;
+      }
+    });
+  }, [alumnos, searchTerm, sortOrder, sortBy, filterActivo]);
 
   const currentItems = useMemo(
     () => alumnosFiltrados.slice(0, visibleCount),
@@ -123,7 +151,7 @@ const Alumnos: React.FC = () => {
       </div>
 
       <div className="flex-none px-6 pb-4">
-        <div className="page-card flex gap-4">
+        <div className="page-card flex gap-4 flex-wrap">
           <input
             type="text"
             placeholder="Buscar por nombre..."
@@ -131,6 +159,16 @@ const Alumnos: React.FC = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
+
+          <select
+            className="border rounded p-2"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as "id" | "nombre")}
+          >
+            <option value="id">Ordenar por ID</option>
+            <option value="nombre">Ordenar por Nombre</option>
+          </select>
+
           <select
             className="border rounded p-2"
             value={sortOrder}
@@ -138,6 +176,20 @@ const Alumnos: React.FC = () => {
           >
             <option value="asc">Ascendente</option>
             <option value="desc">Descendente</option>
+          </select>
+
+          <select
+            className="border rounded p-2"
+            value={filterActivo}
+            onChange={(e) =>
+              setFilterActivo(
+                e.target.value as "todos" | "activos" | "inactivos"
+              )
+            }
+          >
+            <option value="todos">Todos</option>
+            <option value="activos">Activos</option>
+            <option value="inactivos">Inactivos</option>
           </select>
         </div>
       </div>

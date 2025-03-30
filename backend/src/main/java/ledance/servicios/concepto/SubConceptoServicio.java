@@ -5,6 +5,7 @@ import ledance.dto.concepto.response.SubConceptoResponse;
 import ledance.dto.concepto.SubConceptoMapper;
 import ledance.entidades.SubConcepto;
 import ledance.repositorios.SubConceptoRepositorio;
+import org.flywaydb.core.internal.util.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
@@ -73,4 +74,12 @@ public class SubConceptoServicio {
                 .collect(Collectors.toList());
     }
 
+
+    public SubConcepto findByDescripcionIgnoreCase(String subConceptoDesc) {
+        if (!StringUtils.hasText(subConceptoDesc)) {
+            throw new IllegalArgumentException("La descripción del sub concepto es requerida.");
+        }
+        return subConceptoRepositorio.findByDescripcionIgnoreCase(subConceptoDesc.trim())
+                .orElse(null);
+    }
 }

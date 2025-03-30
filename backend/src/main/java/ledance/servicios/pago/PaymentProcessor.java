@@ -74,7 +74,8 @@ public class PaymentProcessor {
 
         for (DetallePago detalle : pago.getDetallePagos()) {
             log.info("[recalcularTotales] Procesando detalle ID: {}", detalle.getId());
-
+            detalle.setConcepto(detalle.getConcepto());
+            detalle.setSubConcepto(detalle.getSubConcepto());
             log.info("[recalcularTotales] Asignando alumno al detalle: alumno ID={}", pago.getAlumno().getId());
             detalle.setAlumno(pago.getAlumno());
 
@@ -455,7 +456,8 @@ public class PaymentProcessor {
         for (DetallePago detalle : pagoHistorico.getDetallePagos()) {
             log.debug("[clonarDetallesConPendiente] Analizando detalle ID: {} | Descripción: '{}' | Pendiente: {}",
                     detalle.getId(), detalle.getDescripcionConcepto(), detalle.getImportePendiente());
-
+            detalle.setConcepto(detalle.getConcepto());
+            detalle.setSubConcepto(detalle.getSubConcepto());
             if (detalle.getImportePendiente() != null && detalle.getImportePendiente() > 0.0) {
                 log.info("[clonarDetallesConPendiente] Clonando detalle con pendiente: {}", detalle.getImportePendiente());
 
@@ -476,6 +478,10 @@ public class PaymentProcessor {
                     originalMensualidad.setDescripcion(originalMensualidad.getDescripcion());
                     nuevoDetalle.setMensualidad(originalMensualidad);
                     log.debug("[clonarDetallesConPendiente] Mensualidad configurada como clon");
+                }
+                nuevoDetalle.setTipo(detalle.getTipo());
+                if (nuevoDetalle.getConcepto() != null && nuevoDetalle.getSubConcepto() == null) {
+                    nuevoDetalle.setSubConcepto(nuevoDetalle.getConcepto().getSubConcepto());
                 }
 
                 nuevoDetalle.setaCobrar(detalle.getaCobrar());
@@ -547,28 +553,45 @@ public class PaymentProcessor {
         original.setEsClon(false);           // Original siempre false
 
         clone.setDescripcionConcepto(original.getDescripcionConcepto());
-        clone.setConcepto(original.getConcepto());
-        clone.setSubConcepto(original.getSubConcepto());
+
+        // Reasignar Concepto y SubConcepto
+        if (original.getConcepto() != null && original.getConcepto().getId() != null) {
+            Concepto managedConcepto = entityManager.find(Concepto.class, original.getConcepto().getId());
+            if (managedConcepto != null) {
+                clone.setConcepto(managedConcepto);
+                log.info("[clonarDetallePago] Concepto reatachado en el clon: {}", managedConcepto.getId());
+                if (original.getSubConcepto() != null) {
+                    clone.setSubConcepto(managedConcepto.getSubConcepto());
+                    log.info("[clonarDetallePago] SubConcepto reatachado en el clon: {}", managedConcepto.getSubConcepto().getId());
+                }
+            } else {
+                // Si no se encuentra, se copia lo que tenga
+                clone.setConcepto(original.getConcepto());
+                clone.setSubConcepto(original.getSubConcepto());
+            }
+        } else {
+            clone.setConcepto(original.getConcepto());
+            clone.setSubConcepto(original.getSubConcepto());
+        }
+
         clone.setCuotaOCantidad(original.getCuotaOCantidad());
         clone.setBonificacion(original.getBonificacion());
-
         if (original.getTieneRecargo()) {
             clone.setRecargo(original.getRecargo());
         }
-
         clone.setValorBase(original.getValorBase());
         clone.setTipo(original.getTipo());
         clone.setFechaRegistro(LocalDate.now());
 
         double importePendienteRestante = original.getImportePendiente() != null ? original.getImportePendiente() : original.getImporteInicial();
-
         clone.setImporteInicial(importePendienteRestante);
         clone.setImportePendiente(importePendienteRestante);
         clone.setAlumno(nuevoPago.getAlumno());
         clone.setaCobrar(original.getaCobrar());
+
+        // Manejo de Mensualidad
         Mensualidad originalMensualidad = original.getMensualidad();
         if (originalMensualidad != null) {
-            // Aquí se debe copiar solo los datos necesarios desde la originalMensualidad
             originalMensualidad.setEsClon(true);
             originalMensualidad.setDescripcion(originalMensualidad.getDescripcion());
             clone.setMensualidad(originalMensualidad);
@@ -628,7 +651,8 @@ public class PaymentProcessor {
         for (DetallePago detalleRequest : detallesFront) {
             detalleRequest.setAlumno(alumnoPersistido);
             detalleRequest.setPago(pago);
-
+            detalleRequest.setConcepto(detalleRequest.getConcepto());
+            detalleRequest.setSubConcepto(detalleRequest.getSubConcepto());
             DetallePago detallePersistido = null;
 
             if (detalleRequest.getId() != null && detalleRequest.getId() > 0) {
@@ -677,6 +701,8 @@ public class PaymentProcessor {
     private void copiarAtributosDetalle(DetallePago destino, DetallePago origen) {
         destino.setAlumno(origen.getAlumno());
         destino.setPago(origen.getPago());
+        destino.setConcepto(origen.getConcepto());
+        destino.setSubConcepto(origen.getSubConcepto());
         destino.setDescripcionConcepto(origen.getDescripcionConcepto());
         destino.setCuotaOCantidad(origen.getCuotaOCantidad());
         destino.setValorBase(origen.getValorBase());
@@ -737,24 +763,28 @@ public class PaymentProcessor {
         log.info("[asignarMetodoYPersistir] Asignando método de pago para Pago id={}", pago.getId());
 
         // Buscar método de pago por id o usar 'EFECTIVO' por defecto.
-        MetodoPago metodoPago = metodoPagoRepositorio.findById(metodoPagoId).orElseGet(() -> {
-            log.info("[asignarMetodoYPersistir] Método de pago con id={} no encontrado, asignando 'EFECTIVO'", metodoPagoId);
-            return metodoPagoRepositorio.findByDescripcionContainingIgnoreCase("EFECTIVO");
-        });
+        MetodoPago metodoPago = metodoPagoRepositorio.findById(metodoPagoId)
+                .orElseGet(() -> {
+                    log.info("[asignarMetodoYPersistir] Método de pago con id={} no encontrado, asignando 'EFECTIVO'", metodoPagoId);
+                    return metodoPagoRepositorio.findByDescripcionContainingIgnoreCase("EFECTIVO");
+                });
         pago.setMetodoPago(metodoPago);
-        pagoRepositorio.save(pago);
-        log.info("[asignarMetodoYPersistir] Método de pago asignado: {}", metodoPago);
+
+        // Persistir y forzar flush para obtener el ID asignado
+        pagoRepositorio.saveAndFlush(pago);
+        log.info("[asignarMetodoYPersistir] Pago persistido con ID: {}", pago.getId());
 
         // Si alguno de los detalles tiene recargo, se aplica el recargo del método de pago
-        boolean aplicarRecargo = pago.getDetallePagos().stream().anyMatch(detalle -> Boolean.TRUE.equals(detalle.getTieneRecargo()));
+        boolean aplicarRecargo = pago.getDetallePagos().stream()
+                .anyMatch(detalle -> Boolean.TRUE.equals(detalle.getTieneRecargo()));
         if (aplicarRecargo) {
             double recargo = (metodoPago.getRecargo() != null) ? metodoPago.getRecargo() : 0;
             pago.setMonto(pago.getMonto() + recargo);
             log.info("[asignarMetodoYPersistir] Se aplicó recargo de {}. Nuevo monto: {}", recargo, pago.getMonto());
         }
 
-        // Persistir el pago (si no se persiste en otro lugar)
-        pagoRepositorio.save(pago);
+        // Persistir nuevamente si es necesario y forzar el flush para actualizar el ID en el contexto de la transacción
+        pagoRepositorio.saveAndFlush(pago);
     }
 
 }

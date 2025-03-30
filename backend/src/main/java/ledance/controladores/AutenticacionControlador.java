@@ -45,9 +45,9 @@ public class AutenticacionControlador {
         log.info("Intento de login para nombreUsuario: {}", datos.nombreUsuario());
 
         // Antes de autenticar, aplicamos los procesos automáticos
-        recargoServicio.aplicarRecargosAutomaticosEnLogin();
         mensualidadServicio.generarMensualidadesParaMesVigente();
         matriculaServicio.generarMatriculasAnioVigente();
+        recargoServicio.aplicarRecargosAutomaticosEnLogin();
 
         var authToken = new UsernamePasswordAuthenticationToken(datos.nombreUsuario(), datos.contrasena());
         var usuarioAutenticado = authManager.authenticate(authToken);

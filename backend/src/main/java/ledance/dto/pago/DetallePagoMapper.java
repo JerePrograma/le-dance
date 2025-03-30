@@ -20,11 +20,11 @@ public interface DetallePagoMapper {
     @Mapping(target = "mensualidad", source = "mensualidadId", qualifiedByName = "mapMensualidad")
     @Mapping(target = "matricula", source = "matriculaId", qualifiedByName = "mapMatricula")
     @Mapping(target = "stock", source = "stockId", qualifiedByName = "mapStock")
-    @Mapping(target = "concepto", ignore = true)
-    @Mapping(target = "subConcepto", ignore = true)
     @Mapping(target = "bonificacion", ignore = true)
     @Mapping(target = "recargo", ignore = true)
     @Mapping(target = "pago", source = "pagoId", qualifiedByName = "mapPago")
+    @Mapping(target = "concepto", source = "conceptoId", qualifiedByName = "mapConcepto")
+    @Mapping(target = "subConcepto", source = "subConceptoId", qualifiedByName = "mapSubConcepto")
     @Mapping(target = "descripcionConcepto", expression = "java( request.descripcionConcepto() != null ? request.descripcionConcepto().trim().toUpperCase() : null )")
     @Mapping(target = "valorBase", source = "valorBase")
     @Mapping(target = "cuotaOCantidad", source = "cuotaOCantidad")
@@ -118,5 +118,19 @@ public interface DetallePagoMapper {
         Pago p = new Pago();
         p.setId(id);
         return p;
+    }
+    @Named("mapConcepto")
+    default Concepto mapConcepto(Long id) {
+        if (id == null) return null;
+        Concepto c = new Concepto();
+        c.setId(id);
+        return c;
+    }
+    @Named("mapSubConcepto")
+    default SubConcepto mapSubConcepto(Long id) {
+        if (id == null) return null;
+        SubConcepto sc = new SubConcepto();
+        sc.setId(id);
+        return sc;
     }
 }

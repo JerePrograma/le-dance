@@ -13,7 +13,7 @@ import type {
 } from "../types/types";
 
 const descargarRecibo = (pagoId: number) => {
-window.open(`/api/api/pagos/recibo/${pagoId}`, "_blank");
+  window.open(`/api/api/pagos/recibo/${pagoId}`, "_blank");
 };
 
 const registrarPago = async (
@@ -146,9 +146,14 @@ const obtenerUltimoPagoPorAlumno = async (
 
 const verificarMensualidadOMatricula = async (
   request: DetallePagoRegistroRequest
-): Promise<void> => {
-  await api.post("/pagos/verificar", request);
+): Promise<DetallePagoResponse> => {
+  const { data } = await api.post<DetallePagoResponse>(
+    "/pagos/verificar",
+    request
+  );
+  return data;
 };
+
 /**
  * Endpoint para filtrar DetallePagos.
  * Los parámetros son opcionales y se envían en la query string.
@@ -160,6 +165,8 @@ const filtrarDetalles = async (params: {
   stock?: string;
   subConcepto?: string;
   disciplina?: string;
+  tarifa?: string;
+  categoria?: string;
 }): Promise<DetallePagoResponse[]> => {
   const { data } = await api.get<DetallePagoResponse[]>("/pagos/filtrar", {
     params,

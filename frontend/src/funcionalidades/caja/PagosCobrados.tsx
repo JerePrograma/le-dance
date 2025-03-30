@@ -203,16 +203,16 @@ const DetallePagoList: React.FC = () => {
     await fetchDetalles(params);
     adjustVisibleCount();
   };
-
+  
   if (loading && detalles.length === 0)
     return <div className="text-center py-4">Cargando...</div>;
   if (error && detalles.length === 0)
     return <div className="text-center py-4 text-destructive">{error}</div>;
 
   const sortedItems = [...currentItems].sort(
-    (a, b) => Number(b.id) - Number(a.id)
+    (a, b) => Number(b.pagoId) - Number(a.pagoId)
   );
-  
+
   return (
     <div ref={containerRef} className="flex flex-col h-screen overflow-hidden">
       {/* Header */}
@@ -386,7 +386,7 @@ const DetallePagoList: React.FC = () => {
                   recargos.find((r) => r.id === Number(fila.recargoId))
                     ?.descripcion;
                 return [
-                  fila.conceptoId || fila.id,
+                  fila.pagoId || fila.id,
                   fila.alumnoDisplay,
                   fila.descripcionConcepto,
                   fila.aCobrar,

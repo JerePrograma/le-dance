@@ -46,11 +46,11 @@ public class ReciboStorageService {
         }
     }
 
-    public void generarYAlmacenarReciboDesdePagoHistorico(Pago nuevoPago, Pago pagoHistorico) {
+    public void generarYAlmacenarReciboDesdePagoHistorico(Pago pagoHistorico) {
         try {
             byte[] pdfBytes = pdfService.generarReciboPdf(pagoHistorico); // Usamos el histórico
 
-            String fileName = "recibo_" + nuevoPago.getId() + ".pdf";
+            String fileName = "recibo_" + pagoHistorico.getId() + ".pdf";
             Path outputPath = Paths.get("/opt/ledance/pdfs", fileName);
 
             Files.createDirectories(outputPath.getParent());

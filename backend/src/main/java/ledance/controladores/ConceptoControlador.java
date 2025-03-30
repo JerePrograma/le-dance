@@ -1,8 +1,13 @@
 package ledance.controladores;
 
+import ledance.dto.concepto.ConceptoMapper;
 import ledance.dto.concepto.request.ConceptoRegistroRequest;
 import ledance.dto.concepto.response.ConceptoResponse;
+import ledance.entidades.Concepto;
+import ledance.entidades.SubConcepto;
+import ledance.repositorios.ConceptoRepositorio;
 import ledance.servicios.concepto.ConceptoServicio;
+import ledance.servicios.concepto.SubConceptoServicio;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -10,6 +15,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/conceptos")
@@ -18,9 +24,15 @@ public class ConceptoControlador {
 
     private static final Logger log = LoggerFactory.getLogger(ConceptoControlador.class);
     private final ConceptoServicio conceptoServicio;
+    private final SubConceptoServicio subConceptoServicio;
+    private final ConceptoRepositorio conceptoRepositorio;
+    private final ConceptoMapper conceptoMapper;
 
-    public ConceptoControlador(ConceptoServicio conceptoServicio) {
+    public ConceptoControlador(ConceptoServicio conceptoServicio, SubConceptoServicio subConceptoServicio, ConceptoRepositorio conceptoRepositorio, ConceptoMapper conceptoMapper) {
         this.conceptoServicio = conceptoServicio;
+        this.subConceptoServicio = subConceptoServicio;
+        this.conceptoRepositorio = conceptoRepositorio;
+        this.conceptoMapper = conceptoMapper;
     }
 
     @PostMapping
@@ -55,10 +67,19 @@ public class ConceptoControlador {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/sub-concepto/{subConceptoId}")
-    public ResponseEntity<List<ConceptoResponse>> listarConceptosPorSubConcepto(@PathVariable Long subConceptoId) {
-        log.info("Listando conceptos para el subconcepto con id: {}", subConceptoId);
-        List<ConceptoResponse> conceptos = conceptoServicio.listarConceptosPorSubConcepto(subConceptoId);
-        return conceptos.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(conceptos);
+    // Nuevo endpoint para listar conceptos por descripción de subconcepto.
+    @GetMapping("/sub-concepto/{subConceptoDesc}")
+    public ResponseEntity<List<ConceptoResponse>> listarConceptosPorSubConcepto(
+            @PathVariable("subConceptoDesc") String subConceptoDesc) {
+
+        SubConcepto subConcepto = subConceptoServicio.findByDescripcionIgnoreCase(subConceptoDesc);
+        if (subConcepto == null) {
+            return ResponseEntity.notFound().build();
+        }
+        List<Concepto> conceptos = conceptoRepositorio.findBySubConceptoId(subConcepto.getId());
+        List<ConceptoResponse> responses = conceptos.stream()
+                .map(conceptoMapper::toResponse)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(responses);
     }
 }

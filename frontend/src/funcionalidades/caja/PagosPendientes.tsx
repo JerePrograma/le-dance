@@ -211,7 +211,7 @@ const DetallePagoList: React.FC = () => {
     return <div className="text-center py-4 text-destructive">{error}</div>;
 
   const sortedItems = [...currentItems].sort(
-    (a, b) => Number(b.id) - Number(a.id)
+    (a, b) => Number(b.pagoId) - Number(a.pagoId)
   );
   
   return (
@@ -387,7 +387,7 @@ const DetallePagoList: React.FC = () => {
                   recargos.find((r) => r.id === Number(fila.recargoId))
                     ?.descripcion;
                 return [
-                  fila.conceptoId || fila.id,
+                  fila.pagoId || fila.id,
                   fila.alumnoDisplay,
                   fila.descripcionConcepto,
                   fila.importePendiente,

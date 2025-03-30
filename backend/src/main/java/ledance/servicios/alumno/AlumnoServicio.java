@@ -59,11 +59,20 @@ public class AlumnoServicio implements IAlumnoServicio {
     public AlumnoResponse registrarAlumno(AlumnoRegistroRequest requestDTO) {
         log.info("Registrando alumno: {}", requestDTO.nombre());
 
+        // Verificación de duplicados por nombre + apellido
+        if (alumnoRepositorio.existsByNombreIgnoreCaseAndApellidoIgnoreCase(requestDTO.nombre(), requestDTO.apellido())) {
+            String msg = String.format("Ya existe un alumno con el nombre '%s' y apellido '%s'",
+                    requestDTO.nombre(), requestDTO.apellido());
+            log.warn("[registrarAlumno] {}", msg);
+            throw new IllegalStateException(msg); // o podrías usar una excepción custom si preferís
+        }
+
         Alumno alumno = alumnoMapper.toEntity(requestDTO);
         if (alumno.getId() == 0) {
             alumno.setId(null);
         }
-        // Calcular edad automaticamente
+
+        // Calcular edad automáticamente
         if (alumno.getFechaNacimiento() != null) {
             alumno.setEdad(calcularEdad(requestDTO.fechaNacimiento()));
         }

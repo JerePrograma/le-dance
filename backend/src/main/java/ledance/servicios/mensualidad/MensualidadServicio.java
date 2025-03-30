@@ -769,6 +769,8 @@ public class MensualidadServicio implements IMensualidadService {
                         .filter(detalle -> detalle.getTipo() == TipoDetallePago.MENSUALIDAD)
                         .toList();
                 for (DetallePago d : detalles) {
+                    d.setConcepto(d.getConcepto());
+                    d.setSubConcepto(d.getSubConcepto());
                     DetallePagoResponse response = mapearDetallePagoResponse(d);
                     if (response != null) {
                         detallePagoResponses.add(response);

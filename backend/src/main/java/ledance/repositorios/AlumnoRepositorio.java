@@ -1,5 +1,6 @@
 package ledance.repositorios;
 
+import jakarta.validation.constraints.NotBlank;
 import ledance.entidades.Alumno;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -22,4 +23,6 @@ public interface AlumnoRepositorio extends JpaRepository<Alumno, Long> {
 
     @Query("SELECT a FROM Alumno a WHERE a.deudaPendiente = true")
     List<Alumno> listarAlumnosConDeuda();
+
+    boolean existsByNombreIgnoreCaseAndApellidoIgnoreCase(String nombre, String apellido);
 }

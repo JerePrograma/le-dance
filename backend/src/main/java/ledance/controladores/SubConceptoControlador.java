@@ -1,7 +1,12 @@
 package ledance.controladores;
 
+import ledance.dto.concepto.ConceptoMapper;
 import ledance.dto.concepto.request.SubConceptoRegistroRequest;
+import ledance.dto.concepto.response.ConceptoResponse;
 import ledance.dto.concepto.response.SubConceptoResponse;
+import ledance.entidades.Concepto;
+import ledance.entidades.SubConcepto;
+import ledance.repositorios.ConceptoRepositorio;
 import ledance.servicios.concepto.SubConceptoServicio;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,6 +15,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/sub-conceptos")
@@ -18,9 +24,13 @@ public class SubConceptoControlador {
 
     private static final Logger log = LoggerFactory.getLogger(SubConceptoControlador.class);
     private final SubConceptoServicio subConceptoServicio;
+    private final ConceptoRepositorio conceptoRepositorio;
+    private final ConceptoMapper conceptoMapper;
 
-    public SubConceptoControlador(SubConceptoServicio subConceptoServicio) {
+    public SubConceptoControlador(SubConceptoServicio subConceptoServicio, ConceptoRepositorio conceptoRepositorio, ConceptoMapper conceptoMapper) {
         this.subConceptoServicio = subConceptoServicio;
+        this.conceptoRepositorio = conceptoRepositorio;
+        this.conceptoMapper = conceptoMapper;
     }
 
     @PostMapping
@@ -61,4 +71,20 @@ public class SubConceptoControlador {
         List<SubConceptoResponse> resultado = subConceptoServicio.buscarPorNombre(nombre);
         return ResponseEntity.ok(resultado);
     }
+
+    @GetMapping("/{subConceptoDesc}")
+    public ResponseEntity<List<ConceptoResponse>> listarConceptosPorSubConcepto(
+            @PathVariable("subConceptoDesc") String subConceptoDesc) {
+
+        SubConcepto subConcepto = subConceptoServicio.findByDescripcionIgnoreCase(subConceptoDesc);
+        if (subConcepto == null) {
+            return ResponseEntity.notFound().build();
+        }
+        List<Concepto> conceptos = conceptoRepositorio.findBySubConceptoId(subConcepto.getId());
+        List<ConceptoResponse> responses = conceptos.stream()
+                .map(conceptoMapper::toResponse)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(responses);
+    }
+
 }

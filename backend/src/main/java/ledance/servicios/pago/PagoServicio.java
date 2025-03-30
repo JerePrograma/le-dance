@@ -92,7 +92,9 @@ public class PagoServicio {
             log.info("[registrarPago] Se utiliza el pago activo existente: {}", pagoFinal);
         }
         pagoFinal.setObservaciones(request.observaciones());
+
         // Asignar el método de pago y persistir el pago final.
+        // Se recomienda usar saveAndFlush para asegurarse de que el pago tenga asignado un ID.
         paymentProcessor.asignarMetodoYPersistir(pagoFinal, request.metodoPagoId());
         log.info("[registrarPago] Método de pago asignado al pago final id={}", pagoFinal.getId());
 
@@ -102,7 +104,7 @@ public class PagoServicio {
         PagoResponse response = pagoMapper.toDTO(pagoFinal);
         log.info("[registrarPago] Pago registrado con éxito. Respuesta final: {}", response);
         if (!pagoFinal.getMetodoPago().getDescripcion().equalsIgnoreCase("DEBITO")) {
-            reciboStorageService.generarYAlmacenarReciboDesdePagoHistorico(pagoFinal, ultimoPagoActivo);
+            reciboStorageService.generarYAlmacenarReciboDesdePagoHistorico(pagoFinal);
         }
 
         return response;
@@ -377,6 +379,8 @@ public class PagoServicio {
             if (pago.getDetallePagos() != null) {
                 for (DetallePago detalle : pago.getDetallePagos()) {
                     detalle.setAlumno(pago.getAlumno());
+                    detalle.setConcepto(detalle.getConcepto());
+                    detalle.setSubConcepto(detalle.getSubConcepto());
                     // Se calcula el pendiente usando valorBase y aFavor.
                     double pendiente = detalle.getValorBase();
                     if (pendiente > 0) {
@@ -413,6 +417,8 @@ public class PagoServicio {
 
         if (pago.getDetallePagos() != null) {
             for (DetallePago detalle : pago.getDetallePagos()) {
+                detalle.setConcepto(detalle.getConcepto());
+                detalle.setSubConcepto(detalle.getSubConcepto());
                 detalle.setAlumno(pago.getAlumno());
                 detalle.setRecargo(null);
                 detallePagoServicio.calcularImporte(detalle);
@@ -474,6 +480,8 @@ public class PagoServicio {
         // Actualizacion de cada detalle segun el abono asignado
         log.info("[registrarPagoParcial] Procesando {} detalles de pago", pago.getDetallePagos().size());
         for (DetallePago detalle : pago.getDetallePagos()) {
+            detalle.setConcepto(detalle.getConcepto());
+            detalle.setSubConcepto(detalle.getSubConcepto());
             log.info("[registrarPagoParcial] Procesando detalle id={}", detalle.getId());
             log.info("[registrarPagoParcial] Asignando alumno al detalle: alumnoId={}", pago.getAlumno().getId());
             detalle.setAlumno(pago.getAlumno());

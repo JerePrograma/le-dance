@@ -14,6 +14,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.Year;
+import java.time.YearMonth;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -27,16 +29,18 @@ public class MatriculaServicio {
     private final DetallePagoRepositorio detallePagoRepositorio;
     private final ConceptoRepositorio conceptoRepositorio;
     private final InscripcionRepositorio inscripcionRepositorio;
+    private final ProcesoEjecutadoRepositorio procesoEjecutadoRepositorio;
 
     public MatriculaServicio(MatriculaRepositorio matriculaRepositorio,
                              AlumnoRepositorio alumnoRepositorio,
-                             MatriculaMapper matriculaMapper, DetallePagoRepositorio detallePagoRepositorio, ConceptoRepositorio conceptoRepositorio, InscripcionRepositorio inscripcionRepositorio) {
+                             MatriculaMapper matriculaMapper, DetallePagoRepositorio detallePagoRepositorio, ConceptoRepositorio conceptoRepositorio, InscripcionRepositorio inscripcionRepositorio, ProcesoEjecutadoRepositorio procesoEjecutadoRepositorio) {
         this.matriculaRepositorio = matriculaRepositorio;
         this.alumnoRepositorio = alumnoRepositorio;
         this.matriculaMapper = matriculaMapper;
         this.detallePagoRepositorio = detallePagoRepositorio;
         this.conceptoRepositorio = conceptoRepositorio;
         this.inscripcionRepositorio = inscripcionRepositorio;
+        this.procesoEjecutadoRepositorio = procesoEjecutadoRepositorio;
     }
 
     /**
@@ -86,6 +90,18 @@ public class MatriculaServicio {
             return detalleOpt.get();
         } else {
             log.info("[obtenerOMarcarPendienteMatriculaAutomatica] No existe DetallePago para la matrícula id={}. Se procederá a registrar uno nuevo.", matricula.getId());
+
+            // Crear el detalle pero primero armarlo para validarlo
+            DetallePago detalleTemporal = new DetallePago();
+            detalleTemporal.setAlumno(matricula.getAlumno());
+            detalleTemporal.setMatricula(matricula);
+            detalleTemporal.setDescripcionConcepto("MATRICULA " + anio); // importante para que se valide correctamente
+            detalleTemporal.setTipo(TipoDetallePago.MATRICULA);
+
+            // 👇 Verificamos que no haya una matrícula duplicada
+            verificarMatriculaNoDuplicada(detalleTemporal);
+
+            // Si pasó la verificación, creamos el registro final
             DetallePago detallePago = registrarDetallePagoMatriculaAutomatica(matricula, pagoPendiente);
             log.info("[obtenerOMarcarPendienteMatriculaAutomatica] DetallePago creado para la matrícula id={}", matricula.getId());
             return detallePago;
@@ -116,6 +132,10 @@ public class MatriculaServicio {
 
         detalle.setTipo(TipoDetallePago.MATRICULA);
         detalle.setFechaRegistro(LocalDate.now());
+
+        // --- 🔒 Verificación para evitar duplicados ---
+        verificarMatriculaNoDuplicada(detalle); // 👈 se invoca aquí antes de guardar
+
         log.info("[registrarDetallePagoMatricula] Detalle configurado: Tipo={}, FechaRegistro={}",
                 detalle.getTipo(), detalle.getFechaRegistro());
 
@@ -123,6 +143,7 @@ public class MatriculaServicio {
 
         detallePagoRepositorio.save(detalle);
         log.info("[registrarDetallePagoMatricula] DetallePago para Matricula id={} creado y guardado exitosamente.", matricula.getId());
+
         return detalle;
     }
 
@@ -156,21 +177,6 @@ public class MatriculaServicio {
         return matriculaMapper.toResponse(matriculaRepositorio.save(m));
     }
 
-    public boolean existeMatriculaParaAnio(Long alumnoId, int anio) {
-        // Se asume que el repositorio de matriculas tiene un metodo que devuelve una matricula
-        // activa (o no pagada) para un alumno en un año determinado.
-        // Por ejemplo:
-        Optional<Matricula> matriculaOpt = matriculaRepositorio.findByAlumnoIdAndAnio(alumnoId, anio);
-        return matriculaOpt.isPresent();
-    }
-
-    public Inscripcion obtenerInscripcionActiva(Long alumnoId) {
-        // Se asume que el repositorio de inscripciones tiene un metodo para buscar la inscripcion activa
-        // para un alumno. Por ejemplo, basandose en un estado "ACTIVA".
-        return inscripcionRepositorio.findByAlumnoIdAndEstado(alumnoId, EstadoInscripcion.ACTIVA)
-                .orElseThrow(() -> new EntityNotFoundException("No se encontro inscripcion activa para alumno id: " + alumnoId));
-    }
-
     public DetallePago obtenerOMarcarPendienteAutomatica(Long alumnoId, Pago pagoPendiente) {
         log.info("[MatriculaAutoService] Iniciando proceso automatico de matricula para alumno id={}", alumnoId);
         int anio = LocalDate.now().getYear();
@@ -180,6 +186,97 @@ public class MatriculaServicio {
         return detallePago;
     }
 
+    @Transactional
     public void generarMatriculasAnioVigente() {
+        LocalDate today = LocalDate.now();
+        int anioActual = today.getYear();
+
+        ProcesoEjecutado proceso = procesoEjecutadoRepositorio
+                .findByProceso("MATRICULA_AUTOMATICA")
+                .orElse(new ProcesoEjecutado("MATRICULA_AUTOMATICA", null));
+
+        YearMonth mesActual = YearMonth.from(today);
+        if (proceso.getUltimaEjecucion() != null && YearMonth.from(proceso.getUltimaEjecucion()).equals(mesActual)) {
+            log.info("El proceso MATRÍCULA_AUTOMATICA ya fue ejecutado este mes: {}", proceso.getUltimaEjecucion());
+            return;
+        }
+
+        List<Alumno> alumnosConInscripciones = alumnoRepositorio
+                .findAll()
+                .stream()
+                .filter(alumno -> Boolean.TRUE.equals(alumno.getActivo()) && alumno.getInscripciones() != null && !alumno.getInscripciones().isEmpty())
+                .toList();
+
+        log.info("Total de alumnos con al menos una inscripción activa: {}", alumnosConInscripciones.size());
+
+        for (Alumno alumno : alumnosConInscripciones) {
+            log.info("Procesando alumno id: {} - {}", alumno.getId(), alumno.getNombre());
+
+            Optional<Matricula> optMatricula = matriculaRepositorio.findByAlumnoIdAndAnio(alumno.getId(), anioActual);
+
+            Matricula matricula;
+            if (optMatricula.isPresent()) {
+                matricula = optMatricula.get();
+                log.info("Ya existe matrícula para el alumno id={}, matrícula id={}", alumno.getId(), matricula.getId());
+            } else {
+                matricula = new Matricula();
+                matricula.setAlumno(alumno);
+                matricula.setAnio(anioActual);
+                matricula.setPagada(false);
+                matricula = matriculaRepositorio.save(matricula);
+                log.info("Nueva matrícula creada para alumno id={}, matrícula id={}", alumno.getId(), matricula.getId());
+            }
+
+            // Verificamos si ya hay un DetallePago asociado a la matrícula
+            boolean detalleExiste = detallePagoRepositorio.existsByMatriculaId(matricula.getId());
+
+            if (!detalleExiste) {
+                log.info("No existe DetallePago para la matrícula id={}. Se procederá a registrar uno.", matricula.getId());
+                registrarDetallePagoMatriculaAutomatica(matricula, null); // null porque no hay pago aún
+            } else {
+                log.info("Ya existe un DetallePago asociado a la matrícula id={}", matricula.getId());
+            }
+        }
+
+        proceso.setUltimaEjecucion(today);
+        procesoEjecutadoRepositorio.save(proceso);
+        log.info("Proceso MATRÍCULA_AUTOMATICA completado. Flag actualizado a {}", today);
     }
+
+    @Transactional
+    public void verificarMatriculaNoDuplicada(DetallePago detalle) {
+        Long alumnoId = detalle.getAlumno().getId();
+        String descripcion = detalle.getDescripcionConcepto();
+        log.info("[verificarMatriculaNoDuplicada] Verificando existencia de matrícula o detalle de pago para alumnoId={} con descripción '{}'",
+                alumnoId, descripcion);
+
+        // Solo se verifica si la descripción contiene "MATRICULA"
+        if (descripcion != null && descripcion.toUpperCase().contains("MATRICULA")) {
+            // Ejemplo: Se busca la matrícula para el alumno para el año actual.
+            int anioActual = LocalDate.now().getYear();
+            log.info("[verificarMatriculaNoDuplicada] Buscando matrícula para alumnoId={} en el año {}", alumnoId, anioActual);
+            Optional<Matricula> matriculaOpt = matriculaRepositorio.findByAlumnoIdAndAnio(alumnoId, anioActual);
+
+            if (matriculaOpt.isPresent()) {
+                Matricula matricula = matriculaOpt.get();
+                log.info("[verificarMatriculaNoDuplicada] Matrícula encontrada: id={}, pagada={}", matricula.getId(), matricula.getPagada());
+                // Si la matrícula ya está pagada, se considera duplicada.
+                log.info("[verificarMatriculaNoDuplicada] Matrícula ya pagada para alumnoId={}", alumnoId);
+                // Verificar si existe un detalle de pago de tipo MATRÍCULA duplicado.
+                boolean existeDetalleDuplicado = detallePagoRepositorio.existsByAlumnoIdAndDescripcionConceptoIgnoreCaseAndTipo(
+                        alumnoId, descripcion, TipoDetallePago.MATRICULA);
+                log.info("[verificarMatriculaNoDuplicada] Resultado verificación detalle duplicado: {}", existeDetalleDuplicado);
+                if (existeDetalleDuplicado) {
+                    log.error("[verificarMatriculaNoDuplicada] Ya existe una matrícula o detalle de pago con descripción '{}' para alumnoId={}",
+                            descripcion, alumnoId);
+                    throw new IllegalStateException("MATRICULA YA COBRADA");
+                }
+            } else {
+                log.info("[verificarMatriculaNoDuplicada] No se encontró matrícula para alumnoId={} en el año {}", alumnoId, anioActual);
+            }
+        } else {
+            log.info("[verificarMatriculaNoDuplicada] La descripción '{}' no contiene 'MATRICULA', no se realiza verificación.", descripcion);
+        }
+    }
+
 }

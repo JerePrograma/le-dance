@@ -80,9 +80,4 @@ public class Pago {
         }
     }
 
-    public void addDetallePago(DetallePago detalle) {
-        detalle.setPago(this);
-        this.detallePagos.add(detalle);
-    }
-
 }
