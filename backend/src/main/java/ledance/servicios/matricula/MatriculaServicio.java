@@ -93,43 +93,6 @@ public class MatriculaServicio {
     }
 
     @Transactional
-    protected void registrarDetallePagoMatriculaAutomatica(Matricula matricula) {
-        if (detallePagoRepositorio.existsByMatriculaId(matricula.getId())) {
-            log.info("[registrarDetallePagoMatricula] Ya existe detalle de pago para matricula id={}", matricula.getId());
-            return;
-        }
-        log.info("[registrarDetallePagoMatricula] Iniciando registro del DetallePago para Matricula id={}", matricula.getId());
-
-        DetallePago detalle = new DetallePago();
-        detalle.setVersion(0L);
-        detalle.setMatricula(matricula);
-        detalle.setAlumno(matricula.getAlumno());
-        log.info("[registrarDetallePagoMatricula] Alumno asignado: id={}", matricula.getAlumno().getId());
-
-        // Asignar Concepto y SubConcepto usando un metodo auxiliar, con el año actual concatenado.
-        asignarConceptoDetallePago(detalle);
-
-        // Calcular e inicializar los importes.
-        Double valorBase = detalle.getConcepto().getPrecio();
-        log.info("[registrarDetallePagoMatricula] Valor base obtenido del Concepto: {}", valorBase);
-        detalle.setValorBase(valorBase);
-        detalle.setImporteInicial(valorBase);
-        detalle.setImportePendiente(valorBase);
-        detalle.setaCobrar(0.0);
-        detalle.setCobrado(false);
-
-        // Asignar tipo y fecha de registro.
-        detalle.setTipo(TipoDetallePago.MATRICULA);
-        detalle.setFechaRegistro(LocalDate.now());
-        log.info("[registrarDetallePagoMatricula] Detalle configurado: Tipo={}, FechaRegistro={}",
-                detalle.getTipo(), detalle.getFechaRegistro());
-
-        // Persistir el detalle
-        detallePagoRepositorio.save(detalle);
-        log.info("[registrarDetallePagoMatricula] DetallePago para Matricula id={} creado y guardado exitosamente.", matricula.getId());
-    }
-
-    @Transactional
     protected DetallePago registrarDetallePagoMatriculaAutomatica(Matricula matricula, Pago pagoPendiente) {
         log.info("[registrarDetallePagoMatricula] Iniciando registro del DetallePago para Matricula id={}", matricula.getId());
 
@@ -217,4 +180,6 @@ public class MatriculaServicio {
         return detallePago;
     }
 
+    public void generarMatriculasAnioVigente() {
+    }
 }

@@ -5,6 +5,7 @@ import ledance.dto.request.LoginRequest;
 import ledance.entidades.Usuario;
 import ledance.infra.seguridad.TokenService;
 import ledance.repositorios.UsuarioRepositorio;
+import ledance.servicios.matricula.MatriculaServicio;
 import ledance.servicios.mensualidad.MensualidadServicio;
 import ledance.servicios.recargo.RecargoServicio;
 import org.slf4j.Logger;
@@ -26,15 +27,17 @@ public class AutenticacionControlador {
     private final UsuarioRepositorio usuarioRepositorio;
     private final RecargoServicio recargoServicio;
     private final MensualidadServicio mensualidadServicio;
+    private final MatriculaServicio matriculaServicio;
 
     public AutenticacionControlador(AuthenticationManager authManager,
                                     TokenService tokenService,
-                                    UsuarioRepositorio usuarioRepositorio, RecargoServicio recargoServicio, MensualidadServicio mensualidadServicio) {
+                                    UsuarioRepositorio usuarioRepositorio, RecargoServicio recargoServicio, MensualidadServicio mensualidadServicio, MatriculaServicio matriculaServicio) {
         this.authManager = authManager;
         this.tokenService = tokenService;
         this.usuarioRepositorio = usuarioRepositorio;
         this.recargoServicio = recargoServicio;
         this.mensualidadServicio = mensualidadServicio;
+        this.matriculaServicio = matriculaServicio;
     }
 
     @PostMapping
@@ -44,6 +47,7 @@ public class AutenticacionControlador {
         // Antes de autenticar, aplicamos los procesos automáticos
         recargoServicio.aplicarRecargosAutomaticosEnLogin();
         mensualidadServicio.generarMensualidadesParaMesVigente();
+        matriculaServicio.generarMatriculasAnioVigente();
 
         var authToken = new UsernamePasswordAuthenticationToken(datos.nombreUsuario(), datos.contrasena());
         var usuarioAutenticado = authManager.authenticate(authToken);

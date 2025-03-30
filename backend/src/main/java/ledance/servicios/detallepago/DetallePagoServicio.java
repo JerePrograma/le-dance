@@ -324,19 +324,15 @@ public class DetallePagoServicio {
                 Matricula matricula = matriculaOpt.get();
                 log.info("[verificarMatriculaNoDuplicada] Matrícula encontrada: id={}, pagada={}", matricula.getId(), matricula.getPagada());
                 // Si la matrícula ya está pagada, se considera duplicada.
-                if (Boolean.TRUE.equals(matricula.getPagada())) {
-                    log.info("[verificarMatriculaNoDuplicada] Matrícula ya pagada para alumnoId={}", alumnoId);
-                    // Verificar si existe un detalle de pago de tipo MATRÍCULA duplicado.
-                    boolean existeDetalleDuplicado = detallePagoRepositorio.existsByAlumnoIdAndDescripcionConceptoIgnoreCaseAndTipo(
-                            alumnoId, descripcion, TipoDetallePago.MATRICULA);
-                    log.info("[verificarMatriculaNoDuplicada] Resultado verificación detalle duplicado: {}", existeDetalleDuplicado);
-                    if (existeDetalleDuplicado) {
-                        log.error("[verificarMatriculaNoDuplicada] Ya existe una matrícula o detalle de pago con descripción '{}' para alumnoId={}",
-                                descripcion, alumnoId);
-                        throw new IllegalStateException("MATRICULA YA COBRADA");
-                    }
-                } else {
-                    log.info("[verificarMatriculaNoDuplicada] Matrícula encontrada para alumnoId={} no está pagada, no se considera duplicada.", alumnoId);
+                log.info("[verificarMatriculaNoDuplicada] Matrícula ya pagada para alumnoId={}", alumnoId);
+                // Verificar si existe un detalle de pago de tipo MATRÍCULA duplicado.
+                boolean existeDetalleDuplicado = detallePagoRepositorio.existsByAlumnoIdAndDescripcionConceptoIgnoreCaseAndTipo(
+                        alumnoId, descripcion, TipoDetallePago.MATRICULA);
+                log.info("[verificarMatriculaNoDuplicada] Resultado verificación detalle duplicado: {}", existeDetalleDuplicado);
+                if (existeDetalleDuplicado) {
+                    log.error("[verificarMatriculaNoDuplicada] Ya existe una matrícula o detalle de pago con descripción '{}' para alumnoId={}",
+                            descripcion, alumnoId);
+                    throw new IllegalStateException("MATRICULA YA COBRADA");
                 }
             } else {
                 log.info("[verificarMatriculaNoDuplicada] No se encontró matrícula para alumnoId={} en el año {}", alumnoId, anioActual);

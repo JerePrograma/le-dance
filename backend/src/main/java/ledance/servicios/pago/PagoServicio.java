@@ -101,7 +101,9 @@ public class PagoServicio {
 
         PagoResponse response = pagoMapper.toDTO(pagoFinal);
         log.info("[registrarPago] Pago registrado con éxito. Respuesta final: {}", response);
-        reciboStorageService.generarYAlmacenarReciboDesdePagoHistorico(pagoFinal, ultimoPagoActivo);
+        if (!pagoFinal.getMetodoPago().getDescripcion().equalsIgnoreCase("DEBITO")) {
+            reciboStorageService.generarYAlmacenarReciboDesdePagoHistorico(pagoFinal, ultimoPagoActivo);
+        }
 
         return response;
     }
