@@ -45,4 +45,21 @@ public class ReciboStorageService {
             LOGGER.error("Error al generar y almacenar el recibo: ", e);
         }
     }
+
+    public void generarYAlmacenarReciboDesdePagoHistorico(Pago nuevoPago, Pago pagoHistorico) {
+        try {
+            byte[] pdfBytes = pdfService.generarReciboPdf(pagoHistorico); // Usamos el histórico
+
+            String fileName = "recibo_" + nuevoPago.getId() + ".pdf";
+            Path outputPath = Paths.get("/opt/ledance/pdfs", fileName);
+
+            Files.createDirectories(outputPath.getParent());
+            Files.write(outputPath, pdfBytes);
+
+            LOGGER.info("Recibo generado con detalles históricos y almacenado como: {}", outputPath.toString());
+        } catch (IOException e) {
+            LOGGER.error("Error al generar y almacenar el recibo desde histórico: ", e);
+        }
+    }
+
 }
