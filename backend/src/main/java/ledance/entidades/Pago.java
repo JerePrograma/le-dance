@@ -73,6 +73,10 @@ public class Pago {
     @Min(value = 0, message = "El monto pagado no puede ser negativo")
     private Double montoPagado = 0.0;
 
+    @ManyToOne
+    @JoinColumn(name = "usuario_id", nullable = true)
+    private Usuario usuario;
+
     @PrePersist
     public void prePersist() {
         if (this.saldoRestante == null) {

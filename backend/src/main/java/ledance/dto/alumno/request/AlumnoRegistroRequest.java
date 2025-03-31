@@ -2,7 +2,6 @@ package ledance.dto.alumno.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import ledance.dto.inscripcion.request.InscripcionRegistroRequest;
 
 import java.time.LocalDate;
@@ -19,7 +18,7 @@ public record AlumnoRegistroRequest(
         @NotBlank String nombre,
         @NotBlank String apellido,
         LocalDate fechaNacimiento,
-        @NotNull LocalDate fechaIncorporacion,
+        LocalDate fechaIncorporacion,
         Integer edad,
         String celular1,
         String celular2,

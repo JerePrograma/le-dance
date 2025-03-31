@@ -807,7 +807,8 @@ public class MensualidadServicio implements IMensualidadService {
                 detalle.getAlumno() != null
                         ? detalle.getAlumno().getNombre() + " " + detalle.getAlumno().getApellido()
                         : "",
-                detalle.getTieneRecargo()
+                detalle.getTieneRecargo(),
+                detalle.getUsuario().getId()
         );
     }
 

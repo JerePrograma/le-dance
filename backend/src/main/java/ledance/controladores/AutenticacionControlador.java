@@ -2,6 +2,7 @@ package ledance.controladores;
 
 import jakarta.validation.Valid;
 import ledance.dto.request.LoginRequest;
+import ledance.dto.usuario.response.UsuarioResponse;
 import ledance.entidades.Usuario;
 import ledance.infra.seguridad.TokenService;
 import ledance.repositorios.UsuarioRepositorio;
@@ -44,7 +45,6 @@ public class AutenticacionControlador {
     public ResponseEntity<?> realizarLogin(@RequestBody @Valid LoginRequest datos) {
         log.info("Intento de login para nombreUsuario: {}", datos.nombreUsuario());
 
-        // Antes de autenticar, aplicamos los procesos automáticos
         mensualidadServicio.generarMensualidadesParaMesVigente();
         matriculaServicio.generarMatriculasAnioVigente();
         recargoServicio.aplicarRecargosAutomaticosEnLogin();
@@ -55,7 +55,14 @@ public class AutenticacionControlador {
         var accessToken = tokenService.generarAccessToken(user);
         var refreshToken = tokenService.generarRefreshToken(user);
 
-        return ResponseEntity.ok(new TokensDTO(accessToken, refreshToken));
+        var usuarioResponse = new UsuarioResponse(
+                user.getId(),
+                user.getNombreUsuario(),
+                user.getRol().getDescripcion(), // Ajusta esto según tu modelo
+                user.getActivo()
+        );
+
+        return ResponseEntity.ok(new LoginResponseDTO(accessToken, refreshToken, usuarioResponse));
     }
 
     @PostMapping("/refresh")
@@ -73,13 +80,24 @@ public class AutenticacionControlador {
             }
             var newAccess = tokenService.generarAccessToken(usuario);
             var newRefresh = tokenService.generarRefreshToken(usuario);
-            return ResponseEntity.ok(new TokensDTO(newAccess, newRefresh));
+            var usuarioResponse = new UsuarioResponse(
+                    usuario.getId(),
+                    usuario.getNombreUsuario(),
+                    usuario.getRol().getDescripcion(), // Ajusta esto según tu modelo
+                    usuario.getActivo()
+            );
+
+            return ResponseEntity.ok(new LoginResponseDTO(newAccess, newRefresh, usuarioResponse));
         } catch (RuntimeException e) {
             log.error("Error en refresh token: {}", e.getMessage());
             return ResponseEntity.status(401).body(e.getMessage());
         }
     }
 
-    record TokensDTO(String accessToken, String refreshToken) {
-    }
+    public record LoginResponseDTO(
+            String accessToken,
+            String refreshToken,
+            UsuarioResponse usuario
+    ) {}
+
 }

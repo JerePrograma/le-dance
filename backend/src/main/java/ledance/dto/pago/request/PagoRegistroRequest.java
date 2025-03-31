@@ -18,5 +18,6 @@ public record PagoRegistroRequest(
         String observaciones,
         @NotNull List<DetallePagoRegistroRequest> detallePagos,
         List<PagoMedioRegistroRequest> pagoMedios,
-        Boolean activo
+        Boolean activo,
+        Long usuarioId  // NUEVO: ID del usuario cobrador
 ) { }

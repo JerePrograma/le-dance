@@ -90,7 +90,6 @@ const InscripcionesFormulario: React.FC = () => {
         setDisciplinas(discData || []);
         setBonificaciones(bonData || []);
       } catch (error) {
-        toast.error("Error al cargar disciplinas o bonificaciones.");
       }
     };
     fetchCatalogos();
@@ -111,10 +110,8 @@ const InscripcionesFormulario: React.FC = () => {
           }))
         );
       } else {
-        toast.warn("AlumnoId no es un número válido o es 0");
       }
     } else {
-      toast.warn("No se encontró alumnoId en la URL");
     }
   }, [searchParams]);
 
@@ -138,10 +135,8 @@ const InscripcionesFormulario: React.FC = () => {
         );
         setPrevInscripciones(lista);
       } catch (error) {
-        toast.error("Error al cargar inscripciones previas.");
       }
     } else {
-      toast.warn("AlumnoId es 0, no se cargarán inscripciones previas");
     }
   }, [alumnoId]);
 
@@ -183,7 +178,6 @@ const InscripcionesFormulario: React.FC = () => {
       toast.success("Inscripción eliminada correctamente.");
       setPrevInscripciones((prev) => prev.filter((item) => item.id !== ins.id));
     } catch (error) {
-      toast.error("Error al eliminar inscripción.");
     }
   };
 
@@ -193,7 +187,6 @@ const InscripcionesFormulario: React.FC = () => {
       (d) => d.id === ins.disciplina.id
     );
     if (!disciplinaEncontrada) {
-      toast.error("La inscripción seleccionada no tiene disciplina asignada.");
       return;
     }
 
@@ -240,7 +233,6 @@ const InscripcionesFormulario: React.FC = () => {
       !values.disciplina?.id ||
       values.disciplina.id === 0
     ) {
-      toast.error("Debes asignar un alumno y una disciplina.");
       return;
     }
 
@@ -254,15 +246,12 @@ const InscripcionesFormulario: React.FC = () => {
 
       if (values.id) {
         await inscripcionesApi.actualizar(values.id, payload);
-        toast.success("Inscripción actualizada correctamente.");
         setInscripcionesList((prev) =>
           prev.map((insc) => (insc.id === values.id ? { ...values } : insc))
         );
       } else {
         await inscripcionesApi.crear(values);
-        toast.success(
-          "Inscripción creada correctamente. La cuota del mes vigente se generó automáticamente."
-        );
+
       }
       await fetchPrevInscripciones();
     } catch (err) {

@@ -79,12 +79,6 @@ export const navigationItems: NavigationItem[] = [
         icon: Wallet,
       },
       {
-        id: "rendicion-general",
-        label: "Planilla de Caja General",
-        href: "/caja/planilla",
-        icon: Receipt,
-      },
-      {
         id: "pagos-pendientes",
         label: "Pagos pendientes",
         href: "/pagos-pendientes",
@@ -142,6 +136,12 @@ export const navigationItems: NavigationItem[] = [
         label: "Cobranza",
         href: "/pagos/formulario",
         icon: DollarSign,
+      },
+      {
+        id: "rendicion-general",
+        label: "Planilla de Caja General",
+        href: "/caja/planilla",
+        icon: Receipt,
       },
       {
         id: "correcion",

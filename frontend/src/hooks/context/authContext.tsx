@@ -51,34 +51,40 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
   const navigate = useNavigate();
 
-  // Al montar, intentamos cargar los tokens y obtener el perfil del usuario
+  // Al montar, intentamos cargar los tokens y el perfil del usuario desde localStorage
   useEffect(() => {
     const storedAccess = localStorage.getItem("accessToken");
     const storedRefresh = localStorage.getItem("refreshToken");
+    const storedUser = localStorage.getItem("usuario");
 
     if (storedAccess && storedRefresh) {
       setAccessToken(storedAccess);
       setRefreshToken(storedRefresh);
       setIsAuth(true);
-      // Obtener el perfil completo del usuario
-      api
-        .get("/usuarios/perfil")
-        .then((response) => {
-          setUser(response.data);
-        })
-        .catch((error) => {
-          toast.error("Error al obtener el perfil", error);
-        })
-        .finally(() => {
-          // Ahora solo marcamos loading en false al finalizar la petición
-          setLoading(false);
-        });
+
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
+        setLoading(false);
+      } else {
+        // Si no se encuentra el perfil en localStorage, lo solicitamos
+        api
+          .get("/usuarios/perfil")
+          .then((response) => {
+            setUser(response.data);
+          })
+          .catch((error) => {
+            toast.error("Error al obtener el perfil", error);
+          })
+          .finally(() => {
+            setLoading(false);
+          });
+      }
     } else {
       setLoading(false);
     }
   }, []);
 
-  // Si no está autenticado, redirige a login (excepto en rutas públicas)
+  // Redirigir a login si no está autenticado (excepto en rutas públicas)
   useEffect(() => {
     if (loading) return;
     const publicPaths = ["/login", "/registro"];
@@ -95,14 +101,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       const { data } = await api.post("/login", { nombreUsuario, contrasena });
       localStorage.setItem("accessToken", data.accessToken);
       localStorage.setItem("refreshToken", data.refreshToken);
+      localStorage.setItem("usuario", JSON.stringify(data.usuario));
 
       setAccessToken(data.accessToken);
       setRefreshToken(data.refreshToken);
       setIsAuth(true);
-
-      // Obtener perfil completo del usuario luego del login
-      const profileResponse = await api.get("/usuarios/perfil");
-      setUser(profileResponse.data);
+      setUser(data.usuario);
     } catch (error) {
       toast.error("Error al iniciar sesión");
       throw error;
@@ -118,7 +122,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     navigate("/login");
   };
 
-  // Comparación insensible a mayúsculas para mayor robustez
+  // Comparación insensible a mayúsculas para robustez
   const hasRole = (role: string): boolean => {
     return (
       user !== null &&

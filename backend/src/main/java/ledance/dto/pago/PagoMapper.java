@@ -5,9 +5,12 @@ import ledance.dto.pago.request.PagoRegistroRequest;
 import ledance.dto.pago.response.PagoResponse;
 import ledance.entidades.Pago;
 import ledance.entidades.Salon;
+import ledance.entidades.Usuario;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
+import org.mapstruct.Named;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -22,12 +25,13 @@ public interface PagoMapper {
     @Mapping(target = "estadoPago", ignore = true)
     @Mapping(target = "observaciones", ignore = true)
     @Mapping(target = "montoPagado", ignore = true)
+    // Mapeo correcto: del campo usuarioId (en el request) al objeto Usuario en la entidad
     Pago toEntity(PagoRegistroRequest request);
 
     @Mapping(target = "alumno", expression = "java(alumnoMapper.toResponse(pago.getAlumno()))")
     PagoResponse toDTO(Pago pago);
 
-    // Actualizacion de una entidad existente con datos del request.
+    // Actualización de una entidad existente con datos del request.
     @Mapping(target = "metodoPago", ignore = true)
     @Mapping(target = "detallePagos", ignore = true)
     @Mapping(target = "pagoMedios", ignore = true)

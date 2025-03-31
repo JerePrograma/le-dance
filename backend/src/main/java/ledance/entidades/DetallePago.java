@@ -88,6 +88,10 @@ public class DetallePago {
     @Column(name = "es_clon")
     private Boolean esClon = false;
 
+    @ManyToOne
+    @JoinColumn(name = "usuario_id", nullable = true)
+    private Usuario usuario;
+
     // Getters y Setters para aCobrar (u otros metodos personalizados)
     public Double getaCobrar() {
         return aCobrar;

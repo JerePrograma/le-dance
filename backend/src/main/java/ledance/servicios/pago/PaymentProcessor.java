@@ -46,6 +46,7 @@ public class PaymentProcessor {
     private final RecargoRepositorio recargoRepositorio;
     private final MetodoPagoRepositorio metodoPagoRepositorio;
     private final PaymentCalculationServicio paymentCalculationServicio;
+    private final UsuarioRepositorio usuarioRepositorio;
 
     @PersistenceContext
     private jakarta.persistence.EntityManager entityManager;
@@ -53,7 +54,7 @@ public class PaymentProcessor {
     // Repositorios y Servicios
     private final PagoRepositorio pagoRepositorio;
 
-    public PaymentProcessor(PagoRepositorio pagoRepositorio, DetallePagoRepositorio detallePagoRepositorio, DetallePagoServicio detallePagoServicio, BonificacionRepositorio bonificacionRepositorio, RecargoRepositorio recargoRepositorio, MetodoPagoRepositorio metodoPagoRepositorio, PaymentCalculationServicio paymentCalculationServicio) {
+    public PaymentProcessor(PagoRepositorio pagoRepositorio, DetallePagoRepositorio detallePagoRepositorio, DetallePagoServicio detallePagoServicio, BonificacionRepositorio bonificacionRepositorio, RecargoRepositorio recargoRepositorio, MetodoPagoRepositorio metodoPagoRepositorio, PaymentCalculationServicio paymentCalculationServicio, UsuarioRepositorio usuarioRepositorio) {
         this.pagoRepositorio = pagoRepositorio;
         this.detallePagoRepositorio = detallePagoRepositorio;
         this.detallePagoServicio = detallePagoServicio;
@@ -61,6 +62,7 @@ public class PaymentProcessor {
         this.recargoRepositorio = recargoRepositorio;
         this.metodoPagoRepositorio = metodoPagoRepositorio;
         this.paymentCalculationServicio = paymentCalculationServicio;
+        this.usuarioRepositorio = usuarioRepositorio;
     }
 
     @Transactional
@@ -94,6 +96,7 @@ public class PaymentProcessor {
 
             // Acumular
             totalACobrar = totalACobrar.add(aCobrar);
+
             totalPendiente = totalPendiente.add(impPendiente);
             log.info("[recalcularTotales] Acumulado hasta detalle ID {}: totalACobrar={}, totalPendiente={}",
                     detalle.getId(), totalACobrar, totalPendiente);
@@ -103,8 +106,13 @@ public class PaymentProcessor {
         boolean aplicarCredito = pago.getDetallePagos().stream()
                 .anyMatch(det -> det.getDescripcionConcepto() != null &&
                         det.getDescripcionConcepto().toLowerCase().contains("matrícula"));
-
-        double montoFinal = totalACobrar.doubleValue();
+        boolean aplicarRecargoMetodo = pago.getDetallePagos().stream()
+                .anyMatch(det -> det.getTieneRecargo() && (pago.getMetodoPago() != null));
+        double montoRecargo = 0;
+        if (aplicarRecargoMetodo) {
+            montoRecargo = pago.getMetodoPago().getRecargo();
+        }
+        double montoFinal = totalACobrar.doubleValue() + montoRecargo;
         double saldoAFavor = pago.getAlumno().getCreditoAcumulado();
         if (aplicarCredito) {
             log.info("[recalcularTotales] Aplicando saldo a favor: {}", saldoAFavor);
@@ -454,11 +462,13 @@ public class PaymentProcessor {
         nuevoPago.setFecha(LocalDate.now());
         nuevoPago.setFechaVencimiento(pagoHistorico.getFechaVencimiento());
         nuevoPago.setDetallePagos(new ArrayList<>());
+        nuevoPago.setMetodoPago(pagoHistorico.getMetodoPago());
         log.info("[clonarDetallesConPendiente] Datos básicos del nuevo pago copiados.");
-
+        Usuario cobrador = pagoHistorico.getUsuario();
         // 2. Procesamiento y clonación de detalles pendientes
         int detallesClonados = 0;
         for (DetallePago detalle : pagoHistorico.getDetallePagos()) {
+            detalle.setUsuario(pagoHistorico.getUsuario());
             if (detalle.getImportePendiente() != null && detalle.getImportePendiente() > 0.0) {
                 if (detalle.getTipo().equals(TipoDetallePago.MATRICULA)) {
                     Alumno alumno = detalle.getAlumno();
@@ -472,6 +482,7 @@ public class PaymentProcessor {
                         detalle.getId(), detalle.getImportePendiente());
                 DetallePago nuevoDetalle = clonarDetallePago(detalle, nuevoPago);
 
+                nuevoDetalle.setUsuario(cobrador);
                 // Manejo de recargos: limpiar si tieneRecargo es false
                 if (!detalle.getTieneRecargo() && detalle.getMensualidad() != null || detalle.getTipo() == TipoDetallePago.MENSUALIDAD) {
                     nuevoDetalle.setRecargo(null);
@@ -510,7 +521,7 @@ public class PaymentProcessor {
         double importeInicial = calcularImporteInicialDesdeDetalles(nuevoPago.getDetallePagos());
         nuevoPago.setImporteInicial(importeInicial);
         log.info("[clonarDetallesConPendiente] Totales recalculados. Importe inicial calculado: {}", importeInicial);
-
+        nuevoPago.setUsuario(cobrador);
         // 5. Persistencia y retorno del nuevo pago
         nuevoPago = pagoRepositorio.save(nuevoPago);
         log.info("[clonarDetallesConPendiente] FIN - Nuevo pago creado con éxito. Detalles: {} | Nuevo ID: {}",
@@ -704,7 +715,7 @@ public class PaymentProcessor {
             detalleRequest.setConcepto(detalleRequest.getConcepto());
             detalleRequest.setSubConcepto(detalleRequest.getSubConcepto());
             DetallePago detallePersistido = null;
-
+            detalleRequest.setUsuario(pago.getUsuario());
             if (detalleRequest.getId() != null && detalleRequest.getId() > 0) {
                 detallePersistido = detallePagoRepositorio.findById(detalleRequest.getId()).orElse(null);
                 log.info("[processDetallesPago] Buscando detallePersistido con ID={}: Encontrado={}", detalleRequest.getId(), detallePersistido != null);
@@ -715,6 +726,7 @@ public class PaymentProcessor {
             }
 
             if (detallePersistido != null) {
+                detallePersistido.setUsuario(pago.getUsuario());
                 actualizarDetalleDesdeRequest(detallePersistido, detalleRequest);
                 procesarDetalle(pago, detallePersistido, alumnoPersistido);
                 detallesProcesados.add(detallePersistido);
@@ -726,6 +738,7 @@ public class PaymentProcessor {
                 TipoDetallePago tipo = paymentCalculationServicio.determinarTipoDetalle(nuevoDetalle.getDescripcionConcepto());
                 nuevoDetalle.setTipo(tipo);
                 procesarDetalle(pago, nuevoDetalle, alumnoPersistido);
+                nuevoDetalle.setUsuario(pago.getUsuario());
                 detallesProcesados.add(nuevoDetalle);
                 log.info("[processDetallesPago] Nuevo detalle creado y procesado");
             }
@@ -803,8 +816,10 @@ public class PaymentProcessor {
         for (DetallePago dp : pago.getDetallePagos()) {
             dp.setCobrado(true);
             dp.setImportePendiente(0.0);
+            dp.setUsuario(pago.getUsuario());
             entityManager.merge(dp);
         }
+        pago.setUsuario(pago.getUsuario());
         entityManager.merge(pago);
         entityManager.flush();
         log.info("[marcarPagoComoHistorico] Pago id={} marcado como HISTORICO", pago.getId());
@@ -835,7 +850,7 @@ public class PaymentProcessor {
 
         // Si alguno de los detalles tiene recargo, se aplica el recargo del método de pago
         boolean aplicarRecargo = pago.getDetallePagos().stream()
-                .anyMatch(detalle -> detalle.getTieneRecargo());
+                .anyMatch(DetallePago::getTieneRecargo);
         if (aplicarRecargo) {
             double recargo = (metodoPago.getRecargo() != null) ? metodoPago.getRecargo() : 0;
             pago.setMonto(pago.getMonto() + recargo);

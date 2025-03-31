@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/context/authContext";
 import Boton from "../componentes/comunes/Boton";
 import { Form, Formik, Field, ErrorMessage } from "formik";
@@ -12,21 +13,25 @@ const loginSchema = Yup.object().shape({
 
 const Login: React.FC = () => {
   const { login } = useAuth();
+  const navigate = useNavigate();
   const [error, setError] = useState("");
 
-  const handleLogin = async (values: { nombreUsuario: string; contrasena: string }) => {
+  const handleLogin = async (values: {
+    nombreUsuario: string;
+    contrasena: string;
+  }) => {
     try {
       await login(values.nombreUsuario, values.contrasena);
-      window.location.href = "/";
+      navigate("/"); // Redirección con useNavigate
     } catch (err) {
       setError("Credenciales incorrectas. Intenta nuevamente.");
-      toast.error("Error al iniciar sesion.");
+      toast.error("Error al iniciar sesión.");
     }
   };
 
   return (
     <div className="page-container">
-      <h1 className="page-title">Iniciar Sesion</h1>
+      <h1 className="page-title">Iniciar Sesión</h1>
       <Formik
         initialValues={{ nombreUsuario: "", contrasena: "" }}
         validationSchema={loginSchema}
@@ -39,7 +44,7 @@ const Login: React.FC = () => {
                 Nombre de Usuario:
               </label>
               <Field
-                type="nombreUsuario"
+                type="text"
                 id="nombreUsuario"
                 name="nombreUsuario"
                 className="form-input"
@@ -86,7 +91,7 @@ const Login: React.FC = () => {
       </Formik>
       <div className="text-center mt-4">
         <a href="/registro" className="text-primary hover:underline">
-          ¿No tienes cuenta? Registrate aqui
+          ¿No tienes cuenta? Regístrate aquí
         </a>
       </div>
     </div>

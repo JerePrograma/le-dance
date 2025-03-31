@@ -40,6 +40,7 @@ public class PagoServicio {
     private final SubConceptoRepositorio subConceptoRepositorio;
     private final ConceptoRepositorio conceptoRepositorio;
     private final ReciboStorageService reciboStorageService;
+    private final UsuarioRepositorio usuarioRepositorio;
 
     public PagoServicio(AlumnoRepositorio alumnoRepositorio,
                         PagoRepositorio pagoRepositorio,
@@ -51,7 +52,7 @@ public class PagoServicio {
                         DetallePagoServicio detallePagoServicio,
                         PaymentProcessor paymentProcessor,
                         SubConceptoRepositorio subConceptoRepositorio,
-                        ConceptoRepositorio conceptoRepositorio, ReciboStorageService reciboStorageService) {
+                        ConceptoRepositorio conceptoRepositorio, ReciboStorageService reciboStorageService, UsuarioRepositorio usuarioRepositorio, UsuarioRepositorio usuarioRepositorio1) {
         this.alumnoRepositorio = alumnoRepositorio;
         this.pagoRepositorio = pagoRepositorio;
         this.metodoPagoRepositorio = metodoPagoRepositorio;
@@ -64,6 +65,7 @@ public class PagoServicio {
         this.subConceptoRepositorio = subConceptoRepositorio;
         this.conceptoRepositorio = conceptoRepositorio;
         this.reciboStorageService = reciboStorageService;
+        this.usuarioRepositorio = usuarioRepositorio1;
     }
 
     public PagoResponse registrarPago(PagoRegistroRequest request) {
@@ -100,7 +102,9 @@ public class PagoServicio {
 
         limpiarAsociacionesParaRespuesta(pagoFinal);
         log.info("[registrarPago] Asociaciones limpiadas para respuesta del pago id={}", pagoFinal.getId());
-
+        Optional<Usuario> usuario = usuarioRepositorio.findById(request.usuarioId());
+        Usuario cobrador = usuario.get();
+        pagoFinal.setUsuario(cobrador);
         PagoResponse response = pagoMapper.toDTO(pagoFinal);
         log.info("[registrarPago] Pago registrado con éxito. Respuesta final: {}", response);
         if (!pagoFinal.getMetodoPago().getDescripcion().equalsIgnoreCase("DEBITO")) {
@@ -139,7 +143,11 @@ public class PagoServicio {
                 pagoActualizado.getEstadoPago(),
                 pagoActualizado.getMonto(),
                 pagoActualizado.getSaldoRestante());
-
+        Optional<Usuario> usuario = usuarioRepositorio.findById(request.usuarioId());
+        Usuario cobrador = usuario.get();
+        pagoActualizado.setUsuario(cobrador);
+        Optional<MetodoPago> metodoPago = metodoPagoRepositorio.findById(request.metodoPagoId());
+        pagoActualizado.setMetodoPago(metodoPago.get());
         // 2. Clonar detalles con pendiente
         log.info("[procesarAbonoParcial] Verificando detalles pendientes para nuevo pago");
         Pago nuevoPago = paymentProcessor.clonarDetallesConPendiente(pagoActualizado);
@@ -170,6 +178,7 @@ public class PagoServicio {
             log.debug("[procesarAbonoParcial] Detalles del nuevo pago: {}", nuevoPago.getDetallePagos());
 
             log.info("[procesarAbonoParcial] FIN - Retornando nuevo pago con detalles pendientes");
+            nuevoPago.setUsuario(cobrador);
             return nuevoPago;
         }
     }
@@ -199,7 +208,11 @@ public class PagoServicio {
             nuevoPago.setImporteInicial(request.importeInicial());
             log.info("[crearNuevoPago] ImporteInicial asignado desde request: {}", request.importeInicial());
         }
+        Optional<MetodoPago> metodoPago = metodoPagoRepositorio.findById(request.metodoPagoId());
+        nuevoPago.setMetodoPago(metodoPago.get());
         nuevoPago.setAlumno(alumno);
+        Optional<Usuario> cobrador = usuarioRepositorio.findById(request.usuarioId());
+        nuevoPago.setUsuario(cobrador.get());
         List<DetallePago> detallesFront = detallePagoMapper.toEntity(request.detallePagos());
         log.info("[crearNuevoPago] Se obtuvieron {} detalles del request.", detallesFront.size());
         // Aquí se llama a processDetallesPago una sola vez para procesar los detalles y persistir el pago.

@@ -1171,6 +1171,15 @@ const CobranzasForm: React.FC = () => {
     try {
       const { detallePagos, alumno, fecha, totalACobrar, metodoPagoId } =
         values;
+
+      // Recuperar el usuario del localStorage y extraer su id
+      const usuarioStorage = localStorage.getItem("usuario");
+      if (!usuarioStorage) {
+        throw new Error("Usuario no autenticado");
+      }
+      const usuario = JSON.parse(usuarioStorage);
+      const usuarioId = Number(usuario.id);
+
       const pagoRegistroRequest: PagoRegistroRequest = {
         alumno,
         fecha,
@@ -1223,6 +1232,7 @@ const CobranzasForm: React.FC = () => {
         ]
           .filter(Boolean)
           .join("\n"),
+        usuarioId,
       };
 
       await pagosApi.registrarPago(pagoRegistroRequest);

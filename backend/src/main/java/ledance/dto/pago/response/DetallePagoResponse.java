@@ -1,7 +1,6 @@
 package ledance.dto.pago.response;
 
 import ledance.entidades.TipoDetallePago;
-
 import java.time.LocalDate;
 
 public record DetallePagoResponse(
@@ -11,7 +10,7 @@ public record DetallePagoResponse(
         String cuotaOCantidad,
         Double valorBase,
         Long bonificacionId,
-        String bonificacionNombre,  // Agregado
+        String bonificacionNombre,
         Long recargoId,
         Double aCobrar,
         Boolean cobrado,
@@ -26,6 +25,6 @@ public record DetallePagoResponse(
         LocalDate fechaRegistro,
         Long pagoId,
         String alumnoDisplay,
-        Boolean tieneRecargo
-) {
-}
+        Boolean tieneRecargo,
+        Long usuarioId  // NUEVO: Cobrador
+) { }

@@ -20,11 +20,12 @@ public record DetallePagoRegistroRequest(
         Long mensualidadId,
         Long matriculaId,
         Long stockId,
-        Long pagoId,   // <-- Nuevo campo: ID del Pago asociado (opcional)
+        Long pagoId,   // <-- ID del pago asociado (opcional)
         Boolean tieneRecargo,
         Double importePendiente,
         Double importeInicial,
-        Double importeOriginal
+        Double importeOriginal,
+        Long usuarioId  // NUEVO: ID del usuario que realiza la cobranza
 ) {
     public DetallePagoRegistroRequest {
         if (cobrado == null) {
