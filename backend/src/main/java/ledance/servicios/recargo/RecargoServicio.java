@@ -23,7 +23,7 @@ import java.util.Optional;
 @Transactional
 public class RecargoServicio {
 
-    private static final Logger log = LoggerFactory.getLogger(MensualidadServicio.class);
+    private static final Logger log = LoggerFactory.getLogger(RecargoServicio.class);
 
     private final RecargoRepositorio recargoRepositorio;
     private final RecargoMapper recargoMapper;
@@ -244,14 +244,43 @@ public class RecargoServicio {
      * Recalcula el importe pendiente de una mensualidad, sumando el recargo (calculado sobre el importeInicial) y descontando el monto abonado.
      */
     public void recalcularImporteMensualidad(Mensualidad m) {
+        log.info("Iniciando recálculo de mensualidad para id={}", m.getId());
+
+        // Obtener importe inicial
         double base = m.getImporteInicial();
+        log.debug("Obtenido importe inicial: base={}", base);
+
+        // Calcular recargo
+        log.debug("Calculando recargo para mensualidad id={} con porcentaje={}", m.getId(), m.getRecargo());
         double recargoValue = calcularRecargo(m.getRecargo(), base);
+        log.debug("Recargo calculado: recargoValue={}", recargoValue);
+
+        // Calcular nuevo total
         double nuevoTotal = base + recargoValue;
-        double nuevoPendiente = nuevoTotal - m.getMontoAbonado();
+        log.debug("Nuevo total calculado: base={} + recargoValue={} = nuevoTotal={}",
+                base, recargoValue, nuevoTotal);
+
+        // Obtener monto abonado
+        double montoAbonado = m.getMontoAbonado();
+        log.debug("Monto abonado obtenido: montoAbonado={}", montoAbonado);
+
+        // Calcular nuevo pendiente
+        double nuevoPendiente = nuevoTotal - montoAbonado;
+        log.debug("Nuevo pendiente calculado: nuevoTotal={} - montoAbonado={} = nuevoPendiente={}",
+                nuevoTotal, montoAbonado, nuevoPendiente);
+
+        // Actualizar importe pendiente
+        log.debug("Actualizando importe pendiente a nuevoPendiente={}", nuevoPendiente);
         m.setImportePendiente(nuevoPendiente);
+
+        // Resumen de la operación
         log.info("Mensualidad id={} recalculada: base={}, recargoValue={}, nuevoTotal={}, montoAbonado={}, nuevoPendiente={}",
-                m.getId(), base, recargoValue, nuevoTotal, m.getMontoAbonado(), nuevoPendiente);
+                m.getId(), base, recargoValue, nuevoTotal, montoAbonado, nuevoPendiente);
+
+        // Guardar cambios
+        log.debug("Guardando cambios en repositorio para mensualidad id={}", m.getId());
         mensualidadRepositorio.save(m);
+        log.info("Mensualidad id={} guardada exitosamente", m.getId());
     }
 
     /**
@@ -260,7 +289,7 @@ public class RecargoServicio {
     public void recalcularImporteDetalle(DetallePago detalle) {
         double base = detalle.getImporteInicial();
         double recargoValue = 0;
-        if (detalle.getTieneRecargo()) {
+        if (detalle.getTieneRecargo() && detalle.getMensualidad() != null || detalle.getTipo() == TipoDetallePago.MENSUALIDAD) {
             recargoValue = calcularRecargo(detalle.getRecargo(), base);
         }
         double nuevoTotal = base + recargoValue;

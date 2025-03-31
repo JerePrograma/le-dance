@@ -139,7 +139,7 @@ public class MensualidadServicio implements IMensualidadService {
         return descuentoFijo + descuentoPorcentaje;
     }
 
-    private double calcularRecargo(double valorBase, Recargo recargo) {
+    public double calcularRecargo(double valorBase, Recargo recargo) {
         if (recargo == null) {
             return 0.0;
         }
@@ -546,7 +546,7 @@ public class MensualidadServicio implements IMensualidadService {
         detalle.setMensualidad(mensualidad);
 
         // --- Aplicar recargo si corresponde ---
-        if (mensualidad.getRecargo() != null) {
+        if (mensualidad.getRecargo() != null && detalle.getTieneRecargo() && detalle.getRecargo() != null) {
             detalle.setRecargo(mensualidad.getRecargo());
             detalle.setTieneRecargo(true);
             log.info("[registrarDetallePagoMensualidad] Aplicando recargo id={} al DetallePago para Mensualidad id={}",
@@ -603,9 +603,10 @@ public class MensualidadServicio implements IMensualidadService {
                 mensualidad.getId(), pagoPendiente.getId());
 
         // Aplicar recargo si corresponde
-        if (detalle.getTieneRecargo() != null && !detalle.getTieneRecargo()) {
+        if (detalle.getRecargo() != null && !detalle.getTieneRecargo() && detalle.getMensualidad() != null || detalle.getTipo() == TipoDetallePago.MENSUALIDAD) {
             log.info("[registrarDetallePagoMensualidad] El detalle indica NO aplicar recargo (tieneRecargo=false).");
             detalle.setRecargo(null);
+            detalle.setTieneRecargo(false);
             detalle.setImportePendiente(importeInicial - aCobrar);
         } else if (mensualidad.getRecargo() != null) {
             Recargo recargo = mensualidad.getRecargo();
@@ -908,7 +909,6 @@ public class MensualidadServicio implements IMensualidadService {
         }
     }
 
-
     /**
      * Método auxiliar para extraer el mes y el año desde la descripción.
      * Se asume que la descripción contiene una parte con formato: "[...]- MES DE AAAA" (por ejemplo, "FEBRERO DE 2025").
@@ -997,9 +997,10 @@ public class MensualidadServicio implements IMensualidadService {
         log.info("[procesarAbonoMensualidad] Abono recibido del detalle: {}", abonoRecibido);
 
         // Si el detalle no tiene recargo, aseguramos que tampoco se use recargo en la mensualidad
-        if (!detalle.getTieneRecargo()) {
+        if (!detalle.getTieneRecargo() && detalle.getMensualidad() != null || detalle.getTipo() == TipoDetallePago.MENSUALIDAD) {
             mensualidad.setRecargo(null);
             detalle.setRecargo(null);
+            detalle.setTieneRecargo(false);
             log.info("[procesarAbonoMensualidad] Se ha forzado recargo null para Mensualidad id={} y Detalle id={}", mensualidad.getId(), detalle.getId());
         }
 

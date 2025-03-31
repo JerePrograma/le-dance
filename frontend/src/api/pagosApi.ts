@@ -12,16 +12,39 @@ import type {
   DetallePagoRegistroRequest,
 } from "../types/types";
 
-const descargarRecibo = (pagoId: number) => {
-  window.open(`/api/pagos/recibo/${pagoId}`, "_blank");
+// Función para descargar el recibo usando una petición GET
+const descargarRecibo = async (pagoId: number): Promise<void> => {
+  try {
+    const response = await api.get(`/pagos/recibo/${pagoId}`, {
+      responseType: "blob", // Esto permite recibir el PDF como un blob
+    });
+    window.open(`/api/api/pagos/recibo/${pagoId}`, "_blank");
+
+    // Crea una URL a partir del blob recibido
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    // Crea un elemento <a> para forzar la descarga
+    const link = document.createElement("a");
+    link.href = url;
+    // Puedes modificar el nombre del archivo si lo deseas
+    link.setAttribute("download", "recibo_" + pagoId + ".pdf");
+    document.body.appendChild(link);
+    link.click();
+    // Limpieza: elimina el link y revoca la URL creada
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Error al descargar el recibo", error);
+  }
 };
 
 const registrarPago = async (
   pago: PagoRegistroRequest
 ): Promise<PagoResponse> => {
   const { data } = await api.post<PagoResponse>("/pagos", pago);
-  // Podés usarlo así, si querés dar un delay:
-  setTimeout(() => descargarRecibo(data.id), 500);
+  // Puedes agregar un delay si es necesario
+  setTimeout(() => {
+    descargarRecibo(data.id);
+  }, 500);
   return data;
 };
 

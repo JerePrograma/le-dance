@@ -1054,7 +1054,7 @@ const CobranzasForm: React.FC = () => {
           newDetails.push({
             id: 0,
             descripcionConcepto: conceptoDetalle,
-            conceptoId: selectedDisciplina.id,
+            conceptoId: null,
             subConceptoId: null,
             cuotaOCantidad: cantidad.toString(),
             valorBase: total,
@@ -1225,8 +1225,7 @@ const CobranzasForm: React.FC = () => {
           .join("\n"),
       };
 
-      const response = await pagosApi.registrarPago(pagoRegistroRequest);
-      window.open(`/api/api/pagos/recibo/${response.id}`, "_blank");
+      await pagosApi.registrarPago(pagoRegistroRequest);
       toast.success("Cobranza registrada correctamente");
       actions.resetForm();
       navigate(`/pagos/alumno/${values.alumno.id}`);

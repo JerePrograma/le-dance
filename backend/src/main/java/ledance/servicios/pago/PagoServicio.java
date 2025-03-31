@@ -130,7 +130,6 @@ public class PagoServicio {
      */
     private Pago procesarAbonoParcial(Pago pagoActivo, PagoRegistroRequest request) {
         log.info("[procesarAbonoParcial] INICIO - Procesando abono parcial para Pago ID: {}", pagoActivo.getId());
-        log.debug("[procesarAbonoParcial] Datos de la solicitud: {}", request.toString());
 
         // 1. Actualizar pago histórico con abonos
         log.info("[procesarAbonoParcial] Invocando actualización de pago histórico con abonos");
@@ -421,10 +420,9 @@ public class PagoServicio {
                 detalle.setSubConcepto(detalle.getSubConcepto());
                 detalle.setAlumno(pago.getAlumno());
                 detalle.setRecargo(null);
+                detalle.setTieneRecargo(false);
+                detalle.setImportePendiente(detalle.getImporteInicial());
                 detallePagoServicio.calcularImporte(detalle);
-                if (!detalle.getCobrado()) {
-                    detalle.setImportePendiente(detalle.getImporteInicial());
-                }
             }
         }
 

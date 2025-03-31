@@ -22,7 +22,9 @@ public record DetallePagoRegistroRequest(
         Long stockId,
         Long pagoId,   // <-- Nuevo campo: ID del Pago asociado (opcional)
         Boolean tieneRecargo,
-        Double importePendiente
+        Double importePendiente,
+        Double importeInicial,
+        Double importeOriginal
 ) {
     public DetallePagoRegistroRequest {
         if (cobrado == null) {

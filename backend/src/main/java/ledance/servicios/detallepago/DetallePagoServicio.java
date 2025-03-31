@@ -81,7 +81,7 @@ public class DetallePagoServicio {
 
         // 4. Cálculo de recargos
         double recargo = 0;
-        if (Boolean.TRUE.equals(detalle.getTieneRecargo())) {
+        if (detalle.getTieneRecargo() && detalle.getMensualidad() != null || detalle.getTipo() == TipoDetallePago.MENSUALIDAD) {
             log.info("[calcularImporte] Procesando recargo activo");
             recargo = (detalle.getRecargo() != null) ? obtenerValorRecargo(detalle, base) : 0.0;
             log.info("[calcularImporte] Recargo aplicado: {}", recargo);
@@ -100,7 +100,6 @@ public class DetallePagoServicio {
         // 6. Gestión de importe pendiente
         if (detalle.getImportePendiente() == null) {
             log.info("[calcularImporte] Importe pendiente nulo - Asignando valor inicial: {}", importeInicial);
-            detalle.setImportePendiente(importeInicial);
         } else {
             log.debug("[calcularImporte] Importe pendiente mantiene su valor actual: {}", detalle.getImportePendiente());
         }
@@ -138,7 +137,7 @@ public class DetallePagoServicio {
 
     public double obtenerValorRecargo(DetallePago detalle, double base) {
         Recargo recargo = detalle.getRecargo();
-        if (!detalle.getTieneRecargo()) {
+        if (!detalle.getTieneRecargo() && detalle.getMensualidad() != null || detalle.getTipo() == TipoDetallePago.MENSUALIDAD) {
             return 0.0;
         }
         if (recargo != null) {

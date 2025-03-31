@@ -32,6 +32,7 @@ public interface DetallePagoMapper {
     @Mapping(target = "aCobrar", source = "aCobrar")
     @Mapping(target = "tieneRecargo", source = "tieneRecargo")
     @Mapping(target = "importePendiente", source = "importePendiente")
+    @Mapping(target = "importeInicial", source = "importeInicial")
     DetallePago toEntity(DetallePagoRegistroRequest request);
 
     // Actualizacion de entidad existente

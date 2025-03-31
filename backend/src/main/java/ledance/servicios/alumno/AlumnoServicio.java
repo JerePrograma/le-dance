@@ -60,7 +60,7 @@ public class AlumnoServicio implements IAlumnoServicio {
         log.info("Registrando alumno: {}", requestDTO.nombre());
 
         // Verificación de duplicados por nombre + apellido
-        if (alumnoRepositorio.existsByNombreIgnoreCaseAndApellidoIgnoreCase(requestDTO.nombre(), requestDTO.apellido())) {
+        if (alumnoRepositorio.existsByNombreIgnoreCaseAndApellidoIgnoreCase(requestDTO.nombre().trim(), requestDTO.apellido().trim())) {
             String msg = String.format("Ya existe un alumno con el nombre '%s' y apellido '%s'",
                     requestDTO.nombre(), requestDTO.apellido());
             log.warn("[registrarAlumno] {}", msg);
