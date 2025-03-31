@@ -214,18 +214,16 @@ public class DetallePagoServicio {
 
             switch (categoriaUpper) {
                 case "DISCIPLINAS":
-                    // Filtrado para MENSUALIDAD: si se pasa disciplina, se busca por el patrón en descripción.
                     if (StringUtils.hasText(disciplina)) {
                         String pattern = StringUtils.hasText(tarifa)
                                 ? (disciplina + " - " + tarifa).toUpperCase() + "%"
                                 : "%" + disciplina.toUpperCase() + "%";
-                        predicates.add(cb.like(root.get("descripcionConcepto"), pattern));
+                        predicates.add(cb.like(cb.upper(root.get("descripcionConcepto")), pattern));
                     } else {
                         predicates.add(cb.equal(root.get("tipo"), TipoDetallePago.MENSUALIDAD));
                     }
                     break;
                 case "STOCK":
-                    // Filtro para STOCK: búsqueda en el nombre del stock.
                     if (StringUtils.hasText(stock)) {
                         String pattern = "%" + stock.toLowerCase() + "%";
                         predicates.add(cb.like(cb.lower(root.get("stock").get("nombre")), pattern));
@@ -234,31 +232,32 @@ public class DetallePagoServicio {
                     }
                     break;
                 case "CONCEPTOS":
-                case "MATRICULA":
-                    // Filtra registros de tipo CONCEPTO (incluyendo MATRICULA)
+                    // Se listan todos los detalles con tipo CONCEPTO
                     predicates.add(cb.equal(root.get("tipo"), TipoDetallePago.CONCEPTO));
-
+                    // Si se envía un subConcepto, aplicar filtro
                     if (StringUtils.hasText(subConcepto)) {
-                        // Convertimos el parámetro a mayúsculas para una comparación uniforme.
-                        String pattern = "%" + subConcepto.toUpperCase() + "%";
-                        // Predicate para el subconcepto asignado directamente
-                        Predicate pDirect = cb.like(cb.upper(root.get("subConcepto").get("descripcion")), pattern);
-                        // Se realiza un LEFT JOIN con 'concepto' para obtener el subconcepto relacionado, si existe.
-                        Join<DetallePago, Concepto> joinConcepto = root.join("concepto", JoinType.LEFT);
-                        Predicate pViaConcepto = cb.like(cb.upper(joinConcepto.get("subConcepto").get("descripcion")), pattern);
-                        // Se combinan ambas condiciones
-                        predicates.add(cb.or(pDirect, pViaConcepto));
+                        if ("MATRICULA".equalsIgnoreCase(subConcepto)) {
+                            // Filtra por descripción que contenga "MATRICULA"
+                            predicates.add(cb.like(cb.upper(root.get("descripcionConcepto")), "%MATRICULA%"));
+                        } else {
+                            String pattern = "%" + subConcepto.toUpperCase() + "%";
+                            Predicate pDirect = cb.like(cb.upper(root.get("subConcepto").get("descripcion")), pattern);
+                            Join<DetallePago, Concepto> joinConcepto = root.join("concepto", JoinType.LEFT);
+                            Predicate pViaConcepto = cb.like(cb.upper(joinConcepto.get("subConcepto").get("descripcion")), pattern);
+                            predicates.add(cb.or(pDirect, pViaConcepto));
+                        }
                     }
-
                     if (StringUtils.hasText(detalleConcepto)) {
-                        // Dado que en prePersist/preUpdate se fuerza a mayúsculas la descripción del concepto,
-                        // convertimos el parámetro a mayúsculas.
                         String pattern = "%" + detalleConcepto.toUpperCase() + "%";
-                        predicates.add(cb.like(root.get("descripcionConcepto"), pattern));
+                        predicates.add(cb.like(cb.upper(root.get("descripcionConcepto")), pattern));
                     }
                     break;
+                case "MATRICULA":
+                    // Para la categoría MATRICULA se filtra directamente por descripción
+                    predicates.add(cb.like(cb.upper(root.get("descripcionConcepto")), "%MATRICULA%"));
+                    break;
                 default:
-                    // Si la categoría no coincide, se puede optar por no aplicar ningún filtro adicional.
+                    // Sin filtro adicional
                     break;
             }
             return cb.and(predicates.toArray(new Predicate[0]));

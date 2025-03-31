@@ -13,7 +13,7 @@ import type {
 } from "../types/types";
 
 const descargarRecibo = (pagoId: number) => {
-  window.open(`/api/api/pagos/recibo/${pagoId}`, "_blank");
+  window.open(`/api/pagos/recibo/${pagoId}`, "_blank");
 };
 
 const registrarPago = async (
