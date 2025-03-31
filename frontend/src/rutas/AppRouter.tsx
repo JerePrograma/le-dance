@@ -7,15 +7,12 @@ import {
   adminRoutes,
   otherProtectedRoutes,
 } from "./routes";
-
-
-//////////////////////////
-// Componente principal //
-//////////////////////////
+import RefreshOnNavigation from "./RefreshOnNavigation";
 
 const AppRouter: React.FC = () => {
   return (
     <Suspense fallback={<div>Cargando...</div>}>
+      <RefreshOnNavigation />
       <Routes>
         {/* Rutas públicas */}
         {publicRoutes.map(({ path, Component }) => (
