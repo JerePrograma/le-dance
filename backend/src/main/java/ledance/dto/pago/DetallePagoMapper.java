@@ -15,7 +15,7 @@ import java.util.List;
 public interface DetallePagoMapper {
 
     @Mapping(target = "id", expression = "java( (request.id() != null && request.id() == 0) ? null : request.id() )")
-    @Mapping(target = "version", ignore = true) // o puedes omitirlo para que quede null
+    @Mapping(target = "version", ignore = true) // se ignora para que quede null
     @Mapping(target = "alumno", source = "alumno")
     @Mapping(target = "mensualidad", source = "mensualidadId", qualifiedByName = "mapMensualidad")
     @Mapping(target = "matricula", source = "matriculaId", qualifiedByName = "mapMatricula")
@@ -31,6 +31,7 @@ public interface DetallePagoMapper {
     @Mapping(target = "tipo", expression = "java( determineTipo(request) )")
     @Mapping(target = "aCobrar", source = "aCobrar")
     @Mapping(target = "tieneRecargo", source = "tieneRecargo")
+    @Mapping(target = "importePendiente", source = "importePendiente")
     DetallePago toEntity(DetallePagoRegistroRequest request);
 
     // Actualizacion de entidad existente
@@ -119,6 +120,7 @@ public interface DetallePagoMapper {
         p.setId(id);
         return p;
     }
+
     @Named("mapConcepto")
     default Concepto mapConcepto(Long id) {
         if (id == null) return null;
@@ -126,6 +128,7 @@ public interface DetallePagoMapper {
         c.setId(id);
         return c;
     }
+
     @Named("mapSubConcepto")
     default SubConcepto mapSubConcepto(Long id) {
         if (id == null) return null;

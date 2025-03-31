@@ -35,6 +35,7 @@ public class SecurityConfigurations {
                     req.requestMatchers(HttpMethod.POST, "/api/usuarios/registro").permitAll();
                     req.requestMatchers("/api/roles").permitAll();
                     req.requestMatchers(HttpMethod.GET, "/api/pagos/recibo/**").permitAll();
+                    req.requestMatchers(HttpMethod.GET, "/api/api/pagos/recibo/**").permitAll();
                     req.anyRequest().authenticated();
                 })
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)

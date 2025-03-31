@@ -1287,16 +1287,19 @@ const CobranzasForm: React.FC = () => {
           // Función para quitar recargo: se desactiva y se reinician importes pendientes en cada detalle
           const handleQuitarRecargo = useCallback(() => {
             setFieldValue("aplicarRecargo", false);
-            const updatedDetalles = values.detallePagos.map((detalle: any) => ({
-              ...detalle,
-              importePendiente: detalle.importeInicial,
-              aCobrar: detalle.importeInicial,
-              tieneRecargo: false,
-            }));
+            const updatedDetalles = values.detallePagos.map((detalle: any) => {
+              // Solo se quita el recargo a los detalles que tengan un "mensualidadId"
+              if (detalle.mensualidadId) {
+                return {
+                  ...detalle,
+                  importePendiente: detalle.importeInicial,
+                  aCobrar: detalle.importeInicial,
+                  tieneRecargo: false,
+                };
+              }
+              return detalle;
+            });
             setFieldValue("detallePagos", updatedDetalles);
-            toast.info(
-              "Recargo quitado. Se actualizó 'tieneRecargo' a false y se reiniciaron los importes pendientes."
-            );
           }, [setFieldValue, values.detallePagos]);
 
           return (
