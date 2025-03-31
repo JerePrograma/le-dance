@@ -69,67 +69,87 @@ public class PaymentProcessor {
     public void recalcularTotales(Pago pago) {
         log.info("[recalcularTotales] Recalculo iniciando para Pago ID: {}", pago.getId());
 
-        // Acumuladores para la suma de "aCobrar" y "importePendiente" de cada detalle.
+        // Inicialización de acumuladores.
         BigDecimal totalACobrar = BigDecimal.ZERO;
         BigDecimal totalPendiente = BigDecimal.ZERO;
+        log.info("[recalcularTotales] Inicializando acumuladores: totalACobrar={}, totalPendiente={}",
+                totalACobrar, totalPendiente);
 
-        // Recorremos cada detalle del pago.
+        // Procesamiento de cada detalle del pago.
         for (DetallePago detalle : pago.getDetallePagos()) {
             log.info("[recalcularTotales] Procesando detalle ID: {}", detalle.getId());
 
             // Aseguramos que las asociaciones estén asignadas.
             detalle.setConcepto(detalle.getConcepto());
+            log.info("[recalcularTotales] Concepto asignado en detalle ID {}: {}", detalle.getId(), detalle.getConcepto());
             detalle.setSubConcepto(detalle.getSubConcepto());
+            log.info("[recalcularTotales] SubConcepto asignado en detalle ID {}: {}", detalle.getId(), detalle.getSubConcepto());
             detalle.setAlumno(pago.getAlumno());
-            log.info("[recalcularTotales] Alumno asignado al detalle: ID={}", pago.getAlumno().getId());
+            log.info("[recalcularTotales] Alumno asignado al detalle ID {}: Alumno ID={}", detalle.getId(), pago.getAlumno().getId());
 
-            // Convertir aCobrar a BigDecimal (usando ZERO si es nulo)
+            // Conversión de "aCobrar" a BigDecimal.
             BigDecimal aCobrar = Optional.ofNullable(detalle.getaCobrar())
                     .map(BigDecimal::valueOf)
                     .orElse(BigDecimal.ZERO);
             log.info("[recalcularTotales] Valor a cobrar para detalle ID {}: {}", detalle.getId(), aCobrar);
 
-            // Convertir importePendiente a BigDecimal (usando ZERO si es nulo)
+            // Conversión de "importePendiente" a BigDecimal.
             BigDecimal impPendiente = Optional.ofNullable(detalle.getImportePendiente())
                     .map(BigDecimal::valueOf)
                     .orElse(BigDecimal.ZERO);
+            log.info("[recalcularTotales] Importe pendiente para detalle ID {}: {}", detalle.getId(), impPendiente);
 
-            // Acumular
+            // Acumulación de totales.
             totalACobrar = totalACobrar.add(aCobrar);
-
             totalPendiente = totalPendiente.add(impPendiente);
             log.info("[recalcularTotales] Acumulado hasta detalle ID {}: totalACobrar={}, totalPendiente={}",
                     detalle.getId(), totalACobrar, totalPendiente);
         }
 
-        // Si algún detalle es de tipo matrícula, se aplica saldo a favor
+        // Determinar si se aplica crédito (saldo a favor) en caso de matrícula.
         boolean aplicarCredito = pago.getDetallePagos().stream()
                 .anyMatch(det -> det.getDescripcionConcepto() != null &&
                         det.getDescripcionConcepto().toLowerCase().contains("matrícula"));
+        log.info("[recalcularTotales] Aplicar crédito (saldo a favor) en matrícula: {}", aplicarCredito);
+
+        // Determinar si se debe aplicar recargo según el método de pago.
         boolean aplicarRecargoMetodo = pago.getDetallePagos().stream()
                 .anyMatch(det -> det.getTieneRecargo() && (pago.getMetodoPago() != null));
+        log.info("[recalcularTotales] Se detecta recargo en método de pago: {}", aplicarRecargoMetodo);
+
         double montoRecargo = 0;
         if (aplicarRecargoMetodo) {
             montoRecargo = pago.getMetodoPago().getRecargo();
+            log.info("[recalcularTotales] Monto de recargo obtenido: {}", montoRecargo);
+        } else {
+            log.info("[recalcularTotales] No se aplica recargo por método de pago.");
         }
+
+        // Calcular el monto final sumando totalACobrar y el recargo.
         double montoFinal = totalACobrar.doubleValue() + montoRecargo;
+        log.info("[recalcularTotales] Monto final previo al crédito: {}", montoFinal);
+
+        // Aplicar saldo a favor si corresponde.
         double saldoAFavor = pago.getAlumno().getCreditoAcumulado();
         if (aplicarCredito) {
             log.info("[recalcularTotales] Aplicando saldo a favor: {}", saldoAFavor);
             montoFinal -= saldoAFavor;
+            log.info("[recalcularTotales] Monto final después de aplicar saldo a favor: {}", montoFinal);
         } else {
             log.info("[recalcularTotales] No se aplica saldo a favor, no es matrícula.");
         }
 
-        // Asignar "monto" y "montoPagado" al pago (son iguales a la suma de aCobrar, con ajuste de crédito)
+        // Asignar monto y montoPagado al pago.
         pago.setMonto(montoFinal);
+        log.info("[recalcularTotales] Asignado monto al pago: {}", montoFinal);
         pago.setMontoPagado(montoFinal);
+        log.info("[recalcularTotales] Asignado montoPagado al pago: {}", montoFinal);
 
-        // El saldo restante es la suma total de "importePendiente" de cada detalle
+        // El saldo restante es la suma total de "importePendiente" de cada detalle.
         BigDecimal saldoRestante = totalPendiente;
-        log.info("[recalcularTotales] Saldo restante calculado: {}", saldoRestante);
+        log.info("[recalcularTotales] Saldo restante calculado antes de ajuste: {}", saldoRestante);
 
-        // Si el saldo restante es menor o igual a 0, se marca como HISTÓRICO, de lo contrario, ACTIVO.
+        // Ajuste del estado del pago según el saldo restante.
         if (saldoRestante.compareTo(BigDecimal.ZERO) <= 0) {
             log.info("[recalcularTotales] Saldo restante <= 0, ajustando a 0 y marcando como HISTÓRICO");
             saldoRestante = BigDecimal.ZERO;
@@ -139,11 +159,13 @@ public class PaymentProcessor {
             pago.setEstadoPago(EstadoPago.ACTIVO);
         }
         pago.setSaldoRestante(saldoRestante.doubleValue());
+        log.info("[recalcularTotales] Saldo restante final asignado: {}", saldoRestante.doubleValue());
 
-        // Si el pago no tiene ID (nuevo), se asigna 0 a monto y montoPagado
+        // Para pagos nuevos (sin ID), se reinician monto y montoPagado.
         if (pago.getId() == null) {
             pago.setMonto(0.0);
             pago.setMontoPagado(0.0);
+            log.info("[recalcularTotales] Pago nuevo detectado (ID nulo), se asigna monto y montoPagado = 0");
         }
 
         log.info("[recalcularTotales] Finalizado para Pago ID: {}: Monto={}, Pagado={}, SaldoRestante={}, Estado={}",
@@ -295,13 +317,11 @@ public class PaymentProcessor {
             entityManager.persist(pago);
             entityManager.flush();
             log.info("[procesarDetalle] Pago persistido - Nuevo ID generado: {}", pago.getId());
-            log.debug("[procesarDetalle] Estado completo del pago: {}", pago.toString());
         }
 
         // 4. Reattach de asociaciones
         log.info("[procesarDetalle] Reattachando asociaciones para detalle id={}", detalle.getId());
         paymentCalculationServicio.reatacharAsociaciones(detalle, pago);
-        log.debug("[procesarDetalle] Asociaciones reattachadas - Detalle: {}", detalle.toString());
 
         // 5. Obtención de inscripción
         log.info("[procesarDetalle] Buscando inscripción asociada al detalle");
@@ -853,7 +873,6 @@ public class PaymentProcessor {
                 .anyMatch(DetallePago::getTieneRecargo);
         if (aplicarRecargo) {
             double recargo = (metodoPago.getRecargo() != null) ? metodoPago.getRecargo() : 0;
-            pago.setMonto(pago.getMonto() + recargo);
             log.info("[asignarMetodoYPersistir] Se aplicó recargo de {}. Nuevo monto: {}", recargo, pago.getMonto());
         }
 

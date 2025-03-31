@@ -830,13 +830,6 @@ public class PaymentCalculationServicio {
             log.info("[reatacharAsociaciones] Alumno asignado desde pago para DetallePago id={}", detalle.getId());
         }
 
-        if (detalle.getRecargo() != null && detalle.getTieneRecargo() && detalle.getMensualidad() != null || detalle.getTipo() == TipoDetallePago.MENSUALIDAD) {
-            detalle.setRecargo(detalle.getRecargo());
-        } else {
-            detalle.setRecargo(null);
-            detalle.setTieneRecargo(false);
-        }
-
         // 3. Reatachar Concepto y, si aplica, SubConcepto
         if (detalle.getConcepto() != null && detalle.getConcepto().getId() != null) {
             Concepto managedConcepto = entityManager.find(Concepto.class, detalle.getConcepto().getId());
