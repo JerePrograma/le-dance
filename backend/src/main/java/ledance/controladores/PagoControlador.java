@@ -57,7 +57,7 @@ public class PagoControlador {
     @GetMapping("/recibo/{pagoId}")
     public ResponseEntity<Resource> descargarRecibo(@PathVariable Long pagoId) {
         try {
-            Path pdfPath = Paths.get("/opt/ledance/pdfs/recibo_" + pagoId + ".pdf");
+            Path pdfPath = Paths.get("/opt/le-dance/pdfs/recibo_" + pagoId + ".pdf");
 
             if (!Files.exists(pdfPath)) {
                 return ResponseEntity.notFound().build();

@@ -27,7 +27,7 @@ public class ReciboStorageService {
 
             // Ruta donde se guardará el PDF en tu VPS
             String fileName = "recibo_" + pago.getId() + ".pdf";
-            Path outputPath = Paths.get("/opt/ledance/pdfs", fileName);
+            Path outputPath = Paths.get("/opt/le-dance/pdfs", fileName);
 
             // Crear directorios si no existen
             Files.createDirectories(outputPath.getParent());
@@ -51,7 +51,7 @@ public class ReciboStorageService {
             byte[] pdfBytes = pdfService.generarReciboPdf(pagoHistorico); // Usamos el histórico
 
             String fileName = "recibo_" + pagoHistorico.getId() + ".pdf";
-            Path outputPath = Paths.get("/opt/ledance/pdfs", fileName);
+            Path outputPath = Paths.get("/opt/le-dance/pdfs", fileName);
 
             Files.createDirectories(outputPath.getParent());
             Files.write(outputPath, pdfBytes);
