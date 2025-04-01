@@ -18,7 +18,6 @@ import subConceptosApi from "../../api/subConceptosApi";
 import conceptosApi from "../../api/conceptosApi";
 import alumnosApi from "../../api/alumnosApi";
 import type { DetallePagoResponse, AlumnoResponse } from "../../types/types";
-import { useCobranzasData } from "../../hooks/useCobranzasData";
 import ListaConInfiniteScroll from "../../componentes/comunes/ListaConInfiniteScroll";
 import useDebounce from "../../hooks/useDebounce";
 import { X } from "lucide-react";
@@ -79,9 +78,6 @@ const DetallePagoList: React.FC<DetallePagoListProps> = ({
   // Ref para calcular alturas
   const containerRef = useRef<HTMLDivElement>(null);
   const tableContainerRef = useRef<HTMLDivElement>(null);
-
-  // Hook para bonificaciones y recargos
-  const { bonificaciones, recargos } = useCobranzasData();
 
   // Función para cargar detalles (aplicando filtros si existen)
   const fetchDetalles = useCallback(
@@ -600,34 +596,18 @@ const DetallePagoList: React.FC<DetallePagoListProps> = ({
             fillAvailable={true}
           >
             <Tabla
-              headers={[
-                "Código",
-                "Alumno",
-                "Concepto",
-                "Cobrado",
-                "Bonificación",
-                "Recargo",
-                "Cobrados",
-                "Estado",
-              ]}
+              headers={["Código", "Alumno", "Concepto", "Cobrado", "Estado"]}
               data={sortedItems}
               customRender={(fila: DetallePagoResponse) => {
-                const bonificacionNombre =
-                  fila.bonificacionId &&
-                  bonificaciones.find((b) => b.id === fila.bonificacionId)
-                    ?.descripcion;
-                const recargoNombre =
-                  fila.recargoId &&
-                  recargos.find((r) => r.id === Number(fila.recargoId))
-                    ?.descripcion;
+                const cobradoValue =
+                  filtroCobrado === "GENERADOS"
+                    ? `Deuda: ${fila.importePendiente}`
+                    : fila.aCobrar;
                 return [
                   fila.id,
                   fila.alumnoDisplay,
                   fila.descripcionConcepto,
-                  fila.aCobrar,
-                  bonificacionNombre || "-",
-                  recargoNombre || "-",
-                  fila.cobrado ? "Sí" : "No",
+                  cobradoValue,
                   fila.estadoPago,
                 ];
               }}
