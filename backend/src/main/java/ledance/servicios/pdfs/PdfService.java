@@ -25,7 +25,8 @@ import java.util.Objects;
 public class PdfService {
 
     /**
-     * Genera un PDF del recibo de pago utilizando OpenPDF.
+     * Genera un PDF del recibo de pago en orientación horizontal (landscape)
+     * utilizando OpenPDF.
      *
      * @param pago Objeto Pago con todos sus detalles
      * @return Un arreglo de bytes que representa el PDF generado.
@@ -34,10 +35,12 @@ public class PdfService {
     public byte[] generarReciboPdf(Pago pago) throws IOException {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
-        try (Document document = new Document(PageSize.A4)) {
+        // Se usa PageSize.A4.rotate() para orientación horizontal
+        try (Document document = new Document(PageSize.A4.rotate())) {
             PdfWriter.getInstance(document, bos);
             document.open();
-            document.setMargins(36, 36, 36, 36); // Márgenes uniformes
+            // Ajusta los márgenes según convenga en landscape
+            document.setMargins(36, 36, 36, 36);
 
             // 1. Encabezado con logo e información de contacto
             PdfPTable headerTable = new PdfPTable(2);
@@ -54,7 +57,7 @@ public class PdfService {
                 logoCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
                 headerTable.addCell(logoCell);
             } catch (Exception e) {
-                // Si no hay logo, agregar celda vacía
+                // Si no hay logo, agregar celda vacía con el nombre de la escuela
                 PdfPCell emptyCell = new PdfPCell(new Paragraph("LE DANCE ARTE ESCUELA"));
                 emptyCell.setBorder(Rectangle.NO_BORDER);
                 headerTable.addCell(emptyCell);
@@ -101,7 +104,7 @@ public class PdfService {
                     pago.getAlumno().getNombre() + "        Alumno Nº: " + pago.getAlumno().getId()));
 
             // Línea separadora
-            Paragraph linea = new Paragraph("______________________________________________________________________________");
+            Paragraph linea = new Paragraph("_________________________________________________________________________________________________________");
             document.add(linea);
             document.add(new Paragraph(" "));
 
@@ -116,7 +119,7 @@ public class PdfService {
             document.add(new Paragraph("SEGÚN EL SIGUIENTE DETALLE:", montoFont));
             document.add(new Paragraph(" "));
 
-            // 5. Tabla de detalles mejorada
+            // 5. Tabla de detalles (ajustada al ancho horizontal)
             PdfPTable table = new PdfPTable(8); // Cod. | Concepto | Cuota/Can | Valor | Bonif | Rec | Importe | Abonado
             table.setWidthPercentage(100);
             table.setWidths(new float[]{2, 8, 4, 4, 3, 3, 4, 4});
@@ -147,8 +150,7 @@ public class PdfService {
                         calcularRecargo(det.getValorBase(), det.getRecargo()) : 0.0), cellFont);
                 double importe = det.getImporteInicial() != null ? det.getImporteInicial() : 0.0;
                 addCell(table, "$ " + String.format("%,.2f", importe), cellFont);
-                addCell(table, "$ " + String.format("%,.2f", det.getaCobrar()), cellFont); // Abonado igual al importe
-
+                addCell(table, "$ " + String.format("%,.2f", det.getaCobrar()), cellFont);
                 total += det.getaCobrar();
             }
 
@@ -159,7 +161,7 @@ public class PdfService {
             document.add(new Paragraph(pago.getObservaciones(), new Font(Font.HELVETICA, 10, Font.NORMAL)));
 
             document.add(new Paragraph(" "));
-            document.add(new Paragraph("______________________________________________________________________________"));
+            document.add(new Paragraph("_________________________________________________________________________________________________________"));
             document.add(new Paragraph(" "));
 
             // 7. Total
@@ -167,11 +169,9 @@ public class PdfService {
                     new Font(Font.HELVETICA, 12, Font.BOLD));
             totalParrafo.setAlignment(Element.ALIGN_RIGHT);
             document.add(totalParrafo);
-
         } catch (DocumentException e) {
             e.printStackTrace();
         }
-
         return bos.toByteArray();
     }
 
@@ -196,7 +196,6 @@ public class PdfService {
     public static String convertirMontoEnTexto(double monto) {
         long parteEntera = (long) monto;
         int centavos = (int) Math.round((monto - parteEntera) * 100);
-
         String texto = NumberToLetterConverter.convertir(parteEntera);
         return texto + " CON " + String.format("%02d", centavos) + "/100";
     }

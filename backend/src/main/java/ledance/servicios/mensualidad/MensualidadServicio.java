@@ -603,7 +603,7 @@ public class MensualidadServicio implements IMensualidadService {
                 mensualidad.getId(), pagoPendiente.getId());
 
         // Aplicar recargo si corresponde
-        if (detalle.getRecargo() != null && !detalle.getTieneRecargo() && detalle.getMensualidad() != null || detalle.getTipo() == TipoDetallePago.MENSUALIDAD) {
+        if (detalle.getRecargo() != null && !detalle.getTieneRecargo() && detalle.getDescripcionConcepto().contains("CUOTA")) {
             log.info("[registrarDetallePagoMensualidad] El detalle indica NO aplicar recargo (tieneRecargo=false).");
             detalle.setRecargo(null);
             detalle.setTieneRecargo(false);
@@ -796,7 +796,7 @@ public class MensualidadServicio implements IMensualidadService {
                 detalle.getCobrado(),
                 detalle.getConcepto() != null ? detalle.getConcepto().getId() : null,
                 detalle.getSubConcepto() != null ? detalle.getSubConcepto().getId() : null,
-                detalle.getMensualidad() != null ? detalle.getMensualidad().getId() : null,
+                detalle.getDescripcionConcepto().contains("CUOTA") ? detalle.getMensualidad().getId() : null,
                 detalle.getMatricula() != null ? detalle.getMatricula().getId() : null,
                 detalle.getStock() != null ? detalle.getStock().getId() : null,
                 detalle.getImporteInicial(),
@@ -998,7 +998,7 @@ public class MensualidadServicio implements IMensualidadService {
         log.info("[procesarAbonoMensualidad] Abono recibido del detalle: {}", abonoRecibido);
 
         // Si el detalle no tiene recargo, aseguramos que tampoco se use recargo en la mensualidad
-        if (!detalle.getTieneRecargo() && detalle.getMensualidad() != null || detalle.getTipo() == TipoDetallePago.MENSUALIDAD) {
+        if (!detalle.getTieneRecargo() && detalle.getDescripcionConcepto().contains("CUOTA")) {
             mensualidad.setRecargo(null);
             detalle.setRecargo(null);
             detalle.setTieneRecargo(false);

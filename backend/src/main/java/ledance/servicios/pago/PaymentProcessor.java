@@ -180,7 +180,7 @@ public class PaymentProcessor {
      */
     public Inscripcion obtenerInscripcion(DetallePago detalle) {
         log.info("[obtenerInscripcion] Buscando inscripción para DetallePago id={}", detalle.getId());
-        if (detalle.getMensualidad() != null && detalle.getMensualidad().getInscripcion() != null) {
+        if (detalle.getDescripcionConcepto().contains("CUOTA") && detalle.getMensualidad().getInscripcion() != null) {
             return detalle.getMensualidad().getInscripcion();
         }
         return null;
@@ -301,7 +301,7 @@ public class PaymentProcessor {
 
         // 2. Ajuste de recargo
         log.info("[procesarDetalle] Verificando recargo. TieneRecargo={}", detalle.getTieneRecargo());
-        if (!detalle.getTieneRecargo() && detalle.getMensualidad() != null || detalle.getTipo() == TipoDetallePago.MENSUALIDAD) {
+        if (!detalle.getTieneRecargo() && detalle.getDescripcionConcepto().contains("CUOTA")) {
             log.info("[procesarDetalle] Sin recargo - Estableciendo recargo=null");
             detalle.setRecargo(null);
             detalle.setTieneRecargo(false);
@@ -504,14 +504,14 @@ public class PaymentProcessor {
 
                 nuevoDetalle.setUsuario(cobrador);
                 // Manejo de recargos: limpiar si tieneRecargo es false
-                if (!detalle.getTieneRecargo() && detalle.getMensualidad() != null || detalle.getTipo() == TipoDetallePago.MENSUALIDAD) {
+                if (!detalle.getTieneRecargo() && detalle.getDescripcionConcepto().contains("CUOTA")) {
                     nuevoDetalle.setRecargo(null);
                     nuevoDetalle.setTieneRecargo(false);
                     log.debug("[clonarDetallesConPendiente] Recargo limpiado en detalle clonado ID: {}", nuevoDetalle.getId());
                 }
 
                 // Reatachar mensualidad, si existe
-                if (detalle.getMensualidad() != null) {
+                if (detalle.getDescripcionConcepto().contains("CUOTA")) {
                     detalle.getMensualidad().setEsClon(true);
                     nuevoDetalle.setMensualidad(detalle.getMensualidad());
                     log.debug("[clonarDetallesConPendiente] Mensualidad reatachada en detalle clonado ID: {}", nuevoDetalle.getId());
@@ -696,7 +696,7 @@ public class PaymentProcessor {
     public DetallePago findDetallePagoByCriteria(DetallePago detalle, Long alumnoId) {
         String descripcion = (detalle.getDescripcionConcepto() != null) ? detalle.getDescripcionConcepto().trim().toUpperCase() : "";
         Long matriculaId = (detalle.getMatricula() != null) ? detalle.getMatricula().getId() : null;
-        Long mensualidadId = (detalle.getMensualidad() != null) ? detalle.getMensualidad().getId() : null;
+        Long mensualidadId = (detalle.getDescripcionConcepto().contains("CUOTA")) ? detalle.getMensualidad().getId() : null;
         TipoDetallePago tipo = detalle.getTipo();
         log.info("Buscando DetallePago para alumnoId={}, descripción='{}', tipo={}, matriculaId={}, mensualidadId={}", alumnoId, descripcion, tipo, (matriculaId != null ? matriculaId : "null"), (mensualidadId != null ? mensualidadId : "null"));
         if (matriculaId != null) {
