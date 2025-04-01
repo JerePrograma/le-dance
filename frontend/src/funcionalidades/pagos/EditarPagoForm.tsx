@@ -633,21 +633,24 @@ const DetallePagoList: React.FC<DetallePagoListProps> = ({
               }}
               actions={(fila: DetallePagoResponse) => (
                 <div className="flex gap-2">
-                  <button
-                    type="button"
-                    disabled={isSubmitting}
-                    className="bg-green-500 hover:bg-green-600 text-white p-1 rounded text-xs transition-colors mx-auto block"
-                    onClick={() => handleAnularDetalle(fila)}
-                  >
-                    Anular
-                  </button>
-                  <button
-                    type="button"
-                    className="bg-red-500 hover:bg-red-600 text-white p-1 rounded text-xs transition-colors mx-auto block"
-                    onClick={() => handleDeleteDetalle(fila)}
-                  >
-                    Eliminar
-                  </button>
+                  {filtroCobrado === "COBRADOS" ? (
+                    <button
+                      type="button"
+                      disabled={isSubmitting}
+                      className="bg-green-500 hover:bg-green-600 text-white p-1 rounded text-xs transition-colors mx-auto block"
+                      onClick={() => handleAnularDetalle(fila)}
+                    >
+                      Anular
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="bg-red-500 hover:bg-red-600 text-white p-1 rounded text-xs transition-colors mx-auto block"
+                      onClick={() => handleDeleteDetalle(fila)}
+                    >
+                      Eliminar
+                    </button>
+                  )}
                 </div>
               )}
               emptyMessage="No hay pagos cobrados"
