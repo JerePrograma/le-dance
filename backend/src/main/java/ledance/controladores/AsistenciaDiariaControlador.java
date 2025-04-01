@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import jakarta.validation.Valid;
+
 import java.time.LocalDate;
 import java.util.List;
 
@@ -29,21 +30,6 @@ public class AsistenciaDiariaControlador {
     @PutMapping("/registrar")
     public ResponseEntity<AsistenciaDiariaDetalleResponse> registrarAsistencia(
             @Valid @RequestBody AsistenciaDiariaRegistroRequest request) {
-        System.out.println("---------------------------------------------------------------");
-        System.out.println(request);
-        System.out.println(request);
-        System.out.println(request);
-        System.out.println(request);
-        System.out.println(request);
-        System.out.println(request);
-        System.out.println(request);
-        System.out.println(request);
-        System.out.println(request);
-        System.out.println(request);
-        System.out.println(request);
-        System.out.println(request);
-        System.out.println(request);
-        System.out.println("---------------------------------------------------------------");
         log.info("Registrando asistencia para alumnoId={} en fecha={}", request.id(), request.fecha());
         return ResponseEntity.ok(asistenciaDiariaServicio.registrarOActualizarAsistencia(request));
     }

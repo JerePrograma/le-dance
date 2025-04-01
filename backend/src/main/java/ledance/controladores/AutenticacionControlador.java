@@ -6,6 +6,7 @@ import ledance.dto.usuario.response.UsuarioResponse;
 import ledance.entidades.Usuario;
 import ledance.infra.seguridad.TokenService;
 import ledance.repositorios.UsuarioRepositorio;
+import ledance.servicios.asistencia.AsistenciaMensualServicio;
 import ledance.servicios.matricula.MatriculaServicio;
 import ledance.servicios.mensualidad.MensualidadServicio;
 import ledance.servicios.recargo.RecargoServicio;
@@ -29,16 +30,18 @@ public class AutenticacionControlador {
     private final RecargoServicio recargoServicio;
     private final MensualidadServicio mensualidadServicio;
     private final MatriculaServicio matriculaServicio;
+    private final AsistenciaMensualServicio asistenciaMensualServicio;
 
     public AutenticacionControlador(AuthenticationManager authManager,
                                     TokenService tokenService,
-                                    UsuarioRepositorio usuarioRepositorio, RecargoServicio recargoServicio, MensualidadServicio mensualidadServicio, MatriculaServicio matriculaServicio) {
+                                    UsuarioRepositorio usuarioRepositorio, RecargoServicio recargoServicio, MensualidadServicio mensualidadServicio, MatriculaServicio matriculaServicio, AsistenciaMensualServicio asistenciaMensualServicio) {
         this.authManager = authManager;
         this.tokenService = tokenService;
         this.usuarioRepositorio = usuarioRepositorio;
         this.recargoServicio = recargoServicio;
         this.mensualidadServicio = mensualidadServicio;
         this.matriculaServicio = matriculaServicio;
+        this.asistenciaMensualServicio = asistenciaMensualServicio;
     }
 
     @PostMapping
@@ -48,6 +51,7 @@ public class AutenticacionControlador {
         mensualidadServicio.generarMensualidadesParaMesVigente();
         matriculaServicio.generarMatriculasAnioVigente();
         recargoServicio.aplicarRecargosAutomaticosEnLogin();
+        asistenciaMensualServicio.crearAsistenciasParaInscripcionesActivasDetallado();
 
         var authToken = new UsernamePasswordAuthenticationToken(datos.nombreUsuario(), datos.contrasena());
         var usuarioAutenticado = authManager.authenticate(authToken);
@@ -98,6 +102,7 @@ public class AutenticacionControlador {
             String accessToken,
             String refreshToken,
             UsuarioResponse usuario
-    ) {}
+    ) {
+    }
 
 }

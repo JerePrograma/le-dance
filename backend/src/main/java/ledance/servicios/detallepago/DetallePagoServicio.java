@@ -81,7 +81,7 @@ public class DetallePagoServicio {
 
         // 4. Cálculo de recargos
         double recargo = 0;
-        if (detalle.getTieneRecargo() ) {
+        if (detalle.getTieneRecargo()) {
             log.info("[calcularImporte] Procesando recargo activo");
             recargo = (detalle.getRecargo() != null) ? obtenerValorRecargo(detalle, base) : 0.0;
             log.info("[calcularImporte] Recargo aplicado: {}", recargo);
@@ -137,7 +137,7 @@ public class DetallePagoServicio {
 
     public double obtenerValorRecargo(DetallePago detalle, double base) {
         Recargo recargo = detalle.getRecargo();
-        if (!detalle.getTieneRecargo() ) {
+        if (!detalle.getTieneRecargo()) {
             return 0.0;
         }
         if (recargo != null) {
@@ -312,6 +312,16 @@ public class DetallePagoServicio {
         }
         detallePagoRepositorio.deleteById(id);
         log.info("DetallePago eliminado con id={}", id);
+    }
+
+    public DetallePagoResponse anularDetallePago(Long id, DetallePago detalleActualizado) {
+        DetallePago detalleExistente = detallePagoRepositorio.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("DetallePago con id " + id + " no encontrado"));
+
+        detalleExistente.setEstadoPago(EstadoPago.ANULADO);
+        DetallePago detalleGuardado = detallePagoRepositorio.save(detalleExistente);
+        log.info("DetallePago actualizado con id={}", detalleGuardado.getId());
+        return detallePagoMapper.toDTO(detalleGuardado);
     }
 
     // Listar todos los DetallePagos

@@ -12,7 +12,9 @@ import ledance.servicios.disciplina.DisciplinaServicio;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -27,6 +29,7 @@ public class AsistenciaMensualServicio {
     private final DisciplinaServicio disciplinaServicio;
     private final AsistenciaDiariaRepositorio asistenciaDiariaRepositorio;
     private final AsistenciaAlumnoMensualRepositorio asistenciaAlumnoMensualRepositorio;
+    private final ProcesoEjecutadoRepositorio procesoEjecutadoRepositorio;
 
     public AsistenciaMensualServicio(
             AsistenciaMensualRepositorio asistenciaMensualRepositorio,
@@ -34,7 +37,7 @@ public class AsistenciaMensualServicio {
             DisciplinaRepositorio disciplinaRepositorio,
             AsistenciaMensualMapper asistenciaMensualMapper,
             @Lazy DisciplinaServicio disciplinaServicio,
-            AsistenciaDiariaRepositorio asistenciaDiariaRepositorio, AsistenciaAlumnoMensualRepositorio asistenciaAlumnoMensualRepositorio) {
+            AsistenciaDiariaRepositorio asistenciaDiariaRepositorio, AsistenciaAlumnoMensualRepositorio asistenciaAlumnoMensualRepositorio, ProcesoEjecutadoRepositorio procesoEjecutadoRepositorio) {
         this.asistenciaMensualRepositorio = asistenciaMensualRepositorio;
         this.inscripcionRepositorio = inscripcionRepositorio;
         this.disciplinaRepositorio = disciplinaRepositorio;
@@ -42,6 +45,7 @@ public class AsistenciaMensualServicio {
         this.disciplinaServicio = disciplinaServicio;
         this.asistenciaDiariaRepositorio = asistenciaDiariaRepositorio;
         this.asistenciaAlumnoMensualRepositorio = asistenciaAlumnoMensualRepositorio;
+        this.procesoEjecutadoRepositorio = procesoEjecutadoRepositorio;
     }
 
     /**
@@ -185,6 +189,11 @@ public class AsistenciaMensualServicio {
 
     @Transactional
     public AsistenciasActivasResponse crearAsistenciasParaInscripcionesActivasDetallado() {
+        // Registrar el proceso de generación de asistencias para inscripciones activas
+        ProcesoEjecutado procesoAsistencias = procesoEjecutadoRepositorio
+                .findByProceso("ASISTENCIAS_INSCRIPCIONES_ACTIVAS_DETALLADO")
+                .orElse(new ProcesoEjecutado("ASISTENCIAS_INSCRIPCIONES_ACTIVAS_DETALLADO", null));
+
         int mes = LocalDate.now().getMonthValue();
         int anio = LocalDate.now().getYear();
 
@@ -202,7 +211,8 @@ public class AsistenciaMensualServicio {
             List<Inscripcion> inscripciones = entry.getValue();
 
             // Buscar o crear la planilla para esta disciplina, mes y año
-            Optional<AsistenciaMensual> planillaOpt = asistenciaMensualRepositorio.findByDisciplina_IdAndMesAndAnio(disciplina.getId(), mes, anio);
+            Optional<AsistenciaMensual> planillaOpt = asistenciaMensualRepositorio
+                    .findByDisciplina_IdAndMesAndAnio(disciplina.getId(), mes, anio);
             AsistenciaMensual planilla;
             if (planillaOpt.isPresent()) {
                 planilla = planillaOpt.get();
@@ -215,13 +225,14 @@ public class AsistenciaMensualServicio {
                 planillasCreadas++;
             }
 
-            // Obtener los dias de clase para la disciplina
+            // Obtener los días de clase para la disciplina
             List<LocalDate> fechasClase = disciplinaServicio.obtenerDiasClase(disciplina.getId(), mes, anio);
             int asistenciasGeneradasParaDisciplina = 0;
-            // Para cada inscripcion de esta disciplina
+            // Para cada inscripción de esta disciplina
             for (Inscripcion inscripcion : inscripciones) {
-                // Verificar si ya existe un registro de asistencia mensual para esta inscripcion
-                boolean existe = asistenciaAlumnoMensualRepositorio.existsByInscripcionIdAndAsistenciaMensualId(inscripcion.getId(), planilla.getId());
+                // Verificar si ya existe un registro de asistencia mensual para esta inscripción
+                boolean existe = asistenciaAlumnoMensualRepositorio
+                        .existsByInscripcionIdAndAsistenciaMensualId(inscripcion.getId(), planilla.getId());
                 if (!existe) {
                     // Crear el registro de asistencia mensual para el alumno
                     AsistenciaAlumnoMensual alumnoMensual = new AsistenciaAlumnoMensual();
@@ -243,6 +254,10 @@ public class AsistenciaMensualServicio {
                     + ", Asistencias generadas: " + asistenciasGeneradasParaDisciplina);
             totalAsistenciasGeneradas += asistenciasGeneradasParaDisciplina;
         }
+
+        // Actualizar la última ejecución del proceso
+        procesoAsistencias.setUltimaEjecucion(LocalDate.now());
+        procesoEjecutadoRepositorio.save(procesoAsistencias);
 
         return new AsistenciasActivasResponse(
                 inscripcionesActivas.size(),

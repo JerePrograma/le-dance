@@ -1,6 +1,7 @@
 package ledance.entidades;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 import java.time.LocalDate;
@@ -92,6 +93,11 @@ public class DetallePago {
     @JoinColumn(name = "usuario_id", nullable = true)
     private Usuario usuario;
 
+    @NotNull
+    @Enumerated(EnumType.STRING)
+    @Column(name = "estado_pago", nullable = false)
+    private EstadoPago estadoPago = EstadoPago.ACTIVO;
+
     // Getters y Setters para aCobrar (u otros metodos personalizados)
     public Double getaCobrar() {
         return aCobrar;
@@ -112,6 +118,10 @@ public class DetallePago {
         if (this.matricula != null && (this.descripcionConcepto == null || this.descripcionConcepto.trim().isEmpty())) {
             this.descripcionConcepto = "MATRICULA " + LocalDate.now().getYear();
         }
+        // Asignar estadoPago según importePendiente
+        if (this.importePendiente != null) {
+            this.estadoPago = (this.importePendiente > 0) ? EstadoPago.ACTIVO : EstadoPago.HISTORICO;
+        }
     }
 
     @PreUpdate
@@ -122,7 +132,10 @@ public class DetallePago {
         if (this.matricula != null && (this.descripcionConcepto == null || this.descripcionConcepto.trim().isEmpty())) {
             this.descripcionConcepto = "MATRICULA " + LocalDate.now().getYear();
         }
+        // Actualizar estadoPago según importePendiente
+        if (this.importePendiente != null) {
+            this.estadoPago = (this.importePendiente > 0) ? EstadoPago.ACTIVO : EstadoPago.HISTORICO;
+        }
     }
-
 
 }
