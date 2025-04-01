@@ -86,144 +86,170 @@ public class RecargoServicio {
         LocalDate today = LocalDate.now();
         log.info("Iniciando aplicación de recargos automáticos en login. Fecha actual: {}", today);
 
-        // Recuperar recargo para día 15
-        Optional<Recargo> optRecargo15 = recargoRepositorio.findByDiaDelMesAplicacion(15);
-        Recargo recargo15 = optRecargo15.orElse(null);
+        // Recupera los recargos para el día 15 y 1
+        Recargo recargo15 = obtenerRecargo(15);
+        Recargo recargo1 = obtenerRecargo(1);
+
+        // Aplica recargo de día 15
+        aplicarRecargoDia15(today, recargo15);
+
+        // Aplica recargo de día 1 (mes vencido)
+        aplicarRecargoDia1(today, recargo1);
+    }
+
+    /**
+     * Recupera el recargo correspondiente a un día específico y registra la acción.
+     */
+    private Recargo obtenerRecargo(int dia) {
+        Optional<Recargo> optRecargo = recargoRepositorio.findByDiaDelMesAplicacion(dia);
+        if (optRecargo.isEmpty()) {
+            log.info("No se encontró recargo para el día {} en la base de datos.", dia);
+            return null;
+        }
+        Recargo recargo = optRecargo.get();
+        log.info("Recargo de día {} encontrado: id={}, porcentaje={}, valorFijo={}",
+                dia, recargo.getId(), recargo.getPorcentaje(), recargo.getValorFijo());
+        return recargo;
+    }
+
+    /**
+     * Aplica el recargo de día 15 a las mensualidades pendientes, siempre que hoy sea
+     * igual o posterior al día 15 del mes actual y no se haya aplicado ya en el período.
+     */
+    private void aplicarRecargoDia15(LocalDate today, Recargo recargo15) {
         if (recargo15 == null) {
-            log.info("No se encontró recargo para el día 15 en la base de datos.");
-        } else {
-            log.info("Recargo de día 15 encontrado: id={}, porcentaje={}, valorFijo={}",
-                    recargo15.getId(), recargo15.getPorcentaje(), recargo15.getValorFijo());
+            return;
         }
 
-        // Recuperar recargo para día 1
-        Optional<Recargo> optRecargo1 = recargoRepositorio.findByDiaDelMesAplicacion(1);
-        Recargo recargo1 = optRecargo1.orElse(null);
-        if (recargo1 == null) {
-            log.info("No se encontró recargo para el día 1 en la base de datos.");
-        } else {
-            log.info("Recargo de día 1 encontrado: id={}, porcentaje={}, valorFijo={}",
-                    recargo1.getId(), recargo1.getPorcentaje(), recargo1.getValorFijo());
+        LocalDate dia15DelMes = today.withDayOfMonth(15);
+        if (today.isBefore(dia15DelMes)) {
+            log.warn("No se ejecuta RECARGO_DIA_15 porque hoy ({}) es anterior al día 15 del mes actual ({})", today, dia15DelMes);
+            return;
         }
 
-        // --- Aplicar recargo de día 15 ---
-        // --- Aplicar recargo de día 15 ---
-        if (recargo15 != null) {
-            LocalDate dia15DelMes = today.withDayOfMonth(15);
-            if (today.isBefore(dia15DelMes)) {
-                log.warn("No se ejecuta RECARGO_DIA_15 porque hoy ({}) es anterior al día 15 del mes actual ({})", today, dia15DelMes);
-            } else {
-                ProcesoEjecutado proceso15 = procesoEjecutadoRepositorio
-                        .findByProceso("RECARGO_DIA_15")
-                        .orElse(new ProcesoEjecutado("RECARGO_DIA_15", null));
-                log.info("Proceso RECARGO_DIA_15, última ejecución registrada: {}", proceso15.getUltimaEjecucion());
+        ProcesoEjecutado proceso15 = procesoEjecutadoRepositorio
+                .findByProceso("RECARGO_DIA_15")
+                .orElse(new ProcesoEjecutado("RECARGO_DIA_15", null));
+        log.info("Proceso RECARGO_DIA_15, última ejecución registrada: {}", proceso15.getUltimaEjecucion());
 
-                if (proceso15.getUltimaEjecucion() == null || isDifferentPeriod(proceso15.getUltimaEjecucion(), today)) {
-                    log.info("Ejecutando proceso RECARGO_DIA_15 para el período actual.");
-                    List<Mensualidad> mensualidades = mensualidadRepositorio
-                            .findByDescripcionContainingIgnoreCaseAndEstado("CUOTA", EstadoMensualidad.PENDIENTE);
-                    log.info("Se encontraron {} mensualidades pendientes para evaluar recargo de día 15.", mensualidades.size());
+        if (proceso15.getUltimaEjecucion() != null && !isDifferentPeriod(proceso15.getUltimaEjecucion(), today)) {
+            log.info("Proceso RECARGO_DIA_15 ya fue ejecutado en el período actual (última ejecución: {})", proceso15.getUltimaEjecucion());
+            return;
+        }
 
-                    for (Mensualidad m : mensualidades) {
-                        LocalDate fechaComparacion15 = m.getFechaCuota().withDayOfMonth(recargo15.getDiaDelMesAplicacion());
-                        log.info("Procesando mensualidad id={} con fechaCuota={}, fechaComparacion15={}", m.getId(), m.getFechaCuota(), fechaComparacion15);
+        log.info("Ejecutando proceso RECARGO_DIA_15 para el período actual.");
+        List<Mensualidad> mensualidades = mensualidadRepositorio
+                .findByDescripcionContainingIgnoreCaseAndEstado("CUOTA", EstadoMensualidad.PENDIENTE);
+        log.info("Se encontraron {} mensualidades pendientes para evaluar recargo de día 15.", mensualidades.size());
 
-                        if ((today.isAfter(fechaComparacion15) || today.isEqual(fechaComparacion15))) {
-                            log.info("La fecha actual {} es igual o posterior a fechaComparacion15={}", today, fechaComparacion15);
-                            if (m.getRecargo() == null || !m.getRecargo().getId().equals(recargo15.getId())) {
-                                log.info("Aplicando recargo de día 15 a mensualidad id={}", m.getId());
-                                m.setRecargo(recargo15);
-                                mensualidadRepositorio.save(m);
-                                recalcularImporteMensualidad(m);
+        for (Mensualidad m : mensualidades) {
+            // Se toma la fecha de cuota y se reemplaza el día por el del recargo (15)
+            LocalDate fechaComparacion15 = m.getFechaCuota().withDayOfMonth(recargo15.getDiaDelMesAplicacion());
+            log.info("Procesando mensualidad id={} con fechaCuota={}, fechaComparacion15={}", m.getId(), m.getFechaCuota(), fechaComparacion15);
 
-                                Optional<DetallePago> optDetalle = detallePagoRepositorio.findByMensualidad(m);
-                                if (optDetalle.isPresent()) {
-                                    DetallePago detalle = optDetalle.get();
-                                    detalle.setRecargo(recargo15);
-                                    detalle.setTieneRecargo(true);
-                                    log.info("Recalculando importe en DetallePago id={} para recargo de día 15", detalle.getId());
-                                    recalcularImporteDetalle(detalle);
-                                } else {
-                                    log.info("No se encontró DetallePago asociado a la mensualidad id={}", m.getId());
-                                }
-                            } else {
-                                log.info("Mensualidad id={} ya tiene aplicado el recargo de día 15.", m.getId());
-                                recalcularImporteMensualidad(m);
-                                detallePagoRepositorio.findByMensualidad(m)
-                                        .ifPresent(this::recalcularImporteDetalle);
-                            }
-                        } else {
-                            log.info("No se aplica recargo de día 15 para mensualidad id={} porque hoy {} es anterior a fechaComparacion15={}", m.getId(), today, fechaComparacion15);
-                        }
-                    }
-                    proceso15.setUltimaEjecucion(today);
-                    procesoEjecutadoRepositorio.save(proceso15);
-                    log.info("Proceso RECARGO_DIA_15 completado. Flag actualizado a {}", today);
+            if (!today.isBefore(fechaComparacion15)) { // today >= fechaComparacion15
+                log.info("La fecha actual {} es igual o posterior a fechaComparacion15={}", today, fechaComparacion15);
+                if (m.getRecargo() == null || !m.getRecargo().getId().equals(recargo15.getId())) {
+                    log.info("Aplicando recargo de día 15 a mensualidad id={}", m.getId());
+                    m.setRecargo(recargo15);
+                    mensualidadRepositorio.save(m);
+                    recalcularImporteMensualidad(m);
+
+                    detallePagoRepositorio.findByMensualidad(m).ifPresent(detalle -> {
+                        detalle.setRecargo(recargo15);
+                        detalle.setTieneRecargo(true);
+                        log.info("Recalculando importe en DetallePago id={} para recargo de día 15", detalle.getId());
+                        recalcularImporteDetalle(detalle);
+                    });
                 } else {
-                    log.info("Proceso RECARGO_DIA_15 ya fue ejecutado en el período actual (última ejecución: {})", proceso15.getUltimaEjecucion());
+                    log.info("Mensualidad id={} ya tiene aplicado el recargo de día 15.", m.getId());
+                    recalcularImporteMensualidad(m);
+                    detallePagoRepositorio.findByMensualidad(m).ifPresent(this::recalcularImporteDetalle);
                 }
-            }
-        }
-
-        // --- Aplicar recargo de día 1 (mes vencido) ---
-        if (recargo1 != null) {
-            // Evitar aplicar recargo de día 1 antes del primer día del mes siguiente
-            LocalDate primerDiaMesSiguiente = today.withDayOfMonth(1).plusMonths(1);
-            if (today.isBefore(primerDiaMesSiguiente)) {
-                log.warn("No se ejecuta RECARGO_DIA_1 porque hoy ({}) es anterior al primer día del mes siguiente ({})", today, primerDiaMesSiguiente);
-                return;
-            }
-
-            ProcesoEjecutado proceso1 = procesoEjecutadoRepositorio
-                    .findByProceso("RECARGO_DIA_1")
-                    .orElse(new ProcesoEjecutado("RECARGO_DIA_1", null));
-            log.info("Proceso RECARGO_DIA_1, última ejecución registrada: {}", proceso1.getUltimaEjecucion());
-
-            if (proceso1.getUltimaEjecucion() == null || isDifferentPeriod(proceso1.getUltimaEjecucion(), today)) {
-                log.info("Ejecutando proceso RECARGO_DIA_1 para el período actual.");
-                LocalDate primerDiaMesActual = today.withDayOfMonth(1);
-                List<Mensualidad> vencidas = mensualidadRepositorio.findByFechaCuotaBeforeAndEstado(primerDiaMesActual, EstadoMensualidad.PENDIENTE);
-                log.info("Se encontraron {} mensualidades vencidas (fechaCuota < {})", vencidas.size(), primerDiaMesActual);
-
-                for (Mensualidad m : vencidas) {
-                    LocalDate fechaComparacion1 = m.getFechaCuota().plusMonths(1);
-                    log.info("Procesando mensualidad id={} con fechaCuota={}, fechaComparacion1={}", m.getId(), m.getFechaCuota(), fechaComparacion1);
-
-                    if ((today.isAfter(fechaComparacion1) || today.isEqual(fechaComparacion1))) {
-                        log.info("La fecha actual {} es igual o posterior a fechaComparacion1={}", today, fechaComparacion1);
-                        if (m.getRecargo() == null || m.getRecargo().getDiaDelMesAplicacion() == 15) {
-                            log.info("Aplicando recargo de día 1 a mensualidad id={}", m.getId());
-                            m.setRecargo(recargo1);
-                            mensualidadRepositorio.save(m);
-                            recalcularImporteMensualidad(m);
-
-                            Optional<DetallePago> optDetalle = detallePagoRepositorio.findByMensualidad(m);
-                            if (optDetalle.isPresent()) {
-                                DetallePago detalle = optDetalle.get();
-                                detalle.setRecargo(recargo1);
-                                detalle.setTieneRecargo(true);
-                                log.info("Recalculando importe en DetallePago id={} para recargo de día 1", detalle.getId());
-                                recalcularImporteDetalle(detalle);
-                            } else {
-                                log.info("No se encontró DetallePago asociado a la mensualidad id={}", m.getId());
-                            }
-                        } else {
-                            log.info("Mensualidad id={} ya tiene aplicado un recargo de mayor prioridad; no se aplica recargo de día 1.", m.getId());
-                            recalcularImporteMensualidad(m);
-                            Optional<DetallePago> optDetalle = detallePagoRepositorio.findByMensualidad(m);
-                            optDetalle.ifPresent(this::recalcularImporteDetalle);
-                        }
-                    } else {
-                        log.info("No se aplica recargo de día 1 para mensualidad id={} porque hoy {} es anterior a fechaComparacion1={}", m.getId(), today, fechaComparacion1);
-                    }
-                }
-                proceso1.setUltimaEjecucion(today);
-                procesoEjecutadoRepositorio.save(proceso1);
-                log.info("Proceso RECARGO_DIA_1 completado. Flag actualizado a {}", today);
             } else {
-                log.info("Proceso RECARGO_DIA_1 ya fue ejecutado en el período actual (última ejecución: {})", proceso1.getUltimaEjecucion());
+                log.info("No se aplica recargo de día 15 para mensualidad id={} porque hoy {} es anterior a fechaComparacion15={}",
+                        m.getId(), today, fechaComparacion15);
             }
         }
+
+        proceso15.setUltimaEjecucion(today);
+        procesoEjecutadoRepositorio.save(proceso15);
+        log.info("Proceso RECARGO_DIA_15 completado. Flag actualizado a {}", today);
+    }
+
+    /**
+     * Aplica el recargo de día 1 a las mensualidades vencidas, siempre que:
+     * - Hoy sea posterior al primer día del mes siguiente (para evitar aplicar el recargo
+     *   en el mismo día si la mensualidad fue creada el día 1).
+     * - La mensualidad tenga fecha de cuota anterior al primer día del mes actual.
+     * - Se cumpla que la fecha actual sea posterior a la fecha de cuota incrementada en un mes.
+     */
+    private void aplicarRecargoDia1(LocalDate today, Recargo recargo1) {
+        if (recargo1 == null) {
+            return;
+        }
+
+        // Solo se procesan mensualidades vencidas si hoy es posterior al primer día del mes siguiente
+        LocalDate primerDiaMesSiguiente = today.withDayOfMonth(1).plusMonths(1);
+        if (today.isBefore(primerDiaMesSiguiente)) {
+            log.warn("No se ejecuta RECARGO_DIA_1 porque hoy ({}) es anterior al primer día del mes siguiente ({})", today, primerDiaMesSiguiente);
+            return;
+        }
+
+        ProcesoEjecutado proceso1 = procesoEjecutadoRepositorio
+                .findByProceso("RECARGO_DIA_1")
+                .orElse(new ProcesoEjecutado("RECARGO_DIA_1", null));
+        log.info("Proceso RECARGO_DIA_1, última ejecución registrada: {}", proceso1.getUltimaEjecucion());
+
+        if (proceso1.getUltimaEjecucion() != null && !isDifferentPeriod(proceso1.getUltimaEjecucion(), today)) {
+            log.info("Proceso RECARGO_DIA_1 ya fue ejecutado en el período actual (última ejecución: {})", proceso1.getUltimaEjecucion());
+            return;
+        }
+
+        log.info("Ejecutando proceso RECARGO_DIA_1 para el período actual.");
+        LocalDate primerDiaMesActual = today.withDayOfMonth(1);
+        List<Mensualidad> vencidas = mensualidadRepositorio.findByFechaCuotaBeforeAndEstado(primerDiaMesActual, EstadoMensualidad.PENDIENTE);
+        log.info("Se encontraron {} mensualidades vencidas (fechaCuota < {})", vencidas.size(), primerDiaMesActual);
+
+        for (Mensualidad m : vencidas) {
+            // Se suma un mes a la fecha de cuota para obtener la fecha límite
+            LocalDate fechaComparacion1 = m.getFechaCuota().plusMonths(1);
+            log.info("Procesando mensualidad id={} con fechaCuota={}, fechaComparacion1={}", m.getId(), m.getFechaCuota(), fechaComparacion1);
+
+            /*
+             * Para evitar aplicar recargo a mensualidades creadas el día 1, se requiere que hoy sea
+             * posterior (no igual) a la fechaComparacion1. Así, si la mensualidad fue creada el 01/03/2025,
+             * fechaComparacion1 será 01/04/2025 y no se aplicará recargo si hoy es 01/04/2025.
+             */
+            if (!today.isBefore(fechaComparacion1)) {
+                log.info("La fecha actual {} es posterior a fechaComparacion1={}", today, fechaComparacion1);
+                // Se aplica recargo si no se ha asignado uno o si el recargo actual es de menor prioridad (día 15)
+                if (m.getRecargo() == null || m.getRecargo().getDiaDelMesAplicacion() == 15) {
+                    log.info("Aplicando recargo de día 1 a mensualidad id={}", m.getId());
+                    m.setRecargo(recargo1);
+                    mensualidadRepositorio.save(m);
+                    recalcularImporteMensualidad(m);
+
+                    detallePagoRepositorio.findByMensualidad(m).ifPresent(detalle -> {
+                        detalle.setRecargo(recargo1);
+                        detalle.setTieneRecargo(true);
+                        log.info("Recalculando importe en DetallePago id={} para recargo de día 1", detalle.getId());
+                        recalcularImporteDetalle(detalle);
+                    });
+                } else {
+                    log.info("Mensualidad id={} ya tiene aplicado un recargo de mayor prioridad; no se aplica recargo de día 1.", m.getId());
+                    recalcularImporteMensualidad(m);
+                    detallePagoRepositorio.findByMensualidad(m).ifPresent(this::recalcularImporteDetalle);
+                }
+            } else {
+                log.info("No se aplica recargo de día 1 para mensualidad id={} porque hoy {} no es posterior a fechaComparacion1={}",
+                        m.getId(), today, fechaComparacion1);
+            }
+        }
+
+        proceso1.setUltimaEjecucion(today);
+        procesoEjecutadoRepositorio.save(proceso1);
+        log.info("Proceso RECARGO_DIA_1 completado. Flag actualizado a {}", today);
     }
 
     /**

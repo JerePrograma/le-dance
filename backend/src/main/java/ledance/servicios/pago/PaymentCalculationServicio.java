@@ -69,8 +69,7 @@ public class PaymentCalculationServicio {
         double base = detalle.getValorBase();
         log.info("[calcularImporteInicial] Valor base obtenido: {} para DetallePago id={}", base, detalle.getId());
 
-        if (!detalle.getTieneRecargo() && detalle.getMensualidad() != null || detalle.getTipo() == TipoDetallePago.MENSUALIDAD) {
-            detalle.setRecargo(null);
+        if (!detalle.getTieneRecargo() ) {
             detalle.setTieneRecargo(false);
             log.info("[calcularImporteInicial] Se omite recargo para Detalle id={} (tieneRecargo=false o nulo)", detalle.getId());
         }
@@ -164,7 +163,7 @@ public class PaymentCalculationServicio {
             log.debug("[procesarAbono] Estado cobrado actualizado: {}", detalle.getCobrado());
 
             // 7.1 Actualización de entidades relacionadas
-            if (detalle.getTipo() == TipoDetallePago.MENSUALIDAD && detalle.getMensualidad() != null) {
+            if (detalle.getTipo() == TipoDetallePago.MENSUALIDAD ) {
                 log.info("[procesarAbono] Actualizando estado de mensualidad a PAGADO");
                 detalle.getMensualidad().setEstado(EstadoMensualidad.PAGADO);
                 log.debug("[procesarAbono] Estado mensualidad actualizado: {}",
@@ -234,9 +233,8 @@ public class PaymentCalculationServicio {
         }
 
         // 4. Validar recargo: respetar el flag tieneRecargo del cliente.
-        if (!detalle.getTieneRecargo() && detalle.getMensualidad() != null || detalle.getTipo().equals(TipoDetallePago.MENSUALIDAD)) {
+        if (!detalle.getTieneRecargo() ) {
             // Si el cliente indica que NO se debe aplicar recargo, se limpia el campo
-            detalle.setRecargo(null);
             detalle.setTieneRecargo(false);
             // Forzamos que el importe pendiente sea igual al importe inicial
             if (!detalle.getTipo().equals(TipoDetallePago.MATRICULA)) {
@@ -489,9 +487,8 @@ public class PaymentCalculationServicio {
         }
 
         // 3. Manejo del recargo
-        if ((!detalle.getTieneRecargo() && detalle.getMensualidad() != null) ||
+        if ((!detalle.getTieneRecargo() ) ||
                 detalle.getTipo() == TipoDetallePago.MENSUALIDAD) {
-            detalle.setRecargo(null);
             detalle.setTieneRecargo(false);
             log.info("[calcularMatricula] Sin recargo para Detalle id={}", detalle.getId());
         } else {
@@ -611,13 +608,12 @@ public class PaymentCalculationServicio {
         // Si tieneRecargo es false, se ignora cualquier recargo y se fuerza que
         // el importePendiente sea igual al importeInicial.
         if (!detalle.getTieneRecargo()) {
-            detalle.setRecargo(null);
             detalle.setTieneRecargo(false);
             log.info("[calcularMensualidad] Sin recargo para Detalle id={}. ImportePendiente forzado a importeInicial: {}",
                     detalle.getId(), impInicial);
         } else {
             // Si tieneRecargo es true, se calcula el recargo y se suma al importeInicial
-            double recargo = mensualidadServicio.calcularRecargo(impInicial, detalle.getRecargo());
+            double recargo = MensualidadServicio.validarRecargo(impInicial, detalle.getRecargo());
             double nuevoImportePendiente = impInicial + recargo;
             detalle.setImportePendiente(nuevoImportePendiente);
             log.info("[calcularMensualidad] Recargo aplicado: {}. Nuevo importePendiente: {} para Detalle id={}",
@@ -830,13 +826,6 @@ public class PaymentCalculationServicio {
             log.info("[reatacharAsociaciones] Alumno asignado desde pago para DetallePago id={}", detalle.getId());
         }
 
-        if (detalle.getRecargo() != null && detalle.getTieneRecargo() && detalle.getMensualidad() != null || detalle.getTipo() == TipoDetallePago.MENSUALIDAD) {
-            detalle.setRecargo(detalle.getRecargo());
-        } else {
-            detalle.setRecargo(null);
-            detalle.setTieneRecargo(false);
-        }
-
         // 3. Reatachar Concepto y, si aplica, SubConcepto
         if (detalle.getConcepto() != null && detalle.getConcepto().getId() != null) {
             Concepto managedConcepto = entityManager.find(Concepto.class, detalle.getConcepto().getId());
@@ -853,7 +842,7 @@ public class PaymentCalculationServicio {
         }
 
         // 4. Reatachar Mensualidad, Matrícula y Stock (si existen)
-        if (detalle.getMensualidad() != null && detalle.getMensualidad().getId() != null) {
+        if (detalle.getDescripcionConcepto().contains("CUOTA") && detalle.getMensualidad().getId() != null) {
             Mensualidad managedMensualidad = entityManager.find(Mensualidad.class, detalle.getMensualidad().getId());
             if (managedMensualidad != null) {
                 detalle.setMensualidad(managedMensualidad);

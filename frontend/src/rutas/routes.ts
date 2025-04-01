@@ -158,6 +158,9 @@ const RecargosFormulario = lazy(
 const ReporteDetallePago = lazy(
   () => import("../funcionalidades/reportes/ReporteDetallePago")
 );
+const AlumnosPorDIsciplina = lazy(
+  () => import("../funcionalidades/reportes/AlumnosPorDIsciplina.tsx")
+);
 const SubConceptosPagina = lazy(
   () => import("../funcionalidades/subconceptos/SubConceptosPagina")
 );
@@ -184,6 +187,7 @@ export const otherProtectedRoutes = [
   { path: "/pagos/editar", Component: EditarPagoForm },
   { path: "/pagos/formulario", Component: PagosFormulario },
   { path: "/caja", Component: CajaPagina },
+  { path: "/alumnos-por-disciplina", Component: AlumnosPorDIsciplina },
   {
     path: "/observaciones-profesores",
     Component: ConsultaObservacionesProfesores,

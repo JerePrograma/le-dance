@@ -81,7 +81,7 @@ public class DetallePagoServicio {
 
         // 4. Cálculo de recargos
         double recargo = 0;
-        if (detalle.getTieneRecargo() && detalle.getMensualidad() != null || detalle.getTipo() == TipoDetallePago.MENSUALIDAD) {
+        if (detalle.getTieneRecargo() ) {
             log.info("[calcularImporte] Procesando recargo activo");
             recargo = (detalle.getRecargo() != null) ? obtenerValorRecargo(detalle, base) : 0.0;
             log.info("[calcularImporte] Recargo aplicado: {}", recargo);
@@ -137,7 +137,7 @@ public class DetallePagoServicio {
 
     public double obtenerValorRecargo(DetallePago detalle, double base) {
         Recargo recargo = detalle.getRecargo();
-        if (!detalle.getTieneRecargo() && detalle.getMensualidad() != null || detalle.getTipo() == TipoDetallePago.MENSUALIDAD) {
+        if (!detalle.getTieneRecargo() ) {
             return 0.0;
         }
         if (recargo != null) {

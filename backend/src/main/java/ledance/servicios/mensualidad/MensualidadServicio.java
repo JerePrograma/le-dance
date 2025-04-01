@@ -118,7 +118,7 @@ public class MensualidadServicio implements IMensualidadService {
 
         // Calcular descuentos y recargos, controlando valores nulos
         double totalDescuento = calcularDescuento(valorBase, mensualidad.getBonificacion());
-        double totalRecargo = calcularRecargo(valorBase, mensualidad.getRecargo());
+        double totalRecargo = validarRecargo(valorBase, mensualidad.getRecargo());
 
         // Se suma el recargo cuando corresponda: el importe a pagar es (valorBase + totalRecargo) - totalDescuento
         double totalPagar = redondear((valorBase + totalRecargo) - totalDescuento);
@@ -139,7 +139,7 @@ public class MensualidadServicio implements IMensualidadService {
         return descuentoFijo + descuentoPorcentaje;
     }
 
-    public double calcularRecargo(double valorBase, Recargo recargo) {
+    public static double validarRecargo(double valorBase, Recargo recargo) {
         if (recargo == null) {
             return 0.0;
         }
@@ -603,16 +603,15 @@ public class MensualidadServicio implements IMensualidadService {
                 mensualidad.getId(), pagoPendiente.getId());
 
         // Aplicar recargo si corresponde
-        if (detalle.getRecargo() != null && !detalle.getTieneRecargo() && detalle.getMensualidad() != null || detalle.getTipo() == TipoDetallePago.MENSUALIDAD) {
+        if (detalle.getRecargo() != null && !detalle.getTieneRecargo() ) {
             log.info("[registrarDetallePagoMensualidad] El detalle indica NO aplicar recargo (tieneRecargo=false).");
-            detalle.setRecargo(null);
             detalle.setTieneRecargo(false);
             detalle.setImportePendiente(importeInicial - aCobrar);
         } else if (mensualidad.getRecargo() != null) {
             Recargo recargo = mensualidad.getRecargo();
             detalle.setRecargo(recargo);
             detalle.setTieneRecargo(true);
-            double recargoValue = calcularRecargo(importeInicial, recargo);
+            double recargoValue = validarRecargo(importeInicial, recargo);
             double nuevoTotal = importeInicial + recargoValue;
             double nuevoPendiente = nuevoTotal - aCobrar;
             detalle.setImportePendiente(nuevoPendiente);
@@ -796,7 +795,7 @@ public class MensualidadServicio implements IMensualidadService {
                 detalle.getCobrado(),
                 detalle.getConcepto() != null ? detalle.getConcepto().getId() : null,
                 detalle.getSubConcepto() != null ? detalle.getSubConcepto().getId() : null,
-                detalle.getMensualidad() != null ? detalle.getMensualidad().getId() : null,
+                detalle.getDescripcionConcepto().contains("CUOTA") ? detalle.getMensualidad().getId() : null,
                 detalle.getMatricula() != null ? detalle.getMatricula().getId() : null,
                 detalle.getStock() != null ? detalle.getStock().getId() : null,
                 detalle.getImporteInicial(),
@@ -998,9 +997,8 @@ public class MensualidadServicio implements IMensualidadService {
         log.info("[procesarAbonoMensualidad] Abono recibido del detalle: {}", abonoRecibido);
 
         // Si el detalle no tiene recargo, aseguramos que tampoco se use recargo en la mensualidad
-        if (!detalle.getTieneRecargo() && detalle.getMensualidad() != null || detalle.getTipo() == TipoDetallePago.MENSUALIDAD) {
+        if (!detalle.getTieneRecargo() ) {
             mensualidad.setRecargo(null);
-            detalle.setRecargo(null);
             detalle.setTieneRecargo(false);
             log.info("[procesarAbonoMensualidad] Se ha forzado recargo null para Mensualidad id={} y Detalle id={}", mensualidad.getId(), detalle.getId());
         }

@@ -80,9 +80,7 @@ const AsistenciaMensualDetalle: React.FC = () => {
     try {
       const data = await asistenciasApi.listarDisciplinasSimplificadas();
       setDisciplinas(data);
-    } catch (err) {
-      toast.error("Error al cargar la lista de disciplinas.");
-    }
+    } catch (err) {}
   }, []);
 
   useEffect(() => {
@@ -179,10 +177,8 @@ const AsistenciaMensualDetalle: React.FC = () => {
         setObservaciones(obsMap);
       } else {
         setAsistenciaMensual(null);
-        toast.info("No se encontró asistencia mensual para estos parámetros.");
       }
     } catch (err) {
-      toast.error("No se pudo cargar la asistencia mensual.");
     } finally {
       setLoading(false);
     }
@@ -243,15 +239,9 @@ const AsistenciaMensualDetalle: React.FC = () => {
         observacion,
         asistenciasDiarias: [], // Se envía vacío si no se actualizan
       }));
-      asistenciasApi
-        .actualizarAsistenciaMensual(asistenciaMensual!.id, {
-          asistenciasAlumnoMensual: asistenciasAlumnoMensualArray,
-        })
-        .then(() => toast.success("Observación actualizada"))
-        .catch((err) => {
-          toast.error("Error al actualizar observación", err);
-          toast.error("Error al actualizar la observación.");
-        });
+      asistenciasApi.actualizarAsistenciaMensual(asistenciaMensual!.id, {
+        asistenciasAlumnoMensual: asistenciasAlumnoMensualArray,
+      });
     },
     [asistenciaMensual, observaciones]
   );
@@ -266,16 +256,12 @@ const AsistenciaMensualDetalle: React.FC = () => {
     if (!asistenciaMensual) return;
     const alumnoRegistro = uniqueAlumnos.find((al) => al.id === alumnoId);
     if (!alumnoRegistro) {
-      toast.error("Registro de alumno no encontrado.");
       return;
     }
     const registro = alumnoRegistro.asistenciasDiarias.find(
       (ad) => ad.fecha === fecha
     );
     if (!registro) {
-      toast.error(
-        "No se encontró registro de asistencia para este alumno en esta fecha."
-      );
       return;
     }
     try {
@@ -310,10 +296,7 @@ const AsistenciaMensualDetalle: React.FC = () => {
           ),
         };
       });
-      toast.success("Asistencia actualizada");
-    } catch (err) {
-      toast.error("Error al actualizar la asistencia.");
-    }
+    } catch (err) {}
   };
 
   return (

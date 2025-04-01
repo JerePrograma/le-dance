@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { PlusCircle } from "lucide-react";
 import { toast } from "react-toastify";
-import { useNavigate } from "react-router-dom";
 import Tabla from "../../componentes/comunes/Tabla";
 import Boton from "../../componentes/comunes/Boton";
 import ListaConInfiniteScroll from "../../componentes/comunes/ListaConInfiniteScroll";
@@ -46,10 +45,8 @@ export default function EgresosDebitoPagina() {
   const [loadingDetalle, setLoadingDetalle] = useState<boolean>(false);
   const [errorDetalle, setErrorDetalle] = useState<string | null>(null);
 
-  // Estado para almacenar los pagos
+  // Estado para almacenar los pagos (para obtener método de pago)
   const [pagos, setPagos] = useState<PagoResponse[]>([]);
-
-  const navigate = useNavigate();
 
   // Función para cargar egresos de tipo DEBITO
   const fetchEgresos = useCallback(async () => {
@@ -211,7 +208,6 @@ export default function EgresosDebitoPagina() {
   const filteredDetallesDebito = useMemo(() => {
     return detallesDebito.filter((detalle) => {
       if (!detalle.cobrado || !detalle.pagoId) return false;
-      // Filtrar por fechaRegistro usando los mismos filtros de fecha
       const registro = new Date(detalle.fechaRegistro);
       if (filterStartDate && registro < new Date(filterStartDate)) return false;
       if (filterEndDate && registro > new Date(filterEndDate)) return false;
@@ -237,6 +233,29 @@ export default function EgresosDebitoPagina() {
     }
   }, [hasMorePagos]);
 
+  // --- Cálculos Totales ---
+  // Total de aCobrar del Detalle de Pagos por Débito.
+  const totalACobrar = useMemo(() => {
+    return filteredDetallesDebito.reduce(
+      (sum, detalle) => sum + Number(detalle.aCobrar || 0),
+      0
+    );
+  }, [filteredDetallesDebito]);
+
+  // Total de monto de los egresos.
+  const totalEgresos = useMemo(() => {
+    return filteredEgresos.reduce(
+      (sum, egreso) => sum + Number(egreso.monto || 0),
+      0
+    );
+  }, [filteredEgresos]);
+
+  // Total final: resta entre totalACobrar y totalEgresos.
+  const totalFinal = useMemo(
+    () => totalACobrar - totalEgresos,
+    [totalACobrar, totalEgresos]
+  );
+
   // --- Renderizado ---
   if (loading && egresos.length === 0)
     return <div className="p-4 text-center">Cargando...</div>;
@@ -247,7 +266,7 @@ export default function EgresosDebitoPagina() {
 
   return (
     <div className="page-container p-4">
-      <h1 className="text-2xl font-bold mb-4">Egresos - Tipo DEBITO</h1>
+      <h1 className="text-2xl font-bold mb-4">Débitos</h1>
 
       {/* Filtros por fecha */}
       <div className="flex gap-4 mb-4">
@@ -277,7 +296,7 @@ export default function EgresosDebitoPagina() {
         </div>
       </div>
 
-      {/* Sección de Detalle de Pagos por DEBITO */}
+      {/* Sección de Detalle de Pagos por Débito */}
       <div className="page-card mb-4 p-4 border rounded-md shadow-sm bg-background text-foreground">
         <h2 className="text-xl font-bold mb-2">Detalle Pagos por Débito</h2>
         {loadingDetalle && <div className="text-center py-2">Cargando...</div>}
@@ -295,7 +314,6 @@ export default function EgresosDebitoPagina() {
               "Valor Base",
               "Bonificación",
               "Recargo",
-              "Cobrados",
             ]}
             data={sortedItemPagos}
             customRender={(fila: DetallePagoResponse) => [
@@ -303,23 +321,9 @@ export default function EgresosDebitoPagina() {
               fila.alumnoDisplay,
               fila.descripcionConcepto,
               fila.importeInicial,
-              fila.bonificacionId ? fila.bonificacionId : "-",
-              fila.recargoId ? fila.recargoId : "-",
-              fila.cobrado ? "Sí" : "No",
+              fila.bonificacionNombre ? fila.bonificacionNombre : "-",
+              fila.recargoNombre ? fila.recargoNombre : "-",
             ]}
-            actions={(fila: DetallePagoResponse) => (
-              <div className="flex gap-2">
-                <Boton
-                  onClick={() =>
-                    navigate(`/detalles-pago/formulario?id=${fila.id}`)
-                  }
-                  className="bg-blue-500 text-white p-1 text-sm"
-                  aria-label={`Editar detalle de pago ${fila.id}`}
-                >
-                  Editar
-                </Boton>
-              </div>
-            )}
             emptyMessage="No hay detalle de pagos de débito"
           />
         )}
@@ -338,7 +342,6 @@ export default function EgresosDebitoPagina() {
           </div>
         )}
       </div>
-
       {/* Botón para Agregar Egreso */}
       <div className="flex justify-end mb-4">
         <Boton
@@ -415,6 +418,22 @@ export default function EgresosDebitoPagina() {
           </div>
         </div>
       )}
+
+      {/* Sección de Totales */}
+      <div className="mb-4 p-4 border rounded-md bg-background text-foreground">
+        <p className="font-medium">
+          Total Cobrado:{" "}
+          <span className="font-bold">${totalACobrar.toLocaleString()}</span>
+        </p>
+        <p className="font-medium">
+          Total Egresos:{" "}
+          <span className="font-bold">${totalEgresos.toLocaleString()}</span>
+        </p>
+        <p className="font-medium">
+          Neto:{" "}
+          <span className="font-bold">${totalFinal.toLocaleString()}</span>
+        </p>
+      </div>
     </div>
   );
 }

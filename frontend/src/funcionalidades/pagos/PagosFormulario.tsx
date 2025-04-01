@@ -229,7 +229,6 @@ const CobranzasFormHeader: React.FC<CobranzasFormHeaderProps> = ({
     <div className="border p-4 mb-4">
       <h2 className="font-bold mb-2">Datos de Cobranzas</h2>
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">
-        {/* Recibo Nro */}
         <div>
           <label className="block font-medium">Recibo Nro:</label>
           <input
@@ -239,7 +238,6 @@ const CobranzasFormHeader: React.FC<CobranzasFormHeaderProps> = ({
             value={values.reciboNro}
           />
         </div>
-        {/* Búsqueda de Alumno */}
         <div className="sm:col-span-2 relative" ref={wrapperRef}>
           <label className="block font-medium">Alumno:</label>
           <input
@@ -277,7 +275,6 @@ const CobranzasFormHeader: React.FC<CobranzasFormHeaderProps> = ({
             </ul>
           )}
         </div>
-        {/* Fecha */}
         <div>
           <label className="block font-medium">Fecha:</label>
           <input
@@ -293,12 +290,10 @@ const CobranzasFormHeader: React.FC<CobranzasFormHeaderProps> = ({
 };
 
 // ----- TotalsUpdater -----
-// Calcula y actualiza totalACobrar sumando importes pendientes y recargo según método de pago.
 const TotalsUpdater: React.FC<{ metodosPago: MetodoPagoResponse[] }> = ({
   metodosPago,
 }) => {
   const { values, setFieldValue } = useFormikContext<CobranzasFormValues>();
-
   useEffect(() => {
     const computedTotalImporte = values.detallePagos.reduce(
       (total, item) => total + Number(item.importePendiente || 0),
@@ -324,7 +319,6 @@ const TotalsUpdater: React.FC<{ metodosPago: MetodoPagoResponse[] }> = ({
     setFieldValue,
     values.aplicarRecargo,
   ]);
-
   return null;
 };
 
@@ -455,7 +449,6 @@ const ConceptosSection: React.FC<ConceptosSectionProps> = ({
 };
 
 // ----- DetallesTable -----
-// Muestra cada detalle y permite actualizar manualmente "importePendiente" lo que a su vez actualiza "aCobrar"
 const DetallesTable: React.FC = () => {
   const { bonificaciones, recargos } = useCobranzasData();
   return (
@@ -561,7 +554,6 @@ const DetallesTable: React.FC = () => {
                                   `detallePagos.${index}.importePendiente`,
                                   newValue
                                 );
-                                // Si no se modificó manualmente aCobrar, se actualiza con el nuevo valor
                                 form.setFieldValue(
                                   `detallePagos.${index}.aCobrar`,
                                   newValue
@@ -574,7 +566,7 @@ const DetallesTable: React.FC = () => {
                       </td>
                       <td className="border p-2 text-center text-sm">
                         <Field name={`detallePagos.${index}.aCobrar`}>
-                          {({ field, form }: any) => (
+                          {({ field }: any) => (
                             <div>
                               <input
                                 type="number"
@@ -637,7 +629,7 @@ const CobranzasForm: React.FC = () => {
     InscripcionResponse[]
   >([]);
 
-  // Datos de cobranzas (incluye bonificaciones y recargos)
+  // Datos de cobranzas (incluye bonificaciones, recargos, etc.)
   const { disciplinas, stocks, metodosPago, conceptos } = useCobranzasData();
   const { data: alumnoData } = useAlumnoData(selectedAlumnoId);
 
@@ -674,25 +666,19 @@ const CobranzasForm: React.FC = () => {
       _currentValues: CobranzasFormValues,
       setFieldValue: (
         field: string,
-        value: any,
-        shouldValidate?: boolean
+        value: any
       ) => Promise<void | FormikErrors<CobranzasFormValues>>
     ) => {
       const id = Number(alumnoIdStr);
-      // Actualizamos el alumnoId en el formulario
       await setFieldValue("alumnoId", id);
-      // Actualizamos el estado local que controla el alumno seleccionado
       setSelectedAlumnoId(id);
       await setFieldValue("matriculaRemoved", false);
-
-      // Siempre obtenemos los datos frescos del alumno directamente de la API
       let alumnoInfo;
       try {
         alumnoInfo = await alumnosApi.obtenerPorId(id);
       } catch (error) {
         alumnoInfo = null;
       }
-
       if (alumnoInfo) {
         await setFieldValue("alumno", normalizeAlumno(alumnoInfo));
       } else {
@@ -715,7 +701,6 @@ const CobranzasForm: React.FC = () => {
           inscripciones: [],
         });
       }
-
       try {
         const inscripcionesActivas =
           await inscripcionesApi.obtenerInscripcionesActivas(id);
@@ -723,10 +708,9 @@ const CobranzasForm: React.FC = () => {
       } catch (error) {
         setActiveInscripciones([]);
       }
-
       console.log("Alumno seleccionado:", alumnoInfo);
     },
-    [] // Eliminamos la dependencia de alumnoData para evitar cierres obsoletos
+    []
   );
 
   useEffect(() => {
@@ -818,53 +802,40 @@ const CobranzasForm: React.FC = () => {
       const newDetails = [...values.detallePagos];
       let added = false;
 
-      // Verificadores de duplicados
       const isDuplicate = (conceptId: number) =>
         newDetails.some((detalle) => detalle.conceptoId === conceptId);
-
       const isDuplicateString = (desc: string) =>
         newDetails.some(
           (det) => det.descripcionConcepto.trim() === desc.trim()
         );
 
-      // ─────────────────────────────────────────────────────────
-      // (1) Agregar detalle por concepto (ej. desde lista de 'conceptos')
-      // ─────────────────────────────────────────────────────────
+      // (1) Agregar detalle por concepto
       if (values.conceptoSeleccionado) {
         console.log(
           "Se ha seleccionado un concepto:",
           values.conceptoSeleccionado
         );
-
-        // 1.a) Encontrar el concepto según el ID
         const selectedConcept = conceptos.find(
           (c: ConceptoResponse) =>
             c.id.toString() === values.conceptoSeleccionado
         );
-
         if (selectedConcept) {
           console.log(
             "[handleAgregarDetalle] Concepto encontrado:",
             selectedConcept
           );
-
-          // Detectamos si el concepto es MATRÍCULA según la descripción
           const descMayus = (selectedConcept.descripcion || "").toUpperCase();
           console.log(
             "[handleAgregarDetalle] Revisión de 'MATRICULA' en la descripción:",
             descMayus
           );
-
           if (descMayus.includes("MATRICULA")) {
-            // Caso MATRÍCULA: se aplica la lógica de descuento del crédito acumulado
             console.log("[handleAgregarDetalle] → Es MATRÍCULA.");
             let credit = Number(values.alumno?.creditoAcumulado || 0);
             const originalPrice = selectedConcept.precio;
-            // Se usa el crédito disponible, sin sobrepasar el precio
             const usado = Math.min(originalPrice, credit);
             const total = Math.max(0, originalPrice - usado);
             const conceptoDetalle = `MATRICULA ${new Date().getFullYear()}`;
-
             try {
               await pagosApi.verificarMensualidadOMatricula({
                 id: 0,
@@ -873,23 +844,16 @@ const CobranzasForm: React.FC = () => {
                 descripcionConcepto: conceptoDetalle,
                 aCobrar: total,
                 cobrado: false,
-                pagoId: null,
                 valorBase: total,
               } as unknown as DetallePagoRegistroRequest);
-
               console.log(
                 "[handleAgregarDetalle] Verificación de Matrícula OK!"
               );
-
-              // Actualizamos el crédito acumulado en el form
               setFieldValue("alumno.creditoAcumulado", credit - usado);
-
-              // Se hace el push del detalle con el precio ajustado
               newDetails.push({
                 id: 0,
                 descripcionConcepto: conceptoDetalle,
                 conceptoId: selectedConcept.id,
-                // Asignamos también el subConceptoId obtenido del concepto, si existe
                 subConceptoId: selectedConcept.subConcepto
                   ? selectedConcept.subConcepto.id
                   : null,
@@ -907,10 +871,9 @@ const CobranzasForm: React.FC = () => {
                 version: selectedConcept.version,
                 autoGenerated: false,
                 pagoId: null,
-                tieneRecargo: true,
+                tieneRecargo: values.aplicarRecargo,
                 modifiedACobrar: false,
               } as DetallePagoRegistroRequestExt);
-
               added = true;
             } catch (error) {
               console.error(
@@ -921,7 +884,6 @@ const CobranzasForm: React.FC = () => {
               return;
             }
           } else {
-            // Si NO es MATRÍCULA, se revisa duplicidad y se agrega el detalle normal
             if (isDuplicate(selectedConcept.id)) {
               toast.error("Concepto ya se encuentra agregado");
               console.log(
@@ -932,7 +894,6 @@ const CobranzasForm: React.FC = () => {
                 id: 0,
                 descripcionConcepto: String(selectedConcept.descripcion),
                 conceptoId: selectedConcept.id,
-                // Aquí se asigna el subConceptoId obtenido del concepto (si existe)
                 subConceptoId: selectedConcept.subConcepto
                   ? selectedConcept.subConcepto.id
                   : null,
@@ -950,7 +911,7 @@ const CobranzasForm: React.FC = () => {
                 version: selectedConcept.version,
                 autoGenerated: false,
                 pagoId: null,
-                tieneRecargo: true,
+                tieneRecargo: values.aplicarRecargo,
                 modifiedACobrar: false,
               } as DetallePagoRegistroRequestExt);
               added = true;
@@ -968,12 +929,9 @@ const CobranzasForm: React.FC = () => {
         }
       }
 
-      // ─────────────────────────────────────────────────────────
-      // (2) Caso disciplina/tarifa (ej. MENSUALIDAD, CLASE SUELTA, etc.)
-      // ─────────────────────────────────────────────────────────
+      // (2) Agregar detalle por DISCIPLINA/TARIFA
       let total = 0;
       let conceptoDetalle = "";
-
       const selectedDisciplina = mappedDisciplinas.find(
         (disc) => disc.nombre === values.disciplina
       );
@@ -982,7 +940,6 @@ const CobranzasForm: React.FC = () => {
           "[handleAgregarDetalle] Disciplina encontrada:",
           selectedDisciplina
         );
-
         let precio = 0;
         let tarifaLabel = "";
         if (values.tarifa === "CUOTA") {
@@ -995,17 +952,14 @@ const CobranzasForm: React.FC = () => {
           precio = selectedDisciplina.clasePrueba || 0;
           tarifaLabel = "CLASE DE PRUEBA";
         }
-
         const cantidad = Number(values.cantidad) || 1;
         total = precio * cantidad;
         conceptoDetalle = `${selectedDisciplina.nombre} - ${tarifaLabel} - ${values.periodoMensual}`;
-
         console.log(
           "[handleAgregarDetalle] conceptoDetalle (disciplina):",
           conceptoDetalle
         );
         console.log("[handleAgregarDetalle] total calculado:", total);
-
         try {
           console.log(
             "[handleAgregarDetalle] Verificando MensualidadOMatricula para:",
@@ -1028,9 +982,8 @@ const CobranzasForm: React.FC = () => {
             matriculaId: null,
             stockId: null,
             pagoId: null,
-            tieneRecargo: true,
+            tieneRecargo: values.aplicarRecargo,
           } as unknown as DetallePagoRegistroRequest);
-
           console.log(
             "[handleAgregarDetalle] Verificación exitosa para disciplina/tarifa:",
             conceptoDetalle
@@ -1043,7 +996,6 @@ const CobranzasForm: React.FC = () => {
           toast.error("MENSUALIDAD YA COBRADA");
           return;
         }
-
         if (isDuplicateString(conceptoDetalle)) {
           toast.error("Concepto ya se encuentra agregado");
           console.log(
@@ -1069,39 +1021,33 @@ const CobranzasForm: React.FC = () => {
             stockId: null,
             autoGenerated: false,
             pagoId: null,
-            tieneRecargo: true,
+            tieneRecargo: values.aplicarRecargo,
           } as DetallePagoRegistroRequestExt);
           added = true;
           console.log(
-            "[handleAgregarDetalle] → Agregado nuevo detalle (disciplina/tarifa):",
+            "[handleAgregarDetalle] Agregado nuevo detalle (disciplina/tarifa):",
             conceptoDetalle
           );
         }
       }
 
-      // ─────────────────────────────────────────────────────────
       // (3) Agregar detalle por STOCK
-      // ─────────────────────────────────────────────────────────
       if (values.stockSeleccionado) {
         console.log(
           "[handleAgregarDetalle] Procesando STOCK seleccionado:",
           values.stockSeleccionado
         );
-
         const selectedStock = stocks.find(
           (s: StockResponse) => s.id.toString() === values.stockSeleccionado
         );
-
         if (selectedStock) {
           console.log(
             "[handleAgregarDetalle] selectedStock encontrado:",
             selectedStock
           );
-
           const cantidad = Number(values.cantidad) || 1;
           const total = selectedStock.precio * cantidad;
           const stockDesc = selectedStock.nombre;
-
           if (isDuplicateString(stockDesc)) {
             toast.error("Concepto ya se encuentra agregado");
             console.log("[handleAgregarDetalle] STOCK duplicado:", stockDesc);
@@ -1125,20 +1071,17 @@ const CobranzasForm: React.FC = () => {
               version: selectedStock.version,
               autoGenerated: false,
               pagoId: null,
-              tieneRecargo: true,
+              tieneRecargo: values.aplicarRecargo,
             } as DetallePagoRegistroRequestExt);
             added = true;
             console.log(
-              "[handleAgregarDetalle] → Agregado nuevo detalle STOCK:",
+              "[handleAgregarDetalle] Agregado nuevo detalle STOCK:",
               stockDesc
             );
           }
         }
       }
 
-      // ─────────────────────────────────────────────────────────
-      // (4) Final: si se agregó algo, actualizar el form
-      // ─────────────────────────────────────────────────────────
       if (added) {
         console.log(
           "[handleAgregarDetalle] Detalle(s) agregado(s). Actualizando form state..."
@@ -1163,16 +1106,21 @@ const CobranzasForm: React.FC = () => {
     [conceptos, mappedDisciplinas, stocks]
   );
 
+  // ----- onSubmit -----
   const onSubmit = async (values: CobranzasFormValues, actions: any) => {
     if (!values.detallePagos || values.detallePagos.length === 0) {
       toast.error("No hay nada que cobrar");
       return;
     }
     try {
-      const { detallePagos, alumno, fecha, totalACobrar, metodoPagoId } =
-        values;
-
-      // Recuperar el usuario del localStorage y extraer su id
+      const {
+        detallePagos,
+        alumno,
+        fecha,
+        totalACobrar,
+        metodoPagoId,
+        aplicarRecargo,
+      } = values;
       const usuarioStorage = localStorage.getItem("usuario");
       if (!usuarioStorage) {
         throw new Error("Usuario no autenticado");
@@ -1206,7 +1154,7 @@ const CobranzasForm: React.FC = () => {
           stockId: d.stockId ?? null,
           version: d.version ?? 0,
           pagoId: d.pagoId ?? null,
-          tieneRecargo: d.tieneRecargo,
+          tieneRecargo: aplicarRecargo ? true : false,
           autoGenerated: false,
         })),
         pagoMedios: [],
@@ -1240,8 +1188,12 @@ const CobranzasForm: React.FC = () => {
       actions.resetForm();
       navigate(`/pagos/alumno/${values.alumno.id}`);
     } catch (error: any) {
+      console.error("Error al registrar la cobranza:", error);
       const errorMsg =
-        error.response?.data?.detalle || "Error al registrar la cobranza";
+        error.response?.data?.detalle ||
+        error.response?.data?.message ||
+        error.message ||
+        "Error al registrar la cobranza";
       toast.error(errorMsg);
     }
   };
@@ -1258,7 +1210,6 @@ const CobranzasForm: React.FC = () => {
         enableReinitialize
       >
         {({ values, setFieldValue }) => {
-          // Autoselección: si no hay método de pago, se asigna "EFECTIVO" por defecto
           useEffect(() => {
             if (!values.metodoPagoId && metodosPago.length > 0) {
               const efectivo = metodosPago.find(
@@ -1271,7 +1222,6 @@ const CobranzasForm: React.FC = () => {
             }
           }, [values.metodoPagoId, metodosPago, setFieldValue]);
 
-          // Actualiza totalCobrado en función de los "aCobrar" de cada detalle
           useEffect(() => {
             const nuevoTotalCobrado = values.detallePagos.reduce(
               (sum: number, detalle: any) => sum + Number(detalle.aCobrar || 0),
@@ -1282,7 +1232,6 @@ const CobranzasForm: React.FC = () => {
             }
           }, [values.detallePagos, setFieldValue, values.totalCobrado]);
 
-          // Al cambiar el método de pago se reactiva el recargo y se reinician los importes de cada detalle
           const selectedMetodoPago = metodosPago.find(
             (mp: MetodoPagoResponse) => mp.id === Number(values.metodoPagoId)
           );
@@ -1293,11 +1242,9 @@ const CobranzasForm: React.FC = () => {
             }
           }, [values.metodoPagoId, values.totalACobrar, setFieldValue]);
 
-          // Función para quitar recargo: se desactiva y se reinician importes pendientes en cada detalle
           const handleQuitarRecargo = useCallback(() => {
             setFieldValue("aplicarRecargo", false);
             const updatedDetalles = values.detallePagos.map((detalle: any) => {
-              // Solo se quita el recargo a los detalles que tengan un "mensualidadId"
               if (detalle.mensualidadId) {
                 return {
                   ...detalle,
