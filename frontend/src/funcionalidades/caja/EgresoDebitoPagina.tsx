@@ -202,20 +202,19 @@ export default function EgresosDebitoPagina() {
     fetchPagos();
   }, [fetchDetallePagosDebito, fetchPagos]);
 
-  // Filtrar los DetallePago para incluir sólo aquellos que estén cobrados,
-  // cuyo pago asociado tenga método "DEBITO" y cuya fechaRegistro se encuentre
-  // dentro del rango de fecha seleccionado
+  // Filtrar los DetallePago para incluir solo aquellos que cumplen:
+  // (importePendiente === 0 o aCobrar > 0) y cuyo pago tenga método "debito"
   const filteredDetallesDebito = useMemo(() => {
     return detallesDebito.filter((detalle) => {
-      // Solo verificamos que exista el pago asociado
-      if (!detalle.pagoId) return false;
-
       const registro = new Date(detalle.fechaRegistro);
       if (filterStartDate && registro < new Date(filterStartDate)) return false;
       if (filterEndDate && registro > new Date(filterEndDate)) return false;
-
+      // Condición solicitada
+      if (!(detalle.importePendiente === 0 || detalle.aCobrar > 0))
+        return false;
+      // Verificamos que exista el pago asociado y que sea de método "debito"
+      if (!detalle.pagoId) return false;
       const pago = pagos.find((p) => p.id === detalle.pagoId);
-      // Filtramos por el método de pago "debito"
       return pago && pago.metodoPago?.descripcion?.toLowerCase() === "debito";
     });
   }, [detallesDebito, pagos, filterStartDate, filterEndDate]);
@@ -315,7 +314,7 @@ export default function EgresosDebitoPagina() {
               "Código",
               "Alumno",
               "Concepto",
-              "Valor Base",
+              "Cobrado",
               "Bonificación",
               "Recargo",
             ]}
@@ -324,7 +323,7 @@ export default function EgresosDebitoPagina() {
               fila.conceptoId || fila.id,
               fila.alumnoDisplay,
               fila.descripcionConcepto,
-              fila.importeInicial,
+              fila.aCobrar,
               fila.bonificacionNombre ? fila.bonificacionNombre : "-",
               fila.recargoNombre ? fila.recargoNombre : "-",
             ]}
