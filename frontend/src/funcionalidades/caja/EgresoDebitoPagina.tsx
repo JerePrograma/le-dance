@@ -18,25 +18,14 @@ import type {
 export default function EgresosDebitoPagina() {
   const itemsPerPage = 25;
 
-  // Estados para egresos, infinite scroll y carga
+  /* ----------------- Estados para EGRESOS ----------------- */
   const [egresos, setEgresos] = useState<EgresoResponse[]>([]);
-  const [visibleCount, setVisibleCount] = useState<number>(itemsPerPage);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+  const [visibleCountEgresos, setVisibleCountEgresos] =
+    useState<number>(itemsPerPage);
+  const [loadingEgresos, setLoadingEgresos] = useState<boolean>(false);
+  const [errorEgresos, setErrorEgresos] = useState<string | null>(null);
 
-  // Estados para el modal de agregar egreso
-  const [showModal, setShowModal] = useState<boolean>(false);
-  const [montoEgreso, setMontoEgreso] = useState<number>(0);
-  const [obsEgreso, setObsEgreso] = useState<string>("");
-  const [fecha, setFecha] = useState<string>(
-    new Date().toISOString().split("T")[0]
-  );
-
-  // Estados para filtros de fecha (se aplican a egresos y a DetallePago)
-  const [filterStartDate, setFilterStartDate] = useState<string>("");
-  const [filterEndDate, setFilterEndDate] = useState<string>("");
-
-  // Estados para DetallePago con método DEBITO
+  /* ----------------- Estados para DETALLE PAGO (DEBITO) ----------------- */
   const [detallesDebito, setDetallesDebito] = useState<DetallePagoResponse[]>(
     []
   );
@@ -44,23 +33,62 @@ export default function EgresosDebitoPagina() {
     useState<number>(itemsPerPage);
   const [loadingDetalle, setLoadingDetalle] = useState<boolean>(false);
   const [errorDetalle, setErrorDetalle] = useState<string | null>(null);
-
-  // Estado para almacenar los pagos (para obtener método de pago)
+  // Pagos se usa para filtrar por método de pago
   const [pagos, setPagos] = useState<PagoResponse[]>([]);
 
-  // Función para cargar egresos de tipo DEBITO
+  /* ----------------- Estados para filtros de fecha ----------------- */
+  const [filterStartDate, setFilterStartDate] = useState<string>("");
+  const [filterEndDate, setFilterEndDate] = useState<string>("");
+
+  /* ----------------- Estados para Modal de EGRESO ----------------- */
+  const [showModal, setShowModal] = useState<boolean>(false);
+  const [montoEgreso, setMontoEgreso] = useState<number>(0);
+  const [obsEgreso, setObsEgreso] = useState<string>("");
+  const [fecha, setFecha] = useState<string>(
+    new Date().toISOString().split("T")[0]
+  );
+
+  /* ----------------- Funciones para cargar datos ----------------- */
+
+  // Cargar egresos de tipo DEBITO
   const fetchEgresos = useCallback(async () => {
     try {
-      setLoading(true);
-      setError(null);
+      setLoadingEgresos(true);
+      setErrorEgresos(null);
       const data = await egresosApi.listarEgresosDebito();
       setEgresos(Array.isArray(data) ? data : []);
-      setVisibleCount(itemsPerPage);
+      setVisibleCountEgresos(itemsPerPage);
     } catch (err) {
       toast.error("Error al cargar egresos.");
-      setError("Error al cargar egresos.");
+      setErrorEgresos("Error al cargar egresos.");
     } finally {
-      setLoading(false);
+      setLoadingEgresos(false);
+    }
+  }, []);
+
+  // Cargar todos los DetallePago (posteriormente filtraremos)
+  const fetchDetallePagosDebito = useCallback(async () => {
+    try {
+      setLoadingDetalle(true);
+      setErrorDetalle(null);
+      const data = await pagosApi.listarDetallesPagos();
+      setDetallesDebito(Array.isArray(data) ? data : []);
+      setVisibleCountPagos(itemsPerPage);
+    } catch (err) {
+      toast.error("Error al cargar detalle de pagos.");
+      setErrorDetalle("Error al cargar detalle de pagos.");
+    } finally {
+      setLoadingDetalle(false);
+    }
+  }, []);
+
+  // Cargar pagos (para obtener método de pago y demás info)
+  const fetchPagos = useCallback(async () => {
+    try {
+      const data = await pagosApi.listarPagos();
+      setPagos(Array.isArray(data) ? data : []);
+    } catch (err) {
+      toast.error("Error al cargar pagos.");
     }
   }, []);
 
@@ -68,7 +96,12 @@ export default function EgresosDebitoPagina() {
     fetchEgresos();
   }, [fetchEgresos]);
 
-  // Filtrado por rango de fecha para egresos
+  useEffect(() => {
+    fetchDetallePagosDebito();
+    fetchPagos();
+  }, [fetchDetallePagosDebito, fetchPagos]);
+
+  /* ----------------- Filtrado de EGRESOS ----------------- */
   const filteredEgresos = useMemo(() => {
     return egresos.filter((egreso) => {
       const egresoDate = new Date(egreso.fecha);
@@ -83,24 +116,118 @@ export default function EgresosDebitoPagina() {
     });
   }, [egresos, filterStartDate, filterEndDate]);
 
-  // Subconjunto de egresos a mostrar según visibleCount
-  const currentItems = useMemo(
-    () => filteredEgresos.slice(0, visibleCount),
-    [filteredEgresos, visibleCount]
+  const currentEgresos = useMemo(
+    () => filteredEgresos.slice(0, visibleCountEgresos),
+    [filteredEgresos, visibleCountEgresos]
   );
 
   const hasMoreEgresos = useMemo(
-    () => visibleCount < filteredEgresos.length,
-    [visibleCount, filteredEgresos.length]
+    () => visibleCountEgresos < filteredEgresos.length,
+    [visibleCountEgresos, filteredEgresos.length]
   );
 
   const onLoadMoreEgresos = useCallback(() => {
     if (hasMoreEgresos) {
-      setVisibleCount((prev) => prev + itemsPerPage);
+      setVisibleCountEgresos((prev) => prev + itemsPerPage);
     }
   }, [hasMoreEgresos]);
 
-  const handleEliminar = async (id: number) => {
+  /* ----------------- Filtrado de DetallePago (DEBITO) ----------------- */
+  // Mostrar solo aquellos que cumplan: (importePendiente === 0 o aCobrar > 0),
+  // cuya fechaRegistro esté dentro del rango y cuyo pago tenga método "debito".
+  const filteredDetallesDebito = useMemo(() => {
+    return detallesDebito.filter((detalle) => {
+      const registro = new Date(detalle.fechaRegistro);
+      if (filterStartDate && registro < new Date(filterStartDate)) return false;
+      if (filterEndDate && registro > new Date(filterEndDate)) return false;
+      if (!(detalle.importePendiente === 0 || detalle.aCobrar > 0))
+        return false;
+      if (!detalle.pagoId) return false;
+      const pago = pagos.find((p) => p.id === detalle.pagoId);
+      return pago && pago.metodoPago?.descripcion?.toLowerCase() === "debito";
+    });
+  }, [detallesDebito, pagos, filterStartDate, filterEndDate]);
+
+  /* ----------------- Agrupación y Agregado por Pago Único ----------------- */
+  // Para cada pago único, se agrega un item "Pago por débito" que muestra el valor del recargo
+  const aggregatedItems = useMemo(() => {
+    const groups = new Map<number, DetallePagoResponse[]>();
+    filteredDetallesDebito.forEach((detalle) => {
+      if (detalle.pagoId != null) {
+        const group = groups.get(detalle.pagoId) || [];
+        group.push(detalle);
+        groups.set(detalle.pagoId, group);
+      }
+    });
+
+    const result: DetallePagoResponse[] = [];
+    groups.forEach((_grupo, pagoId) => {
+      const pago = pagos.find((p) => p.id === pagoId);
+      if (
+        pago &&
+        pago.metodoPago &&
+        typeof pago.metodoPago.recargo === "number"
+      ) {
+        const totalRecargo = pago.metodoPago.recargo;
+        const aggregatedItem: DetallePagoResponse = {
+          id: 0, // id sintético para evitar colisiones
+          version: 1,
+          descripcionConcepto: "Pago por débito",
+          cuotaOCantidad: "",
+          valorBase: 0,
+          bonificacionId: null,
+          bonificacionNombre: "",
+          recargoId: null,
+          recargoNombre: "",
+          aCobrar: totalRecargo,
+          cobrado: true,
+          conceptoId: null,
+          subConceptoId: null,
+          mensualidadId: null,
+          matriculaId: null,
+          stockId: null,
+          importeInicial: 0,
+          importePendiente: 0,
+          tipo: "",
+          fechaRegistro: new Date().toISOString(),
+          pagoId: pagoId,
+          alumnoDisplay: "", // No aplica en el agregado
+          tieneRecargo: false,
+          estadoPago: "",
+        };
+        result.push(aggregatedItem);
+      }
+    });
+    return result;
+  }, [filteredDetallesDebito, pagos]);
+
+  // Combinar los detalles filtrados con los items agregados
+  const finalItems = useMemo(() => {
+    return [...filteredDetallesDebito, ...aggregatedItems];
+  }, [filteredDetallesDebito, aggregatedItems]);
+
+  const sortedFinalItems = useMemo(() => {
+    return [...finalItems].sort((a, b) => b.id - a.id);
+  }, [finalItems]);
+
+  const currentPagos = useMemo(
+    () => sortedFinalItems.slice(0, visibleCountPagos),
+    [sortedFinalItems, visibleCountPagos]
+  );
+
+  const hasMorePagos = useMemo(
+    () => visibleCountPagos < sortedFinalItems.length,
+    [visibleCountPagos, sortedFinalItems.length]
+  );
+
+  const onLoadMorePagos = useCallback(() => {
+    if (hasMorePagos) {
+      setVisibleCountPagos((prev) => prev + itemsPerPage);
+    }
+  }, [hasMorePagos]);
+
+  /* ----------------- Acciones para EGRESOS ----------------- */
+  const handleEliminarEgreso = async (id: number) => {
     try {
       await egresosApi.eliminarEgreso(id);
       fetchEgresos();
@@ -110,7 +237,24 @@ export default function EgresosDebitoPagina() {
     }
   };
 
-  // Abrir y cerrar modal para egreso
+  const renderActionsEgreso = (item: EgresoResponse) => (
+    <>
+      <Boton
+        onClick={() => console.log(`Editar egreso ${item.id}`)}
+        className="bg-blue-500 text-white p-1 text-sm"
+      >
+        Editar
+      </Boton>
+      <Boton
+        onClick={() => handleEliminarEgreso(item.id)}
+        className="bg-red-500 text-white p-1 text-sm"
+      >
+        Eliminar
+      </Boton>
+    </>
+  );
+
+  /* ----------------- Acciones para Modal de EGRESO ----------------- */
   const handleAbrirModal = () => {
     setMontoEgreso(0);
     setObsEgreso("");
@@ -122,7 +266,6 @@ export default function EgresosDebitoPagina() {
     setShowModal(false);
   };
 
-  // Guardar egreso (solo DEBITO)
   const handleGuardarEgreso = async () => {
     if (!montoEgreso || montoEgreso <= 0) {
       toast.error("El monto del egreso debe ser mayor a 0.");
@@ -144,108 +287,16 @@ export default function EgresosDebitoPagina() {
     }
   };
 
-  // Renderizado personalizado para las filas de la tabla de egresos
-  const renderRow = (item: EgresoResponse) => [
-    item.id,
-    new Date(item.fecha).toLocaleDateString("es-AR"),
-    `$${item.monto.toLocaleString()}`,
-    item.observaciones,
-  ];
-
-  // Acciones para cada fila de egresos
-  const renderActions = (item: EgresoResponse) => (
-    <>
-      <Boton
-        onClick={() => console.log(`Editar egreso ${item.id}`)}
-        className="bg-blue-500 text-white p-1 text-sm"
-      >
-        Editar
-      </Boton>
-      <Boton
-        onClick={() => handleEliminar(item.id)}
-        className="bg-red-500 text-white p-1 text-sm"
-      >
-        Eliminar
-      </Boton>
-    </>
-  );
-
-  // --- Sección de DetallePago por DEBITO ---
-  // Función para cargar todos los DetallePagos
-  const fetchDetallePagosDebito = useCallback(async () => {
-    try {
-      setLoadingDetalle(true);
-      setErrorDetalle(null);
-      const data = await pagosApi.listarDetallesPagos();
-      setDetallesDebito(Array.isArray(data) ? data : []);
-      setVisibleCountPagos(itemsPerPage);
-    } catch (err) {
-      toast.error("Error al cargar detalle de pagos.");
-      setErrorDetalle("Error al cargar detalle de pagos.");
-    } finally {
-      setLoadingDetalle(false);
-    }
-  }, []);
-
-  // Función para cargar los pagos (para obtener el método de pago)
-  const fetchPagos = useCallback(async () => {
-    try {
-      const data = await pagosApi.listarPagos();
-      setPagos(Array.isArray(data) ? data : []);
-    } catch (err) {
-      toast.error("Error al cargar pagos.");
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchDetallePagosDebito();
-    fetchPagos();
-  }, [fetchDetallePagosDebito, fetchPagos]);
-
-  // Filtrar los DetallePago para incluir solo aquellos que cumplen:
-  // (importePendiente === 0 o aCobrar > 0) y cuyo pago tenga método "debito"
-  const filteredDetallesDebito = useMemo(() => {
-    return detallesDebito.filter((detalle) => {
-      const registro = new Date(detalle.fechaRegistro);
-      if (filterStartDate && registro < new Date(filterStartDate)) return false;
-      if (filterEndDate && registro > new Date(filterEndDate)) return false;
-      // Condición solicitada
-      if (!(detalle.importePendiente === 0 || detalle.aCobrar > 0))
-        return false;
-      // Verificamos que exista el pago asociado y que sea de método "debito"
-      if (!detalle.pagoId) return false;
-      const pago = pagos.find((p) => p.id === detalle.pagoId);
-      return pago && pago.metodoPago?.descripcion?.toLowerCase() === "debito";
-    });
-  }, [detallesDebito, pagos, filterStartDate, filterEndDate]);
-
-  // Elementos visibles de DetallePago
-  const currentItemsPagos = useMemo(
-    () => filteredDetallesDebito.slice(0, visibleCountPagos),
-    [filteredDetallesDebito, visibleCountPagos]
-  );
-
-  const hasMorePagos = useMemo(
-    () => visibleCountPagos < filteredDetallesDebito.length,
-    [visibleCountPagos, filteredDetallesDebito.length]
-  );
-
-  const onLoadMorePagos = useCallback(() => {
-    if (hasMorePagos) {
-      setVisibleCountPagos((prev) => prev + itemsPerPage);
-    }
-  }, [hasMorePagos]);
-
-  // --- Cálculos Totales ---
-  // Total de aCobrar del Detalle de Pagos por Débito.
-  const totalACobrar = useMemo(() => {
-    return filteredDetallesDebito.reduce(
-      (sum, detalle) => sum + Number(detalle.aCobrar || 0),
+  /* ----------------- Cálculos Totales ----------------- */
+  // Total Cobrado: suma de todos los valores de aCobrar en los DetallePago (incluyendo los items agregados)
+  const totalCobrado = useMemo(() => {
+    return sortedFinalItems.reduce(
+      (sum, item) => sum + Number(item.aCobrar || 0),
       0
     );
-  }, [filteredDetallesDebito]);
+  }, [sortedFinalItems]);
 
-  // Total de monto de los egresos.
+  // Total Egresos: suma de todos los montos de los egresos
   const totalEgresos = useMemo(() => {
     return filteredEgresos.reduce(
       (sum, egreso) => sum + Number(egreso.monto || 0),
@@ -253,35 +304,33 @@ export default function EgresosDebitoPagina() {
     );
   }, [filteredEgresos]);
 
-  // Total final: resta entre totalACobrar y totalEgresos.
-  const totalFinal = useMemo(
-    () => totalACobrar - totalEgresos,
-    [totalACobrar, totalEgresos]
+  // Neto: Total Cobrado - Total Egresos
+  const neto = useMemo(
+    () => totalCobrado - totalEgresos,
+    [totalCobrado, totalEgresos]
   );
 
-  // --- Renderizado ---
-  if (loading && egresos.length === 0)
+  /* ----------------- Renderizado ----------------- */
+  if (loadingEgresos && egresos.length === 0)
     return <div className="p-4 text-center">Cargando...</div>;
-  if (error) return <div className="p-4 text-center text-red-600">{error}</div>;
-
-  const sortedItemPagos = [...currentItemsPagos].sort((a, b) => b.id - a.id);
-  const sortedItem = [...currentItems].sort((a, b) => b.id - a.id);
+  if (errorEgresos)
+    return <div className="p-4 text-center text-red-600">{errorEgresos}</div>;
 
   return (
     <div className="page-container p-4">
       <h1 className="text-2xl font-bold mb-4">Débitos</h1>
 
-      {/* Filtros por fecha */}
+      {/* Filtros de Fecha */}
       <div className="flex gap-4 mb-4">
         <div>
           <label className="block font-medium">Fecha Inicio:</label>
           <input
             type="date"
-            className="border p-2 rounded-md bg-background text-foreground focus:outline-none focus:border-primary transition-colors"
+            className="border p-2 rounded-md"
             value={filterStartDate}
             onChange={(e) => {
               setFilterStartDate(e.target.value);
-              setVisibleCount(itemsPerPage);
+              setVisibleCountEgresos(itemsPerPage);
             }}
           />
         </div>
@@ -289,24 +338,22 @@ export default function EgresosDebitoPagina() {
           <label className="block font-medium">Fecha Fin:</label>
           <input
             type="date"
-            className="border p-2 rounded-md bg-background text-foreground focus:outline-none focus:border-primary transition-colors"
+            className="border p-2 rounded-md"
             value={filterEndDate}
             onChange={(e) => {
               setFilterEndDate(e.target.value);
-              setVisibleCount(itemsPerPage);
+              setVisibleCountEgresos(itemsPerPage);
             }}
           />
         </div>
       </div>
 
       {/* Sección de Detalle de Pagos por Débito */}
-      <div className="page-card mb-4 p-4 border rounded-md shadow-sm bg-background text-foreground">
-        <h2 className="text-xl font-bold mb-2">Detalle Pagos por Débito</h2>
+      <div className="page-card mb-4 p-4 border rounded-md shadow-sm">
+        <h2 className="text-xl font-bold mb-2">Ingresos de Pagos por Débito</h2>
         {loadingDetalle && <div className="text-center py-2">Cargando...</div>}
         {errorDetalle && (
-          <div className="text-center py-2 text-destructive">
-            {errorDetalle}
-          </div>
+          <div className="text-center py-2 text-red-600">{errorDetalle}</div>
         )}
         {!loadingDetalle && !errorDetalle && (
           <Tabla
@@ -314,18 +361,18 @@ export default function EgresosDebitoPagina() {
               "Código",
               "Alumno",
               "Concepto",
-              "Cobrado",
+              "Valor a Cobrar",
               "Bonificación",
               "Recargo",
             ]}
-            data={sortedItemPagos}
+            data={currentPagos}
             customRender={(fila: DetallePagoResponse) => [
-              fila.conceptoId || fila.id,
-              fila.alumnoDisplay,
+              fila.id,
+              fila.alumnoDisplay || "-",
               fila.descripcionConcepto,
               fila.aCobrar,
-              fila.bonificacionNombre ? fila.bonificacionNombre : "-",
-              fila.recargoNombre ? fila.recargoNombre : "-",
+              fila.bonificacionNombre || "-",
+              fila.recargoNombre || "-",
             ]}
             emptyMessage="No hay detalle de pagos de débito"
           />
@@ -336,7 +383,6 @@ export default function EgresosDebitoPagina() {
               onLoadMore={onLoadMorePagos}
               hasMore={hasMorePagos}
               loading={loadingDetalle}
-              className="mt-4"
             >
               {loadingDetalle && (
                 <div className="text-center py-2">Cargando más...</div>
@@ -345,6 +391,7 @@ export default function EgresosDebitoPagina() {
           </div>
         )}
       </div>
+
       {/* Botón para Agregar Egreso */}
       <div className="flex justify-end mb-4">
         <Boton
@@ -357,25 +404,30 @@ export default function EgresosDebitoPagina() {
       </div>
 
       {/* Tabla de Egresos */}
-      <div className="border p-2 rounded-md bg-background text-foreground">
+      <div className="border p-2 rounded-md">
         <Tabla
           headers={["ID", "Fecha", "Monto", "Observaciones"]}
-          data={sortedItem}
-          customRender={renderRow}
-          actions={renderActions}
+          data={currentEgresos.sort((a, b) => b.id - a.id)}
+          customRender={(item: EgresoResponse) => [
+            item.id,
+            new Date(item.fecha).toLocaleDateString("es-AR"),
+            `$${item.monto.toLocaleString()}`,
+            item.observaciones,
+          ]}
+          actions={renderActionsEgreso}
           emptyMessage="No hay egresos registrados"
         />
       </div>
-
       {hasMoreEgresos && (
         <div className="mt-4 flex justify-center">
           <ListaConInfiniteScroll
             onLoadMore={onLoadMoreEgresos}
             hasMore={hasMoreEgresos}
-            loading={loading}
-            className="mt-4"
+            loading={loadingEgresos}
           >
-            {loading && <div className="text-center py-2">Cargando más...</div>}
+            {loadingEgresos && (
+              <div className="text-center py-2">Cargando más...</div>
+            )}
           </ListaConInfiniteScroll>
         </div>
       )}
@@ -389,7 +441,7 @@ export default function EgresosDebitoPagina() {
               <label className="block font-medium">Fecha:</label>
               <input
                 type="date"
-                className="border p-2 w-full rounded-md bg-background text-foreground focus:outline-none focus:border-primary transition-colors"
+                className="border p-2 w-full rounded-md"
                 value={fecha}
                 onChange={(e) => setFecha(e.target.value)}
               />
@@ -398,7 +450,7 @@ export default function EgresosDebitoPagina() {
               <label className="block font-medium">Monto:</label>
               <input
                 type="number"
-                className="border p-2 w-full rounded-md bg-background text-foreground focus:outline-none focus:border-primary transition-colors"
+                className="border p-2 w-full rounded-md"
                 value={montoEgreso || ""}
                 onChange={(e) =>
                   setMontoEgreso(Number.parseFloat(e.target.value) || 0)
@@ -409,7 +461,7 @@ export default function EgresosDebitoPagina() {
               <label className="block font-medium">Observaciones:</label>
               <input
                 type="text"
-                className="border p-2 w-full rounded-md bg-background text-foreground focus:outline-none focus:border-primary transition-colors"
+                className="border p-2 w-full rounded-md"
                 value={obsEgreso}
                 onChange={(e) => setObsEgreso(e.target.value)}
               />
@@ -423,18 +475,17 @@ export default function EgresosDebitoPagina() {
       )}
 
       {/* Sección de Totales */}
-      <div className="mb-4 p-4 border rounded-md bg-background text-foreground">
+      <div className="mb-4 p-4 border rounded-md">
         <p className="font-medium">
           Total Cobrado:{" "}
-          <span className="font-bold">${totalACobrar.toLocaleString()}</span>
+          <span className="font-bold">${totalCobrado.toLocaleString()}</span>
         </p>
         <p className="font-medium">
           Total Egresos:{" "}
           <span className="font-bold">${totalEgresos.toLocaleString()}</span>
         </p>
         <p className="font-medium">
-          Neto:{" "}
-          <span className="font-bold">${totalFinal.toLocaleString()}</span>
+          Neto: <span className="font-bold">${neto.toLocaleString()}</span>
         </p>
       </div>
     </div>
