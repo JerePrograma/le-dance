@@ -41,6 +41,11 @@ const eliminarDetallePago = async (id: number): Promise<void> => {
   await api.delete(`/detalle-pago/${id}`);
 };
 
+const anularDetallePago = async (id: number): Promise<DetallePagoResponse> => {
+  const response = await api.put(`/detalle-pago/anular/${id}`);
+  return response.data; // Asegúrate de que response.data tenga la estructura de DetallePagoResponse
+};
+
 // Lista todos los DetallePagos
 const listarDetallesPagos = async (): Promise<DetallePagoResponse[]> => {
   const { data } = await api.get<DetallePagoResponse[]>("/detalle-pago");
@@ -53,6 +58,7 @@ const detallesPagoApi = {
   actualizarDetallePago,
   eliminarDetallePago,
   listarDetallesPagos,
+  anularDetallePago,
 };
 
 export default detallesPagoApi;

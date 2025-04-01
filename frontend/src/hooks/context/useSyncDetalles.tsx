@@ -54,6 +54,7 @@ const mapDetallePagos = (
       stockId: det.stockId ?? null,
       pagoId: det.pagoId ?? null,
       tieneRecargo: det.tieneRecargo,
+      estadoPago: det.estadoPago,
     };
   });
 };

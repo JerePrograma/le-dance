@@ -85,7 +85,7 @@ const InfiniteScroll: React.FC<InfiniteScrollProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`relative ${className}`}
+      className={`relative rounded-lg ${className}`}
       style={{
         height: containerHeight,
         overflowY: fillAvailable ? "auto" : "visible",
@@ -104,7 +104,7 @@ const InfiniteScroll: React.FC<InfiniteScrollProps> = ({
 
       {/* Indicador de carga */}
       {loading && (
-        <div className="py-3 text-center text-sm text-muted-foreground flex items-center justify-center gap-2 sticky bottom-0 bg-background/80 backdrop-blur-sm">
+        <div className="py-fluid-2 text-center text-sm text-muted-foreground flex items-center justify-center gap-fluid-sm sticky bottom-0 bg-background/80 backdrop-blur-sm border-t border-border/30">
           <div className="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
           <span>Cargando...</span>
         </div>

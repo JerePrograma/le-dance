@@ -31,22 +31,14 @@
     /* Radios y espaciado */
     --radius: 0.75rem;
 
-    /* Breakpoints (mobile-first) */
-    --screen-xs: 480px;
-    --screen-sm: 640px;
-    --screen-md: 768px;
-    --screen-lg: 1024px;
-    --screen-xl: 1280px;
-    --screen-2xl: 1536px;
-
-    /* Layout responsivo - con valores más fluidos */
+    /* Layout responsivo - con valores fluidos */
     --sidebar-width: min(250px, 85vw);
     --sidebar-width-collapsed: clamp(3rem, 3vw, 4.5rem);
     --header-height: clamp(3.5rem, 5vh, 4.5rem);
     --content-max-width: min(1400px, 95vw);
     --container-padding: clamp(1rem, 3vw, 2rem);
 
-    /* Tipografía fluida mejorada con clamp */
+    /* Tipografía fluida con clamp */
     --text-xs: clamp(0.7rem, 0.7rem + 0.1vw, 0.875rem);
     --text-sm: clamp(0.8rem, 0.8rem + 0.2vw, 1rem);
     --text-base: clamp(0.95rem, 0.95rem + 0.2vw, 1.125rem);
@@ -57,7 +49,7 @@
     --text-4xl: clamp(2rem, 2rem + 1vw, 3rem);
     --text-5xl: clamp(2.5rem, 2.5rem + 1.5vw, 4rem);
 
-    /* Espaciado fluido mejorado */
+    /* Espaciado fluido */
     --spacing-1: clamp(0.25rem, 0.25rem + 0.1vw, 0.375rem);
     --spacing-2: clamp(0.5rem, 0.5rem + 0.15vw, 0.75rem);
     --spacing-3: clamp(0.75rem, 0.75rem + 0.2vw, 1.125rem);
@@ -106,15 +98,12 @@
   }
 
   html {
-    -webkit-text-size-adjust: 100%;
-    text-size-adjust: 100%;
+    @apply text-size-adjust-100 scroll-smooth;
   }
 
   body {
-    @apply bg-background text-foreground;
-    min-height: 100vh;
+    @apply bg-background text-foreground min-h-screen overflow-x-hidden;
     min-height: 100dvh; /* Mejor soporte para móviles */
-    overflow-x: hidden;
   }
 
   /* Tipografía responsiva */
@@ -124,33 +113,28 @@
   h4,
   h5,
   h6 {
-    @apply font-medium tracking-tight;
-    word-wrap: break-word;
+    @apply font-medium tracking-tight break-words;
   }
 
   h1 {
+    @apply leading-tight;
     font-size: var(--text-3xl);
-    line-height: 1.2;
   }
-
   h2 {
+    @apply leading-snug;
     font-size: var(--text-2xl);
-    line-height: 1.3;
   }
-
   h3 {
+    @apply leading-normal;
     font-size: var(--text-xl);
-    line-height: 1.4;
   }
-
   h4 {
+    @apply leading-relaxed;
     font-size: var(--text-lg);
-    line-height: 1.5;
   }
-
   p {
+    @apply leading-relaxed;
     font-size: var(--text-base);
-    line-height: 1.6;
   }
 
   /* Mejoras para accesibilidad */
@@ -160,8 +144,7 @@
 
   /* Scrollbar personalizada */
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    @apply w-2 h-2;
   }
 
   ::-webkit-scrollbar-track {
@@ -186,48 +169,42 @@
     @apply bg-gradient-to-r from-primary to-purple-400 dark:from-purple-600 dark:to-purple-400;
   }
 
-  /* Cards - Mejoradas para responsividad */
+  /* Texto con gradiente */
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-400 dark:from-purple-600 dark:to-purple-400;
+  }
+
+  /* Cards */
   .card {
-    @apply relative bg-card rounded-xl border border-border shadow-sm transition-all duration-200;
-    padding: var(--spacing-4);
+    @apply relative bg-card rounded-xl border border-border shadow-sm transition-all duration-200 p-[var(--spacing-4)];
   }
 
   .card-hover {
-    @apply hover:shadow-lg hover:border-primary/50;
-    transform: translateY(0);
-    transition: transform 0.2s ease, box-shadow 0.2s ease,
-      border-color 0.2s ease;
+    @apply hover:shadow-lg hover:border-primary/50 translate-y-0 transition-all duration-200;
   }
 
   .card-hover:hover {
-    transform: translateY(-4px);
+    @apply -translate-y-1;
   }
 
   .card-header {
-    padding: var(--spacing-4);
-    @apply border-b border-border;
+    @apply border-b border-border p-[var(--spacing-4)];
   }
 
   .card-content {
-    padding: var(--spacing-4);
+    @apply p-[var(--spacing-4)];
   }
 
   .card-footer {
-    padding: var(--spacing-3) var(--spacing-4);
-    @apply border-t border-border bg-muted;
+    @apply border-t border-border bg-muted p-[var(--spacing-3)_var(--spacing-4)];
   }
 
   /* Efectos y animaciones */
   .hover-effect {
-    @apply transition-all duration-200;
-    transform: scale(1);
+    @apply transition-all duration-200 scale-100 hover:scale-105;
   }
 
-  .hover-effect:hover {
-    transform: scale(1.05);
-  }
-
-  .fade-in {
+  .fade-in-custom {
     @apply animate-in fade-in duration-300;
   }
 
@@ -235,123 +212,82 @@
     @apply animate-in slide-in-from-bottom duration-300;
   }
 
-  /* Formularios - Mejorados para responsividad */
+  /* Formularios */
   .form {
-    @apply flex flex-col w-full mx-auto;
-    gap: var(--spacing-4);
-    max-width: min(600px, 100%);
+    @apply flex flex-col w-full mx-auto gap-[var(--spacing-4)] max-w-[min(600px,100%)];
   }
 
   .form-group {
-    @apply flex flex-col;
-    gap: var(--spacing-2);
+    @apply flex flex-col gap-[var(--spacing-2)];
   }
 
   .form-row {
-    @apply flex flex-wrap;
-    gap: var(--gap-md);
+    @apply flex flex-wrap gap-[var(--gap-md)];
   }
 
   .form-row > * {
-    @apply flex-1;
-    min-width: min(250px, 100%);
+    @apply flex-1 min-w-[min(250px,100%)];
   }
 
   .form-label {
-    @apply block text-sm font-medium text-foreground;
-    margin-bottom: var(--spacing-1);
+    @apply block text-sm font-medium text-foreground mb-[var(--spacing-1)];
   }
 
   .form-input,
   .form-select,
   .form-textarea {
     @apply w-full text-foreground bg-background border-2 border-border rounded-md transition-all
-      focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 disabled:bg-muted disabled:cursor-not-allowed disabled:opacity-70;
-    padding: 0.75rem 1rem;
-    font-size: var(--text-base);
-    line-height: 1.5;
+      focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 
+      disabled:bg-muted disabled:cursor-not-allowed disabled:opacity-70
+      py-3 px-4 text-[var(--text-base)] leading-normal;
   }
 
   .form-error {
-    @apply text-sm text-destructive;
-    margin-top: var(--spacing-1);
+    @apply text-sm text-destructive mt-[var(--spacing-1)];
   }
 
   .form-help {
-    @apply text-sm text-muted-foreground;
-    margin-top: var(--spacing-1);
+    @apply text-sm text-muted-foreground mt-[var(--spacing-1)];
   }
 
   .form-actions {
-    @apply flex justify-end;
-    gap: var(--gap-sm);
-    margin-top: var(--spacing-6);
+    @apply flex justify-end gap-[var(--gap-sm)] mt-[var(--spacing-6)];
   }
 
-  /* Layout general - Mejorado para responsividad */
+  /* Formularios en grid */
+  .form-grid {
+    @apply grid gap-[var(--gap-md)] grid-cols-1 sm:grid-cols-2;
+  }
+
+  /* Layout general */
   .layout {
     @apply flex min-h-screen bg-background;
   }
 
   .page-container {
-    min-height: 100vh;
+    @apply w-full min-h-screen;
     min-height: 100dvh;
-    width: 100%;
   }
 
-  /* Dashboard - Mejorado para responsividad */
+  /* Dashboard */
   .dashboard {
-    @apply min-h-screen bg-background;
-    padding: var(--container-padding);
+    @apply min-h-screen bg-background p-[var(--container-padding)];
   }
 
   .dashboard-header {
-    @apply flex flex-col gap-4 mb-8;
-    margin-bottom: var(--spacing-8);
-  }
-
-  @media (min-width: 640px) {
-    .dashboard-header {
-      @apply flex-row justify-between items-center gap-0;
-    }
+    @apply flex flex-col gap-4 mb-[var(--spacing-8)] sm:flex-row sm:justify-between sm:items-center sm:gap-0;
   }
 
   .dashboard-title {
-    @apply font-bold text-foreground;
-    font-size: var(--text-2xl);
+    @apply font-bold text-foreground text-[var(--text-2xl)];
   }
 
+  /* Dashboard grid - Consolidado */
   .dashboard-grid {
-    display: grid;
-    gap: var(--gap-md);
-    grid-template-columns: 1fr;
+    @apply grid gap-[var(--gap-md)] grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5;
   }
 
-  @media (min-width: 640px) {
-    .dashboard-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
-  }
-
-  @media (min-width: 1024px) {
-    .dashboard-grid {
-      grid-template-columns: repeat(3, 1fr);
-    }
-  }
-
-  @media (min-width: 1280px) {
-    .dashboard-grid {
-      grid-template-columns: repeat(4, 1fr);
-    }
-  }
-
-  @media (min-width: 1536px) {
-    .dashboard-grid {
-      grid-template-columns: repeat(5, 1fr);
-    }
-  }
-
-  /* Header fijo y responsive - Mejorado */
+  /* Header */
   .header {
     @apply fixed top-0 left-0 right-0 bg-background/80 backdrop-blur-md border-b border-border z-30 transition-all;
     height: var(--header-height);
@@ -365,20 +301,11 @@
   }
 
   .header-brand {
-    @apply flex items-center text-primary font-bold no-underline;
-    gap: var(--spacing-3);
-    font-size: var(--text-xl);
+    @apply flex items-center text-primary font-bold no-underline gap-[var(--spacing-3)] text-[var(--text-xl)];
   }
 
   .header-nav {
-    @apply hidden items-center;
-    gap: var(--spacing-6);
-  }
-
-  @media (min-width: 768px) {
-    .header-nav {
-      @apply flex;
-    }
+    @apply hidden md:flex items-center gap-[var(--spacing-6)];
   }
 
   .header-nav-item {
@@ -386,49 +313,30 @@
   }
 
   .header-actions {
-    @apply flex items-center;
-    gap: var(--gap-sm);
+    @apply flex items-center gap-[var(--gap-sm)];
   }
 
-  /* Menú móvil - Mejorado */
+  /* Menú móvil */
   .mobile-menu-toggle {
-    @apply flex items-center justify-center text-foreground;
-    width: 2.5rem;
-    height: 2.5rem;
-  }
-
-  @media (min-width: 768px) {
-    .mobile-menu-toggle {
-      @apply hidden;
-    }
+    @apply flex items-center justify-center text-foreground w-10 h-10 md:hidden;
   }
 
   .mobile-menu {
-    @apply fixed inset-0 z-50 bg-background transform transition-transform duration-300 ease-in-out;
-    padding-top: var(--header-height);
-    transform: translateX(-100%);
+    @apply fixed inset-0 z-50 bg-background transform transition-transform duration-300 ease-in-out pt-[var(--header-height)] -translate-x-full;
   }
 
   .mobile-menu.open {
-    transform: translateX(0);
+    @apply translate-x-0;
   }
 
   .mobile-menu-content {
-    @apply h-full overflow-y-auto;
-    padding: var(--spacing-4);
+    @apply h-full overflow-y-auto p-[var(--spacing-4)];
   }
 
-  /* Sidebar responsive - Mejorado */
+  /* Sidebar */
   .sidebar {
-    @apply fixed top-0 left-0 h-screen bg-background border-r border-border z-40 transition-all flex flex-col;
+    @apply fixed top-0 left-0 h-screen bg-background border-r border-border z-40 transition-all flex flex-col -translate-x-full md:translate-x-0;
     width: var(--sidebar-width);
-    transform: translateX(-100%);
-  }
-
-  @media (min-width: 768px) {
-    .sidebar {
-      transform: translateX(0);
-    }
   }
 
   .sidebar.collapsed {
@@ -436,92 +344,62 @@
   }
 
   .sidebar-header {
-    @apply border-b border-border flex items-center justify-between;
-    height: var(--header-height);
-    padding: 0 var(--spacing-4);
+    @apply border-b border-border flex items-center justify-between h-[var(--header-height)] px-[var(--spacing-4)];
   }
 
   .sidebar-content {
-    @apply flex-1 overflow-y-auto;
-    padding: var(--spacing-4);
+    @apply flex-1 overflow-y-auto p-[var(--spacing-4)];
   }
 
   .sidebar-nav {
-    @apply flex flex-col;
-    gap: var(--spacing-2);
+    @apply flex flex-col gap-[var(--spacing-2)];
   }
 
   .sidebar-group {
-    margin-bottom: var(--spacing-6);
+    @apply mb-[var(--spacing-6)];
   }
 
   .sidebar-group-title {
-    @apply text-xs font-semibold uppercase text-muted-foreground;
-    padding: var(--spacing-2) var(--spacing-4);
+    @apply text-xs font-semibold uppercase text-muted-foreground p-[var(--spacing-2)_var(--spacing-4)];
   }
 
   .sidebar-item {
-    @apply flex items-center text-foreground no-underline rounded-md transition-all hover:bg-muted hover:text-primary;
-    gap: var(--spacing-3);
-    padding: var(--spacing-2) var(--spacing-4);
+    @apply flex items-center text-foreground no-underline rounded-md transition-all hover:bg-muted hover:text-primary
+      gap-[var(--spacing-3)] p-[var(--spacing-2)_var(--spacing-4)];
   }
 
   .sidebar-item.active {
     @apply bg-primary text-primary-foreground;
   }
 
-  /* Grids y contenedores fluidos - Mejorados */
+  /* Grids y contenedores fluidos */
   .responsive-grid {
-    display: grid;
-    gap: var(--gap-md);
-    grid-template-columns: 1fr;
-  }
-
-  @media (min-width: 640px) {
-    .responsive-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
-  }
-
-  @media (min-width: 1024px) {
-    .responsive-grid {
-      grid-template-columns: repeat(3, 1fr);
-    }
-  }
-
-  @media (min-width: 1280px) {
-    .responsive-grid {
-      grid-template-columns: repeat(4, 1fr);
-    }
+    @apply grid gap-[var(--gap-md)] grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
   }
 
   .responsive-container {
-    @apply mx-auto;
+    @apply mx-auto w-full;
     padding-left: var(--container-padding);
     padding-right: var(--container-padding);
     max-width: var(--content-max-width);
-    width: 100%;
   }
 
   .grid-fluid {
-    display: grid;
-    gap: var(--gap-md);
+    @apply grid gap-[var(--gap-md)];
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
   }
 
   .grid-fluid-sm {
-    display: grid;
-    gap: var(--gap-md);
+    @apply grid gap-[var(--gap-md)];
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
   }
 
   .grid-fluid-lg {
-    display: grid;
-    gap: var(--gap-md);
+    @apply grid gap-[var(--gap-md)];
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr));
   }
 
-  /* Tablas responsivas - Mejoradas */
+  /* Tablas responsivas */
   .table-container {
     @apply overflow-x-auto w-full;
     margin-left: calc(var(--container-padding) * -1);
@@ -530,44 +408,34 @@
     padding-right: var(--container-padding);
   }
 
-  @media (min-width: 640px) {
-    .table-container {
-      margin-left: calc(var(--container-padding) * -1);
-      margin-right: calc(var(--container-padding) * -1);
-    }
-  }
-
   .table-content {
     @apply min-w-full divide-y divide-border;
   }
 
   .table-responsive {
-    @apply w-full overflow-x-auto;
-    -webkit-overflow-scrolling: touch;
+    @apply w-full overflow-x-auto touch-pan-x;
   }
 
   .table-responsive table {
     @apply min-w-full;
   }
 
-  /* Tablas responsivas con scroll horizontal en móviles */
+  /* Tablas responsivas con stack en móviles */
   @media (max-width: 767px) {
     .table-responsive-stack {
-      display: block;
+      @apply block;
     }
 
     .table-responsive-stack thead {
-      display: none;
+      @apply hidden;
     }
 
     .table-responsive-stack tbody tr {
-      @apply block border-b border-border;
-      margin-bottom: var(--spacing-4);
+      @apply block border-b border-border mb-[var(--spacing-4)];
     }
 
     .table-responsive-stack td {
-      @apply block text-right;
-      padding: var(--spacing-2) var(--spacing-4);
+      @apply block text-right p-[var(--spacing-2)_var(--spacing-4)];
     }
 
     .table-responsive-stack td::before {
@@ -576,40 +444,19 @@
     }
   }
 
-  /* Formularios en grid - Mejorados */
-  .form-grid {
-    display: grid;
-    gap: var(--gap-md);
-    grid-template-columns: 1fr;
-  }
-
-  @media (min-width: 640px) {
-    .form-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
-  }
-
-  /* Aspect Ratio para contenedores multimedia - Mejorados */
+  /* Aspect Ratio para contenedores multimedia */
   .aspect-ratio {
-    position: relative;
-    width: 100%;
-    overflow: hidden;
+    @apply relative w-full overflow-hidden;
   }
 
   .aspect-ratio::before {
+    @apply block;
     content: "";
-    display: block;
     padding-top: 56.25%; /* 16:9 por defecto */
   }
 
   .aspect-ratio-content {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    width: 100%;
-    height: 100%;
+    @apply absolute inset-0 w-full h-full;
   }
 
   .aspect-ratio-1-1::before {
@@ -629,108 +476,77 @@
 /*        UTILIDADES EXTRA       */
 /* ============================= */
 @layer utilities {
-  /* Texto con gradiente */
-  .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-400 dark:from-purple-600 dark:to-purple-400;
+  /* Utilidad para ajuste de texto */
+  .text-size-adjust-100 {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
-  /* Utilidades de visibilidad responsive mejoradas (mobile-first) */
-  .visible-xs {
-    display: initial;
+  /* Utilidades de visibilidad responsive (consolidadas) */
+  .visible-until {
+    @apply block;
   }
+
+  .hidden-until {
+    @apply hidden;
+  }
+
+  /* XS (480px) */
   @media (min-width: 480px) {
-    .visible-xs {
-      display: none !important;
+    .visible-until-xs {
+      @apply hidden;
+    }
+    .hidden-until-xs {
+      @apply block;
     }
   }
 
-  .hidden-xs {
-    display: none;
-  }
-  @media (min-width: 480px) {
-    .hidden-xs {
-      display: initial !important;
-    }
-  }
-
-  .visible-sm-down {
-    display: initial;
-  }
+  /* SM (640px) */
   @media (min-width: 640px) {
-    .visible-sm-down {
-      display: none !important;
+    .visible-until-sm {
+      @apply hidden;
+    }
+    .hidden-until-sm {
+      @apply block;
     }
   }
 
-  .hidden-sm {
-    display: none;
-  }
-  @media (min-width: 640px) {
-    .hidden-sm {
-      display: initial !important;
-    }
-  }
-
-  .visible-md-down {
-    display: initial;
-  }
+  /* MD (768px) */
   @media (min-width: 768px) {
-    .visible-md-down {
-      display: none !important;
+    .visible-until-md {
+      @apply hidden;
+    }
+    .hidden-until-md {
+      @apply block;
     }
   }
 
-  .hidden-md {
-    display: none;
-  }
-  @media (min-width: 768px) {
-    .hidden-md {
-      display: initial !important;
-    }
-  }
-
-  .visible-lg-down {
-    display: initial;
-  }
+  /* LG (1024px) */
   @media (min-width: 1024px) {
-    .visible-lg-down {
-      display: none !important;
+    .visible-until-lg {
+      @apply hidden;
+    }
+    .hidden-until-lg {
+      @apply block;
     }
   }
 
-  .hidden-lg {
-    display: none;
-  }
-  @media (min-width: 1024px) {
-    .hidden-lg {
-      display: initial !important;
-    }
-  }
-
-  /* Utilidades para imágenes - Mejoradas */
+  /* Utilidades para imágenes */
   .img-fluid {
-    max-width: 100%;
-    height: auto;
-    display: block;
+    @apply max-w-full h-auto block;
   }
 
   .img-cover {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: center;
+    @apply w-full h-full object-cover object-center;
   }
 
   .img-contain {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    object-position: center;
+    @apply w-full h-full object-contain object-center;
   }
 
   /* Fix para altura de viewport en móviles */
   .vh-fix {
-    height: 100vh;
+    @apply h-screen;
     height: 100dvh; /* Dynamic viewport height */
   }
 
@@ -747,6 +563,7 @@
     gap: var(--gap-lg);
   }
 
+  /* Padding fluido */
   .p-fluid {
     padding: var(--spacing-4);
   }
@@ -761,6 +578,7 @@
     padding-bottom: var(--spacing-4);
   }
 
+  /* Margin fluido */
   .m-fluid {
     margin: var(--spacing-4);
   }
@@ -776,6 +594,13 @@
   }
 
   /* Utilidades para contenido seguro en dispositivos con notch */
+  .safe-area {
+    @apply pt-[env(safe-area-inset-top,0)] 
+           pr-[env(safe-area-inset-right,0)] 
+           pb-[env(safe-area-inset-bottom,0)] 
+           pl-[env(safe-area-inset-left,0)];
+  }
+
   .safe-top {
     padding-top: env(safe-area-inset-top, 0);
   }
@@ -792,25 +617,20 @@
     padding-right: env(safe-area-inset-right, 0);
   }
 
-  /* Utilidades para scroll suave */
-  .scroll-smooth {
-    scroll-behavior: smooth;
+  /* Utilidades para contenido que se desborda */
+  .truncate-lines {
+    @apply overflow-hidden text-ellipsis;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
   }
 
-  /* Utilidades para contenido que se desborda */
   .truncate-2-lines {
-    display: -webkit-box;
+    @apply truncate-lines;
     -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
 
   .truncate-3-lines {
-    display: -webkit-box;
+    @apply truncate-lines;
     -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
 }

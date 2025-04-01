@@ -19,22 +19,23 @@ const ListaConInfiniteScroll: React.FC<ListaConInfiniteScrollProps> = ({
   onLoadMore,
   hasMore,
   loading,
-  className,
+  className = "",
   children,
   fillAvailable = true,
   maxHeight,
 }) => {
   return (
-    <InfiniteScroll
-      onLoadMore={onLoadMore}
-      hasMore={hasMore}
-      loading={loading}
-      className={className}
-      fillAvailable={fillAvailable}
-      maxHeight={maxHeight}
-    >
-      {children}
-    </InfiniteScroll>
+    <div className={`fade-in ${className}`}>
+      <InfiniteScroll
+        onLoadMore={onLoadMore}
+        hasMore={hasMore}
+        loading={loading}
+        fillAvailable={fillAvailable}
+        maxHeight={maxHeight}
+      >
+        {children}
+      </InfiniteScroll>
+    </div>
   );
 };
 

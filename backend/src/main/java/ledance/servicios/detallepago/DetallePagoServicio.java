@@ -31,13 +31,11 @@ public class DetallePagoServicio {
     private final DetallePagoRepositorio detallePagoRepositorio;
     private final DetallePagoMapper detallePagoMapper;
     private final MensualidadRepositorio mensualidadRepositorio;
-    private final MatriculaRepositorio matriculaRepositorio;
 
     public DetallePagoServicio(DetallePagoRepositorio detallePagoRepositorio, DetallePagoMapper detallePagoMapper, MensualidadRepositorio mensualidadRepositorio, MatriculaRepositorio matriculaRepositorio) {
         this.detallePagoRepositorio = detallePagoRepositorio;
         this.detallePagoMapper = detallePagoMapper;
         this.mensualidadRepositorio = mensualidadRepositorio;
-        this.matriculaRepositorio = matriculaRepositorio;
     }
 
     /**
@@ -167,10 +165,20 @@ public class DetallePagoServicio {
             String tarifa,
             String stock,
             String subConcepto,
-            String detalleConcepto
+            String detalleConcepto,
+            String alumnoId          // NUEVO: Filtrado por alumno
     ) {
+        // Se inicia la Specification con el filtro por fecha
         Specification<DetallePago> spec = Specification.where(filtrarPorFechaRegistro(fechaRegistroDesde, fechaRegistroHasta));
 
+        // Agregar filtro por alumno si se proporciona
+        if (StringUtils.hasText(alumnoId)) {
+            spec = spec.and((root, query, cb) ->
+                    cb.equal(root.get("alumno").get("id"), Long.valueOf(alumnoId))
+            );
+        }
+
+        // Si se envía categoría, se aplica el filtro correspondiente
         if (StringUtils.hasText(categoria)) {
             spec = spec.and(filtrarPorCategoria(categoria, disciplina, tarifa, stock, subConcepto, detalleConcepto));
         }
@@ -252,7 +260,6 @@ public class DetallePagoServicio {
                     }
                     break;
                 case "MATRICULA":
-                    // Para la categoría MATRICULA se filtra directamente por descripción
                     predicates.add(cb.like(cb.upper(root.get("descripcionConcepto")), "%MATRICULA%"));
                     break;
                 default:
@@ -314,13 +321,16 @@ public class DetallePagoServicio {
         log.info("DetallePago eliminado con id={}", id);
     }
 
-    public DetallePagoResponse anularDetallePago(Long id, DetallePago detalleActualizado) {
+    @Transactional
+    public DetallePagoResponse anularDetallePago(Long id) {
         DetallePago detalleExistente = detallePagoRepositorio.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("DetallePago con id " + id + " no encontrado"));
-
+        log.info("DetallePago original con id={}, estado={}", detalleExistente.getId(), detalleExistente.getEstadoPago());
         detalleExistente.setEstadoPago(EstadoPago.ANULADO);
+        detalleExistente.setCobrado(false);
+        detalleExistente.setaCobrar(0.0);
         DetallePago detalleGuardado = detallePagoRepositorio.save(detalleExistente);
-        log.info("DetallePago actualizado con id={}", detalleGuardado.getId());
+        log.info("DetallePago actualizado con id={}, estado={}", detalleGuardado.getId(), detalleGuardado.getEstadoPago());
         return detallePagoMapper.toDTO(detalleGuardado);
     }
 

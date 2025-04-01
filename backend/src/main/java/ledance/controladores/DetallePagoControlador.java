@@ -49,11 +49,10 @@ public class DetallePagoControlador {
         }
     }
 
-    // Endpoint para actualizar un DetallePago existente
     @PutMapping("/anular/{id}")
-    public ResponseEntity<DetallePagoResponse> anularDetallePago(@PathVariable Long id, @RequestBody DetallePago detalle) {
+    public ResponseEntity<DetallePagoResponse> anularDetallePago(@PathVariable Long id) {
         try {
-            DetallePagoResponse response = detallePagoServicio.actualizarDetallePago(id, detalle);
+            DetallePagoResponse response = detallePagoServicio.anularDetallePago(id);
             return ResponseEntity.ok(response);
         } catch (EntityNotFoundException ex) {
             return ResponseEntity.notFound().build();

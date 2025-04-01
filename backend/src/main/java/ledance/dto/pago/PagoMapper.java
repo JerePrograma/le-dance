@@ -25,7 +25,6 @@ public interface PagoMapper {
     @Mapping(target = "estadoPago", ignore = true)
     @Mapping(target = "observaciones", ignore = true)
     @Mapping(target = "montoPagado", ignore = true)
-    // Mapeo correcto: del campo usuarioId (en el request) al objeto Usuario en la entidad
     Pago toEntity(PagoRegistroRequest request);
 
     @Mapping(target = "alumno", expression = "java(alumnoMapper.toResponse(pago.getAlumno()))")

@@ -758,6 +758,7 @@ export interface DetallePagoResponse {
   pagoId: number | null;
   alumnoDisplay: string;
   tieneRecargo: boolean;
+  estadoPago: string;
 }
 
 // DetallePagoRegistroRequest.ts
@@ -781,6 +782,7 @@ export interface DetallePagoRegistroRequest {
   stockId?: number | null;
   pagoId?: number | null; // <-- Nuevo atributo
   tieneRecargo: boolean;
+  estadoPago: string;
 }
 
 export type DetallePagoRegistroRequestExt = DetallePagoRegistroRequest & {
@@ -802,6 +804,7 @@ export interface PagoMedioResponse {
 // --- Valores para el formulario de cobranza ---
 // Estos son los valores que usará el formulario para la UI.
 export interface CobranzasFormValues {
+  estadoPago: string;
   id?: number;
   totalACobrar: number;
   reciboNro: number;

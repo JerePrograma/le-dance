@@ -26,5 +26,6 @@ public record DetallePagoResponse(
         Long pagoId,
         String alumnoDisplay,
         Boolean tieneRecargo,
-        Long usuarioId  // NUEVO: Cobrador
+        Long usuarioId,
+        String estadoPago
 ) { }

@@ -25,7 +25,8 @@ public record DetallePagoRegistroRequest(
         Double importePendiente,
         Double importeInicial,
         Double importeOriginal,
-        Long usuarioId  // NUEVO: ID del usuario que realiza la cobranza
+        Long usuarioId,
+        String estadoPago
 ) {
     public DetallePagoRegistroRequest {
         if (cobrado == null) {

@@ -182,6 +182,7 @@ public class PagoControlador {
      */
     @GetMapping("/filtrar")
     public ResponseEntity<List<DetallePagoResponse>> filtrarDetalles(
+            @RequestParam(required = false) String alumnoId,
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
             LocalDate fechaRegistroDesde,
@@ -209,8 +210,8 @@ public class PagoControlador {
             // Parámetro opcional para indicar la categoría directamente
             @RequestParam(required = false) String categoria
     ) {
-        log.info("Filtrando detalles de pago con parámetros: fechaRegistroDesde={}, fechaRegistroHasta={}, detalleConcepto={}, stock={}, subConcepto={}, disciplina={}, tarifa={}, categoria={}",
-                fechaRegistroDesde, fechaRegistroHasta, detalleConcepto, stock, subConcepto, disciplina, tarifa, categoria);
+        log.info("Filtrando detalles de pago con parámetros: alumnoId={}, fechaRegistroDesde={}, fechaRegistroHasta={}, detalleConcepto={}, stock={}, subConcepto={}, disciplina={}, tarifa={}, categoria={}",
+                alumnoId, fechaRegistroDesde, fechaRegistroHasta, detalleConcepto, stock, subConcepto, disciplina, tarifa, categoria);
 
         // Si no se envía explícitamente la categoría, se la infiere según los parámetros disponibles
         if (categoria == null || categoria.trim().isEmpty()) {
@@ -230,7 +231,7 @@ public class PagoControlador {
             }
         }
 
-        // Llamada al servicio pasando los parámetros en el orden correcto
+        // Llamada al servicio pasando los parámetros en el orden correcto, incluido el alumnoId
         List<DetallePagoResponse> detalles = detallePagoServicio.filtrarDetalles(
                 fechaRegistroDesde,
                 fechaRegistroHasta,
@@ -239,10 +240,11 @@ public class PagoControlador {
                 tarifa,
                 stock,
                 subConcepto,
-                detalleConcepto
+                detalleConcepto,
+                alumnoId
         );
 
-        return detalles.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(detalles);
+        return ResponseEntity.ok(detalles);
     }
 
     @PostMapping("/verificar")

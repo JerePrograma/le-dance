@@ -603,7 +603,7 @@ public class MensualidadServicio implements IMensualidadService {
                 mensualidad.getId(), pagoPendiente.getId());
 
         // Aplicar recargo si corresponde
-        if (detalle.getRecargo() != null && !detalle.getTieneRecargo() ) {
+        if (detalle.getRecargo() != null && !detalle.getTieneRecargo()) {
             log.info("[registrarDetallePagoMensualidad] El detalle indica NO aplicar recargo (tieneRecargo=false).");
             detalle.setTieneRecargo(false);
             detalle.setImportePendiente(importeInicial - aCobrar);
@@ -807,7 +807,8 @@ public class MensualidadServicio implements IMensualidadService {
                         ? detalle.getAlumno().getNombre() + " " + detalle.getAlumno().getApellido()
                         : "",
                 detalle.getTieneRecargo(),
-                detalle.getUsuario().getId()
+                detalle.getUsuario().getId(),
+                detalle.getEstadoPago().toString()
         );
     }
 
@@ -997,7 +998,7 @@ public class MensualidadServicio implements IMensualidadService {
         log.info("[procesarAbonoMensualidad] Abono recibido del detalle: {}", abonoRecibido);
 
         // Si el detalle no tiene recargo, aseguramos que tampoco se use recargo en la mensualidad
-        if (!detalle.getTieneRecargo() ) {
+        if (!detalle.getTieneRecargo()) {
             mensualidad.setRecargo(null);
             detalle.setTieneRecargo(false);
             log.info("[procesarAbonoMensualidad] Se ha forzado recargo null para Mensualidad id={} y Detalle id={}", mensualidad.getId(), detalle.getId());

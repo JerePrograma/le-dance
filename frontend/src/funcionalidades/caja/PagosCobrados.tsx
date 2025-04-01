@@ -203,7 +203,7 @@ const DetallePagoList: React.FC = () => {
     await fetchDetalles(params);
     adjustVisibleCount();
   };
-  
+
   if (loading && detalles.length === 0)
     return <div className="text-center py-4">Cargando...</div>;
   if (error && detalles.length === 0)
@@ -254,6 +254,7 @@ const DetallePagoList: React.FC = () => {
                   <option value="DISCIPLINAS">DISCIPLINAS</option>
                   <option value="STOCK">STOCK</option>
                   <option value="CONCEPTOS">CONCEPTOS</option>
+                  <option value="MATRICULA">MATRICULA</option>
                 </select>
               </div>
               {filtroTipo === "DISCIPLINAS" && (

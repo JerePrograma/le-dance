@@ -118,10 +118,6 @@ public class DetallePago {
         if (this.matricula != null && (this.descripcionConcepto == null || this.descripcionConcepto.trim().isEmpty())) {
             this.descripcionConcepto = "MATRICULA " + LocalDate.now().getYear();
         }
-        // Asignar estadoPago según importePendiente
-        if (this.importePendiente != null) {
-            this.estadoPago = (this.importePendiente > 0) ? EstadoPago.ACTIVO : EstadoPago.HISTORICO;
-        }
     }
 
     @PreUpdate
@@ -131,10 +127,6 @@ public class DetallePago {
         }
         if (this.matricula != null && (this.descripcionConcepto == null || this.descripcionConcepto.trim().isEmpty())) {
             this.descripcionConcepto = "MATRICULA " + LocalDate.now().getYear();
-        }
-        // Actualizar estadoPago según importePendiente
-        if (this.importePendiente != null) {
-            this.estadoPago = (this.importePendiente > 0) ? EstadoPago.ACTIVO : EstadoPago.HISTORICO;
         }
     }
 

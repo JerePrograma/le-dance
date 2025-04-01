@@ -16,19 +16,25 @@ import disciplinasApi from "../../api/disciplinasApi";
 import stocksApi from "../../api/stocksApi";
 import subConceptosApi from "../../api/subConceptosApi";
 import conceptosApi from "../../api/conceptosApi";
-import type { DetallePagoResponse } from "../../types/types";
+import alumnosApi from "../../api/alumnosApi";
+import type { DetallePagoResponse, AlumnoResponse } from "../../types/types";
 import { useCobranzasData } from "../../hooks/useCobranzasData";
 import ListaConInfiniteScroll from "../../componentes/comunes/ListaConInfiniteScroll";
+import useDebounce from "../../hooks/useDebounce";
+import { X } from "lucide-react";
 
 interface DetallePagoListProps {
-  alumnoId?: string; // Prop opcional para filtrar por alumno
+  // Si se pasa por prop se filtrará de forma fija; de lo contrario se podrá buscar y seleccionar
+  alumnoId?: string;
 }
 
 const tarifaOptions = ["CUOTA", "CLASE DE PRUEBA", "CLASE SUELTA"];
 const estimatedRowHeight = 70; // Altura estimada por fila (en píxeles)
 const itemsPerPage = 25; // Valor base (fallback)
 
-const DetallePagoList: React.FC<DetallePagoListProps> = ({ alumnoId }) => {
+const DetallePagoList: React.FC<DetallePagoListProps> = ({
+  alumnoId: alumnoIdProp,
+}) => {
   // Estados de datos y carga
   const [detalles, setDetalles] = useState<DetallePagoResponse[]>([]);
   const [loading, setLoading] = useState(false);
@@ -53,7 +59,20 @@ const DetallePagoList: React.FC<DetallePagoListProps> = ({ alumnoId }) => {
   const [conceptos, setConceptos] = useState<any[]>([]);
   const [selectedConcepto, setSelectedConcepto] = useState("");
 
-  // Refs para calcular alturas
+  // Estados para búsqueda y autocompletar alumnos
+  const [nombreBusqueda, setNombreBusqueda] = useState("");
+  const [sugerenciasAlumnos, setSugerenciasAlumnos] = useState<
+    AlumnoResponse[]
+  >([]);
+  const [activeSuggestionIndex, setActiveSuggestionIndex] =
+    useState<number>(-1);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  // Si no se pasó alumnoId por prop, se usa el que seleccione el usuario
+  const [alumnoIdLocal, setAlumnoIdLocal] = useState<string | null>(null);
+  const searchWrapperRef = useRef<HTMLDivElement>(null);
+  const debouncedNombreBusqueda = useDebounce(nombreBusqueda, 300);
+
+  // Ref para calcular alturas
   const containerRef = useRef<HTMLDivElement>(null);
   const tableContainerRef = useRef<HTMLDivElement>(null);
 
@@ -71,8 +90,6 @@ const DetallePagoList: React.FC<DetallePagoListProps> = ({ alumnoId }) => {
         // Reiniciamos visibleCount al recargar datos
         setVisibleCount(itemsPerPage);
       } catch (error) {
-        toast.error("Error al cargar pagos cobrados");
-        setError("Error al cargar pagos cobrados");
       } finally {
         setLoading(false);
       }
@@ -80,14 +97,17 @@ const DetallePagoList: React.FC<DetallePagoListProps> = ({ alumnoId }) => {
     []
   );
 
-  // Al montar el componente, incluimos el filtro por alumnoId (si se pasa como prop)
+  // Determinar el alumno a filtrar: prioriza la prop; de lo contrario, el seleccionado localmente
+  const alumnoFiltro = alumnoIdProp || (alumnoIdLocal ? alumnoIdLocal : "");
+
+  // Al montar el componente, incluimos el filtro por alumno si existe
   useEffect(() => {
     const params: Record<string, string> = {};
-    if (alumnoId) {
-      params.alumnoId = alumnoId;
+    if (alumnoFiltro) {
+      params.alumnoId = alumnoFiltro;
     }
     fetchDetalles(params);
-  }, [fetchDetalles, alumnoId]);
+  }, [fetchDetalles, alumnoFiltro]);
 
   // Cargar filtros secundarios según la categoría seleccionada
   useEffect(() => {
@@ -128,10 +148,72 @@ const DetallePagoList: React.FC<DetallePagoListProps> = ({ alumnoId }) => {
     }
   }, [filtroTipo, selectedSubConcepto]);
 
-  // Filtrar detalles para mostrar solo los que hayan sido cobrados
-  const detallesCobrado = useMemo(() => {
-    return detalles.filter((detalle) => detalle.cobrado);
-  }, [detalles]);
+  // Buscar sugerencias de alumnos cuando cambia el nombre (con debounce)
+  useEffect(() => {
+    const buscarSugerencias = async () => {
+      const query = debouncedNombreBusqueda.trim();
+      if (query !== "") {
+        try {
+          const sugerencias = await alumnosApi.buscarPorNombre(query);
+          setSugerenciasAlumnos(sugerencias);
+        } catch (error) {
+          setSugerenciasAlumnos([]);
+        }
+      } else {
+        setSugerenciasAlumnos([]);
+      }
+      setActiveSuggestionIndex(-1);
+    };
+    buscarSugerencias();
+  }, [debouncedNombreBusqueda]);
+
+  // Manejo de teclas para navegación en las sugerencias
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (sugerenciasAlumnos.length > 0) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setActiveSuggestionIndex((prev) =>
+          prev < sugerenciasAlumnos.length - 1 ? prev + 1 : 0
+        );
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setActiveSuggestionIndex((prev) =>
+          prev > 0 ? prev - 1 : sugerenciasAlumnos.length - 1
+        );
+      } else if (e.key === "Enter" || e.key === "Tab") {
+        if (
+          activeSuggestionIndex >= 0 &&
+          activeSuggestionIndex < sugerenciasAlumnos.length
+        ) {
+          e.preventDefault();
+          const alumnoSeleccionado = sugerenciasAlumnos[activeSuggestionIndex];
+          handleSeleccionarAlumno(alumnoSeleccionado);
+        }
+      }
+    }
+  };
+
+  // Manejar selección de alumno desde las sugerencias
+  const handleSeleccionarAlumno = (alumno: AlumnoResponse) => {
+    setAlumnoIdLocal(String(alumno.id));
+    setNombreBusqueda(`${alumno.nombre} ${alumno.apellido}`);
+    setSugerenciasAlumnos([]);
+    setShowSuggestions(false);
+  };
+
+  // Ref para cerrar sugerencias al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        searchWrapperRef.current &&
+        !searchWrapperRef.current.contains(e.target as Node)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Ajustar visibleCount según la altura del contenedor principal
   const adjustVisibleCount = useCallback(() => {
@@ -167,14 +249,14 @@ const DetallePagoList: React.FC<DetallePagoListProps> = ({ alumnoId }) => {
 
   // Subconjunto de datos a mostrar según visibleCount
   const currentItems = useMemo(
-    () => detallesCobrado.slice(0, visibleCount),
-    [detallesCobrado, visibleCount]
+    () => detalles.slice(0, visibleCount),
+    [detalles, visibleCount]
   );
 
   // Determina si hay más elementos para cargar
   const hasMore = useMemo(
-    () => visibleCount < detallesCobrado.length,
-    [visibleCount, detallesCobrado.length]
+    () => visibleCount < detalles.length,
+    [visibleCount, detalles.length]
   );
 
   // Función para cargar más datos (incrementa visibleCount)
@@ -196,8 +278,33 @@ const DetallePagoList: React.FC<DetallePagoListProps> = ({ alumnoId }) => {
           return;
         }
       }
-      // Remover el detalle del estado (filtrando por id)
       setDetalles((prev) => prev.filter((d) => d.id !== detalle.id));
+    }
+  };
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleAnularDetalle = async (detalle: DetallePagoResponse) => {
+    if (!detalle.id || Number(detalle.id) === 0 || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      const detalleActualizado = await detallesPagoApi.anularDetallePago(
+        detalle.id
+      );
+      if (!detalleActualizado) {
+        // O bien re-fetch de la lista
+        await fetchDetalles();
+        toast.success("Detalle anulado correctamente");
+        return;
+      }
+      toast.success("Detalle anulado correctamente");
+      setDetalles((prevDetalles) =>
+        prevDetalles.map((d) => (d.id === detalle.id ? detalleActualizado : d))
+      );
+    } catch (error) {
+      toast.error("Error al anular el detalle");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -207,8 +314,8 @@ const DetallePagoList: React.FC<DetallePagoListProps> = ({ alumnoId }) => {
     const params: Record<string, string> = {};
     if (fechaInicio) params.fechaRegistroDesde = fechaInicio;
     if (fechaFin) params.fechaRegistroHasta = fechaFin;
-    if (alumnoId) {
-      params.alumnoId = alumnoId;
+    if (alumnoFiltro) {
+      params.alumnoId = alumnoFiltro;
     }
     if (filtroTipo) {
       params.categoria = filtroTipo;
@@ -254,130 +361,191 @@ const DetallePagoList: React.FC<DetallePagoListProps> = ({ alumnoId }) => {
       <div className="flex-none px-6 pb-4">
         <div className="page-card">
           <form onSubmit={handleFilterSubmit}>
-            <div className="flex gap-4 items-center mb-4">
-              <div>
-                <label className="block font-medium">Desde</label>
+            <div className="flex flex-col gap-4 mb-4">
+              {/* Campo de búsqueda por Alumno con autocompletar */}
+              <div className="relative">
+                <label htmlFor="nombreBusqueda" className="block font-medium">
+                  Buscar Alumno:
+                </label>
                 <input
-                  type="date"
-                  className="border p-2"
-                  value={fechaInicio}
-                  onChange={(e) => setFechaInicio(e.target.value)}
+                  type="text"
+                  id="nombreBusqueda"
+                  value={nombreBusqueda}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setNombreBusqueda(value);
+                    setShowSuggestions(value.trim() !== "");
+                  }}
+                  onFocus={() => {
+                    if (nombreBusqueda.trim() !== "") {
+                      setShowSuggestions(true);
+                    }
+                  }}
+                  onKeyDown={handleKeyDown}
+                  className="border p-2 w-full"
                 />
+                {nombreBusqueda && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNombreBusqueda("");
+                      setSugerenciasAlumnos([]);
+                      setShowSuggestions(false);
+                      setAlumnoIdLocal(null);
+                    }}
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                )}
+                {showSuggestions && sugerenciasAlumnos.length > 0 && (
+                  <ul className="sugerencias-lista absolute w-full bg-[hsl(var(--popover))] border border-[hsl(var(--border))] z-10">
+                    {sugerenciasAlumnos.map((alumno, index) => (
+                      <li
+                        key={alumno.id}
+                        onClick={() => handleSeleccionarAlumno(alumno)}
+                        onMouseEnter={() => setActiveSuggestionIndex(index)}
+                        className={`sugerencia-item p-2 cursor-pointer ${
+                          index === activeSuggestionIndex
+                            ? "bg-[hsl(var(--muted))]"
+                            : ""
+                        }`}
+                      >
+                        {alumno.nombre} {alumno.apellido}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
-              <div>
-                <label className="block font-medium">Hasta</label>
-                <input
-                  type="date"
-                  className="border p-2"
-                  value={fechaFin}
-                  onChange={(e) => setFechaFin(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="block font-medium">Filtrar por:</label>
-                <select
-                  className="border p-2"
-                  value={filtroTipo}
-                  onChange={(e) => setFiltroTipo(e.target.value)}
-                >
-                  <option value="">Seleccionar...</option>
-                  <option value="DISCIPLINAS">DISCIPLINAS</option>
-                  <option value="STOCK">STOCK</option>
-                  <option value="CONCEPTOS">CONCEPTOS</option>
-                </select>
-              </div>
-              {filtroTipo === "DISCIPLINAS" && (
-                <>
-                  <div>
-                    <label className="block font-medium">Disciplina</label>
-                    <select
-                      className="border p-2"
-                      value={selectedDisciplina}
-                      onChange={(e) => setSelectedDisciplina(e.target.value)}
-                    >
-                      <option value="">Seleccionar disciplina...</option>
-                      {disciplinas.map((d) => (
-                        <option key={d.id} value={d.nombre || d.descripcion}>
-                          {d.nombre || d.descripcion}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block font-medium">Tarifa</label>
-                    <select
-                      className="border p-2"
-                      value={selectedTarifa}
-                      onChange={(e) => setSelectedTarifa(e.target.value)}
-                    >
-                      <option value="">Seleccionar tarifa...</option>
-                      {tarifaOptions.map((tarifa) => (
-                        <option key={tarifa} value={tarifa}>
-                          {tarifa}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </>
-              )}
-              {filtroTipo === "STOCK" && (
+              {/* Resto de filtros: fechas y por categoría */}
+              <div className="flex gap-4 items-center">
                 <div>
-                  <label className="block font-medium">Stock</label>
+                  <label className="block font-medium">Desde</label>
+                  <input
+                    type="date"
+                    className="border p-2"
+                    value={fechaInicio}
+                    onChange={(e) => setFechaInicio(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block font-medium">Hasta</label>
+                  <input
+                    type="date"
+                    className="border p-2"
+                    value={fechaFin}
+                    onChange={(e) => setFechaFin(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block font-medium">Filtrar por:</label>
                   <select
                     className="border p-2"
-                    value={selectedStock}
-                    onChange={(e) => setSelectedStock(e.target.value)}
+                    value={filtroTipo}
+                    onChange={(e) => setFiltroTipo(e.target.value)}
                   >
-                    <option value="">Seleccionar stock...</option>
-                    {stocks.map((s) => (
-                      <option key={s.id} value={s.nombre || s.descripcion}>
-                        {s.nombre || s.descripcion}
-                      </option>
-                    ))}
+                    <option value="">Seleccionar...</option>
+                    <option value="DISCIPLINAS">DISCIPLINAS</option>
+                    <option value="STOCK">STOCK</option>
+                    <option value="CONCEPTOS">CONCEPTOS</option>
+                    <option value="MATRICULA">MATRICULA</option>
                   </select>
                 </div>
-              )}
-              {filtroTipo === "CONCEPTOS" && (
-                <>
+                {filtroTipo === "DISCIPLINAS" && (
+                  <>
+                    <div>
+                      <label className="block font-medium">Disciplina</label>
+                      <select
+                        className="border p-2"
+                        value={selectedDisciplina}
+                        onChange={(e) => setSelectedDisciplina(e.target.value)}
+                      >
+                        <option value="">Seleccionar disciplina...</option>
+                        {disciplinas.map((d) => (
+                          <option key={d.id} value={d.nombre || d.descripcion}>
+                            {d.nombre || d.descripcion}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block font-medium">Tarifa</label>
+                      <select
+                        className="border p-2"
+                        value={selectedTarifa}
+                        onChange={(e) => setSelectedTarifa(e.target.value)}
+                      >
+                        <option value="">Seleccionar tarifa...</option>
+                        {tarifaOptions.map((tarifa) => (
+                          <option key={tarifa} value={tarifa}>
+                            {tarifa}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </>
+                )}
+                {filtroTipo === "STOCK" && (
                   <div>
-                    <label className="block font-medium">Sub Concepto</label>
+                    <label className="block font-medium">Stock</label>
                     <select
                       className="border p-2"
-                      value={selectedSubConcepto}
-                      onChange={(e) => setSelectedSubConcepto(e.target.value)}
+                      value={selectedStock}
+                      onChange={(e) => setSelectedStock(e.target.value)}
                     >
-                      <option value="">Seleccionar sub concepto...</option>
-                      {subConceptos.map((sc) => (
-                        <option key={sc.id} value={sc.descripcion}>
-                          {sc.descripcion}
+                      <option value="">Seleccionar stock...</option>
+                      {stocks.map((s) => (
+                        <option key={s.id} value={s.nombre || s.descripcion}>
+                          {s.nombre || s.descripcion}
                         </option>
                       ))}
                     </select>
                   </div>
-                  <div>
-                    <label className="block font-medium">Concepto</label>
-                    <select
-                      className="border p-2"
-                      value={selectedConcepto}
-                      onChange={(e) => setSelectedConcepto(e.target.value)}
-                      disabled={!selectedSubConcepto || conceptos.length === 0}
-                    >
-                      <option value="">Seleccionar concepto...</option>
-                      {conceptos.map((c) => (
-                        <option key={c.id} value={c.descripcion}>
-                          {c.descripcion}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </>
-              )}
-              <Boton
-                type="submit"
-                className="bg-green-500 text-white p-2 rounded"
-              >
-                Ver
-              </Boton>
+                )}
+                {filtroTipo === "CONCEPTOS" && (
+                  <>
+                    <div>
+                      <label className="block font-medium">Sub Concepto</label>
+                      <select
+                        className="border p-2"
+                        value={selectedSubConcepto}
+                        onChange={(e) => setSelectedSubConcepto(e.target.value)}
+                      >
+                        <option value="">Seleccionar sub concepto...</option>
+                        {subConceptos.map((sc) => (
+                          <option key={sc.id} value={sc.descripcion}>
+                            {sc.descripcion}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block font-medium">Concepto</label>
+                      <select
+                        className="border p-2"
+                        value={selectedConcepto}
+                        onChange={(e) => setSelectedConcepto(e.target.value)}
+                        disabled={
+                          !selectedSubConcepto || conceptos.length === 0
+                        }
+                      >
+                        <option value="">Seleccionar concepto...</option>
+                        {conceptos.map((c) => (
+                          <option key={c.id} value={c.descripcion}>
+                            {c.descripcion}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </>
+                )}
+                <Boton
+                  type="submit"
+                  className="bg-green-500 text-white p-2 rounded"
+                >
+                  Ver
+                </Boton>
+              </div>
             </div>
           </form>
         </div>
@@ -404,7 +572,7 @@ const DetallePagoList: React.FC<DetallePagoListProps> = ({ alumnoId }) => {
                 "Bonificación",
                 "Recargo",
                 "Cobrados",
-                "Acciones",
+                "Estado",
               ]}
               data={sortedItems}
               customRender={(fila: DetallePagoResponse) => {
@@ -417,23 +585,34 @@ const DetallePagoList: React.FC<DetallePagoListProps> = ({ alumnoId }) => {
                   recargos.find((r) => r.id === Number(fila.recargoId))
                     ?.descripcion;
                 return [
-                  fila.pagoId || fila.id,
+                  fila.id,
                   fila.alumnoDisplay,
                   fila.descripcionConcepto,
                   fila.aCobrar,
                   bonificacionNombre || "-",
                   recargoNombre || "-",
                   fila.cobrado ? "Sí" : "No",
+                  fila.estadoPago,
                 ];
               }}
               actions={(fila: DetallePagoResponse) => (
-                <button
-                  type="button"
-                  className="bg-red-500 hover:bg-red-600 text-white p-1 rounded text-xs transition-colors mx-auto block"
-                  onClick={() => handleDeleteDetalle(fila)}
-                >
-                  Eliminar
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={isSubmitting}
+                    className="bg-green-500 hover:bg-green-600 text-white p-1 rounded text-xs transition-colors mx-auto block"
+                    onClick={() => handleAnularDetalle(fila)}
+                  >
+                    Anular
+                  </button>
+                  <button
+                    type="button"
+                    className="bg-red-500 hover:bg-red-600 text-white p-1 rounded text-xs transition-colors mx-auto block"
+                    onClick={() => handleDeleteDetalle(fila)}
+                  >
+                    Eliminar
+                  </button>
+                </div>
               )}
               emptyMessage="No hay pagos cobrados"
             />

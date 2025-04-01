@@ -71,7 +71,60 @@ module.exports = {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
       },
+      spacing: {
+        // Añadimos espaciado fluido al sistema de Tailwind
+        "fluid-1": "var(--spacing-1)",
+        "fluid-2": "var(--spacing-2)",
+        "fluid-3": "var(--spacing-3)",
+        "fluid-4": "var(--spacing-4)",
+        "fluid-6": "var(--spacing-6)",
+        "fluid-8": "var(--spacing-8)",
+        "fluid-10": "var(--spacing-10)",
+      },
+      gap: {
+        "fluid-xs": "var(--gap-xs)",
+        "fluid-sm": "var(--gap-sm)",
+        "fluid-md": "var(--gap-md)",
+        "fluid-lg": "var(--gap-lg)",
+      },
+      fontSize: {
+        "fluid-xs": "var(--text-xs)",
+        "fluid-sm": "var(--text-sm)",
+        "fluid-base": "var(--text-base)",
+        "fluid-lg": "var(--text-lg)",
+        "fluid-xl": "var(--text-xl)",
+        "fluid-2xl": "var(--text-2xl)",
+        "fluid-3xl": "var(--text-3xl)",
+        "fluid-4xl": "var(--text-4xl)",
+        "fluid-5xl": "var(--text-5xl)",
+      },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [
+    require("tailwindcss-animate"),
+    // Añadimos un plugin para las clases de truncado de líneas
+    function ({ addUtilities }) {
+      const newUtilities = {
+        ".truncate-lines": {
+          overflow: "hidden",
+          "text-overflow": "ellipsis",
+          display: "-webkit-box",
+          "-webkit-box-orient": "vertical",
+        },
+        ".line-clamp-1": {
+          "-webkit-line-clamp": "1",
+        },
+        ".line-clamp-2": {
+          "-webkit-line-clamp": "2",
+        },
+        ".line-clamp-3": {
+          "-webkit-line-clamp": "3",
+        },
+        ".line-clamp-4": {
+          "-webkit-line-clamp": "4",
+        },
+      };
+      addUtilities(newUtilities);
+    },
+  ],
 };

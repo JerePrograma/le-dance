@@ -33,21 +33,20 @@ const Tabla = <T extends Record<string, any>>({
   return (
     <div className={`w-full h-full flex flex-col ${className}`}>
       {/* Versión para pantallas medianas y grandes */}
-      <div className="hidden sm:block rounded-md border h-full overflow-auto">
+      <div className="hidden sm:block rounded-lg border h-full overflow-auto">
         <Table>
-          <TableHeader className="sticky top-0 bg-background z-10">
-            <TableRow>
+          <TableHeader className="sticky top-0 bg-background/95 backdrop-blur-sm z-10">
+            <TableRow className="border-b border-border hover:bg-transparent">
               {headers.map((header, idx) => (
                 <TableHead
                   key={idx}
-                  // Se quita min-w-max y se utiliza w-auto para que el ancho se ajuste
-                  className="text-center whitespace-nowrap w-auto px-2 py-1"
+                  className="text-center whitespace-nowrap px-fluid-2 py-fluid-1 text-muted-foreground font-medium"
                 >
                   {header}
                 </TableHead>
               ))}
               {actions && (
-                <TableHead className="text-center whitespace-nowrap w-auto px-2 py-1">
+                <TableHead className="text-center whitespace-nowrap px-fluid-2 py-fluid-1 text-muted-foreground font-medium">
                   Acciones
                 </TableHead>
               )}
@@ -56,12 +55,15 @@ const Tabla = <T extends Record<string, any>>({
           <TableBody>
             {data.length > 0 ? (
               data.map((row, index) => (
-                <TableRow key={index}>
+                <TableRow
+                  key={index}
+                  className="border-b border-border/50 transition-colors hover:bg-muted/30"
+                >
                   {customRender
                     ? customRender(row).map((value, idx) => (
                         <TableCell
                           key={idx}
-                          className="text-center whitespace-nowrap w-auto px-2 py-1"
+                          className="text-center whitespace-nowrap px-fluid-2 py-fluid-1"
                         >
                           {value}
                         </TableCell>
@@ -69,14 +71,14 @@ const Tabla = <T extends Record<string, any>>({
                     : Object.values(row).map((value, idx) => (
                         <TableCell
                           key={idx}
-                          className="text-center whitespace-nowrap w-auto px-2 py-1"
+                          className="text-center whitespace-nowrap px-fluid-2 py-fluid-1"
                         >
                           {typeof value === "object" ? value : String(value)}
                         </TableCell>
                       ))}
                   {actions && (
-                    <TableCell className="text-center whitespace-nowrap w-auto px-2 py-1">
-                      <div className="flex items-center justify-center gap-2">
+                    <TableCell className="text-center whitespace-nowrap px-fluid-2 py-fluid-1">
+                      <div className="flex items-center justify-center gap-fluid-sm">
                         {actions(row)}
                       </div>
                     </TableCell>
@@ -99,13 +101,10 @@ const Tabla = <T extends Record<string, any>>({
       </div>
 
       {/* Versión para móviles (cards en lugar de tabla) */}
-      <div className="sm:hidden space-y-4 overflow-auto h-full">
+      <div className="sm:hidden space-y-fluid-md overflow-auto h-full">
         {data.length > 0 ? (
           data.map((row, rowIndex) => (
-            <div
-              key={rowIndex}
-              className="bg-card rounded-lg border border-border p-4 space-y-3"
-            >
+            <div key={rowIndex} className="card card-hover">
               {headers.map((header, headerIndex) => {
                 const value = customRender
                   ? customRender(row)[headerIndex]
@@ -113,7 +112,7 @@ const Tabla = <T extends Record<string, any>>({
                 return (
                   <div
                     key={headerIndex}
-                    className="flex flex-col items-center justify-center whitespace-nowrap"
+                    className="flex flex-col items-center justify-center whitespace-nowrap mb-fluid-2 last:mb-0"
                   >
                     <span className="text-xs font-medium text-muted-foreground">
                       {header}
@@ -129,11 +128,11 @@ const Tabla = <T extends Record<string, any>>({
                 );
               })}
               {actions && (
-                <div className="pt-2 mt-2 border-t border-border">
+                <div className="pt-fluid-2 mt-fluid-2 border-t border-border">
                   <span className="text-xs font-medium text-muted-foreground block text-center">
                     Acciones
                   </span>
-                  <div className="mt-2 flex flex-wrap justify-center gap-2">
+                  <div className="mt-2 flex flex-wrap justify-center gap-fluid-sm">
                     {actions(row)}
                   </div>
                 </div>
@@ -141,7 +140,7 @@ const Tabla = <T extends Record<string, any>>({
             </div>
           ))
         ) : (
-          <div className="text-center p-6 bg-card rounded-lg border border-border text-muted-foreground">
+          <div className="card text-center p-fluid text-muted-foreground">
             {emptyMessage}
           </div>
         )}

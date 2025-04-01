@@ -255,6 +255,7 @@ const DetallePagoList: React.FC = () => {
                   <option value="DISCIPLINAS">DISCIPLINAS</option>
                   <option value="STOCK">STOCK</option>
                   <option value="CONCEPTOS">CONCEPTOS</option>
+                  <option value="MATRICULA">MATRICULA</option>
                 </select>
               </div>
               {filtroTipo === "DISCIPLINAS" && (

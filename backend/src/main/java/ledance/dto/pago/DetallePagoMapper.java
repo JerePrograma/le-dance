@@ -34,6 +34,7 @@ public interface DetallePagoMapper {
     @Mapping(target = "tieneRecargo", source = "tieneRecargo")
     @Mapping(target = "fechaRegistro", ignore = true)
     @Mapping(target = "esClon", ignore = true)
+    @Mapping(target = "estadoPago", ignore = true)
     DetallePago toEntity(DetallePagoRegistroRequest request);
 
     // Actualización de entidad existente
@@ -51,6 +52,7 @@ public interface DetallePagoMapper {
     @Mapping(target = "tipo", expression = "java(determineTipo(request))")
     @Mapping(target = "fechaRegistro", ignore = true)
     @Mapping(target = "esClon", ignore = true)
+    @Mapping(target = "estadoPago", ignore = true)
     void updateDetallePagoFromDTO(DetallePagoRegistroRequest request, @MappingTarget DetallePago detallePago);
 
     default TipoDetallePago determineTipo(DetallePagoRegistroRequest request) {
@@ -92,6 +94,7 @@ public interface DetallePagoMapper {
     @Mapping(target = "alumnoDisplay",
             expression = "java(detallePago.getAlumno().getNombre() + \", \" + detallePago.getAlumno().getApellido())")
     @Mapping(target = "tieneRecargo", source = "tieneRecargo")
+    @Mapping(target = "estadoPago", source = "estadoPago")
     DetallePagoResponse toDTO(DetallePago detallePago);
 
     // Métodos helper para asociaciones
