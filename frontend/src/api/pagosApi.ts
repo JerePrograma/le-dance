@@ -202,6 +202,7 @@ const pagosApi = {
   obtenerPagoPorId,
   listarPagos,
   actualizarPago,
+  descargarRecibo,
   actualizarPagoParcial,
   eliminarPago,
   listarPagosPorInscripcion,

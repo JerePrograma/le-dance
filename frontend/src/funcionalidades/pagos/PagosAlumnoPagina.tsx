@@ -11,7 +11,6 @@ import type { PagoResponse } from "../../types/types";
 import pagosApi from "../../api/pagosApi";
 
 const PaymentListByAlumno: React.FC = () => {
-  // Se obtiene el alumnoId de la URL (definido en la ruta /pagos/alumno/:alumnoId)
   const { alumnoId } = useParams<{ alumnoId: string }>();
   const navigate = useNavigate();
 
@@ -19,9 +18,9 @@ const PaymentListByAlumno: React.FC = () => {
   const [visibleCount, setVisibleCount] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const itemsPerLoad = 25; // o la cantidad que desees mostrar de a poco
+  const itemsPerLoad = 25;
 
-  // Función para obtener TODOS los pagos filtrados por alumno
+  // Obtener pagos para el alumno
   const fetchPagos = useCallback(async () => {
     if (!alumnoId) return;
     try {
@@ -30,7 +29,6 @@ const PaymentListByAlumno: React.FC = () => {
       const parsedAlumnoId = Number(alumnoId);
       const data = await pagosApi.listarPagosPorAlumno(parsedAlumnoId);
       setPagos(data);
-      // Inicialmente mostramos los primeros itemsPerLoad elementos
       setVisibleCount(itemsPerLoad);
     } catch (err) {
       toast.error("Error al cargar pagos:");
@@ -44,15 +42,12 @@ const PaymentListByAlumno: React.FC = () => {
     fetchPagos();
   }, [fetchPagos]);
 
-  // Los elementos actualmente visibles, basados en visibleCount
   const currentItems = useMemo(
     () => pagos.slice(0, visibleCount),
     [pagos, visibleCount]
   );
-  // Determina si quedan más elementos por mostrar
   const hasMore = visibleCount < pagos.length;
 
-  // Función que incrementa la cantidad de elementos visibles
   const loadMore = useCallback(() => {
     setVisibleCount((prev) => Math.min(prev + itemsPerLoad, pagos.length));
   }, [pagos.length, itemsPerLoad]);
@@ -62,6 +57,7 @@ const PaymentListByAlumno: React.FC = () => {
   if (error && pagos.length === 0)
     return <div className="text-center py-4 text-destructive">{error}</div>;
 
+  // Ordena los pagos de forma descendente
   const sortedPagos = [...currentItems].sort((a, b) => b.id - a.id);
 
   return (
@@ -93,6 +89,7 @@ const PaymentListByAlumno: React.FC = () => {
             "Método de Pago",
             "Saldo Restante",
             "Estado",
+            "Factura",
           ]}
           data={sortedPagos}
           customRender={(fila) => [
@@ -102,6 +99,14 @@ const PaymentListByAlumno: React.FC = () => {
             fila.metodoPago ? fila.metodoPago.descripcion : "Sin método",
             fila.saldoRestante,
             fila.estadoPago,
+            // Botón para descargar la factura
+            <button
+              type="button"
+              onClick={() => pagosApi.descargarRecibo(fila.id)}
+              className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-sm"
+            >
+              Descargar Factura
+            </button>,
           ]}
         />
       </div>
@@ -112,7 +117,7 @@ const PaymentListByAlumno: React.FC = () => {
         className="mt-4"
         children={undefined}
       >
-        {/* Puedes dejar este contenedor vacío o agregar un mensaje */}
+        {/* Mensaje opcional o dejar vacío */}
       </InfiniteScroll>
     </div>
   );
