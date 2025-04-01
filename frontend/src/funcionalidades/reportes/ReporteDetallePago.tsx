@@ -5,46 +5,50 @@ import * as Yup from "yup";
 import useDebounce from "../../hooks/useDebounce";
 import disciplinasApi from "../../api/disciplinasApi";
 import profesoresApi from "../../api/profesoresApi";
-import type { DetallePagoResponse } from "../../types/types"; // Asegúrate de que la ruta sea la correcta
+import type { DetallePagoResponse } from "../../types/types";
 import reporteMensualidadApi from "../../api/reporteMensualidadApi";
 import Tabla from "../../componentes/comunes/Tabla";
 import { toast } from "react-toastify";
 
 interface FiltrosBusqueda {
-  // Inputs tipo "month" que devuelven "YYYY-MM"
   fechaInicio: string;
   fechaFin: string;
-  disciplinaNombre: string; // Búsqueda por nombre de disciplina
-  profesorNombre: string; // Búsqueda por nombre de profesor
+  disciplinaNombre: string;
+  profesorNombre: string;
 }
 
-// Establecemos el mes actual en formato "YYYY-MM" como valor inicial
-const mesActual = new Date().toISOString().substring(0, 7);
+// Función auxiliar para obtener el mes actual en formato "YYYY-MM"
+// considerando la zona horaria "America/Argentina/Buenos_Aires"
+const getCurrentMonth = () => {
+  const now = new Date();
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    year: "numeric",
+    month: "2-digit",
+  }).format(now);
+};
 
 const ReporteDetallePago: React.FC = () => {
-  // Ahora el estado se basa en DetallePagoResponse
   const [resultados, setResultados] = useState<DetallePagoResponse[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [porcentaje, setPorcentaje] = useState<number>(0);
 
   // Estados para sugerencias de disciplina y profesor
   const [sugerenciasDisciplinas, setSugerenciasDisciplinas] = useState<any[]>(
     []
   );
   const [sugerenciasProfesores, setSugerenciasProfesores] = useState<any[]>([]);
-
-  // Hooks de debounce para disciplina y profesor
   const [disciplinaBusqueda, setDisciplinaBusqueda] = useState<string>("");
   const debouncedDisciplinaBusqueda = useDebounce(disciplinaBusqueda, 300);
-
   const [profesorBusqueda, setProfesorBusqueda] = useState<string>("");
   const debouncedProfesorBusqueda = useDebounce(profesorBusqueda, 300);
 
   // Configuración de Formik para los filtros
   const formik = useFormik<FiltrosBusqueda>({
     initialValues: {
-      fechaInicio: mesActual,
-      fechaFin: mesActual,
+      fechaInicio: getCurrentMonth(),
+      fechaFin: getCurrentMonth(),
       disciplinaNombre: "",
       profesorNombre: "",
     },
@@ -56,18 +60,20 @@ const ReporteDetallePago: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        // Función para transformar "YYYY-MM" en fecha inicio (primer día) y fecha fin (último día)
+        // Función que transforma "YYYY-MM" a fechas completas (primer y último día)
         const transformarMesAFechas = (
           mesStr: string
         ): { inicio: string; fin: string } => {
           const [year, month] = mesStr.split("-").map(Number);
           const inicio = new Date(year, month - 1, 1);
-          const fin = new Date(year, month, 0); // Último día del mes
+          const fin = new Date(year, month, 0);
           const formatear = (d: Date) =>
-            `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
-              2,
-              "0"
-            )}-${String(d.getDate()).padStart(2, "0")}`;
+            new Intl.DateTimeFormat("en-CA", {
+              timeZone: "America/Argentina/Buenos_Aires",
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+            }).format(d);
           return { inicio: formatear(inicio), fin: formatear(fin) };
         };
 
@@ -75,7 +81,6 @@ const ReporteDetallePago: React.FC = () => {
           values.fechaInicio
         );
         const { fin: finFecha } = transformarMesAFechas(values.fechaFin);
-
         const params = {
           fechaInicio: inicioFecha,
           fechaFin: finFecha,
@@ -87,14 +92,12 @@ const ReporteDetallePago: React.FC = () => {
           "Llamando a /api/reportes/mensualidades/buscar con parámetros:",
           params
         );
-
-        // Se espera directamente un array de DetallePagoResponse
         const response: DetallePagoResponse[] =
           await reporteMensualidadApi.listarReporte(params);
         console.log("Respuesta recibida:", response);
         setResultados(response);
       } catch (err: any) {
-        toast.error("Error al obtener el reporte:", err);
+        toast.error("Error al obtener el reporte:" + err);
         setError("Error al cargar los datos del reporte");
       } finally {
         setLoading(false);
@@ -102,7 +105,12 @@ const ReporteDetallePago: React.FC = () => {
     },
   });
 
-  // useEffect para sugerencias de disciplinas
+  // Auto-submit al montar el componente
+  useEffect(() => {
+    formik.submitForm();
+  }, []);
+
+  // Sugerencias de disciplinas
   useEffect(() => {
     const buscarSugerenciasDisciplinas = async () => {
       if (debouncedDisciplinaBusqueda) {
@@ -123,7 +131,7 @@ const ReporteDetallePago: React.FC = () => {
     buscarSugerenciasDisciplinas();
   }, [debouncedDisciplinaBusqueda]);
 
-  // useEffect para sugerencias de profesores
+  // Sugerencias de profesores
   useEffect(() => {
     const buscarSugerenciasProfesores = async () => {
       if (debouncedProfesorBusqueda) {
@@ -144,14 +152,56 @@ const ReporteDetallePago: React.FC = () => {
     buscarSugerenciasProfesores();
   }, [debouncedProfesorBusqueda]);
 
+  // Función para actualizar "descripcionConcepto" combinando descripción y tarifa.
+  const handleCampoChange = (
+    id: number,
+    campo: "descripcion" | "tarifa",
+    valor: any
+  ) => {
+    setResultados((prevResultados) =>
+      prevResultados.map((item) => {
+        if (item.id === id) {
+          const index = item.descripcionConcepto.indexOf("-");
+          const currentDesc =
+            index === -1
+              ? item.descripcionConcepto.trim()
+              : item.descripcionConcepto.substring(0, index).trim();
+          const currentTarifa =
+            index === -1
+              ? ""
+              : item.descripcionConcepto.substring(index + 1).trim();
+          let nuevaDescripcion = currentDesc;
+          let nuevaTarifa = currentTarifa;
+          if (campo === "descripcion") {
+            nuevaDescripcion = valor;
+          } else {
+            nuevaTarifa = valor;
+          }
+          const nuevaCadena =
+            nuevaTarifa !== ""
+              ? `${nuevaDescripcion} - ${nuevaTarifa}`
+              : nuevaDescripcion;
+          return { ...item, descripcionConcepto: nuevaCadena };
+        }
+        return item;
+      })
+    );
+  };
+
+  const totalACobrar = resultados.reduce(
+    (sum, item) => sum + Number(item.aCobrar || 0),
+    0
+  );
+  const montoPorcentaje = totalACobrar * (porcentaje / 100);
+
   return (
     <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">Reporte de Detalle de Pagos</h1>
+      <h1 className="text-2xl font-bold mb-4">Liquidación Profesores</h1>
       <form
         onSubmit={formik.handleSubmit}
         className="mb-4 grid grid-cols-2 gap-4 relative"
       >
-        {/* Filtros de Fecha usando input type "month" */}
+        {/* Filtros de Fecha */}
         <div>
           <label className="block font-medium">Mes Inicio:</label>
           <input
@@ -180,7 +230,7 @@ const ReporteDetallePago: React.FC = () => {
             <div className="text-red-500">{formik.errors.fechaFin}</div>
           )}
         </div>
-        {/* Filtro por Disciplina con sugerencias */}
+        {/* Filtro de Disciplina */}
         <div className="relative">
           <label className="block font-medium">Disciplina:</label>
           <input
@@ -203,7 +253,7 @@ const ReporteDetallePago: React.FC = () => {
                     formik.setFieldValue("disciplinaNombre", disciplina.nombre);
                     setSugerenciasDisciplinas([]);
                   }}
-                  className="bg-slate-200 dark:bg-slate-600 hover:bg-gray-200 dark:hover:bg-gray-700"
+                  className="bg-slate-200 dark:bg-slate-600 hover:bg-gray-200 dark:hover:bg-gray-700 p-1"
                 >
                   {disciplina.nombre}
                 </li>
@@ -211,7 +261,7 @@ const ReporteDetallePago: React.FC = () => {
             </ul>
           )}
         </div>
-        {/* Filtro por Profesor con sugerencias */}
+        {/* Filtro de Profesor */}
         <div className="relative">
           <label className="block font-medium">Profesor:</label>
           <input
@@ -237,7 +287,7 @@ const ReporteDetallePago: React.FC = () => {
                     );
                     setSugerenciasProfesores([]);
                   }}
-                  className="bg-slate-200 dark:bg-slate-600 hover:bg-gray-200 dark:hover:bg-gray-700"
+                  className="bg-slate-200 dark:bg-slate-600 hover:bg-gray-200 dark:hover:bg-gray-700 p-1"
                 >
                   {profesor.nombre} {profesor.apellido}
                 </li>
@@ -255,6 +305,18 @@ const ReporteDetallePago: React.FC = () => {
           </button>
         </div>
       </form>
+
+      {/* Porcentaje dinámico */}
+      <div className="mb-4">
+        <label className="block font-medium">Porcentaje (%):</label>
+        <input
+          type="number"
+          value={porcentaje}
+          onChange={(e) => setPorcentaje(Number(e.target.value))}
+          className="border p-2 rounded w-auto"
+        />
+      </div>
+
       {error && <div className="text-red-500 mb-4">{error}</div>}
       <div className="overflow-x-auto">
         {resultados.length === 0 ? (
@@ -262,28 +324,113 @@ const ReporteDetallePago: React.FC = () => {
         ) : (
           <Tabla
             headers={[
-              "Detalle Pago ID",
-              "Descripcion",
-              "Codigo Mensualidad",
+              "Descripción",
+              "Tarifa",
               "Alumno",
               "Valor Base",
-              "Bonificacion",
-              "Monto cobrado",
-              "Fecha Registro",
+              "Bonificación",
+              "Monto Cobrado",
+              "Estado",
             ]}
             data={resultados}
-            customRender={(item) => [
-              item.id,
-              item.descripcionConcepto,
-              item.mensualidadId,
-              item.alumnoDisplay,
-              item.importeInicial,
-              item.bonificacionNombre,
-              item.aCobrar,
-              item.fechaRegistro,
-            ]}
+            customRender={(item: DetallePagoResponse) => {
+              const index = item.descripcionConcepto.indexOf("-");
+              const descripcion =
+                index === -1
+                  ? item.descripcionConcepto
+                  : item.descripcionConcepto.substring(0, index).trim();
+              const tarifa =
+                index === -1
+                  ? ""
+                  : item.descripcionConcepto.substring(index + 1).trim();
+              return [
+                // Descripción
+                <input
+                  type="text"
+                  value={descripcion}
+                  onChange={(e) =>
+                    handleCampoChange(item.id, "descripcion", e.target.value)
+                  }
+                  className="border p-1 w-auto text-center"
+                />,
+                // Tarifa
+                <input
+                  type="text"
+                  value={tarifa}
+                  onChange={(e) =>
+                    handleCampoChange(item.id, "tarifa", e.target.value)
+                  }
+                  className="border p-1 w-auto text-center"
+                />,
+                <input
+                  type="text"
+                  value={item.alumnoDisplay}
+                  onChange={(e) =>
+                    setResultados((prev) =>
+                      prev.map((it) =>
+                        it.id === item.id
+                          ? { ...it, alumnoDisplay: e.target.value }
+                          : it
+                      )
+                    )
+                  }
+                  className="border p-1 w-auto text-center"
+                />,
+                <input
+                  type="number"
+                  value={item.importeInicial}
+                  onChange={(e) =>
+                    setResultados((prev) =>
+                      prev.map((it) =>
+                        it.id === item.id
+                          ? { ...it, importeInicial: Number(e.target.value) }
+                          : it
+                      )
+                    )
+                  }
+                  className="border p-1 w-auto text-center"
+                />,
+                <input
+                  type="text"
+                  value={item.bonificacionNombre}
+                  onChange={(e) =>
+                    setResultados((prev) =>
+                      prev.map((it) =>
+                        it.id === item.id
+                          ? { ...it, bonificacionNombre: e.target.value }
+                          : it
+                      )
+                    )
+                  }
+                  className="border p-1 w-auto text-center"
+                />,
+                <input
+                  type="number"
+                  value={item.aCobrar}
+                  onChange={(e) =>
+                    setResultados((prev) =>
+                      prev.map((it) =>
+                        it.id === item.id
+                          ? { ...it, aCobrar: Number(e.target.value) }
+                          : it
+                      )
+                    )
+                  }
+                  className="border p-1 w-auto text-center"
+                />,
+                // Estado (calculado)
+                item.importePendiente === 0 ? "saldado" : "pendiente",
+              ];
+            }}
           />
         )}
+      </div>
+
+      <div className="mt-4 text-center">
+        <p>Total cobrado: $ {totalACobrar.toLocaleString()}</p>
+        <p>
+          Liquidación neta ({porcentaje}%): $ {montoPorcentaje.toLocaleString()}
+        </p>
       </div>
     </div>
   );

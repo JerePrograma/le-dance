@@ -40,13 +40,14 @@ const Tabla = <T extends Record<string, any>>({
               {headers.map((header, idx) => (
                 <TableHead
                   key={idx}
-                  className="text-center whitespace-nowrap min-w-max px-2 py-1"
+                  // Se quita min-w-max y se utiliza w-auto para que el ancho se ajuste
+                  className="text-center whitespace-nowrap w-auto px-2 py-1"
                 >
                   {header}
                 </TableHead>
               ))}
               {actions && (
-                <TableHead className="text-center whitespace-nowrap min-w-max px-2 py-1">
+                <TableHead className="text-center whitespace-nowrap w-auto px-2 py-1">
                   Acciones
                 </TableHead>
               )}
@@ -60,7 +61,7 @@ const Tabla = <T extends Record<string, any>>({
                     ? customRender(row).map((value, idx) => (
                         <TableCell
                           key={idx}
-                          className="text-center whitespace-nowrap px-2 py-1"
+                          className="text-center whitespace-nowrap w-auto px-2 py-1"
                         >
                           {value}
                         </TableCell>
@@ -68,13 +69,13 @@ const Tabla = <T extends Record<string, any>>({
                     : Object.values(row).map((value, idx) => (
                         <TableCell
                           key={idx}
-                          className="text-center whitespace-nowrap px-2 py-1"
+                          className="text-center whitespace-nowrap w-auto px-2 py-1"
                         >
                           {typeof value === "object" ? value : String(value)}
                         </TableCell>
                       ))}
                   {actions && (
-                    <TableCell className="text-center whitespace-nowrap px-2 py-1">
+                    <TableCell className="text-center whitespace-nowrap w-auto px-2 py-1">
                       <div className="flex items-center justify-center gap-2">
                         {actions(row)}
                       </div>

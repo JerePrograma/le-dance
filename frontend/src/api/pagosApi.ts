@@ -18,7 +18,7 @@ const descargarRecibo = async (pagoId: number): Promise<void> => {
     const response = await api.get(`/pagos/recibo/${pagoId}`, {
       responseType: "blob", // Esto permite recibir el PDF como un blob
     });
-    window.open(`/api/api/pagos/recibo/${pagoId}`, "_blank");
+    window.open(`//api/api/pagos/recibo/${pagoId}`, "_blank");
 
     // Crea una URL a partir del blob recibido
     const url = window.URL.createObjectURL(new Blob([response.data]));

@@ -274,8 +274,11 @@ const ConsultaCajaDiaria: React.FC = () => {
       <div className="text-right mt-2">
         <p>Efectivo: $ {totalEfectivo.toLocaleString()}</p>
         <p>Débito: $ {totalDebito.toLocaleString()}</p>
-        <p>Egresos de efectivo: $ {totalEgresos.toLocaleString()}</p>
-        <p>Total Neto: ${(totalCobrado - totalEgresos).toLocaleString()}</p>
+        <p>Egresos en efectivo: $ {totalEgresos.toLocaleString()}</p>
+        <p>Total neto: $ {(totalCobrado - totalEgresos).toLocaleString()}</p>
+        <p>
+          Total efectivo: $ {(totalEfectivo - totalEgresos).toLocaleString()}
+        </p>
       </div>
     </div>
   );

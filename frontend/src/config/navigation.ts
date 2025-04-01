@@ -244,18 +244,26 @@ export const navigationItems: NavigationItem[] = [
     ],
   },
   {
+    id: "reportes",
+    label: "Reportes",
+    icon: CalendarCheck,
+    description: "Informes y estadísticas",
+    items: [
+      {
+        id: "alumnos-por-disciplina",
+        icon: BarChart3,
+        label: "Alumnos por Disciplina",
+        href: "/alumnos-por-disciplina",
+        description: "Informes y estadísticas",
+      },
+    ],
+  },
+  {
     id: "gestion",
     label: "Gestión",
     icon: CalendarCheck,
     description: "Gestión general",
     items: [
-      {
-        id: "reportes",
-        icon: BarChart3,
-        label: "Reportes",
-        href: "/reportes",
-        description: "Informes y estadísticas",
-      },
       {
         id: "usuarios",
         icon: UserCog,
