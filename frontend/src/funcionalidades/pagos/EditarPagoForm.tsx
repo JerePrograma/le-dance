@@ -247,16 +247,32 @@ const DetallePagoList: React.FC<DetallePagoListProps> = ({
     return () => window.removeEventListener("resize", adjustTableHeight);
   }, []);
 
-  // Subconjunto de datos a mostrar según visibleCount
+  // Filtrar los detalles que cumplen: aCobrar > 0 || importePendiente === 0 || estadoPago === "ANULADO"
+  const filteredDetalles = useMemo(() => {
+    return detalles.filter(
+      (d) =>
+        d.aCobrar > 0 ||
+        d.importePendiente === 0 ||
+        d.estadoPago.toUpperCase() === "ANULADO" // Se compara en mayúsculas para mayor seguridad
+    );
+  }, [detalles]);
+
+  // Tomamos la cantidad visible del array filtrado
   const currentItems = useMemo(
-    () => detalles.slice(0, visibleCount),
-    [detalles, visibleCount]
+    () => filteredDetalles.slice(0, visibleCount),
+    [filteredDetalles, visibleCount]
   );
 
-  // Determina si hay más elementos para cargar
+  // Ordenamos los ítems (por ejemplo, de mayor a menor ID)
+  const sortedItems = useMemo(
+    () => [...currentItems].sort((a, b) => Number(b.pagoId) - Number(a.pagoId)),
+    [currentItems]
+  );
+
+  // Actualizamos también el indicador de "más elementos" para el infinite scroll
   const hasMore = useMemo(
-    () => visibleCount < detalles.length,
-    [visibleCount, detalles.length]
+    () => visibleCount < filteredDetalles.length,
+    [visibleCount, filteredDetalles.length]
   );
 
   // Función para cargar más datos (incrementa visibleCount)
@@ -344,11 +360,6 @@ const DetallePagoList: React.FC<DetallePagoListProps> = ({
     return <div className="text-center py-4">Cargando...</div>;
   if (error && detalles.length === 0)
     return <div className="text-center py-4 text-destructive">{error}</div>;
-
-  // Ordenamos los ítems (por ejemplo, de mayor a menor ID)
-  const sortedItems = [...currentItems].sort(
-    (a, b) => Number(b.pagoId) - Number(a.pagoId)
-  );
 
   return (
     <div ref={containerRef} className="flex flex-col h-screen overflow-hidden">

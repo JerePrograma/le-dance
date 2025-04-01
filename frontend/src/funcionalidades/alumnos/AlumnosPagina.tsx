@@ -26,8 +26,8 @@ interface AlumnoListado {
   activo: boolean;
 }
 
-const itemsPerPage = 15;
-const estimatedRowHeight = 60;
+const itemsPerPage = 150;
+const estimatedRowHeight = 150;
 
 const Alumnos: React.FC = () => {
   const [alumnos, setAlumnos] = useState<AlumnoListado[]>([]);
