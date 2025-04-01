@@ -71,6 +71,10 @@ const DetallePagoList: React.FC<DetallePagoListProps> = ({
   const [alumnoIdLocal, setAlumnoIdLocal] = useState<string | null>(null);
   const searchWrapperRef = useRef<HTMLDivElement>(null);
   const debouncedNombreBusqueda = useDebounce(nombreBusqueda, 300);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [filtroCobrado, setFiltroCobrado] = useState<"COBRADOS" | "GENERADOS">(
+    "COBRADOS"
+  );
 
   // Ref para calcular alturas
   const containerRef = useRef<HTMLDivElement>(null);
@@ -249,13 +253,23 @@ const DetallePagoList: React.FC<DetallePagoListProps> = ({
 
   // Filtrar los detalles que cumplen: aCobrar > 0 || importePendiente === 0 || estadoPago === "ANULADO"
   const filteredDetalles = useMemo(() => {
-    return detalles.filter(
-      (d) =>
-        d.aCobrar > 0 ||
-        d.importePendiente === 0 ||
-        d.estadoPago.toUpperCase() === "ANULADO" // Se compara en mayúsculas para mayor seguridad
-    );
-  }, [detalles]);
+    if (filtroCobrado === "COBRADOS") {
+      return detalles.filter(
+        (d) =>
+          d.aCobrar > 0 ||
+          d.importePendiente === 0 ||
+          d.estadoPago.toUpperCase() === "ANULADO"
+      );
+    } else if (filtroCobrado === "GENERADOS") {
+      return detalles.filter(
+        (d) =>
+          d.aCobrar === 0 &&
+          d.importePendiente > 0 &&
+          d.estadoPago.toUpperCase() !== "ANULADO"
+      );
+    }
+    return detalles;
+  }, [detalles, filtroCobrado]);
 
   // Tomamos la cantidad visible del array filtrado
   const currentItems = useMemo(
@@ -269,7 +283,7 @@ const DetallePagoList: React.FC<DetallePagoListProps> = ({
     [currentItems]
   );
 
-  // Actualizamos también el indicador de "más elementos" para el infinite scroll
+  // Actualizamos el indicador de "más elementos" para el infinite scroll
   const hasMore = useMemo(
     () => visibleCount < filteredDetalles.length,
     [visibleCount, filteredDetalles.length]
@@ -297,8 +311,6 @@ const DetallePagoList: React.FC<DetallePagoListProps> = ({
       setDetalles((prev) => prev.filter((d) => d.id !== detalle.id));
     }
   };
-
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleAnularDetalle = async (detalle: DetallePagoResponse) => {
     if (!detalle.id || Number(detalle.id) === 0 || isSubmitting) return;
@@ -427,6 +439,19 @@ const DetallePagoList: React.FC<DetallePagoListProps> = ({
                     ))}
                   </ul>
                 )}
+              </div>
+              <div>
+                <label className="block font-medium">Tipo de Detalle:</label>
+                <select
+                  className="border p-2"
+                  value={filtroCobrado}
+                  onChange={(e) =>
+                    setFiltroCobrado(e.target.value as "COBRADOS" | "GENERADOS")
+                  }
+                >
+                  <option value="COBRADOS">COBRADOS</option>
+                  <option value="GENERADOS">GENERADOS</option>
+                </select>
               </div>
               {/* Resto de filtros: fechas y por categoría */}
               <div className="flex gap-4 items-center">
