@@ -207,11 +207,15 @@ export default function EgresosDebitoPagina() {
   // dentro del rango de fecha seleccionado
   const filteredDetallesDebito = useMemo(() => {
     return detallesDebito.filter((detalle) => {
-      if (!detalle.cobrado || !detalle.pagoId) return false;
+      // Solo verificamos que exista el pago asociado
+      if (!detalle.pagoId) return false;
+
       const registro = new Date(detalle.fechaRegistro);
       if (filterStartDate && registro < new Date(filterStartDate)) return false;
       if (filterEndDate && registro > new Date(filterEndDate)) return false;
+
       const pago = pagos.find((p) => p.id === detalle.pagoId);
+      // Filtramos por el método de pago "debito"
       return pago && pago.metodoPago?.descripcion?.toLowerCase() === "debito";
     });
   }, [detallesDebito, pagos, filterStartDate, filterEndDate]);

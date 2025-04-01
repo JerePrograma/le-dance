@@ -84,4 +84,10 @@ public class Pago {
         }
     }
 
+    // Supongamos que tienes un método en Pago para remover un detalle:
+    public void removerDetalle(DetallePago detalle) {
+        this.detallePagos.remove(detalle);
+        detalle.setPago(null);
+    }
+
 }

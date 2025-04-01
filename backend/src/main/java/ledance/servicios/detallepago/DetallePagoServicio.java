@@ -314,10 +314,16 @@ public class DetallePagoServicio {
 
     // Eliminar un DetallePago por su ID
     public void eliminarDetallePago(Long id) {
-        if (!detallePagoRepositorio.existsById(id)) {
+        Optional<DetallePago> detalleExistente = detallePagoRepositorio.findById(id);
+        if (!detalleExistente.isPresent()) {
             throw new EntityNotFoundException("DetallePago con id " + id + " no encontrado");
         }
+        Pago pago = detalleExistente.get().getPago();
+        if (pago != null) {
+            pago.removerDetalle(detalleExistente.get());
+        }
         detallePagoRepositorio.deleteById(id);
+
         log.info("DetallePago eliminado con id={}", id);
     }
 

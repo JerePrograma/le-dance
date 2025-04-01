@@ -56,12 +56,14 @@ public class DetallePago {
     @JoinColumn(name = "pago_id", nullable = false)
     private Pago pago;
 
-    @ManyToOne
+    // En DetallePago, para eliminar Mensualidad al borrar el DetallePago:
+    @ManyToOne(cascade = CascadeType.REMOVE)
     @JoinColumn(name = "mensualidad_id", nullable = true)
     @ToString.Exclude // Evita recursividad con Mensualidad
     private Mensualidad mensualidad;
 
-    @ManyToOne
+    // Para Matricula:
+    @ManyToOne(cascade = CascadeType.REMOVE)
     @JoinColumn(name = "matricula_id", nullable = true)
     private Matricula matricula;
 
