@@ -118,7 +118,7 @@ public class MensualidadServicio implements IMensualidadService {
 
         // Calcular descuentos y recargos, controlando valores nulos
         double totalDescuento = calcularDescuento(valorBase, mensualidad.getBonificacion());
-        double totalRecargo = calcularRecargo(valorBase, mensualidad.getRecargo());
+        double totalRecargo = validarRecargo(valorBase, mensualidad.getRecargo());
 
         // Se suma el recargo cuando corresponda: el importe a pagar es (valorBase + totalRecargo) - totalDescuento
         double totalPagar = redondear((valorBase + totalRecargo) - totalDescuento);
@@ -139,7 +139,7 @@ public class MensualidadServicio implements IMensualidadService {
         return descuentoFijo + descuentoPorcentaje;
     }
 
-    public double calcularRecargo(double valorBase, Recargo recargo) {
+    public static double validarRecargo(double valorBase, Recargo recargo) {
         if (recargo == null) {
             return 0.0;
         }
@@ -611,7 +611,7 @@ public class MensualidadServicio implements IMensualidadService {
             Recargo recargo = mensualidad.getRecargo();
             detalle.setRecargo(recargo);
             detalle.setTieneRecargo(true);
-            double recargoValue = calcularRecargo(importeInicial, recargo);
+            double recargoValue = validarRecargo(importeInicial, recargo);
             double nuevoTotal = importeInicial + recargoValue;
             double nuevoPendiente = nuevoTotal - aCobrar;
             detalle.setImportePendiente(nuevoPendiente);

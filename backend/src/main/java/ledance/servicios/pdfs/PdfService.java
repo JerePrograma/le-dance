@@ -21,6 +21,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Objects;
 
+import static ledance.servicios.mensualidad.MensualidadServicio.validarRecargo;
+
 @Service
 public class PdfService {
 
@@ -210,16 +212,6 @@ public class PdfService {
     }
 
     private double calcularRecargo(double valorBase, Recargo recargo) {
-        if (recargo == null) {
-            return 0.0;
-        }
-        double recargoFijo;
-        try {
-            recargoFijo = recargo.getValorFijo();
-        } catch (Exception e) {
-            recargoFijo = 0.0;
-        }
-        double recargoPorcentaje = (recargo.getPorcentaje() / 100.0) * valorBase;
-        return recargoFijo + recargoPorcentaje;
+        return validarRecargo(valorBase, recargo);
     }
 }

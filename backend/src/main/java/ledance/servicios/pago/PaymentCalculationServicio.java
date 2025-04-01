@@ -613,7 +613,7 @@ public class PaymentCalculationServicio {
                     detalle.getId(), impInicial);
         } else {
             // Si tieneRecargo es true, se calcula el recargo y se suma al importeInicial
-            double recargo = mensualidadServicio.calcularRecargo(impInicial, detalle.getRecargo());
+            double recargo = MensualidadServicio.validarRecargo(impInicial, detalle.getRecargo());
             double nuevoImportePendiente = impInicial + recargo;
             detalle.setImportePendiente(nuevoImportePendiente);
             log.info("[calcularMensualidad] Recargo aplicado: {}. Nuevo importePendiente: {} para Detalle id={}",
