@@ -206,12 +206,10 @@ const AlumnosFormulario: React.FC = () => {
   const handleEliminarInscripcion = async (id: number) => {
     try {
       await inscripcionesApi.eliminar(id);
-      toast.success("Inscripción eliminada correctamente.");
       if (alumnoId) {
         await cargarInscripciones(alumnoId);
       }
     } catch (error) {
-      toast.error("Error al eliminar inscripción.");
     }
   };
 
@@ -528,7 +526,7 @@ const AlumnosFormulario: React.FC = () => {
                 </div>
               </div>
 
-              <div className="form-acciones">
+              <div className="form-acciones flex gap-4">
                 <Button
                   type="submit"
                   disabled={isSubmitting}

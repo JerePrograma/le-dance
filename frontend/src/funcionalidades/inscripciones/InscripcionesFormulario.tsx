@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import { toast } from "react-toastify";
@@ -79,6 +79,15 @@ const InscripcionesFormulario: React.FC = () => {
     InscripcionResponse[]
   >([]);
 
+  const autoAddedRef = useRef(false);
+  const cerrarRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  useEffect(() => {
+    if (alumnoId !== 0 && !autoAddedRef.current) {
+      agregarInscripcion();
+      autoAddedRef.current = true;
+    }
+  }, [alumnoId]);
   // Cargar catálogos de disciplinas y bonificaciones
   useEffect(() => {
     const fetchCatalogos = async () => {
@@ -89,8 +98,7 @@ const InscripcionesFormulario: React.FC = () => {
         ]);
         setDisciplinas(discData || []);
         setBonificaciones(bonData || []);
-      } catch (error) {
-      }
+      } catch (error) {}
     };
     fetchCatalogos();
   }, []);
@@ -134,8 +142,7 @@ const InscripcionesFormulario: React.FC = () => {
           alumnoId
         );
         setPrevInscripciones(lista);
-      } catch (error) {
-      }
+      } catch (error) {}
     } else {
     }
   }, [alumnoId]);
@@ -177,8 +184,7 @@ const InscripcionesFormulario: React.FC = () => {
       await inscripcionesApi.eliminar(ins.id);
       toast.success("Inscripción eliminada correctamente.");
       setPrevInscripciones((prev) => prev.filter((item) => item.id !== ins.id));
-    } catch (error) {
-    }
+    } catch (error) {}
   };
 
   // Cargar inscripción previa en el formulario para editar
@@ -251,7 +257,6 @@ const InscripcionesFormulario: React.FC = () => {
         );
       } else {
         await inscripcionesApi.crear(values);
-
       }
       await fetchPrevInscripciones();
     } catch (err) {
@@ -383,12 +388,16 @@ const InscripcionesFormulario: React.FC = () => {
             key={inscripcion.id || index}
             initialValues={inscripcion}
             validationSchema={inscripcionEsquema}
-            onSubmit={(values, actions) => {
-              handleGuardarInscripcion(values, actions.resetForm).finally(
+            onSubmit={async (values, actions) => {
+              try {
+                await handleGuardarInscripcion(values, actions.resetForm);
+                eliminarInscripcionRow(index);
+              } catch (error) {
+              } finally {
                 () => {
                   actions.setSubmitting(false);
-                }
-              );
+                };
+              }
             }}
           >
             {({ isSubmitting, values, setFieldValue, errors }) => {
@@ -575,9 +584,10 @@ const InscripcionesFormulario: React.FC = () => {
                     <Boton
                       type="button"
                       onClick={() => eliminarInscripcionRow(index)}
+                      ref={(el) => (cerrarRefs.current[index] = el)}
                       className="inline-flex items-center gap-2 bg-destructive text-destructive-foreground hover:bg-destructive/90"
                     >
-                      Eliminar
+                      Cerrar
                     </Boton>
                   </div>
                 </Form>

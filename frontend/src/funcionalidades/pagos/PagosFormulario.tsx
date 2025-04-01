@@ -451,6 +451,24 @@ const ConceptosSection: React.FC<ConceptosSectionProps> = ({
 // ----- DetallesTable -----
 const DetallesTable: React.FC = () => {
   const { bonificaciones, recargos } = useCobranzasData();
+  // Función auxiliar para separar la cadena.
+  // Se espera que la cadena tenga el formato "CONCEPTO - CUOTA - ALGO".
+  // La función devuelve:
+  // { concept: "CONCEPTO", cuota: "CUOTA - ALGO" }
+  const splitConceptAndCuota = (
+    text: string
+  ): { concept: string; cuota: string } => {
+    if (!text) return { concept: "", cuota: "" };
+    const parts = text.split("-");
+    if (parts.length < 2) {
+      return { concept: text.trim(), cuota: "" };
+    }
+    return {
+      concept: parts[0].trim(),
+      cuota: parts.slice(1).join("-").trim(),
+    };
+  };
+
   return (
     <FieldArray name="detallePagos">
       {({ remove, form }) => (
@@ -462,7 +480,7 @@ const DetallesTable: React.FC = () => {
                   Concepto
                 </th>
                 <th className="border p-2 text-center text-sm font-medium text-gray-700 min-w-[80px]">
-                  Cantidad
+                  Cuota/Cantidad
                 </th>
                 <th className="border p-2 text-center text-sm font-medium text-gray-700 min-w-[100px]">
                   Valor Base
@@ -500,22 +518,26 @@ const DetallesTable: React.FC = () => {
                           r.id === Number(detalle.recargoId)
                       )?.descripcion || ""
                     : "";
+                  const { concept, cuota } = splitConceptAndCuota(
+                    detalle.descripcionConcepto || ""
+                  );
                   return (
                     <tr key={index} className="hover:bg-gray-50">
                       <td className="border p-2 text-center text-sm">
-                        <Field
-                          name={`detallePagos.${index}.descripcionConcepto`}
+                        <input
                           type="text"
-                          className="w-full px-2 py-1 border rounded text-center"
+                          value={concept}
                           readOnly
+                          className="w-full px-2 py-1 border rounded text-center"
                         />
                       </td>
+                      {/* Columna "Cuota/Cantidad" */}
                       <td className="border p-2 text-center text-sm">
-                        <Field
-                          name={`detallePagos.${index}.cuotaOCantidad`}
+                        <input
                           type="text"
-                          className="w-full px-2 py-1 border rounded text-center"
+                          value={cuota}
                           readOnly
+                          className="w-full px-2 py-1 border rounded text-center"
                         />
                       </td>
                       <td className="border p-2 text-center text-sm">
