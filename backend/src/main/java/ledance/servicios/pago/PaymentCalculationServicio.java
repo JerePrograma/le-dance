@@ -69,8 +69,7 @@ public class PaymentCalculationServicio {
         double base = detalle.getValorBase();
         log.info("[calcularImporteInicial] Valor base obtenido: {} para DetallePago id={}", base, detalle.getId());
 
-        if (!detalle.getTieneRecargo() && detalle.getDescripcionConcepto().contains("CUOTA")) {
-            detalle.setRecargo(null);
+        if (!detalle.getTieneRecargo() ) {
             detalle.setTieneRecargo(false);
             log.info("[calcularImporteInicial] Se omite recargo para Detalle id={} (tieneRecargo=false o nulo)", detalle.getId());
         }
@@ -164,7 +163,7 @@ public class PaymentCalculationServicio {
             log.debug("[procesarAbono] Estado cobrado actualizado: {}", detalle.getCobrado());
 
             // 7.1 Actualización de entidades relacionadas
-            if (detalle.getTipo() == TipoDetallePago.MENSUALIDAD && detalle.getDescripcionConcepto().contains("CUOTA")) {
+            if (detalle.getTipo() == TipoDetallePago.MENSUALIDAD ) {
                 log.info("[procesarAbono] Actualizando estado de mensualidad a PAGADO");
                 detalle.getMensualidad().setEstado(EstadoMensualidad.PAGADO);
                 log.debug("[procesarAbono] Estado mensualidad actualizado: {}",
@@ -234,9 +233,8 @@ public class PaymentCalculationServicio {
         }
 
         // 4. Validar recargo: respetar el flag tieneRecargo del cliente.
-        if (!detalle.getTieneRecargo() && detalle.getDescripcionConcepto().contains("CUOTA")) {
+        if (!detalle.getTieneRecargo() ) {
             // Si el cliente indica que NO se debe aplicar recargo, se limpia el campo
-            detalle.setRecargo(null);
             detalle.setTieneRecargo(false);
             // Forzamos que el importe pendiente sea igual al importe inicial
             if (!detalle.getTipo().equals(TipoDetallePago.MATRICULA)) {
@@ -489,9 +487,8 @@ public class PaymentCalculationServicio {
         }
 
         // 3. Manejo del recargo
-        if ((!detalle.getTieneRecargo() && detalle.getDescripcionConcepto().contains("CUOTA")) ||
+        if ((!detalle.getTieneRecargo() ) ||
                 detalle.getTipo() == TipoDetallePago.MENSUALIDAD) {
-            detalle.setRecargo(null);
             detalle.setTieneRecargo(false);
             log.info("[calcularMatricula] Sin recargo para Detalle id={}", detalle.getId());
         } else {
@@ -611,7 +608,6 @@ public class PaymentCalculationServicio {
         // Si tieneRecargo es false, se ignora cualquier recargo y se fuerza que
         // el importePendiente sea igual al importeInicial.
         if (!detalle.getTieneRecargo()) {
-            detalle.setRecargo(null);
             detalle.setTieneRecargo(false);
             log.info("[calcularMensualidad] Sin recargo para Detalle id={}. ImportePendiente forzado a importeInicial: {}",
                     detalle.getId(), impInicial);

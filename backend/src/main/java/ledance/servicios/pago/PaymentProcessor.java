@@ -114,10 +114,11 @@ public class PaymentProcessor {
 
         // Determinar si se debe aplicar recargo según el método de pago.
         boolean aplicarRecargoMetodo = pago.getDetallePagos().stream()
-                .anyMatch(det -> det.getTieneRecargo() && (pago.getMetodoPago() != null));
+                .anyMatch(DetallePago::getTieneRecargo);
         log.info("[recalcularTotales] Se detecta recargo en método de pago: {}", aplicarRecargoMetodo);
 
         double montoRecargo = 0;
+        log.info("[recalcularTotales] Metodo pago obtenido: {}", pago.getMetodoPago());
         if (aplicarRecargoMetodo) {
             montoRecargo = pago.getMetodoPago().getRecargo();
             log.info("[recalcularTotales] Monto de recargo obtenido: {}", montoRecargo);
@@ -230,11 +231,13 @@ public class PaymentProcessor {
     @Transactional
     public Pago actualizarPagoHistoricoConAbonos(Pago pagoHistorico, PagoRegistroRequest request) {
         log.info("[actualizarPagoHistoricoConAbonos] Iniciando actualización del pago id={} con abonos", pagoHistorico.getId());
+        Optional<MetodoPago> metodoPago = metodoPagoRepositorio.findById(request.metodoPagoId());
+        pagoHistorico.setMetodoPago(metodoPago.get());
+        log.info("[actualizarPagoHistoricoConAbonos] Iniciando actualización del pago id={} con abonos", metodoPago);
 
         for (DetallePagoRegistroRequest detalleReq : request.detallePagos()) {
             // Normalizamos la descripción para evitar conflictos de espacios o mayúsculas
             String descripcionNormalizada = detalleReq.descripcionConcepto().trim().toUpperCase();
-            log.info("[actualizarPagoHistoricoConAbonos] Procesando detalle del request: '{}'", descripcionNormalizada);
 
             Optional<DetallePago> detalleOpt = pagoHistorico.getDetallePagos().stream()
                     .filter(d -> d.getDescripcionConcepto() != null &&
@@ -246,10 +249,7 @@ public class PaymentProcessor {
 
             if (detalleOpt.isPresent()) {
                 DetallePago detalleExistente = detalleOpt.get();
-                if (!detalleExistente.getTieneRecargo()) {
-                    detalleExistente.setRecargo(null);
-                    detalleExistente.setTieneRecargo(false);
-                }
+                detalleExistente.setTieneRecargo(detalleReq.tieneRecargo());
                 log.info("[actualizarPagoHistoricoConAbonos] Detalle existente encontrado id={} para '{}'", detalleExistente.getId(), descripcionNormalizada);
                 log.info("[actualizarPagoHistoricoConAbonos] Actualizando aCobrar del detalle id={} (acumulado: {})",
                         detalleExistente.getId(), detalleReq.aCobrar());
@@ -301,9 +301,8 @@ public class PaymentProcessor {
 
         // 2. Ajuste de recargo
         log.info("[procesarDetalle] Verificando recargo. TieneRecargo={}", detalle.getTieneRecargo());
-        if (!detalle.getTieneRecargo() && detalle.getDescripcionConcepto().contains("CUOTA")) {
+        if (!detalle.getTieneRecargo()) {
             log.info("[procesarDetalle] Sin recargo - Estableciendo recargo=null");
-            detalle.setRecargo(null);
             detalle.setTieneRecargo(false);
             log.debug("[procesarDetalle] Recargo verificado: {}", detalle.getRecargo());
         } else {
@@ -424,7 +423,6 @@ public class PaymentProcessor {
             }
         } else {
             log.info("[crearNuevoDetalleFromRequest] No se asigna recargo (tieneRecargo=false o nulo)");
-            detalle.setRecargo(null);
             detalle.setTieneRecargo(false);
             detalle.setImportePendiente(detalle.getImporteInicial());
         }
@@ -504,8 +502,7 @@ public class PaymentProcessor {
 
                 nuevoDetalle.setUsuario(cobrador);
                 // Manejo de recargos: limpiar si tieneRecargo es false
-                if (!detalle.getTieneRecargo() && detalle.getDescripcionConcepto().contains("CUOTA")) {
-                    nuevoDetalle.setRecargo(null);
+                if (!detalle.getTieneRecargo()) {
                     nuevoDetalle.setTieneRecargo(false);
                     log.debug("[clonarDetallesConPendiente] Recargo limpiado en detalle clonado ID: {}", nuevoDetalle.getId());
                 }
@@ -543,6 +540,8 @@ public class PaymentProcessor {
         log.info("[clonarDetallesConPendiente] Totales recalculados. Importe inicial calculado: {}", importeInicial);
         nuevoPago.setUsuario(cobrador);
         // 5. Persistencia y retorno del nuevo pago
+        nuevoPago.setMetodoPago(pagoHistorico.getMetodoPago());
+
         nuevoPago = pagoRepositorio.save(nuevoPago);
         log.info("[clonarDetallesConPendiente] FIN - Nuevo pago creado con éxito. Detalles: {} | Nuevo ID: {}",
                 nuevoPago.getDetallePagos().size(), nuevoPago.getId());
@@ -628,7 +627,6 @@ public class PaymentProcessor {
             clone.setRecargo(original.getRecargo());
         } else {
             log.debug("[clonarDetallePago] Original no tiene recargo, configurando clone.recargo=null y tieneRecargo=false");
-            clone.setRecargo(null);
             clone.setTieneRecargo(false);
         }
 
@@ -741,7 +739,6 @@ public class PaymentProcessor {
                 log.info("[processDetallesPago] Buscando detallePersistido con ID={}: Encontrado={}", detalleRequest.getId(), detallePersistido != null);
             }
             if (!detalleRequest.getTieneRecargo()) {
-                detalleRequest.setRecargo(null);
                 detalleRequest.setTieneRecargo(false);
             }
 

@@ -151,7 +151,6 @@ public class PagoServicio {
         // 2. Clonar detalles con pendiente
         log.info("[procesarAbonoParcial] Verificando detalles pendientes para nuevo pago");
         Pago nuevoPago = paymentProcessor.clonarDetallesConPendiente(pagoActualizado);
-
         if (nuevoPago == null) {
             log.info("[procesarAbonoParcial] CASO 1 - No hay detalles pendientes");
             log.debug("[procesarAbonoParcial] Total detalles en pago actualizado: {}",
@@ -160,13 +159,14 @@ public class PagoServicio {
             paymentProcessor.marcarPagoComoHistorico(pagoActualizado);
             log.info("[procesarAbonoParcial] Pago marcado como {} - ID: {}",
                     pagoActualizado.getEstadoPago(), pagoActualizado.getId());
-
+            pagoActivo.setMetodoPago(metodoPago.get());
             log.info("[procesarAbonoParcial] FIN - Retornando pago histórico actualizado");
             return pagoActualizado;
         } else {
             log.info("[procesarAbonoParcial] CASO 2 - Hay detalles pendientes");
             log.info("[procesarAbonoParcial] Nuevo pago generado - ID: {}, Detalles: {}",
                     nuevoPago.getId(), nuevoPago.getDetallePagos().size());
+            nuevoPago.setMetodoPago(metodoPago.get());
 
             log.info("[procesarAbonoParcial] Marcando pago original como histórico - ID: {}", pagoActualizado.getId());
             paymentProcessor.marcarPagoComoHistorico(pagoActualizado);
