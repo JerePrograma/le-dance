@@ -10,6 +10,7 @@ import ledance.entidades.*;
 import ledance.repositorios.DetallePagoRepositorio;
 import ledance.repositorios.MatriculaRepositorio;
 import ledance.repositorios.MensualidadRepositorio;
+import ledance.repositorios.PagoRepositorio;
 import org.flywaydb.core.internal.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -31,11 +33,16 @@ public class DetallePagoServicio {
     private final DetallePagoRepositorio detallePagoRepositorio;
     private final DetallePagoMapper detallePagoMapper;
     private final MensualidadRepositorio mensualidadRepositorio;
+    private final PagoRepositorio pagoRepositorio;
 
-    public DetallePagoServicio(DetallePagoRepositorio detallePagoRepositorio, DetallePagoMapper detallePagoMapper, MensualidadRepositorio mensualidadRepositorio, MatriculaRepositorio matriculaRepositorio) {
+    public DetallePagoServicio(DetallePagoRepositorio detallePagoRepositorio,
+                               DetallePagoMapper detallePagoMapper,
+                               MensualidadRepositorio mensualidadRepositorio,
+                               PagoRepositorio pagoRepositorio) {
         this.detallePagoRepositorio = detallePagoRepositorio;
         this.detallePagoMapper = detallePagoMapper;
         this.mensualidadRepositorio = mensualidadRepositorio;
+        this.pagoRepositorio = pagoRepositorio;
     }
 
     /**
@@ -290,7 +297,6 @@ public class DetallePagoServicio {
         return detallePagoMapper.toDTO(detalle);
     }
 
-    // Actualizar un DetallePago existente
     public DetallePagoResponse actualizarDetallePago(Long id, DetallePago detalleActualizado) {
         DetallePago detalleExistente = detallePagoRepositorio.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("DetallePago con id " + id + " no encontrado"));
@@ -312,32 +318,156 @@ public class DetallePagoServicio {
         return detallePagoMapper.toDTO(detalleGuardado);
     }
 
-    // Eliminar un DetallePago por su ID
+    @Transactional
     public void eliminarDetallePago(Long id) {
-        Optional<DetallePago> detalleExistente = detallePagoRepositorio.findById(id);
-        if (!detalleExistente.isPresent()) {
-            throw new EntityNotFoundException("DetallePago con id " + id + " no encontrado");
-        }
-        Pago pago = detalleExistente.get().getPago();
-        if (pago != null) {
-            pago.removerDetalle(detalleExistente.get());
-        }
-        detallePagoRepositorio.deleteById(id);
+        log.info("Iniciando eliminación de DetallePago con id={}", id);
 
-        log.info("DetallePago eliminado con id={}", id);
+        log.info("Buscando DetallePago en repositorio con id={}", id);
+        DetallePago detalle = detallePagoRepositorio.findById(id)
+                .orElseThrow(() -> {
+                    log.error("DetallePago con id {} no encontrado", id);
+                    return new EntityNotFoundException("DetallePago con id " + id + " no encontrado");
+                });
+        log.info("DetallePago encontrado: {}", detalle);
+
+        log.info("Obteniendo Pago asociado al DetallePago");
+        Pago pago = detalle.getPago();
+        if (pago != null) {
+            log.info("Pago encontrado: {}", pago);
+            log.info("Removiendo detalle de la colección del pago");
+            pago.removerDetalle(detalle);
+            log.info("Detalle removido de la colección del pago");
+
+            log.info("Calculando nuevos montos para el pago");
+            double valorACobrar = detalle.getaCobrar();
+            double montoActual = pago.getMonto();
+            double montoPagadoActual = pago.getMontoPagado();
+            log.info("Valores actuales - Monto: {}, MontoPagado: {}, aCobrar: {}",
+                    montoActual, montoPagadoActual, valorACobrar);
+
+            double nuevoMonto = montoActual - valorACobrar;
+            double nuevoMontoPagado = montoPagadoActual - valorACobrar;
+            log.info("Nuevos valores calculados - Monto: {}, MontoPagado: {}",
+                    nuevoMonto, nuevoMontoPagado);
+
+            log.info("Actualizando montos del pago");
+            pago.setMonto(nuevoMonto);
+            pago.setMontoPagado(nuevoMontoPagado);
+            log.info("Montos actualizados en el objeto Pago");
+
+            // Evaluar si el monto restante es igual al recargo definido en el método de pago
+            if (pago.getMonto() == pago.getMetodoPago().getRecargo()) {
+                log.info("El monto restante ({}) es igual al recargo ({}). Limpiando detalles y eliminando pago...",
+                        pago.getMonto(), pago.getMetodoPago().getRecargo());
+                pago.getDetallePagos().clear();
+                log.info("Detalles del pago limpiados. Eliminando pago...");
+                pagoRepositorio.delete(pago);
+                log.info("Pago eliminado exitosamente");
+            } else {
+                log.info("Guardando cambios en el pago");
+                pagoRepositorio.save(pago);
+                log.info("Pago guardado exitosamente");
+            }
+        } else {
+            log.info("No se encontró pago asociado al detalle");
+        }
+
+        log.info("Eliminando DetallePago con id={}", id);
+        detallePagoRepositorio.deleteById(id);
+        log.info("DetallePago eliminado exitosamente con id={}", id);
     }
 
     @Transactional
     public DetallePagoResponse anularDetallePago(Long id) {
-        DetallePago detalleExistente = detallePagoRepositorio.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("DetallePago con id " + id + " no encontrado"));
-        log.info("DetallePago original con id={}, estado={}", detalleExistente.getId(), detalleExistente.getEstadoPago());
-        detalleExistente.setEstadoPago(EstadoPago.ANULADO);
-        detalleExistente.setCobrado(false);
-        detalleExistente.setaCobrar(0.0);
-        DetallePago detalleGuardado = detallePagoRepositorio.save(detalleExistente);
-        log.info("DetallePago actualizado con id={}, estado={}", detalleGuardado.getId(), detalleGuardado.getEstadoPago());
-        return detallePagoMapper.toDTO(detalleGuardado);
+        log.info("Iniciando anulación de DetallePago con id={}", id);
+
+        log.info("Buscando DetallePago en repositorio con id={}", id);
+        DetallePago detalle = detallePagoRepositorio.findById(id)
+                .orElseThrow(() -> {
+                    log.error("DetallePago con id {} no encontrado", id);
+                    return new EntityNotFoundException("DetallePago con id " + id + " no encontrado");
+                });
+        log.info("DetallePago encontrado: {}", detalle);
+
+        log.info("Obteniendo Pago asociado al DetallePago");
+        Pago pago = detalle.getPago();
+        if (pago != null) {
+            log.info("Pago encontrado: {}", pago);
+
+            log.info("Calculando nuevos montos para el pago");
+            double valorACobrar = detalle.getaCobrar();
+            double montoActual = pago.getMonto();
+            double montoPagadoActual = pago.getMontoPagado();
+            log.info("Valores actuales - Monto: {}, MontoPagado: {}, aCobrar: {}",
+                    montoActual, montoPagadoActual, valorACobrar);
+
+            double nuevoMonto = montoActual - valorACobrar;
+            double nuevoMontoPagado = montoPagadoActual - valorACobrar;
+            log.info("Nuevos valores calculados - Monto: {}, MontoPagado: {}",
+                    nuevoMonto, nuevoMontoPagado);
+
+            log.info("Actualizando montos del pago");
+            pago.setMonto(nuevoMonto);
+            pago.setMontoPagado(nuevoMontoPagado);
+            log.info("Montos actualizados en el objeto Pago");
+
+            log.info("Guardando cambios en el pago");
+            pagoRepositorio.save(pago);
+            log.info("Pago guardado exitosamente");
+
+            log.info("Filtrando detalles activos del pago");
+            List<DetallePago> detallesActivos = pago.getDetallePagos().stream()
+                    .filter(dp -> dp.getEstadoPago() != null && !dp.getEstadoPago().equals(EstadoPago.ANULADO))
+                    .toList();
+            log.info("Detalles activos encontrados: {}", detallesActivos.size());
+
+            // Si se cumple la condición de eliminación (ya no quedan detalles activos
+            // o el monto restante es igual al recargo del método de pago)
+            if (Objects.equals(pago.getMonto(), pago.getMetodoPago().getRecargo()) || detallesActivos.isEmpty()) {
+                log.info("Condición para eliminar pago cumplida (monto restante {} == recargo {} o sin detalles activos).",
+                        pago.getMonto(), pago.getMetodoPago().getRecargo());
+                // Romper la asociación de todos los detalles del pago
+                List<DetallePago> copiaDetalles = new ArrayList<>(pago.getDetallePagos());
+                for (DetallePago dp : copiaDetalles) {
+                    dp.setPago(null);
+                    detallePagoRepositorio.save(dp);
+                }
+                pago.getDetallePagos().clear();
+                log.info("Detalles del pago limpiados. Eliminando pago...");
+                pagoRepositorio.delete(pago);
+                // Forzar el flush para que el contexto se actualice
+                detallePagoRepositorio.flush();
+                log.info("Pago eliminado exitosamente");
+                // Romper la asociación en el detalle actual
+                detalle.setPago(null);
+            }
+        } else {
+            log.info("No se encontró pago asociado al detalle");
+        }
+
+        log.info("Actualizando estado del detalle a ANULADO");
+        detalle.setEstadoPago(EstadoPago.ANULADO);
+        log.info("Estado actualizado a ANULADO");
+
+        log.info("Marcando detalle como no cobrado");
+        detalle.setCobrado(false);
+        log.info("Estado cobrado actualizado a false");
+
+        log.info("Estableciendo aCobrar a 0.0");
+        detalle.setaCobrar(0.0);
+        log.info("Valor aCobrar actualizado a 0.0");
+
+        log.info("Guardando cambios en el DetallePago");
+        DetallePago detalleGuardado = detallePagoRepositorio.save(detalle);
+        log.info("DetallePago guardado exitosamente: {}", detalleGuardado);
+
+        log.info("Mapeando DetallePago a DTO");
+        DetallePagoResponse response = detallePagoMapper.toDTO(detalleGuardado);
+        log.info("Mapeo completado. Retornando respuesta");
+
+        log.info("DetallePago anulado exitosamente con id={}, estado={}",
+                detalleGuardado.getId(), detalleGuardado.getEstadoPago());
+        return response;
     }
 
     public List<DetallePagoResponse> listarDetallesPagos() {

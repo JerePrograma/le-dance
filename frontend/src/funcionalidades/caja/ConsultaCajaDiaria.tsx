@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState } from "react";
 import cajaApi from "../../api/cajaApi";
 import egresoApi from "../../api/egresosApi";
@@ -5,7 +7,7 @@ import Tabla from "../../componentes/comunes/Tabla";
 import Boton from "../../componentes/comunes/Boton";
 import { toast } from "react-toastify";
 
-// Interfaces (puedes moverlas a un archivo .d.ts o adaptarlas)
+// Interfaces (pueden moverse a un archivo .d.ts o adaptarse)
 interface MetodoPago {
   id: number;
   descripcion: string; // "EFECTIVO", "DEBITO", etc.
@@ -20,31 +22,32 @@ interface PagoDelDia {
   };
   observaciones: string;
   monto: number;
-  metodoPago?: MetodoPago | null; // ahora es opcional
+  metodoPago?: MetodoPago | null;
 }
 
 interface EgresoDelDia {
   id: number;
   fecha: string;
   monto: number;
-  observaciones?: string; // Ahora es opcional
+  observaciones?: string;
 }
 
-interface CajaDetalleDTO {
+export interface CajaDetalleDTO {
   pagosDelDia: PagoDelDia[];
   egresosDelDia: EgresoDelDia[];
 }
 
 // EgresoRegistroRequest según lo definido
 export interface EgresoRegistroRequest {
-  id?: number; // Opcional, ya que se genera automáticamente
-  fecha: string; // en formato ISO (ej. "2025-03-17")
+  id?: number;
+  fecha: string; // Formato ISO (ej: "2025-03-17")
   monto: number;
   observaciones?: string;
   metodoPagoId: number;
 }
 
 const ConsultaCajaDiaria: React.FC = () => {
+  // Obtener la fecha actual en formato "YYYY-MM-DD" en GMT-3 (zona de Buenos Aires)
   const fechaAuto = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Argentina/Buenos_Aires",
   }).format(new Date());
@@ -59,14 +62,13 @@ const ConsultaCajaDiaria: React.FC = () => {
   const [obsEgreso, setObsEgreso] = useState<string>("");
 
   // --------------------------------------------------------------------------
-  // Función para cargar la info del día (Pagos y Egresos)
+  // Función para cargar la caja diaria (pagos y egresos) en la fecha seleccionada
   // --------------------------------------------------------------------------
   const handleVer = async () => {
     try {
       setLoading(true);
       const detalle = await cajaApi.obtenerCajaDiaria(fecha);
-
-      // Mapear pagosDelDia para asegurarse que cada objeto tenga la estructura esperada
+      // Asegurarse que cada objeto tenga la estructura esperada
       const mappedDetalle: CajaDetalleDTO = {
         ...detalle,
         pagosDelDia: detalle.pagosDelDia.map((p: any) => ({
@@ -78,7 +80,6 @@ const ConsultaCajaDiaria: React.FC = () => {
           observaciones: egreso.observaciones ?? "",
         })),
       };
-
       setData(mappedDetalle);
     } catch (err) {
       toast.error("Error al consultar la caja diaria.");
@@ -88,33 +89,39 @@ const ConsultaCajaDiaria: React.FC = () => {
   };
 
   // --------------------------------------------------------------------------
-  // Calcular totales por método de pago
+  // Filtrar pagos para excluir aquellos con monto = 0
   // --------------------------------------------------------------------------
-  const pagos = data?.pagosDelDia || [];
+  const pagos: PagoDelDia[] = data?.pagosDelDia || [];
+  const pagosFiltrados = pagos.filter((p) => p.monto !== 0);
+  const sortedPagos = [...pagosFiltrados].sort((a, b) => b.id - a.id);
 
-  const totalEfectivo = pagos
+  // --------------------------------------------------------------------------
+  // Calcular totales por método de pago y totales generales
+  // --------------------------------------------------------------------------
+  const totalEfectivo = sortedPagos
     .filter((p) => p.metodoPago?.descripcion?.toUpperCase() === "EFECTIVO")
     .reduce((sum, p) => sum + p.monto, 0);
 
-  const totalDebito = pagos
+  const totalDebito = sortedPagos
     .filter((p) => p.metodoPago?.descripcion?.toUpperCase() === "DEBITO")
     .reduce((sum, p) => sum + p.monto, 0);
 
   const totalCobrado = totalEfectivo + totalDebito;
 
   // Egresos
-  const egresos = data?.egresosDelDia || [];
+  const egresos: EgresoDelDia[] = data?.egresosDelDia || [];
+  const sortedEgresos = [...egresos].sort((a, b) => b.id - a.id);
   const totalEgresos = egresos.reduce((sum, e) => sum + e.monto, 0);
 
   // --------------------------------------------------------------------------
-  // Acciones extra (Imprimir, etc.)
+  // Acciones extra (por ejemplo, Imprimir)
   // --------------------------------------------------------------------------
   const handleImprimir = () => {
     toast.info("Funcionalidad de imprimir no implementada");
   };
 
   // --------------------------------------------------------------------------
-  // Abrir y Cerrar el modal para Agregar Egreso
+  // Abrir y Cerrar Modal de Egreso
   // --------------------------------------------------------------------------
   const handleAbrirModalEgreso = () => {
     setMontoEgreso(0);
@@ -127,7 +134,7 @@ const ConsultaCajaDiaria: React.FC = () => {
   };
 
   // --------------------------------------------------------------------------
-  // Guardar (crear) Egreso en backend usando el endpoint registrarEgreso
+  // Guardar (crear) Egreso
   // --------------------------------------------------------------------------
   const handleGuardarEgreso = async () => {
     try {
@@ -135,23 +142,15 @@ const ConsultaCajaDiaria: React.FC = () => {
         toast.error("El monto del egreso no puede ser 0.");
         return;
       }
-
-      // Se crea el objeto de egreso, fijando el metodoPagoId a 1 (EFECTIVO)
       const egresoRequest: EgresoRegistroRequest = {
         fecha,
         monto: montoEgreso,
         observaciones: obsEgreso,
         metodoPagoId: 1, // Hardcodeado a EFECTIVO
       };
-
-      // Llamar al endpoint registrarEgreso
       await egresoApi.registrarEgreso(egresoRequest);
-
       toast.success("Egreso agregado correctamente.");
-
-      // Cerrar el modal
       setShowModalEgreso(false);
-
       // Refrescar la caja diaria
       handleVer();
     } catch (err) {
@@ -159,11 +158,8 @@ const ConsultaCajaDiaria: React.FC = () => {
     }
   };
 
-  const sortedPagos = [...pagos].sort((a, b) => b.id - a.id);
-  const sortedEgresos = [...egresos].sort((a, b) => b.id - a.id);
-
   // --------------------------------------------------------------------------
-  // Render
+  // Renderizado
   // --------------------------------------------------------------------------
   return (
     <div className="page-container p-4">
@@ -192,18 +188,20 @@ const ConsultaCajaDiaria: React.FC = () => {
           <p>Cargando...</p>
         ) : (
           <Tabla
-            headers={["Recibo", "Codigo", "Alumno", "Observaciones", "Importe"]}
+            headers={["Recibo", "Código", "Alumno", "Observaciones", "Importe"]}
             data={sortedPagos}
             customRender={(p: PagoDelDia) => [
-              p.id, // Recibo
+              p.id,
               p.alumno?.id || "",
               p.alumno ? `${p.alumno.nombre} ${p.alumno.apellido}` : "",
               p.observaciones,
               p.monto.toLocaleString(),
             ]}
+            emptyMessage="No hay pagos para el día"
           />
         )}
       </div>
+
       {/* Tabla de Egresos */}
       {egresos.length > 0 && (
         <div className="border p-2 mt-4">
@@ -216,6 +214,7 @@ const ConsultaCajaDiaria: React.FC = () => {
               e.observaciones,
               e.monto.toLocaleString(),
             ]}
+            emptyMessage="No hay egresos para el día"
           />
         </div>
       )}
@@ -228,14 +227,39 @@ const ConsultaCajaDiaria: React.FC = () => {
         >
           Imprimir
         </Boton>
-
-        {/* Botón para Agregar Egreso */}
         <Boton
           onClick={handleAbrirModalEgreso}
           className="bg-yellow-400 text-white p-2 rounded"
         >
           Agregar Egreso
         </Boton>
+      </div>
+
+      {/* Totales */}
+      <div className="text-right mt-2">
+        <p>
+          Efectivo: ${" "}
+          {sortedPagos
+            .filter(
+              (p) => p.metodoPago?.descripcion?.toUpperCase() === "EFECTIVO"
+            )
+            .reduce((sum, p) => sum + p.monto, 0)
+            .toLocaleString()}
+        </p>
+        <p>
+          Débito: ${" "}
+          {sortedPagos
+            .filter(
+              (p) => p.metodoPago?.descripcion?.toUpperCase() === "DEBITO"
+            )
+            .reduce((sum, p) => sum + p.monto, 0)
+            .toLocaleString()}
+        </p>
+        <p>Total neto: $ {(totalCobrado - totalEgresos).toLocaleString()}</p>
+        <p>Egresos en efectivo: $ {totalEgresos.toLocaleString()}</p>
+        <p>
+          Total efectivo: $ {(totalEfectivo - totalEgresos).toLocaleString()}
+        </p>
       </div>
 
       {/* Modal para Agregar Egreso */}
@@ -252,7 +276,6 @@ const ConsultaCajaDiaria: React.FC = () => {
                 onChange={(e) => setMontoEgreso(parseFloat(e.target.value))}
               />
             </div>
-
             <div className="mb-2">
               <label className="block font-medium">Observaciones:</label>
               <input
@@ -262,7 +285,6 @@ const ConsultaCajaDiaria: React.FC = () => {
                 onChange={(e) => setObsEgreso(e.target.value)}
               />
             </div>
-
             <div className="flex justify-end gap-2 mt-4">
               <Boton onClick={handleCerrarModal}>Cancelar</Boton>
               <Boton onClick={handleGuardarEgreso}>Guardar</Boton>
@@ -270,16 +292,6 @@ const ConsultaCajaDiaria: React.FC = () => {
           </div>
         </div>
       )}
-      {/* Totales al final */}
-      <div className="text-right mt-2">
-        <p>Efectivo: $ {totalEfectivo.toLocaleString()}</p>
-        <p>Débito: $ {totalDebito.toLocaleString()}</p>
-        <p>Total neto: $ {(totalCobrado - totalEgresos).toLocaleString()}</p>
-        <p>Egresos en efectivo: $ {totalEgresos.toLocaleString()}</p>
-        <p>
-          Total efectivo: $ {(totalEfectivo - totalEgresos).toLocaleString()}
-        </p>
-      </div>
     </div>
   );
 };

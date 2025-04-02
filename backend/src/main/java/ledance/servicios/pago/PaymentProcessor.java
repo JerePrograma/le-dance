@@ -181,7 +181,8 @@ public class PaymentProcessor {
      */
     public Inscripcion obtenerInscripcion(DetallePago detalle) {
         log.info("[obtenerInscripcion] Buscando inscripción para DetallePago id={}", detalle.getId());
-        if (detalle.getDescripcionConcepto().contains("CUOTA") && detalle.getMensualidad().getInscripcion() != null) {
+        if (detalle.getDescripcionConcepto().contains("CUOTA") && detalle.getMensualidad() != null &&
+                detalle.getMensualidad().getInscripcion() != null) {
             return detalle.getMensualidad().getInscripcion();
         }
         return null;

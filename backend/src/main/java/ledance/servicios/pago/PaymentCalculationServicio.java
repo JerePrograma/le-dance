@@ -842,7 +842,9 @@ public class PaymentCalculationServicio {
         }
 
         // 4. Reatachar Mensualidad, Matrícula y Stock (si existen)
-        if (detalle.getDescripcionConcepto().contains("CUOTA") && detalle.getMensualidad().getId() != null) {
+        if (detalle.getDescripcionConcepto().contains("CUOTA") &&
+                detalle.getMensualidad() != null &&
+                detalle.getMensualidad().getId() != null) {
             Mensualidad managedMensualidad = entityManager.find(Mensualidad.class, detalle.getMensualidad().getId());
             if (managedMensualidad != null) {
                 detalle.setMensualidad(managedMensualidad);

@@ -19,6 +19,11 @@ import type {
 export default function EgresosDebitoPagina() {
   const itemsPerPage = 25;
 
+  // Establecemos por defecto la fecha actual (en GMT–3) en formato YYYY-MM-DD.
+  const defaultDate = new Date().toLocaleDateString("en-CA", {
+    timeZone: "America/Argentina/Buenos_Aires",
+  });
+
   /* ----------------- Estados para EGRESOS ----------------- */
   const [egresos, setEgresos] = useState<EgresoResponse[]>([]);
   const [visibleCountEgresos, setVisibleCountEgresos] =
@@ -38,8 +43,8 @@ export default function EgresosDebitoPagina() {
   const [pagos, setPagos] = useState<PagoResponse[]>([]);
 
   /* ----------------- Estados para filtros de fecha ----------------- */
-  const [filterStartDate, setFilterStartDate] = useState<string>("");
-  const [filterEndDate, setFilterEndDate] = useState<string>("");
+  const [filterStartDate, setFilterStartDate] = useState<string>(defaultDate);
+  const [filterEndDate, setFilterEndDate] = useState<string>(defaultDate);
 
   /* ----------------- Estados para Modal de EGRESO ----------------- */
   const [showModal, setShowModal] = useState<boolean>(false);
@@ -107,7 +112,7 @@ export default function EgresosDebitoPagina() {
     fetchPagos();
   }, [fetchDetallePagosDebito, fetchPagos]);
 
-  /* ----------------- Filtrado de EGRESOS (se mantiene igual) ----------------- */
+  /* ----------------- Filtrado de EGRESOS ----------------- */
   const filteredEgresos = useMemo(() => {
     return egresos.filter((egreso) => {
       const egresoDate = new Date(egreso.fecha);
@@ -139,10 +144,9 @@ export default function EgresosDebitoPagina() {
   }, [hasMoreEgresos]);
 
   /* ----------------- Filtrado de DetallePago (DEBITO) ----------------- */
-  // Como el backend ya filtra por fecha, mantenemos aquí el filtro adicional por aCobrar y método "debito"
+  // Aquí se muestran todos los detalles que pertenezcan a pagos con método "debito"
   const filteredDetallesDebito = useMemo(() => {
     return detallesDebito.filter((detalle) => {
-      // Se asume que el endpoint ya filtra por fecha (por ejemplo, por fechaRegistro)
       if (!detalle.pagoId) return false;
       const pago = pagos.find((p) => p.id === detalle.pagoId);
       return pago && pago.metodoPago?.descripcion?.toLowerCase() === "debito";

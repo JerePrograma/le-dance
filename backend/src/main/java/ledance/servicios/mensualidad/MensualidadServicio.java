@@ -394,13 +394,13 @@ public class MensualidadServicio implements IMensualidadService {
     }
 
     @Transactional
-    public Mensualidad generarCuota(Long inscripcionId, int mes, int anio) {
+    public Mensualidad generarCuota(Long alumnoId, Long inscripcionId, int mes, int anio) {
         log.info("[generarCuota] Generando cuota para inscripción id: {} para {}/{}", inscripcionId, mes, anio);
         LocalDate inicio = LocalDate.of(anio, mes, 1);
         Mensualidad mensualidad = generarOModificarMensualidad(inscripcionId, inicio, true);
         if (mensualidad != null) {
             // Si no existe aún un DetallePago para esta mensualidad, se crea; de lo contrario se deja como está
-            if (!detallePagoRepositorio.existsByMensualidadId(mensualidad.getId())) {
+            if (!detallePagoRepositorio.existsByAlumnoIdAndDescripcionConceptoIgnoreCaseAndTipo(alumnoId, mensualidad.getDescripcion(), TipoDetallePago.MENSUALIDAD)) {
                 registrarDetallePagoMensualidad(mensualidad);
                 log.info("[generarCuota] DetallePago para Mensualidad id={} creado.", mensualidad.getId());
             } else {
@@ -902,7 +902,7 @@ public class MensualidadServicio implements IMensualidadService {
                     mesAnio = new MesAnio(now.getMonthValue(), now.getYear());
                 }
                 log.info("[obtenerOMarcarPendienteMensualidad] Generando cuota para mes={}, año={}", mesAnio.mes(), mesAnio.anio());
-                return generarCuota(inscripcion.getId(), mesAnio.mes(), mesAnio.anio());
+                return generarCuota(alumnoId, inscripcion.getId(), mesAnio.mes(), mesAnio.anio());
             } else {
                 log.warn("[obtenerOMarcarPendienteMensualidad] No se encontró inscripción activa para alumnoId={}", alumnoId);
                 throw new IllegalArgumentException("No se encontró inscripción activa para el alumno con id: " + alumnoId);
