@@ -231,31 +231,34 @@ public class InscripcionServicio implements IInscripcionServicio {
 
     @Transactional
     public void eliminarInscripcion(Long id) {
+        // Recuperar la inscripción; si no existe, lanza excepción
         Inscripcion inscripcion = inscripcionRepositorio.findById(id)
                 .orElseThrow(() -> new TratadorDeErrores.RecursoNoEncontradoException("Inscripción no encontrada."));
         Alumno alumno = inscripcion.getAlumno();
 
-        // Eliminar registros de AsistenciaAlumnoMensual asociados a la inscripción
-        List<AsistenciaAlumnoMensual> asistencias = asistenciaAlumnoMensualRepositorio.findByInscripcionId(inscripcion.getId());
-        if (asistencias != null && !asistencias.isEmpty()) {
-            for (AsistenciaAlumnoMensual asistenciaAlumnoMensual : asistencias) {
-                asistenciaDiariaServicio.eliminarAsistenciaAlumnoMensual(asistenciaAlumnoMensual.getId());
+        // Eliminar en bloque todos los registros de AsistenciaAlumnoMensual asociados a la inscripción
+        List<AsistenciaAlumnoMensual> asistenciasMensuales = asistenciaAlumnoMensualRepositorio.findByInscripcionId(inscripcion.getId());
+        if (asistenciasMensuales != null && !asistenciasMensuales.isEmpty()) {
+            // Para cada registro de asistencia mensual, eliminamos primero sus asistencias diarias
+            for (AsistenciaAlumnoMensual aam : asistenciasMensuales) {
+                asistenciaDiariaServicio.eliminarAsistenciaAlumnoMensual(aam.getId());
             }
         }
 
-        // Remover la inscripción de la lista del alumno
+        // Remover la inscripción de la lista del alumno para evitar problemas en memoria
         alumno.getInscripciones().remove(inscripcion);
 
-        // Eliminar la inscripción (las mensualidades se eliminarán en cascada si están configuradas)
+        // Eliminar la inscripción; se asume que las relaciones en cascada (orphanRemoval) borran mensualidades y demás
         inscripcionRepositorio.delete(inscripcion);
         inscripcionRepositorio.flush();
 
-        // Si la lista de inscripciones quedó vacía, marcar al alumno como inactivo
+        // Si el alumno ya no tiene inscripciones, marcarlo como inactivo
         if (alumno.getInscripciones().isEmpty()) {
             alumno.setActivo(false);
             alumnoRepositorio.save(alumno);
         }
     }
+
 
     @Transactional
     public List<InscripcionResponse> listarInscripciones() {
