@@ -31,9 +31,6 @@ public interface PagoRepositorio extends JpaRepository<Pago, Long> {
     List<Pago> findPagosVencidos(@Param("hoy") LocalDate hoy,
                                  @Param("estadoActivo") EstadoPago estadoActivo);
 
-    // Retorna los pagos activos en un rango de fechas.
-    List<Pago> findByFechaBetweenAndEstadoPago(LocalDate start, LocalDate end, EstadoPago estadoPago);
-
     // Retorna los pagos activos en una fecha especifica.
     List<Pago> findByFechaAndEstadoPago(LocalDate fecha, EstadoPago estadoPago);
 
@@ -43,4 +40,6 @@ public interface PagoRepositorio extends JpaRepository<Pago, Long> {
     List<Pago> findByAlumnoIdAndEstadoPagoNotOrderByFechaDesc(Long alumnoId, EstadoPago estado);
 
     List<Pago> findByAlumnoId(Long id);
+
+    List<Pago> findByFechaBetween(LocalDate start, LocalDate end);
 }

@@ -90,13 +90,6 @@ const listarPagos = async (): Promise<PagoResponse[]> => {
 };
 
 /**
- * Lista todos los detalles pagos activos.
- */
-const listarDetallesPagos = async (): Promise<DetallePagoResponse[]> => {
-  const { data } = await api.get<DetallePagoResponse[]>("/detalle-pago");
-  return data;
-};
-/**
  * Actualiza un pago.
  */
 const actualizarPago = async (
@@ -212,7 +205,6 @@ const pagosApi = {
   listarDisciplinasBasicas,
   listarStocksBasicos,
   listarAlumnosBasicos,
-  listarDetallesPagos,
   obtenerCobranzaPorAlumno, // Agregado aqui
   obtenerUltimoPagoPorAlumno,
   filtrarDetalles, // Agregamos el nuevo endpoint

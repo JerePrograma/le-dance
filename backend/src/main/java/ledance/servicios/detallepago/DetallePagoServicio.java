@@ -340,7 +340,6 @@ public class DetallePagoServicio {
         return detallePagoMapper.toDTO(detalleGuardado);
     }
 
-    // Listar todos los DetallePagos
     public List<DetallePagoResponse> listarDetallesPagos() {
         List<DetallePago> detalles = detallePagoRepositorio.findAll();
         log.info("Listado de DetallePagos obtenido. Total registros: {}", detalles.size());
@@ -348,6 +347,21 @@ public class DetallePagoServicio {
                 .map(detallePagoMapper::toDTO)
                 .collect(Collectors.toList());
     }
+
+    public List<DetallePagoResponse> listarDetallesPagos(LocalDate fechaDesde, LocalDate fechaHasta) {
+        List<DetallePago> detalles;
+        if (fechaDesde != null && fechaHasta != null) {
+            detalles = detallePagoRepositorio.findByFechaRegistroBetween(fechaDesde, fechaHasta);
+        } else {
+            // Si no se reciben fechas o estado, se devuelven todos
+            detalles = detallePagoRepositorio.findAll();
+        }
+        log.info("Listado de DetallePagos obtenido. Total registros: {}", detalles.size());
+        return detalles.stream()
+                .map(detallePagoMapper::toDTO)
+                .collect(Collectors.toList());
+    }
+
 
     @Transactional
     public void verificarMensualidadNoDuplicada(DetallePago detalle) {

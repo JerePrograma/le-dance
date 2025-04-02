@@ -3,11 +3,14 @@ package ledance.controladores;
 import jakarta.persistence.EntityNotFoundException;
 import ledance.dto.pago.response.DetallePagoResponse;
 import ledance.entidades.DetallePago;
+import ledance.entidades.EstadoPago;
 import ledance.servicios.detallepago.DetallePagoServicio;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -70,10 +73,19 @@ public class DetallePagoControlador {
         }
     }
 
-    // Endpoint para listar todos los DetallePagos
     @GetMapping
     public ResponseEntity<List<DetallePagoResponse>> listarDetallesPagos() {
         List<DetallePagoResponse> responses = detallePagoServicio.listarDetallesPagos();
         return ResponseEntity.ok(responses);
     }
+
+    @GetMapping("/fecha")
+    public ResponseEntity<List<DetallePagoResponse>> listarDetallesPagos(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaDesde,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaHasta) {
+
+        List<DetallePagoResponse> responses = detallePagoServicio.listarDetallesPagos(fechaDesde, fechaHasta);
+        return ResponseEntity.ok(responses);
+    }
+
 }

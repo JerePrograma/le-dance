@@ -75,7 +75,7 @@ public class CajaServicio {
     // -------------------------------------------------------------------------
     public List<CajaDiariaDTO> obtenerPlanillaGeneral(LocalDate start, LocalDate end) {
         // a) Obtener pagos activos (o HISTORICOS segun convenga) en el rango
-        List<Pago> pagos = pagoRepositorio.findByFechaBetweenAndEstadoPago(start, end, EstadoPago.HISTORICO);
+        List<Pago> pagos = pagoRepositorio.findByFechaBetween(start, end);
         // b) Obtener egresos en el rango
         List<Egreso> egresos = egresoRepositorio.findByFechaBetween(start, end);
 
@@ -150,7 +150,7 @@ public class CajaServicio {
     // 2. Caja Diaria: Obtener pagos y egresos de un dia especifico.
     // -------------------------------------------------------------------------
     public CajaDetalleDTO obtenerCajaDiaria(LocalDate fecha) {
-        List<Pago> pagosDia = pagoRepositorio.findByFechaBetweenAndEstadoPago(fecha, fecha, EstadoPago.HISTORICO);
+        List<Pago> pagosDia = pagoRepositorio.findByFechaBetween(fecha, fecha);
         List<Egreso> egresosDia = egresoRepositorio.findByFecha(fecha);
 
         // Se pueden mapear a DTOs si se requiere
@@ -161,7 +161,7 @@ public class CajaServicio {
     // 3. Rendicion General de Caja: Detalles y totales en un rango.
     // -------------------------------------------------------------------------
     public RendicionDTO obtenerRendicionGeneral(LocalDate start, LocalDate end) {
-        List<Pago> pagos = pagoRepositorio.findByFechaBetweenAndEstadoPago(start, end, EstadoPago.HISTORICO);
+        List<Pago> pagos = pagoRepositorio.findByFechaBetween(start, end);
         List<Egreso> egresos = egresoRepositorio.findByFechaBetween(start, end);
 
         double totalEfectivo = sumarPorMetodoPago(pagos, "EFECTIVO");
@@ -220,7 +220,7 @@ public class CajaServicio {
      * 5d) Filtrar pagos y egresos por metodo de pago en un rango.
      */
     public List<Pago> obtenerPagosPorMetodo(LocalDate start, LocalDate end, String metodoDescripcion) {
-        return pagoRepositorio.findByFechaBetweenAndEstadoPago(start, end, EstadoPago.ACTIVO)
+        return pagoRepositorio.findByFechaBetween(start, end)
                 .stream()
                 .filter(p -> p.getMetodoPago() != null &&
                         p.getMetodoPago().getDescripcion().equalsIgnoreCase(metodoDescripcion))
@@ -233,21 +233,6 @@ public class CajaServicio {
                 .filter(e -> e.getMetodoPago() != null &&
                         e.getMetodoPago().getDescripcion().equalsIgnoreCase(metodoDescripcion))
                 .collect(Collectors.toList());
-    }
-
-    /**
-     * 5e) Calcular “saldo total” de la caja en un rango (ingresos - egresos).
-     */
-    public double calcularSaldoCaja(LocalDate start, LocalDate end) {
-        double totalIngresos = pagoRepositorio.findByFechaBetweenAndEstadoPago(start, end, EstadoPago.HISTORICO)
-                .stream()
-                .mapToDouble(Pago::getMonto)
-                .sum();
-        double totalEgresos = egresoRepositorio.findByFechaBetween(start, end)
-                .stream()
-                .mapToDouble(Egreso::getMonto)
-                .sum();
-        return totalIngresos - totalEgresos;
     }
 
     public CobranzasDataResponse obtenerDatosCobranzas() {

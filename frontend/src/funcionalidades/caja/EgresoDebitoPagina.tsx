@@ -8,6 +8,7 @@ import Boton from "../../componentes/comunes/Boton";
 import ListaConInfiniteScroll from "../../componentes/comunes/ListaConInfiniteScroll";
 import egresosApi from "../../api/egresosApi";
 import pagosApi from "../../api/pagosApi";
+import detallesPagoApi from "../../api/detallesPagoApi";
 import type {
   EgresoResponse,
   EgresoRegistroRequest,
@@ -66,12 +67,16 @@ export default function EgresosDebitoPagina() {
     }
   }, []);
 
-  // Cargar todos los DetallePago (posteriormente filtraremos)
+  // Cargar DetallePago filtrados en el backend por fecha
   const fetchDetallePagosDebito = useCallback(async () => {
     try {
       setLoadingDetalle(true);
       setErrorDetalle(null);
-      const data = await pagosApi.listarDetallesPagos();
+      // Se pasan como query params las fechas seleccionadas
+      const data = await detallesPagoApi.listarDetallesPagosFecha({
+        fechaDesde: filterStartDate || undefined,
+        fechaHasta: filterEndDate || undefined,
+      });
       setDetallesDebito(Array.isArray(data) ? data : []);
       setVisibleCountPagos(itemsPerPage);
     } catch (err) {
@@ -80,7 +85,7 @@ export default function EgresosDebitoPagina() {
     } finally {
       setLoadingDetalle(false);
     }
-  }, []);
+  }, [filterStartDate, filterEndDate]);
 
   // Cargar pagos (para obtener método de pago y demás info)
   const fetchPagos = useCallback(async () => {
@@ -92,6 +97,7 @@ export default function EgresosDebitoPagina() {
     }
   }, []);
 
+  // Ejecutar cargas al montar o cuando cambien las fechas de filtro
   useEffect(() => {
     fetchEgresos();
   }, [fetchEgresos]);
@@ -101,7 +107,7 @@ export default function EgresosDebitoPagina() {
     fetchPagos();
   }, [fetchDetallePagosDebito, fetchPagos]);
 
-  /* ----------------- Filtrado de EGRESOS ----------------- */
+  /* ----------------- Filtrado de EGRESOS (se mantiene igual) ----------------- */
   const filteredEgresos = useMemo(() => {
     return egresos.filter((egreso) => {
       const egresoDate = new Date(egreso.fecha);
@@ -133,20 +139,15 @@ export default function EgresosDebitoPagina() {
   }, [hasMoreEgresos]);
 
   /* ----------------- Filtrado de DetallePago (DEBITO) ----------------- */
-  // Mostrar solo aquellos que cumplan: (importePendiente === 0 o aCobrar > 0),
-  // cuya fechaRegistro esté dentro del rango y cuyo pago tenga método "debito".
+  // Como el backend ya filtra por fecha, mantenemos aquí el filtro adicional por aCobrar y método "debito"
   const filteredDetallesDebito = useMemo(() => {
     return detallesDebito.filter((detalle) => {
-      const registro = new Date(detalle.fechaRegistro);
-      if (filterStartDate && registro < new Date(filterStartDate)) return false;
-      if (filterEndDate && registro > new Date(filterEndDate)) return false;
-      if (!(detalle.importePendiente === 0 || detalle.aCobrar > 0))
-        return false;
+      // Se asume que el endpoint ya filtra por fecha (por ejemplo, por fechaRegistro)
       if (!detalle.pagoId) return false;
       const pago = pagos.find((p) => p.id === detalle.pagoId);
       return pago && pago.metodoPago?.descripcion?.toLowerCase() === "debito";
     });
-  }, [detallesDebito, pagos, filterStartDate, filterEndDate]);
+  }, [detallesDebito, pagos]);
 
   /* ----------------- Agrupación y Agregado por Pago Único ----------------- */
   // Para cada pago único, se agrega un item "Pago por débito" que muestra el valor del recargo
@@ -170,7 +171,7 @@ export default function EgresosDebitoPagina() {
       ) {
         const totalRecargo = pago.metodoPago.recargo;
         const aggregatedItem: DetallePagoResponse = {
-          id: 0, // id sintético para evitar colisiones
+          id: pagoId * 1000000, // id sintético para evitar colisiones
           version: 1,
           descripcionConcepto: "Pago por débito",
           cuotaOCantidad: "",
@@ -191,7 +192,7 @@ export default function EgresosDebitoPagina() {
           tipo: "",
           fechaRegistro: new Date().toISOString(),
           pagoId: pagoId,
-          alumnoDisplay: "", // No aplica en el agregado
+          alumnoDisplay: pago.alumno.nombre + ", " + pago.alumno.apellido,
           tieneRecargo: false,
           estadoPago: "",
         };
@@ -288,7 +289,7 @@ export default function EgresosDebitoPagina() {
   };
 
   /* ----------------- Cálculos Totales ----------------- */
-  // Total Cobrado: suma de todos los valores de aCobrar en los DetallePago (incluyendo los items agregados)
+  // Total Cobrado: suma de todos los valores de aCobrar (incluyendo los items agregados)
   const totalCobrado = useMemo(() => {
     return sortedFinalItems.reduce(
       (sum, item) => sum + Number(item.aCobrar || 0),
