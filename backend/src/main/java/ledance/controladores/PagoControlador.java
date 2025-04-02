@@ -1,14 +1,19 @@
 package ledance.controladores;
 
 import jakarta.validation.Valid;
+import ledance.dto.caja.response.CobranzasDataResponse;
 import ledance.dto.cobranza.CobranzaDTO;
+import ledance.dto.inscripcion.response.InscripcionResponse;
 import ledance.dto.pago.DetallePagoMapper;
 import ledance.dto.pago.request.DetallePagoRegistroRequest;
 import ledance.dto.pago.request.PagoMedioRegistroRequest;
 import ledance.dto.pago.request.PagoRegistroRequest;
 import ledance.dto.pago.response.DetallePagoResponse;
 import ledance.dto.pago.response.PagoResponse;
+import ledance.dto.response.DatosUnificadosAlumnoResponse;
+import ledance.servicios.caja.CajaServicio;
 import ledance.servicios.detallepago.DetallePagoServicio;
+import ledance.servicios.inscripcion.InscripcionServicio;
 import ledance.servicios.matricula.MatriculaServicio;
 import ledance.servicios.pago.PagoServicio;
 import org.slf4j.Logger;
@@ -46,12 +51,16 @@ public class PagoControlador {
     private final DetallePagoServicio detallePagoServicio;
     private final DetallePagoMapper detallePagoMapper;
     private final MatriculaServicio matriculaServicio;
+    private final CajaServicio cajaServicio;
+    private final InscripcionServicio inscripcionServicio;
 
-    public PagoControlador(PagoServicio pagoServicio, DetallePagoServicio detallePagoServicio, DetallePagoMapper detallePagoMapper, MatriculaServicio matriculaServicio) {
+    public PagoControlador(PagoServicio pagoServicio, DetallePagoServicio detallePagoServicio, DetallePagoMapper detallePagoMapper, MatriculaServicio matriculaServicio, CajaServicio cajaServicio, InscripcionServicio inscripcionServicio) {
         this.pagoServicio = pagoServicio;
         this.detallePagoServicio = detallePagoServicio;
         this.detallePagoMapper = detallePagoMapper;
         this.matriculaServicio = matriculaServicio;
+        this.cajaServicio = cajaServicio;
+        this.inscripcionServicio = inscripcionServicio;
     }
 
     @GetMapping("/recibo/{pagoId}")
@@ -254,5 +263,14 @@ public class PagoControlador {
 
         return ResponseEntity.ok().build();
     }
+
+    @GetMapping("/datos-unificados/{alumnoId}")
+    public ResponseEntity<DatosUnificadosAlumnoResponse> obtenerDatosUnificadosAlumno(@PathVariable Long alumnoId) {
+        CobranzasDataResponse datosCobranzas = cajaServicio.obtenerDatosCobranzas();
+        List<InscripcionResponse> inscripcionesActivas = inscripcionServicio.listarPorAlumno(alumnoId);
+        DatosUnificadosAlumnoResponse response = new DatosUnificadosAlumnoResponse(datosCobranzas, inscripcionesActivas);
+        return ResponseEntity.ok(response);
+    }
+
 
 }

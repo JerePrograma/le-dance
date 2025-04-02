@@ -738,7 +738,6 @@ const CobranzasForm: React.FC = () => {
       } catch (error) {
         setActiveInscripciones([]);
       }
-      console.log("Alumno seleccionado:", alumnoInfo);
     },
     []
   );
@@ -821,6 +820,59 @@ const CobranzasForm: React.FC = () => {
         });
     }
   }, [searchParams]);
+
+  /**
+   * Calcula el importe inicial para un detalle, aplicando descuento (si existe bonificación) y sumando el recargo.
+   * Se usa para replicar la lógica del backend.
+   */
+  const calcularImporteInicial = (
+    valorBase: number,
+    inscripcion: InscripcionResponse | undefined,
+    esMatricula: boolean,
+    tieneRecargo: boolean,
+    recargo: number = 0
+  ): number => {
+    console.log("[calcularImporteInicial] Inicio");
+    console.log("[calcularImporteInicial] Valor base:", valorBase);
+    console.log("[calcularImporteInicial] esMatricula:", esMatricula);
+
+    // Si es matrícula, no se aplican descuentos ni recargos.
+    if (esMatricula) {
+      console.log(
+        "[calcularImporteInicial] Es matrícula. Retornando valorBase sin modificaciones."
+      );
+      return valorBase;
+    }
+
+    let descuento = 0;
+    if (inscripcion && inscripcion.bonificacion) {
+      console.log(
+        "[calcularImporteInicial] Inscripción con bonificación encontrada:",
+        inscripcion
+      );
+      console.log(
+        "[calcularImporteInicial] Bonificación:",
+        inscripcion.bonificacion
+      );
+      descuento =
+        valorBase * (inscripcion.bonificacion.porcentajeDescuento / 100);
+      console.log("[calcularImporteInicial] Descuento calculado:", descuento);
+    } else {
+      console.log(
+        "[calcularImporteInicial] No se encontró inscripción con bonificación."
+      );
+    }
+
+    const recargoCalculado = tieneRecargo ? recargo : 0;
+    console.log("[calcularImporteInicial] recargoCalculado:", recargoCalculado);
+
+    const importeInicial = valorBase - descuento + recargoCalculado;
+    console.log(
+      "[calcularImporteInicial] Importe Inicial calculado:",
+      importeInicial
+    );
+    return importeInicial;
+  };
 
   const handleAgregarDetalle = useCallback(
     async (
@@ -961,7 +1013,8 @@ const CobranzasForm: React.FC = () => {
       }
 
       // (2) Agregar detalle por DISCIPLINA/TARIFA
-      let total = 0;
+      let totalOriginal = 0; // Valor base original, sin descuentos
+      let totalDescontado = 0; // Valor luego de aplicar la bonificación
       let conceptoDetalle = "";
       const selectedDisciplina = mappedDisciplinas.find(
         (disc) => disc.nombre === values.disciplina
@@ -984,28 +1037,53 @@ const CobranzasForm: React.FC = () => {
           tarifaLabel = "CLASE DE PRUEBA";
         }
         const cantidad = Number(values.cantidad) || 1;
-        total = precio * cantidad;
-        conceptoDetalle = `${selectedDisciplina.nombre} - ${tarifaLabel} - ${values.periodoMensual}`;
+        totalOriginal = precio * cantidad;
         console.log(
-          "[handleAgregarDetalle] conceptoDetalle (disciplina):",
-          conceptoDetalle
+          "[handleAgregarDetalle] Total original calculado:",
+          totalOriginal
         );
-        console.log("[handleAgregarDetalle] total calculado:", total);
+        conceptoDetalle = `${selectedDisciplina.nombre} - ${tarifaLabel} - ${values.periodoMensual}`;
+
+        if (values.tarifa === "CUOTA") {
+          // Buscar inscripción activa para la disciplina para aplicar la bonificación
+          const inscripcion = activeInscripciones.find(
+            (ins) => ins.disciplina.id === selectedDisciplina.id
+          );
+          console.log(
+            "[handleAgregarDetalle] Inscripción activa encontrada para la disciplina:",
+            inscripcion
+          );
+          totalDescontado = calcularImporteInicial(
+            totalOriginal,
+            inscripcion,
+            false, // No es matrícula
+            values.aplicarRecargo,
+            0 // Se asume que el recargo es 0; ajustar si es necesario.
+          );
+          console.log(
+            "[handleAgregarDetalle] Importe calculado aplicando bonificación:",
+            totalDescontado
+          );
+        } else {
+          totalDescontado = totalOriginal;
+        }
+
         try {
           console.log(
             "[handleAgregarDetalle] Verificando MensualidadOMatricula para:",
             conceptoDetalle
           );
+          // En la verificación, se envía el total original en "valorBase"
           await pagosApi.verificarMensualidadOMatricula({
             id: 0,
             version: 0,
             alumno: values.alumno,
             descripcionConcepto: conceptoDetalle,
             cuotaOCantidad: "1",
-            valorBase: total,
+            valorBase: totalOriginal, // Valor base original sin descuento
             bonificacionId: null,
             recargoId: null,
-            aCobrar: total,
+            aCobrar: totalDescontado, // Se envía el valor descontado
             cobrado: false,
             conceptoId: selectedDisciplina.id,
             subConceptoId: null,
@@ -1040,12 +1118,12 @@ const CobranzasForm: React.FC = () => {
             conceptoId: null,
             subConceptoId: null,
             cuotaOCantidad: cantidad.toString(),
-            valorBase: total,
-            importeInicial: total,
-            importePendiente: total,
+            valorBase: totalOriginal, // Se asigna el valor base original
+            importeInicial: totalDescontado, // Importe tras aplicar la bonificación
+            importePendiente: totalDescontado,
             bonificacionId: null,
             recargoId: null,
-            aCobrar: total,
+            aCobrar: totalDescontado,
             cobrado: false,
             mensualidadId: null,
             matriculaId: null,
@@ -1134,7 +1212,7 @@ const CobranzasForm: React.FC = () => {
 
       console.log("<<< [handleAgregarDetalle] END");
     },
-    [conceptos, mappedDisciplinas, stocks]
+    [conceptos, mappedDisciplinas, stocks, activeInscripciones]
   );
 
   // ----- onSubmit -----

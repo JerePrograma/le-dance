@@ -509,11 +509,10 @@ public class PaymentProcessor {
                 }
 
                 // Reatachar mensualidad, si existe
-                if (detalle.getDescripcionConcepto().contains("CUOTA")) {
-                    detalle.getMensualidad().setEsClon(true);
-                    nuevoDetalle.setMensualidad(detalle.getMensualidad());
-                    log.debug("[clonarDetallesConPendiente] Mensualidad reatachada en detalle clonado ID: {}", nuevoDetalle.getId());
-                }
+                detalle.getMensualidad().setEsClon(true);
+                nuevoDetalle.setMensualidad(detalle.getMensualidad());
+                log.debug("[clonarDetallesConPendiente] Mensualidad reatachada en detalle clonado ID: {}", nuevoDetalle.getId());
+
                 nuevoDetalle.setTipo(detalle.getTipo());
                 if (nuevoDetalle.getConcepto() != null && nuevoDetalle.getSubConcepto() == null) {
                     nuevoDetalle.setSubConcepto(nuevoDetalle.getConcepto().getSubConcepto());

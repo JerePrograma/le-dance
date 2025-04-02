@@ -934,6 +934,11 @@ export interface CobranzasDataResponse {
   recargos: RecargoResponse[];
 }
 
+export interface DatosUnificadosAlumnoResponse {
+  cobranzasData: CobranzasDataResponse;
+  inscripcionesActivas: InscripcionResponse[];
+}
+
 export type ObservacionProfesorResponse = {
   id: number;
   profesorId: number;

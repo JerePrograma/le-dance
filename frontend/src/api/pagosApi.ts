@@ -10,6 +10,7 @@ import type {
   DetallePagoResponse,
   AlumnoResponse,
   DetallePagoRegistroRequest,
+  DatosUnificadosAlumnoResponse,
 } from "../types/types";
 
 // Función para descargar el recibo usando una petición GET
@@ -190,6 +191,12 @@ const filtrarDetalles = async (params: {
   return data;
 };
 
+const obtenerDatosUnificadosAlumno = async (alumnoId: number): Promise<DatosUnificadosAlumnoResponse> => {
+  const { data } = await api.get<DatosUnificadosAlumnoResponse>(`/pagos/datos-unificados/${alumnoId}`);
+  return data;
+};
+
+
 const pagosApi = {
   registrarPago,
   obtenerPagoPorId,
@@ -209,6 +216,7 @@ const pagosApi = {
   obtenerUltimoPagoPorAlumno,
   filtrarDetalles, // Agregamos el nuevo endpoint
   verificarMensualidadOMatricula,
+  obtenerDatosUnificadosAlumno,
 };
 
 export default pagosApi;
