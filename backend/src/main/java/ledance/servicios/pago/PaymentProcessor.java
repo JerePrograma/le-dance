@@ -131,7 +131,7 @@ public class PaymentProcessor {
         log.info("[recalcularTotales] Monto final previo al crédito: {}", montoFinal);
 
         // Aplicar saldo a favor si corresponde.
-        double saldoAFavor = pago.getAlumno().getCreditoAcumulado();
+        double saldoAFavor = Optional.ofNullable(pago.getAlumno().getCreditoAcumulado()).orElse(0.0);
         if (aplicarCredito) {
             log.info("[recalcularTotales] Aplicando saldo a favor: {}", saldoAFavor);
             montoFinal -= saldoAFavor;

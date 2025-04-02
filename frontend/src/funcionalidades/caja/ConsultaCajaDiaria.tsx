@@ -6,6 +6,7 @@ import egresoApi from "../../api/egresosApi";
 import Tabla from "../../componentes/comunes/Tabla";
 import Boton from "../../componentes/comunes/Boton";
 import { toast } from "react-toastify";
+import { useAuth } from "../../hooks/context/authContext";
 
 // Interfaces (pueden moverse a un archivo .d.ts o adaptarse)
 interface MetodoPago {
@@ -23,6 +24,7 @@ interface PagoDelDia {
   observaciones: string;
   monto: number;
   metodoPago?: MetodoPago | null;
+  usuarioId?: number; // Identificador del usuario que realizó el pago
 }
 
 interface EgresoDelDia {
@@ -47,6 +49,12 @@ export interface EgresoRegistroRequest {
 }
 
 const ConsultaCajaDiaria: React.FC = () => {
+  // Obtenemos el usuario autenticado a través del contexto
+  const { user } = useAuth();
+
+  // Suponemos que si user no está definido, se puede manejar el caso o retornar un mensaje
+  const currentUserId = user?.id || 0;
+
   // Obtener la fecha actual en formato "YYYY-MM-DD" en GMT-3 (zona de Buenos Aires)
   const fechaAuto = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Argentina/Buenos_Aires",
@@ -55,6 +63,9 @@ const ConsultaCajaDiaria: React.FC = () => {
 
   const [data, setData] = useState<CajaDetalleDTO | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Estado para el filtro de pagos: "mis" o "todos"
+  const [filtroPago, setFiltroPago] = useState<"mis" | "todos">("mis");
 
   // Estados del Modal de Egreso
   const [showModalEgreso, setShowModalEgreso] = useState(false);
@@ -93,16 +104,24 @@ const ConsultaCajaDiaria: React.FC = () => {
   // --------------------------------------------------------------------------
   const pagos: PagoDelDia[] = data?.pagosDelDia || [];
   const pagosFiltrados = pagos.filter((p) => p.monto !== 0);
+
+  // Ordenar los pagos
   const sortedPagos = [...pagosFiltrados].sort((a, b) => b.id - a.id);
 
+  // Aplicar filtro según opción seleccionada: "mis" pagos o "todos"
+  const pagosFiltradosPorUsuario =
+    filtroPago === "mis"
+      ? sortedPagos.filter((p) => p.usuarioId === currentUserId)
+      : sortedPagos;
+
   // --------------------------------------------------------------------------
-  // Calcular totales por método de pago y totales generales
+  // Calcular totales por método de pago y totales generales en base a pagos filtrados
   // --------------------------------------------------------------------------
-  const totalEfectivo = sortedPagos
+  const totalEfectivo = pagosFiltradosPorUsuario
     .filter((p) => p.metodoPago?.descripcion?.toUpperCase() === "EFECTIVO")
     .reduce((sum, p) => sum + p.monto, 0);
 
-  const totalDebito = sortedPagos
+  const totalDebito = pagosFiltradosPorUsuario
     .filter((p) => p.metodoPago?.descripcion?.toUpperCase() === "DEBITO")
     .reduce((sum, p) => sum + p.monto, 0);
 
@@ -174,6 +193,17 @@ const ConsultaCajaDiaria: React.FC = () => {
             onChange={(e) => setFecha(e.target.value)}
           />
         </div>
+        <div>
+          <label className="block font-medium">Mostrar:</label>
+          <select
+            className="border p-2"
+            value={filtroPago}
+            onChange={(e) => setFiltroPago(e.target.value as "mis" | "todos")}
+          >
+            <option value="mis">Mis pagos</option>
+            <option value="todos">Todos</option>
+          </select>
+        </div>
         <Boton
           onClick={handleVer}
           className="bg-green-500 text-white p-2 rounded"
@@ -189,7 +219,7 @@ const ConsultaCajaDiaria: React.FC = () => {
         ) : (
           <Tabla
             headers={["Recibo", "Código", "Alumno", "Observaciones", "Importe"]}
-            data={sortedPagos}
+            data={pagosFiltradosPorUsuario}
             customRender={(p: PagoDelDia) => [
               p.id,
               p.alumno?.id || "",
@@ -239,7 +269,7 @@ const ConsultaCajaDiaria: React.FC = () => {
       <div className="text-right mt-2">
         <p>
           Efectivo: ${" "}
-          {sortedPagos
+          {pagosFiltradosPorUsuario
             .filter(
               (p) => p.metodoPago?.descripcion?.toUpperCase() === "EFECTIVO"
             )
@@ -248,7 +278,7 @@ const ConsultaCajaDiaria: React.FC = () => {
         </p>
         <p>
           Débito: ${" "}
-          {sortedPagos
+          {pagosFiltradosPorUsuario
             .filter(
               (p) => p.metodoPago?.descripcion?.toUpperCase() === "DEBITO"
             )
