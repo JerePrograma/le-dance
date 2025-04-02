@@ -35,10 +35,7 @@ public class DetallePagoServicio {
     private final MensualidadRepositorio mensualidadRepositorio;
     private final PagoRepositorio pagoRepositorio;
 
-    public DetallePagoServicio(DetallePagoRepositorio detallePagoRepositorio,
-                               DetallePagoMapper detallePagoMapper,
-                               MensualidadRepositorio mensualidadRepositorio,
-                               PagoRepositorio pagoRepositorio) {
+    public DetallePagoServicio(DetallePagoRepositorio detallePagoRepositorio, DetallePagoMapper detallePagoMapper, MensualidadRepositorio mensualidadRepositorio, PagoRepositorio pagoRepositorio) {
         this.detallePagoRepositorio = detallePagoRepositorio;
         this.detallePagoMapper = detallePagoMapper;
         this.mensualidadRepositorio = mensualidadRepositorio;
@@ -52,11 +49,8 @@ public class DetallePagoServicio {
      */
     public void calcularImporte(DetallePago detalle) {
         // 1. Inicio y validación de concepto
-        String conceptoDesc = (detalle.getDescripcionConcepto() != null)
-                ? detalle.getDescripcionConcepto()
-                : "N/A";
-        log.info("[calcularImporte] INICIO - Cálculo para Detalle ID: {} | Concepto: '{}' | Tipo: {}",
-                detalle.getId(), conceptoDesc, detalle.getTipo());
+        String conceptoDesc = (detalle.getDescripcionConcepto() != null) ? detalle.getDescripcionConcepto() : "N/A";
+        log.info("[calcularImporte] INICIO - Cálculo para Detalle ID: {} | Concepto: '{}' | Tipo: {}", detalle.getId(), conceptoDesc, detalle.getTipo());
         log.debug("[calcularImporte] Detalle completo al inicio: {}", detalle.toString());
 
         // 2. Obtención de valor base
@@ -96,8 +90,7 @@ public class DetallePagoServicio {
 
         // 5. Cálculo de importe inicial
         double importeInicial = base - descuento + recargo;
-        log.info("[calcularImporte] Cálculo final: {} (base) - {} (descuento) + {} (recargo) = {}",
-                base, descuento, recargo, importeInicial);
+        log.info("[calcularImporte] Cálculo final: {} (base) - {} (descuento) + {} (recargo) = {}", base, descuento, recargo, importeInicial);
 
         log.info("[calcularImporte] Asignando importe inicial: {}", importeInicial);
         detalle.setImporteInicial(importeInicial);
@@ -109,11 +102,7 @@ public class DetallePagoServicio {
             log.debug("[calcularImporte] Importe pendiente mantiene su valor actual: {}", detalle.getImportePendiente());
         }
 
-        log.info("[calcularImporte] FIN - Resultados para Detalle ID: {} | Inicial: {} | Pendiente: {} | Cobrado: {}",
-                detalle.getId(),
-                detalle.getImporteInicial(),
-                detalle.getImportePendiente(),
-                detalle.getCobrado());
+        log.info("[calcularImporte] FIN - Resultados para Detalle ID: {} | Inicial: {} | Pendiente: {} | Cobrado: {}", detalle.getId(), detalle.getImporteInicial(), detalle.getImportePendiente(), detalle.getCobrado());
         log.debug("[calcularImporte] Estado final del detalle: {}", detalle.toString());
     }
 
@@ -147,8 +136,7 @@ public class DetallePagoServicio {
         }
         if (recargo != null) {
             int diaActual = LocalDate.now().getDayOfMonth();
-            log.info("[obtenerValorRecargo] Detalle id={} | Día actual={} | Día de aplicación={}",
-                    detalle.getId(), diaActual, recargo.getDiaDelMesAplicacion());
+            log.info("[obtenerValorRecargo] Detalle id={} | Día actual={} | Día de aplicación={}", detalle.getId(), diaActual, recargo.getDiaDelMesAplicacion());
             if (diaActual != recargo.getDiaDelMesAplicacion()) {
                 log.info("[obtenerValorRecargo] Día actual no coincide; recargo=0");
                 return 0.0;
@@ -156,33 +144,22 @@ public class DetallePagoServicio {
             double recargoFijo = (recargo.getValorFijo() != null) ? recargo.getValorFijo() : 0.0;
             double recargoPorcentaje = (recargo.getPorcentaje() != null) ? (recargo.getPorcentaje() / 100.0 * base) : 0.0;
             double totalRecargo = recargoFijo + recargoPorcentaje;
-            log.info("[obtenerValorRecargo] Detalle id={} | Recargo fijo={} | %={} | Total Recargo={}",
-                    detalle.getId(), recargoFijo, recargoPorcentaje, totalRecargo);
+            log.info("[obtenerValorRecargo] Detalle id={} | Recargo fijo={} | %={} | Total Recargo={}", detalle.getId(), recargoFijo, recargoPorcentaje, totalRecargo);
             return totalRecargo;
         }
         log.info("[obtenerValorRecargo] Detalle id={} sin recargo; recargo=0", detalle.getId());
         return 0.0;
     }
 
-    public List<DetallePagoResponse> filtrarDetalles(
-            LocalDate fechaRegistroDesde,
-            LocalDate fechaRegistroHasta,
-            String categoria,         // Se espera: DISCIPLINAS, STOCK, CONCEPTOS o MATRICULA
-            String disciplina,
-            String tarifa,
-            String stock,
-            String subConcepto,
-            String detalleConcepto,
-            String alumnoId          // NUEVO: Filtrado por alumno
+    public List<DetallePagoResponse> filtrarDetalles(LocalDate fechaRegistroDesde, LocalDate fechaRegistroHasta, String categoria,         // Se espera: DISCIPLINAS, STOCK, CONCEPTOS o MATRICULA
+                                                     String disciplina, String tarifa, String stock, String subConcepto, String detalleConcepto, String alumnoId          // NUEVO: Filtrado por alumno
     ) {
         // Se inicia la Specification con el filtro por fecha
         Specification<DetallePago> spec = Specification.where(filtrarPorFechaRegistro(fechaRegistroDesde, fechaRegistroHasta));
 
         // Agregar filtro por alumno si se proporciona
         if (StringUtils.hasText(alumnoId)) {
-            spec = spec.and((root, query, cb) ->
-                    cb.equal(root.get("alumno").get("id"), Long.valueOf(alumnoId))
-            );
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("alumno").get("id"), Long.valueOf(alumnoId)));
         }
 
         // Si se envía categoría, se aplica el filtro correspondiente
@@ -193,9 +170,7 @@ public class DetallePagoServicio {
         List<DetallePago> detalles = detallePagoRepositorio.findAll(spec, Sort.by(Sort.Direction.DESC, "id"));
         log.info("Consulta realizada. Número de registros encontrados: {}", detalles.size());
 
-        List<DetallePagoResponse> responses = detalles.stream()
-                .map(detallePagoMapper::toDTO)
-                .collect(Collectors.toList());
+        List<DetallePagoResponse> responses = detalles.stream().map(detallePagoMapper::toDTO).collect(Collectors.toList());
         log.info("Conversión a DetallePagoResponse completada. Regresando respuesta.");
 
         return responses;
@@ -214,14 +189,7 @@ public class DetallePagoServicio {
         };
     }
 
-    private Specification<DetallePago> filtrarPorCategoria(
-            String categoria,
-            String disciplina,
-            String tarifa,
-            String stock,
-            String subConcepto,
-            String detalleConcepto
-    ) {
+    private Specification<DetallePago> filtrarPorCategoria(String categoria, String disciplina, String tarifa, String stock, String subConcepto, String detalleConcepto) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             String categoriaUpper = categoria.toUpperCase();
@@ -229,9 +197,7 @@ public class DetallePagoServicio {
             switch (categoriaUpper) {
                 case "DISCIPLINAS":
                     if (StringUtils.hasText(disciplina)) {
-                        String pattern = StringUtils.hasText(tarifa)
-                                ? (disciplina + " - " + tarifa).toUpperCase() + "%"
-                                : "%" + disciplina.toUpperCase() + "%";
+                        String pattern = StringUtils.hasText(tarifa) ? (disciplina + " - " + tarifa).toUpperCase() + "%" : "%" + disciplina.toUpperCase() + "%";
                         predicates.add(cb.like(cb.upper(root.get("descripcionConcepto")), pattern));
                     } else {
                         predicates.add(cb.equal(root.get("tipo"), TipoDetallePago.MENSUALIDAD));
@@ -292,14 +258,12 @@ public class DetallePagoServicio {
 
     // Obtener un DetallePago por su ID
     public DetallePagoResponse obtenerDetallePagoPorId(Long id) {
-        DetallePago detalle = detallePagoRepositorio.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("DetallePago con id " + id + " no encontrado"));
+        DetallePago detalle = detallePagoRepositorio.findById(id).orElseThrow(() -> new EntityNotFoundException("DetallePago con id " + id + " no encontrado"));
         return detallePagoMapper.toDTO(detalle);
     }
 
     public DetallePagoResponse actualizarDetallePago(Long id, DetallePago detalleActualizado) {
-        DetallePago detalleExistente = detallePagoRepositorio.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("DetallePago con id " + id + " no encontrado"));
+        DetallePago detalleExistente = detallePagoRepositorio.findById(id).orElseThrow(() -> new EntityNotFoundException("DetallePago con id " + id + " no encontrado"));
 
         // Actualizar campos; dependiendo de tu lógica, puedes actualizar sólo ciertos atributos.
         detalleExistente.setDescripcionConcepto(detalleActualizado.getDescripcionConcepto());
@@ -323,11 +287,10 @@ public class DetallePagoServicio {
         log.info("Iniciando eliminación de DetallePago con id={}", id);
 
         log.info("Buscando DetallePago en repositorio con id={}", id);
-        DetallePago detalle = detallePagoRepositorio.findById(id)
-                .orElseThrow(() -> {
-                    log.error("DetallePago con id {} no encontrado", id);
-                    return new EntityNotFoundException("DetallePago con id " + id + " no encontrado");
-                });
+        DetallePago detalle = detallePagoRepositorio.findById(id).orElseThrow(() -> {
+            log.error("DetallePago con id {} no encontrado", id);
+            return new EntityNotFoundException("DetallePago con id " + id + " no encontrado");
+        });
         log.info("DetallePago encontrado: {}", detalle);
 
         log.info("Obteniendo Pago asociado al DetallePago");
@@ -342,13 +305,11 @@ public class DetallePagoServicio {
             double valorACobrar = detalle.getaCobrar();
             double montoActual = pago.getMonto();
             double montoPagadoActual = pago.getMontoPagado();
-            log.info("Valores actuales - Monto: {}, MontoPagado: {}, aCobrar: {}",
-                    montoActual, montoPagadoActual, valorACobrar);
+            log.info("Valores actuales - Monto: {}, MontoPagado: {}, aCobrar: {}", montoActual, montoPagadoActual, valorACobrar);
 
             double nuevoMonto = montoActual - valorACobrar;
             double nuevoMontoPagado = montoPagadoActual - valorACobrar;
-            log.info("Nuevos valores calculados - Monto: {}, MontoPagado: {}",
-                    nuevoMonto, nuevoMontoPagado);
+            log.info("Nuevos valores calculados - Monto: {}, MontoPagado: {}", nuevoMonto, nuevoMontoPagado);
 
             log.info("Actualizando montos del pago");
             pago.setMonto(nuevoMonto);
@@ -357,8 +318,7 @@ public class DetallePagoServicio {
 
             // Evaluar si el monto restante es igual al recargo definido en el método de pago
             if (pago.getMonto() == pago.getMetodoPago().getRecargo()) {
-                log.info("El monto restante ({}) es igual al recargo ({}). Limpiando detalles y eliminando pago...",
-                        pago.getMonto(), pago.getMetodoPago().getRecargo());
+                log.info("El monto restante ({}) es igual al recargo ({}). Limpiando detalles y eliminando pago...", pago.getMonto(), pago.getMetodoPago().getRecargo());
                 pago.getDetallePagos().clear();
                 log.info("Detalles del pago limpiados. Eliminando pago...");
                 pagoRepositorio.delete(pago);
@@ -380,16 +340,12 @@ public class DetallePagoServicio {
     @Transactional
     public DetallePagoResponse anularDetallePago(Long id) {
         log.info("Iniciando anulación de DetallePago con id={}", id);
-
-        log.info("Buscando DetallePago en repositorio con id={}", id);
-        DetallePago detalle = detallePagoRepositorio.findById(id)
-                .orElseThrow(() -> {
-                    log.error("DetallePago con id {} no encontrado", id);
-                    return new EntityNotFoundException("DetallePago con id " + id + " no encontrado");
-                });
+        DetallePago detalle = detallePagoRepositorio.findById(id).orElseThrow(() -> {
+            log.error("DetallePago con id {} no encontrado", id);
+            return new EntityNotFoundException("DetallePago con id " + id + " no encontrado");
+        });
         log.info("DetallePago encontrado: {}", detalle);
 
-        log.info("Obteniendo Pago asociado al DetallePago");
         Pago pago = detalle.getPago();
         if (pago != null) {
             log.info("Pago encontrado: {}", pago);
@@ -398,14 +354,15 @@ public class DetallePagoServicio {
             double valorACobrar = detalle.getaCobrar();
             double montoActual = pago.getMonto();
             double montoPagadoActual = pago.getMontoPagado();
-            log.info("Valores actuales - Monto: {}, MontoPagado: {}, aCobrar: {}",
-                    montoActual, montoPagadoActual, valorACobrar);
+            log.info("Valores actuales - Monto: {}, MontoPagado: {}, aCobrar: {}", montoActual, montoPagadoActual, valorACobrar);
 
             double nuevoMonto = montoActual - valorACobrar;
             double nuevoMontoPagado = montoPagadoActual - valorACobrar;
-            log.info("Nuevos valores calculados - Monto: {}, MontoPagado: {}",
-                    nuevoMonto, nuevoMontoPagado);
-
+            log.info("Nuevos valores calculados - Monto: {}, MontoPagado: {}", nuevoMonto, nuevoMontoPagado);
+            if (nuevoMonto == pago.getMetodoPago().getRecargo()) {
+                nuevoMonto = 0;
+                nuevoMontoPagado = 0;
+            }
             log.info("Actualizando montos del pago");
             pago.setMonto(nuevoMonto);
             pago.setMontoPagado(nuevoMontoPagado);
@@ -416,66 +373,42 @@ public class DetallePagoServicio {
             log.info("Pago guardado exitosamente");
 
             log.info("Filtrando detalles activos del pago");
-            List<DetallePago> detallesActivos = pago.getDetallePagos().stream()
-                    .filter(dp -> dp.getEstadoPago() != null && !dp.getEstadoPago().equals(EstadoPago.ANULADO))
-                    .toList();
-            log.info("Detalles activos encontrados: {}", detallesActivos.size());
+            // Primero, romper la asociación en todos los detalles y hacer flush
 
-            // Si se cumple la condición de eliminación (ya no quedan detalles activos
-            // o el monto restante es igual al recargo del método de pago)
-            if (Objects.equals(pago.getMonto(), pago.getMetodoPago().getRecargo()) || detallesActivos.isEmpty()) {
-                log.info("Condición para eliminar pago cumplida (monto restante {} == recargo {} o sin detalles activos).",
-                        pago.getMonto(), pago.getMetodoPago().getRecargo());
-                // Romper la asociación de todos los detalles del pago
+            // Ahora, actualizar el detalle actual antes de eliminar el Pago
+            detalle.setEstadoPago(EstadoPago.ANULADO);
+            detalle.setCobrado(false);
+            detalle.setaCobrar(0.0);
+            detallePagoRepositorio.save(detalle);
+
+            if (pago.getDetallePagos().isEmpty() || pago.getMonto() == 0) {
+                // Romper la asociación en todos los detalles y hacer flush
                 List<DetallePago> copiaDetalles = new ArrayList<>(pago.getDetallePagos());
                 for (DetallePago dp : copiaDetalles) {
                     dp.setPago(null);
-                    detallePagoRepositorio.save(dp);
                 }
-                pago.getDetallePagos().clear();
-                log.info("Detalles del pago limpiados. Eliminando pago...");
+                detallePagoRepositorio.flush();
+
+                // Eliminar el Pago
+                pago.setDetallePagos(null);
                 pagoRepositorio.delete(pago);
-                // Forzar el flush para que el contexto se actualice
                 detallePagoRepositorio.flush();
                 log.info("Pago eliminado exitosamente");
-                // Romper la asociación en el detalle actual
-                detalle.setPago(null);
             }
+
         } else {
             log.info("No se encontró pago asociado al detalle");
         }
 
-        log.info("Actualizando estado del detalle a ANULADO");
-        detalle.setEstadoPago(EstadoPago.ANULADO);
-        log.info("Estado actualizado a ANULADO");
-
-        log.info("Marcando detalle como no cobrado");
-        detalle.setCobrado(false);
-        log.info("Estado cobrado actualizado a false");
-
-        log.info("Estableciendo aCobrar a 0.0");
-        detalle.setaCobrar(0.0);
-        log.info("Valor aCobrar actualizado a 0.0");
-
-        log.info("Guardando cambios en el DetallePago");
-        DetallePago detalleGuardado = detallePagoRepositorio.save(detalle);
-        log.info("DetallePago guardado exitosamente: {}", detalleGuardado);
-
-        log.info("Mapeando DetallePago a DTO");
-        DetallePagoResponse response = detallePagoMapper.toDTO(detalleGuardado);
-        log.info("Mapeo completado. Retornando respuesta");
-
-        log.info("DetallePago anulado exitosamente con id={}, estado={}",
-                detalleGuardado.getId(), detalleGuardado.getEstadoPago());
+        DetallePagoResponse response = detallePagoMapper.toDTO(detalle);
+        log.info("DetallePago anulado exitosamente con id={}, estado={}", detalle.getId(), detalle.getEstadoPago());
         return response;
     }
 
     public List<DetallePagoResponse> listarDetallesPagos() {
         List<DetallePago> detalles = detallePagoRepositorio.findAll();
         log.info("Listado de DetallePagos obtenido. Total registros: {}", detalles.size());
-        return detalles.stream()
-                .map(detallePagoMapper::toDTO)
-                .collect(Collectors.toList());
+        return detalles.stream().map(detallePagoMapper::toDTO).collect(Collectors.toList());
     }
 
     public List<DetallePagoResponse> listarDetallesPagos(LocalDate fechaDesde, LocalDate fechaHasta) {
@@ -487,9 +420,7 @@ public class DetallePagoServicio {
             detalles = detallePagoRepositorio.findAll();
         }
         log.info("Listado de DetallePagos obtenido. Total registros: {}", detalles.size());
-        return detalles.stream()
-                .map(detallePagoMapper::toDTO)
-                .collect(Collectors.toList());
+        return detalles.stream().map(detallePagoMapper::toDTO).collect(Collectors.toList());
     }
 
 
@@ -505,9 +436,7 @@ public class DetallePagoServicio {
 
             if (mensualidadOpt.isPresent()) {
                 // Si se encontró una mensualidad que contenga "CUOTA", se verifica si ya existe un detalle duplicado
-                boolean existeDetalleDuplicado = detallePagoRepositorio.existsByAlumnoIdAndDescripcionConceptoIgnoreCaseAndTipo(
-                        alumnoId, descripcion, TipoDetallePago.MENSUALIDAD
-                );
+                boolean existeDetalleDuplicado = detallePagoRepositorio.existsByAlumnoIdAndDescripcionConceptoIgnoreCaseAndTipo(alumnoId, descripcion, TipoDetallePago.MENSUALIDAD);
                 if (existeDetalleDuplicado) {
                     log.error("Ya existe una mensualidad o detalle de pago con descripción '{}' para alumnoId={}", descripcion, alumnoId);
                     throw new IllegalStateException("MENSUALIDAD YA COBRADA");

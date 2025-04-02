@@ -121,7 +121,9 @@ const DetallePagoList: React.FC = () => {
 
   // Filtrar detalles para mostrar solo los que hayan sido cobrados
   const detallesCobrado = useMemo(() => {
-    return detalles.filter((detalle) => detalle.cobrado);
+    return detalles.filter(
+      (detalle) => detalle.cobrado || detalle.estadoPago === "ANULADO"
+    );
   }, [detalles]);
 
   // Ajustar visibleCount según la altura del contenedor principal

@@ -121,7 +121,9 @@ const DetallePagoList: React.FC = () => {
   // Filtrar detalles para mostrar solo los NO cobrados
   const detallesNoCobrado = useMemo(() => {
     return Array.isArray(detalles)
-      ? detalles.filter((detalle) => !detalle.cobrado)
+      ? detalles.filter(
+          (detalle) => !detalle.cobrado && !(detalle.estadoPago === "ANULADO")
+        )
       : [];
   }, [detalles]);
 
@@ -213,7 +215,7 @@ const DetallePagoList: React.FC = () => {
   const sortedItems = [...currentItems].sort(
     (a, b) => Number(b.pagoId) - Number(a.pagoId)
   );
-  
+
   return (
     <div ref={containerRef} className="flex flex-col h-screen overflow-hidden">
       {/* Header */}
