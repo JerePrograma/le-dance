@@ -207,20 +207,19 @@ public class AsistenciaDiariaServicio {
 
     @Transactional
     public void eliminarAsistenciaAlumnoMensual(Long id) {
-        AsistenciaAlumnoMensual asistenciaMensual = asistenciaAlumnoMensualRepositorio.findById(id)
+        AsistenciaAlumnoMensual asistenciaAlumnoMensual = asistenciaAlumnoMensualRepositorio.findById(id)
                 .orElseThrow(() -> new TratadorDeErrores.RecursoNoEncontradoException("AsistenciaAlumnoMensual no encontrada."));
 
-        // Eliminar en bloque todas las asistencias diarias asociadas a este registro
-        List<AsistenciaDiaria> asistenciasDiarias = asistenciaDiariaRepositorio.findByAsistenciaAlumnoMensualId(asistenciaMensual.getId());
+        // Eliminar las asistencias diarias asociadas
+        List<AsistenciaDiaria> asistenciasDiarias = asistenciaDiariaRepositorio.findByAsistenciaAlumnoMensualId(asistenciaAlumnoMensual.getId());
         if (asistenciasDiarias != null && !asistenciasDiarias.isEmpty()) {
-            // Se elimina la lista completa y se hace flush para que se sincronice en la base de datos
-            asistenciaDiariaRepositorio.deleteAll(asistenciasDiarias);
-            asistenciaDiariaRepositorio.flush();
+            for (AsistenciaDiaria asistenciaDiaria : asistenciasDiarias) {
+                eliminarAsistencia(asistenciaDiaria.getId());
+            }
         }
 
-        // Eliminar el registro de asistencia mensual y hacer flush para propagar la eliminación
-        asistenciaAlumnoMensualRepositorio.delete(asistenciaMensual);
         asistenciaAlumnoMensualRepositorio.flush();
+        asistenciaAlumnoMensualRepositorio.delete(asistenciaAlumnoMensual);
     }
 
     public List<LocalDate> obtenerDiasClase(Long disciplinaId, Integer mes, Integer anio) {
