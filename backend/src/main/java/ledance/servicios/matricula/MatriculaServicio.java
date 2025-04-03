@@ -1,12 +1,10 @@
 package ledance.servicios.matricula;
 
-import jakarta.persistence.EntityNotFoundException;
 import ledance.dto.matricula.MatriculaMapper;
 import ledance.dto.matricula.request.MatriculaRegistroRequest;
 import ledance.dto.matricula.response.MatriculaResponse;
 import ledance.entidades.*;
 import ledance.repositorios.*;
-import ledance.servicios.mensualidad.MensualidadServicio;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -21,150 +19,169 @@ import java.util.Optional;
 @Service
 public class MatriculaServicio {
 
-    private static final Logger log = LoggerFactory.getLogger(MensualidadServicio.class);
+    private static final Logger log = LoggerFactory.getLogger(MatriculaServicio.class);
 
     private final MatriculaRepositorio matriculaRepositorio;
     private final AlumnoRepositorio alumnoRepositorio;
     private final MatriculaMapper matriculaMapper;
     private final DetallePagoRepositorio detallePagoRepositorio;
     private final ConceptoRepositorio conceptoRepositorio;
-    private final InscripcionRepositorio inscripcionRepositorio;
     private final ProcesoEjecutadoRepositorio procesoEjecutadoRepositorio;
 
     public MatriculaServicio(MatriculaRepositorio matriculaRepositorio,
                              AlumnoRepositorio alumnoRepositorio,
-                             MatriculaMapper matriculaMapper, DetallePagoRepositorio detallePagoRepositorio, ConceptoRepositorio conceptoRepositorio, InscripcionRepositorio inscripcionRepositorio, ProcesoEjecutadoRepositorio procesoEjecutadoRepositorio) {
+                             MatriculaMapper matriculaMapper, DetallePagoRepositorio detallePagoRepositorio,
+                             ConceptoRepositorio conceptoRepositorio,
+                             ProcesoEjecutadoRepositorio procesoEjecutadoRepositorio) {
         this.matriculaRepositorio = matriculaRepositorio;
         this.alumnoRepositorio = alumnoRepositorio;
         this.matriculaMapper = matriculaMapper;
         this.detallePagoRepositorio = detallePagoRepositorio;
         this.conceptoRepositorio = conceptoRepositorio;
-        this.inscripcionRepositorio = inscripcionRepositorio;
         this.procesoEjecutadoRepositorio = procesoEjecutadoRepositorio;
     }
 
-    /**
-     * Obtiene la matricula pendiente del alumno para el año actual.
-     * Si no existe, se crea una nueva pendiente y se registra su DetallePago.
-     */
     @Transactional
-    public Matricula obtenerOMarcarPendienteMatricula(Long alumnoId, int anio) {
-        log.info("[obtenerOMarcarPendienteMatricula] Iniciando búsqueda de matrícula pendiente para alumnoId={}, anio={}", alumnoId, anio);
+    public void obtenerOMarcarPendienteAutomatica(Long alumnoId, Pago pagoPendiente) {
+        int anio = LocalDate.now().getYear();
+        log.info("[MatriculaAutoService] Procesando matrícula automática para alumno id={}, año={}", alumnoId, anio);
 
-        // Buscar matrícula pendiente ya registrada (no pagada)
-        Optional<Matricula> matriculaOpt = matriculaRepositorio.findByAlumnoIdAndAnio(alumnoId, anio);
-        if (matriculaOpt.isPresent()) {
-            Matricula matriculaExistente = matriculaOpt.get();
-            log.info("[obtenerOMarcarPendienteMatricula] Matrícula pendiente ya existe para alumnoId={} y anio={} con id={}",
-                    alumnoId, anio, matriculaExistente.getId());
-            return matriculaExistente;
-        } else {
-            log.info("[obtenerOMarcarPendienteMatricula] No se encontró matrícula pendiente para alumnoId={} y anio={}. Se procederá a crear una nueva.", alumnoId, anio);
-            Alumno alumno = alumnoRepositorio.findById(alumnoId)
-                    .orElseThrow(() -> new IllegalArgumentException("Alumno no encontrado."));
-            log.info("[obtenerOMarcarPendienteMatricula] Alumno encontrado: id={}, nombre={}", alumno.getId(), alumno.getNombre());
-
-            Matricula nuevaMatricula = new Matricula();
-            nuevaMatricula.setAlumno(alumno);
-            nuevaMatricula.setAnio(anio);
-            nuevaMatricula.setPagada(false);
-            nuevaMatricula = matriculaRepositorio.save(nuevaMatricula);
-            matriculaRepositorio.flush(); // Forzar que la nueva matrícula se haga visible en la transacción
-            log.info("[obtenerOMarcarPendienteMatricula] Nueva matrícula creada y guardada: id={}", nuevaMatricula.getId());
-            return nuevaMatricula;
-        }
-    }
-
-    @Transactional
-    public DetallePago obtenerOMarcarPendienteMatriculaAutomatica(Long alumnoId, int anio, Pago pagoPendiente) {
-        log.info("[obtenerOMarcarPendienteMatriculaAutomatica] Iniciando proceso para alumnoId={}, anio={}", alumnoId, anio);
-
-        // Obtener o crear la matrícula pendiente sin duplicar
+        // Obtiene o crea la matrícula pendiente para el alumno en el año indicado.
         Matricula matricula = obtenerOMarcarPendienteMatricula(alumnoId, anio);
-        log.info("[obtenerOMarcarPendienteMatriculaAutomatica] Matrícula obtenida: id={}, alumnoId={}", matricula.getId(), alumnoId);
+        log.info("Matrícula pendiente: id={} para alumnoId={}", matricula.getId(), alumnoId);
 
-        // Buscar si ya existe un DetallePago asociado a esta matrícula
+        // Si ya existe un DetallePago asociado a la matrícula, se finaliza el proceso.
         Optional<DetallePago> detalleOpt = detallePagoRepositorio.findByMatriculaId(matricula.getId());
         if (detalleOpt.isPresent()) {
-            log.info("[obtenerOMarcarPendienteMatriculaAutomatica] DetallePago existente encontrado para la matrícula id={}", matricula.getId());
-            return detalleOpt.get();
-        } else {
-            log.info("[obtenerOMarcarPendienteMatriculaAutomatica] No existe DetallePago para la matrícula id={}. Se procederá a registrar uno nuevo.", matricula.getId());
-
-            // Crear el detalle pero primero armarlo para validarlo
-            DetallePago detalleTemporal = new DetallePago();
-            detalleTemporal.setAlumno(matricula.getAlumno());
-            detalleTemporal.setMatricula(matricula);
-            detalleTemporal.setDescripcionConcepto("MATRICULA " + anio); // importante para que se valide correctamente
-            detalleTemporal.setTipo(TipoDetallePago.MATRICULA);
-
-            // 👇 Verificamos que no haya una matrícula duplicada
-            verificarMatriculaNoDuplicada(detalleTemporal);
-
-            // Si pasó la verificación, creamos el registro final
-            DetallePago detallePago = registrarDetallePagoMatriculaAutomatica(matricula, pagoPendiente);
-            log.info("[obtenerOMarcarPendienteMatriculaAutomatica] DetallePago creado para la matrícula id={}", matricula.getId());
-            return detallePago;
+            log.info("DetallePago ya existe para la matrícula id={}", matricula.getId());
+            return;
         }
+
+        // Si no existe, se registra un nuevo DetallePago para la matrícula.
+        registrarDetallePagoMatriculaAutomatica(matricula, pagoPendiente);
     }
 
     @Transactional
-    protected DetallePago registrarDetallePagoMatriculaAutomatica(Matricula matricula, Pago pagoPendiente) {
-        log.info("[registrarDetallePagoMatricula] Iniciando registro del DetallePago para Matricula id={}", matricula.getId());
+    public Matricula obtenerOMarcarPendienteMatricula(Long alumnoId, int anio) {
+        // Busca la matrícula pendiente ya registrada para el alumno en el año indicado
+        return matriculaRepositorio.findByAlumnoIdAndAnio(alumnoId, anio)
+                .orElseGet(() -> {
+                    Alumno alumno = alumnoRepositorio.findById(alumnoId)
+                            .orElseThrow(() -> new IllegalArgumentException("Alumno no encontrado."));
+                    Matricula nuevaMatricula = new Matricula();
+                    nuevaMatricula.setAlumno(alumno);
+                    nuevaMatricula.setAnio(anio);
+                    nuevaMatricula.setPagada(false);
+                    nuevaMatricula = matriculaRepositorio.save(nuevaMatricula);
+                    matriculaRepositorio.flush(); // Asegura visibilidad en la transacción actual
+                    log.info("Nueva matrícula creada: id={} para alumnoId={}", nuevaMatricula.getId(), alumnoId);
+                    return nuevaMatricula;
+                });
+    }
+
+    @Transactional
+    protected void registrarDetallePagoMatriculaAutomatica(Matricula matricula, Pago pagoPendiente) {
+        log.info("[registrarDetallePagoMatricula] Iniciando registro del DetallePago para matrícula id={}", matricula.getId());
 
         DetallePago detalle = new DetallePago();
-        detalle.setVersion(0L);
+        // Asignar datos obligatorios
         detalle.setMatricula(matricula);
         detalle.setAlumno(matricula.getAlumno());
-        log.info("[registrarDetallePagoMatricula] Alumno asignado: id={}", matricula.getAlumno().getId());
+        int anio = LocalDate.now().getYear();
+        String descripcionConcepto = "MATRICULA " + anio;
+        detalle.setDescripcionConcepto(descripcionConcepto);
+        detalle.setTipo(TipoDetallePago.MATRICULA);
+        detalle.setFechaRegistro(LocalDate.now());
+        detalle.setVersion(0L);
 
-        // Asignar Concepto y SubConcepto (por ejemplo, concatenando el año)
+        // Verificar duplicidad en detalle de pago (se busca por alumno, descripción y tipo)
+        verificarDetallePagoUnico(detalle);
+
+        // Asignar Concepto y SubConcepto basados en el año actual
         asignarConceptoDetallePago(detalle);
-        log.info("[registrarDetallePagoMatricula] Concepto asignado: {}", detalle.getConcepto());
-
         Double valorBase = detalle.getConcepto().getPrecio();
-        log.info("[registrarDetallePagoMatricula] Valor base obtenido del Concepto: {}", valorBase);
         detalle.setValorBase(valorBase);
         detalle.setImporteInicial(valorBase);
         detalle.setImportePendiente(valorBase);
         detalle.setaCobrar(0.0);
         detalle.setCobrado(false);
 
-        detalle.setTipo(TipoDetallePago.MATRICULA);
-        detalle.setFechaRegistro(LocalDate.now());
-
-        // --- 🔒 Verificación para evitar duplicados ---
-        verificarMatriculaNoDuplicada(detalle); // 👈 se invoca aquí antes de guardar
-
-        log.info("[registrarDetallePagoMatricula] Detalle configurado: Tipo={}, FechaRegistro={}",
-                detalle.getTipo(), detalle.getFechaRegistro());
-
         detalle.setPago(pagoPendiente);
 
         detallePagoRepositorio.save(detalle);
-        log.info("[registrarDetallePagoMatricula] DetallePago para Matricula id={} creado y guardado exitosamente.", matricula.getId());
+        log.info("[registrarDetallePagoMatricula] DetallePago para matrícula id={} creado y guardado exitosamente.", matricula.getId());
 
-        return detalle;
     }
 
     /**
-     * Asigna al DetallePago el Concepto y SubConcepto correspondientes para matricula, usando "MATRICULA <anio>".
+     * Verifica que no exista un DetallePago duplicado para un alumno basado en la descripción y el tipo.
+     * Si la descripción contiene "MATRICULA" y ya existe un registro, se lanza una excepción.
+     */
+    @Transactional
+    public void verificarDetallePagoUnico(DetallePago detalle) {
+        Long alumnoId = detalle.getAlumno().getId();
+        String descripcion = detalle.getDescripcionConcepto();
+        if (descripcion != null && descripcion.toUpperCase().contains("MATRICULA")) {
+            log.info("[verificarDetallePagoUnico] Verificando duplicidad para alumnoId={} con descripción '{}'", alumnoId, descripcion);
+            boolean existeDetalleDuplicado = detallePagoRepositorio
+                    .existsByAlumnoIdAndDescripcionConceptoIgnoreCaseAndTipo(alumnoId, descripcion, TipoDetallePago.MATRICULA);
+            if (existeDetalleDuplicado) {
+                log.error("[verificarDetallePagoUnico] DetallePago duplicado encontrado para alumnoId={} con descripción '{}'", alumnoId, descripcion);
+                throw new IllegalStateException("MATRICULA YA COBRADA");
+            }
+        } else {
+            log.info("[verificarDetallePagoUnico] No se requiere verificación de duplicidad para la descripción '{}'", descripcion);
+        }
+    }
+
+    /**
+     * Asigna el Concepto y SubConcepto al DetallePago según la descripción "MATRICULA <anio>".
      */
     private void asignarConceptoDetallePago(DetallePago detalle) {
         int anioActual = Year.now().getValue();
         String descripcionConcepto = "MATRICULA " + anioActual;
-        log.info("[asignarConceptoDetallePago] Buscando Concepto con descripcion: '{}'", descripcionConcepto);
+        log.info("[asignarConceptoDetallePago] Buscando Concepto con descripción '{}'", descripcionConcepto);
 
         Optional<Concepto> optConcepto = conceptoRepositorio.findByDescripcionIgnoreCase(descripcionConcepto);
-        if (optConcepto.isPresent()) {
-            Concepto concepto = optConcepto.get();
-            detalle.setConcepto(concepto);
-            detalle.setSubConcepto(concepto.getSubConcepto());
-            log.info("[asignarConceptoDetallePago] Se asignaron Concepto: {} y SubConcepto: {} al DetallePago",
-                    detalle.getConcepto(), detalle.getSubConcepto());
+        if (optConcepto.isEmpty()) {
+            log.error("[asignarConceptoDetallePago] No se encontró Concepto con descripción '{}' para DetallePago", descripcionConcepto);
+            throw new IllegalStateException("No se encontró Concepto para Matrícula con descripción: " + descripcionConcepto);
+        }
+        Concepto concepto = optConcepto.get();
+        detalle.setConcepto(concepto);
+        detalle.setSubConcepto(concepto.getSubConcepto());
+        log.info("[asignarConceptoDetallePago] Se asignaron Concepto: {} y SubConcepto: {} al DetallePago",
+                detalle.getConcepto(), detalle.getSubConcepto());
+    }
+
+    @Transactional
+    public void verificarMatriculaNoDuplicada(DetallePago detalle) {
+        Long alumnoId = detalle.getAlumno().getId();
+        String descripcion = detalle.getDescripcionConcepto();
+        log.info("[verificarMatriculaNoDuplicada] Verificando existencia de matrícula o detalle de pago para alumnoId={} con descripción '{}'",
+                alumnoId, descripcion);
+
+        // Solo se verifica si la descripción contiene "MATRICULA"
+        if (descripcion != null && descripcion.toUpperCase().contains("MATRICULA")) {
+            // Buscar el detalle de pago existente para el alumno, descripción y tipo MATRÍCULA
+            Optional<DetallePago> detalleExistenteOpt = detallePagoRepositorio
+                    .findByAlumnoIdAndDescripcionConceptoIgnoreCaseAndTipo(alumnoId, descripcion, TipoDetallePago.MATRICULA);
+
+            if (detalleExistenteOpt.isPresent()) {
+                DetallePago detalleExistente = detalleExistenteOpt.get();
+                // Si se encontró el detalle y su estado NO es ANULADO, se considera que ya existe y no se permite crear otro
+                if (detalleExistente.getEstadoPago() != EstadoPago.ANULADO) {
+                    log.error("[verificarMatriculaNoDuplicada] Ya existe un DetallePago activo (no anulado) con descripción '{}' para alumnoId={}",
+                            descripcion, alumnoId);
+                    throw new IllegalStateException("MATRICULA YA COBRADA");
+                } else {
+                    log.info("[verificarMatriculaNoDuplicada] Se encontró un DetallePago con estado ANULADO, se permite crear uno nuevo.");
+                }
+            } else {
+                log.info("[verificarMatriculaNoDuplicada] No se encontró ningún DetallePago para alumnoId={} con descripción '{}'.", alumnoId, descripcion);
+            }
         } else {
-            log.error("[asignarConceptoDetallePago] No se encontro Concepto con descripcion '{}' para asignar al DetallePago", descripcionConcepto);
-            throw new IllegalStateException("No se encontro Concepto para Matricula con descripcion: " + descripcionConcepto);
+            log.info("[verificarMatriculaNoDuplicada] La descripción '{}' no contiene 'MATRICULA', no se realiza verificación.", descripcion);
         }
     }
 
@@ -175,15 +192,6 @@ public class MatriculaServicio {
                 .orElseThrow(() -> new IllegalArgumentException("Matricula no encontrada."));
         matriculaMapper.updateEntityFromRequest(request, m);
         return matriculaMapper.toResponse(matriculaRepositorio.save(m));
-    }
-
-    public DetallePago obtenerOMarcarPendienteAutomatica(Long alumnoId, Pago pagoPendiente) {
-        log.info("[MatriculaAutoService] Iniciando proceso automatico de matricula para alumno id={}", alumnoId);
-        int anio = LocalDate.now().getYear();
-        log.info("[MatriculaAutoService] Año actual determinado: {}", anio);
-        DetallePago detallePago = obtenerOMarcarPendienteMatriculaAutomatica(alumnoId, anio, pagoPendiente);
-        log.info("[MatriculaAutoService] Proceso automatico de matricula completado para alumno id={}", alumnoId);
-        return detallePago;
     }
 
     @Transactional
@@ -241,42 +249,6 @@ public class MatriculaServicio {
         proceso.setUltimaEjecucion(today);
         procesoEjecutadoRepositorio.save(proceso);
         log.info("Proceso MATRÍCULA_AUTOMATICA completado. Flag actualizado a {}", today);
-    }
-
-    @Transactional
-    public void verificarMatriculaNoDuplicada(DetallePago detalle) {
-        Long alumnoId = detalle.getAlumno().getId();
-        String descripcion = detalle.getDescripcionConcepto();
-        log.info("[verificarMatriculaNoDuplicada] Verificando existencia de matrícula o detalle de pago para alumnoId={} con descripción '{}'",
-                alumnoId, descripcion);
-
-        // Solo se verifica si la descripción contiene "MATRICULA"
-        if (descripcion != null && descripcion.toUpperCase().contains("MATRICULA")) {
-            // Ejemplo: Se busca la matrícula para el alumno para el año actual.
-            int anioActual = LocalDate.now().getYear();
-            log.info("[verificarMatriculaNoDuplicada] Buscando matrícula para alumnoId={} en el año {}", alumnoId, anioActual);
-            Optional<Matricula> matriculaOpt = matriculaRepositorio.findByAlumnoIdAndAnio(alumnoId, anioActual);
-
-            if (matriculaOpt.isPresent()) {
-                Matricula matricula = matriculaOpt.get();
-                log.info("[verificarMatriculaNoDuplicada] Matrícula encontrada: id={}, pagada={}", matricula.getId(), matricula.getPagada());
-                // Si la matrícula ya está pagada, se considera duplicada.
-                log.info("[verificarMatriculaNoDuplicada] Matrícula ya pagada para alumnoId={}", alumnoId);
-                // Verificar si existe un detalle de pago de tipo MATRÍCULA duplicado.
-                boolean existeDetalleDuplicado = detallePagoRepositorio.existsByAlumnoIdAndDescripcionConceptoIgnoreCaseAndTipo(
-                        alumnoId, descripcion, TipoDetallePago.MATRICULA);
-                log.info("[verificarMatriculaNoDuplicada] Resultado verificación detalle duplicado: {}", existeDetalleDuplicado);
-                if (existeDetalleDuplicado) {
-                    log.error("[verificarMatriculaNoDuplicada] Ya existe una matrícula o detalle de pago con descripción '{}' para alumnoId={}",
-                            descripcion, alumnoId);
-                    throw new IllegalStateException("MATRICULA YA COBRADA");
-                }
-            } else {
-                log.info("[verificarMatriculaNoDuplicada] No se encontró matrícula para alumnoId={} en el año {}", alumnoId, anioActual);
-            }
-        } else {
-            log.info("[verificarMatriculaNoDuplicada] La descripción '{}' no contiene 'MATRICULA', no se realiza verificación.", descripcion);
-        }
     }
 
 }

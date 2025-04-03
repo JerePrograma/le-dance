@@ -39,7 +39,8 @@ public interface DetallePagoRepositorio extends JpaRepository<DetallePago, Long>
 
     boolean existsByAlumnoIdAndDescripcionConceptoIgnoreCaseAndTipo(Long alumnoId, String descripcion, TipoDetallePago tipo);
 
-    Optional<DetallePago> findByMensualidadAndEsClon(Mensualidad mensualidad, Boolean esClon);
-
     List<DetallePago> findByFechaRegistroBetween(
-            LocalDate fechaDesde, LocalDate fechaHasta);}
+            LocalDate fechaDesde, LocalDate fechaHasta);
+
+    Optional<DetallePago> findByAlumnoIdAndDescripcionConceptoIgnoreCaseAndTipo(Long alumnoId, String descripcion, TipoDetallePago tipoDetallePago);
+}

@@ -24,8 +24,6 @@ public interface MensualidadRepositorio extends JpaRepository<Mensualidad, Long>
 
     Mensualidad findByInscripcionAndDescripcionAndEstado(Inscripcion inscripcion, String descripcion, EstadoMensualidad estado);
 
-    List<Mensualidad> findByInscripcionAlumnoIdAndEstado(Long alumnoId, EstadoMensualidad estado);
-
     List<Mensualidad> findByDescripcionContainingIgnoreCaseAndEstado(String cuota, EstadoMensualidad estadoMensualidad);
 
     List<Mensualidad> findByFechaCuotaBeforeAndEstado(LocalDate fecha, EstadoMensualidad estado);
@@ -33,6 +31,8 @@ public interface MensualidadRepositorio extends JpaRepository<Mensualidad, Long>
     Optional<Mensualidad> findByInscripcionAlumnoIdAndDescripcionIgnoreCase(Long alumnoId, String descripcion);
 
     List<Mensualidad> findAllByInscripcionAlumnoIdAndDescripcionAndEsClonFalse(Long alumnoId, String descripcion);
+
+    Optional<Mensualidad> findByInscripcionIdAndDescripcion(Long id, String descripcionEsperada);
 
     // Se elimina o comenta este metodo, ya que se basaba en propiedades inexistentes:
     // Optional<Mensualidad> findByInscripcionIdAndMesAndAnio(Long inscripcionId, int mes, int anio);

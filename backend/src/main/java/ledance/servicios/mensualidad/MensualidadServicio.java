@@ -11,7 +11,6 @@ import ledance.dto.reporte.ReporteMensualidadDTO;
 import ledance.entidades.*;
 import ledance.repositorios.*;
 import ledance.servicios.recargo.RecargoServicio;
-import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.jpa.domain.Specification;
@@ -211,21 +210,16 @@ public class MensualidadServicio implements IMensualidadService {
             log.info("Procesando inscripcion id: {}", inscripcion.getId());
             String descripcionEsperada = inscripcion.getDisciplina().getNombre() + " - CUOTA - " + periodo;
 
+            // Se busca la mensualidad por inscripción, primer día del mes y descripción
             Optional<Mensualidad> optMensualidad = mensualidadRepositorio
                     .findByInscripcionIdAndFechaGeneracionAndDescripcion(inscripcion.getId(), primerDiaMes, descripcionEsperada);
             Mensualidad mensualidad;
             if (optMensualidad.isPresent()) {
                 mensualidad = optMensualidad.get();
                 log.info("Mensualidad existente para inscripcion id {}: mensualidad id {}", inscripcion.getId(), mensualidad.getId());
-                mensualidad.setValorBase(inscripcion.getDisciplina().getValorCuota());
-                mensualidad.setBonificacion(inscripcion.getBonificacion());
-                calcularImporteInicial(mensualidad);
-                recalcularImportePendiente(mensualidad);
-                mensualidad.setDescripcion(descripcionEsperada);
-                mensualidad = mensualidadRepositorio.save(mensualidad);
                 if (!detallePagoRepositorio.existsByMensualidadId(mensualidad.getId())) {
                     registrarDetallePagoMensualidad(mensualidad);
-                    log.info("DetallePago creado para mensualidad id {}: detalle id {}", mensualidad.getId());
+                    log.info("DetallePago creado para mensualidad id {}", mensualidad.getId());
                 }
             } else {
                 log.info("No existe mensualidad para inscripcion id {} en el periodo; creando nueva mensualidad.", inscripcion.getId());
@@ -245,36 +239,10 @@ public class MensualidadServicio implements IMensualidadService {
                         inscripcion.getId(), mensualidad.getId(), mensualidad.getImporteInicial());
 
                 registrarDetallePagoMensualidad(mensualidad);
-                log.info("DetallePago creado para mensualidad id {}: detalle id {}", mensualidad.getId());
+                log.info("DetallePago creado para mensualidad id {}", mensualidad.getId());
             }
 
-            // --- Aplicar recargo basado en el primer día del mes generado ---
-            // Aquí ya se utiliza la fecha de cuota (primer día del mes)
-            LocalDate fechaComparacion = mensualidad.getFechaCuota();
-            log.info("Para mensualidad id {}: fechaCuota={}, hoy={}",
-                    mensualidad.getId(), mensualidad.getFechaCuota(), today);
-            if (today.isAfter(fechaComparacion) || today.isEqual(fechaComparacion)) {
-                // Se aplica el recargo si no se ha asignado o si es diferente.
-                // En este ejemplo, asumimos que se usa un recargo configurado para el día 1.
-                Optional<Recargo> optRecargo = recargoRepositorio.findByDiaDelMesAplicacion(1);
-                if (optRecargo.isPresent()) {
-                    Recargo recargo = optRecargo.get();
-                    if (mensualidad.getRecargo() == null || !mensualidad.getRecargo().getId().equals(recargo.getId())) {
-                        mensajeAplicarRecargo(mensualidad, recargo);
-                    } else {
-                        log.info("Mensualidad id {} ya tiene asignado el recargo adecuado.", mensualidad.getId());
-                        recargoServicio.recalcularImporteMensualidad(mensualidad);
-                        detallePagoRepositorio.findByMensualidad(mensualidad)
-                                .ifPresent(recargoServicio::recalcularImporteDetalle);
-                    }
-                } else {
-                    log.info("No se encontró un recargo configurado para el día 1 en la base de datos.");
-                }
-            } else {
-                log.info("No se aplica recargo para mensualidad id {}: hoy {} es anterior a la fecha de cuota {}",
-                        mensualidad.getId(), today, fechaComparacion);
-            }
-            // --- Fin de la aplicación de recargo ---
+            // Se omite cualquier lógica de recargo; solo se valida la existencia de la mensualidad mediante la descripción.
 
             respuestas.add(mensualidadMapper.toDTO(mensualidad));
         }
@@ -286,47 +254,29 @@ public class MensualidadServicio implements IMensualidadService {
     }
 
     private void mensajeAplicarRecargo(Mensualidad mensualidad, Recargo recargo) {
-        log.info("[mensajeAplicarRecargo] INICIO - Evaluando mensualidad id={}, esClon={}",
-                mensualidad.getId(), mensualidad.getEsClon());
+        log.info("[mensajeAplicarRecargo] INICIO - Procesando mensualidad id={}", mensualidad.getId());
 
-        if (Boolean.TRUE.equals(mensualidad.getEsClon())) {
-            log.info("[mensajeAplicarRecargo] Mensualidad id={} es CLON. NO se aplicará recargo.",
-                    mensualidad.getId());
-            return;
-        }
-
-        log.info("[mensajeAplicarRecargo] Mensualidad id={} NO es clon. Aplicando recargo de día {}",
-                mensualidad.getId(), recargo.getDiaDelMesAplicacion());
-
+        // Se asigna y guarda el recargo en la mensualidad
         mensualidad.setRecargo(recargo);
         mensualidadRepositorio.save(mensualidad);
         log.info("[mensajeAplicarRecargo] Recargo guardado en mensualidad id={}", mensualidad.getId());
 
+        // Se recalcula el importe de la mensualidad tras la asignación del recargo
         recargoServicio.recalcularImporteMensualidad(mensualidad);
-        log.info("[mensajeAplicarRecargo] Importe mensualidad id={} recalculado tras aplicar recargo.",
-                mensualidad.getId());
+        log.info("[mensajeAplicarRecargo] Importe de mensualidad id={} recalculado.", mensualidad.getId());
 
-        Optional<DetallePago> optDetalle = detallePagoRepositorio
-                .findByMensualidadAndEsClon(mensualidad, false);
+        // Se busca el DetallePago asociado a la mensualidad y se le asigna el recargo
+        detallePagoRepositorio.findByMensualidad(mensualidad)
+                .ifPresentOrElse(detalle -> {
+                    detalle.setRecargo(recargo);
+                    detalle.setTieneRecargo(true);
+                    detallePagoRepositorio.save(detalle);
+                    log.info("[mensajeAplicarRecargo] Recargo asignado y guardado en DetallePago id={}", detalle.getId());
+                    recargoServicio.recalcularImporteDetalle(detalle);
+                    log.info("[mensajeAplicarRecargo] Importe de DetallePago id={} recalculado.", detalle.getId());
+                }, () -> log.warn("[mensajeAplicarRecargo] No se encontró DetallePago para la mensualidad id={}", mensualidad.getId()));
 
-        if (optDetalle.isPresent()) {
-            DetallePago detalle = optDetalle.get();
-            detalle.setRecargo(recargo);
-            detalle.setTieneRecargo(true);
-            detallePagoRepositorio.save(detalle);
-            log.info("[mensajeAplicarRecargo] Recargo asignado y guardado al DetallePago id={}",
-                    detalle.getId());
-
-            recargoServicio.recalcularImporteDetalle(detalle);
-            log.info("[mensajeAplicarRecargo] Importe DetallePago id={} recalculado tras aplicar recargo.",
-                    detalle.getId());
-        } else {
-            log.warn("[mensajeAplicarRecargo] No se encontró DetallePago NO-clon para la mensualidad id={}.",
-                    mensualidad.getId());
-        }
-
-        log.info("[mensajeAplicarRecargo] FIN - Procesamiento completado para mensualidad id={}",
-                mensualidad.getId());
+        log.info("[mensajeAplicarRecargo] FIN - Procesamiento completado para mensualidad id={}", mensualidad.getId());
     }
 
     @Override
@@ -414,30 +364,40 @@ public class MensualidadServicio implements IMensualidadService {
     }
 
     private void aplicarRecargoSiSeEncuentra(Mensualidad mensualidad) {
-        Optional<Recargo> optRecargo15 = recargoRepositorio.findByDiaDelMesAplicacion(15);
-        LocalDate fechaComparacion = mensualidad.getFechaCuota().withDayOfMonth(15);
         LocalDate today = LocalDate.now();
-        log.info("Para mensualidad id {}: fechaCuota={}, fechaComparacion (día 15)={}, hoy={}",
+
+        // Se recupera el recargo configurado para el día 15
+        Optional<Recargo> optRecargo15 = recargoRepositorio.findByDiaDelMesAplicacion(15);
+        if (optRecargo15.isEmpty()) {
+            log.info("No se encontró recargo configurado para el día 15.");
+            return;
+        }
+        Recargo recargo15 = optRecargo15.get();
+
+        // Se determina la fecha de comparación usando la fecha de cuota de la mensualidad
+        LocalDate fechaComparacion = mensualidad.getFechaCuota().withDayOfMonth(recargo15.getDiaDelMesAplicacion());
+        log.info("Procesando mensualidad id={} con fechaCuota={}, fechaComparacion={}, hoy={}",
                 mensualidad.getId(), mensualidad.getFechaCuota(), fechaComparacion, today);
-        if (today.isAfter(fechaComparacion) || today.isEqual(fechaComparacion)) {
-            Long recargoIdActual = (mensualidad.getRecargo() != null) ? mensualidad.getRecargo().getId() : null;
-            Long recargoIdNuevo = optRecargo15.map(Recargo::getId).orElse(null);
-            if (recargoIdActual == null || !recargoIdActual.equals(recargoIdNuevo)) {
-                if (optRecargo15.isPresent()) {
-                    Recargo recargo15 = optRecargo15.get();
-                    mensajeAplicarRecargo(mensualidad, recargo15);
-                } else {
-                    log.info("No se encontró un recargo configurado para el día 15.");
-                }
-            } else {
-                log.info("Mensualidad id {} ya tiene asignado el recargo adecuado.", mensualidad.getId());
-                recargoServicio.recalcularImporteMensualidad(mensualidad);
-                detallePagoRepositorio.findByMensualidadAndEsClon(mensualidad, mensualidad.getEsClon())
-                        .ifPresent(recargoServicio::recalcularImporteDetalle);
-            }
-        } else {
-            log.info("No se aplica recargo para mensualidad id {}: hoy {} es anterior a la fechaComparacion (día 15) {}",
+
+        // Si la fecha actual es anterior a la fecha de comparación, no se aplica recargo
+        if (today.isBefore(fechaComparacion)) {
+            log.info("No se aplica recargo para mensualidad id={} porque hoy {} es anterior a fechaComparacion={}",
                     mensualidad.getId(), today, fechaComparacion);
+            return;
+        }
+
+        // Si la mensualidad no tiene recargo o el recargo asignado es diferente al configurado, se procede a aplicarlo
+        if (mensualidad.getRecargo() == null || !mensualidad.getRecargo().getId().equals(recargo15.getId())) {
+            log.info("Aplicando recargo de día {} a mensualidad id={}",
+                    recargo15.getDiaDelMesAplicacion(), mensualidad.getId());
+            mensajeAplicarRecargo(mensualidad, recargo15);
+        } else {
+            log.info("Mensualidad id={} ya tiene aplicado el recargo de día {}.",
+                    mensualidad.getId(), recargo15.getDiaDelMesAplicacion());
+            // Si ya tiene el recargo, se recalculan los importes en la mensualidad y su DetallePago asociado
+            recargoServicio.recalcularImporteMensualidad(mensualidad);
+            detallePagoRepositorio.findByMensualidad(mensualidad)
+                    .ifPresent(recargoServicio::recalcularImporteDetalle);
         }
     }
 
@@ -516,29 +476,27 @@ public class MensualidadServicio implements IMensualidadService {
             return;
         }
 
-        // Crear el nuevo DetallePago
+        // Crear el nuevo DetallePago y asignar datos básicos de la mensualidad
         DetallePago detalle = new DetallePago();
         detalle.setVersion(0L);
 
-        // Asignar datos del alumno y la descripción a partir de la mensualidad
         Alumno alumno = mensualidad.getInscripcion().getAlumno();
         detalle.setAlumno(alumno);
+        // La descripción se toma directamente de la mensualidad; se asume que ya tiene el formato esperado
         detalle.setDescripcionConcepto(mensualidad.getDescripcion());
 
-        // Asignar el valor base y calcular importes
         Double valorBase = mensualidad.getValorBase();
         detalle.setValorBase(valorBase);
         double importeInicial = mensualidad.getImporteInicial();
         detalle.setImporteInicial(importeInicial);
 
-        // Inicialmente, aCobrar es 0.0
+        // Inicialmente, no se cobra nada
         double aCobrar = 0.0;
         detalle.setaCobrar(aCobrar);
         double importePendiente = importeInicial - aCobrar;
         detalle.setImportePendiente(importePendiente);
         detalle.setCobrado(importePendiente == 0);
 
-        // Asignar tipo y fecha de registro
         detalle.setTipo(TipoDetallePago.MENSUALIDAD);
         detalle.setFechaRegistro(LocalDate.now());
 
@@ -546,14 +504,17 @@ public class MensualidadServicio implements IMensualidadService {
         detalle.setMensualidad(mensualidad);
 
         // --- Aplicar recargo si corresponde ---
-        if (mensualidad.getRecargo() != null && detalle.getTieneRecargo() && detalle.getRecargo() != null) {
-            detalle.setRecargo(mensualidad.getRecargo());
-            detalle.setTieneRecargo(true);
-            log.info("[registrarDetallePagoMensualidad] Aplicando recargo id={} al DetallePago para Mensualidad id={}",
-                    mensualidad.getRecargo().getId(), mensualidad.getId());
-            recargoServicio.recalcularImporteDetalle(detalle);
+        // En este método no se hará ningún cálculo, sino que se delega en el método mensajeAplicarRecargo.
+        // Se verifica que la mensualidad tenga la descripción esperada (ya configurada en el proceso de generación)
+        // y que cuente con un recargo asignado.
+        if (mensualidad.getDescripcion() != null && mensualidad.getRecargo() != null) {
+            log.info("[registrarDetallePagoMensualidad] Mensualidad id={} tiene recargo asignado. Se delega la aplicación de recargo.", mensualidad.getId());
+            // Se delega la aplicación del recargo (este método se encargará de asignarlo al DetallePago y recalcular sus importes)
+            mensajeAplicarRecargo(mensualidad, mensualidad.getRecargo());
+        } else {
+            log.info("[registrarDetallePagoMensualidad] Mensualidad id={} no tiene recargo asignado o la descripción es nula; no se aplica recargo.", mensualidad.getId());
         }
-        // --- Fin de lógica de recargo ---
+        // --- Fin de delegación de lógica de recargo ---
 
         // Guardar el DetallePago
         detallePagoRepositorio.save(detalle);
@@ -634,16 +595,6 @@ public class MensualidadServicio implements IMensualidadService {
                 .orElseThrow(() -> new IllegalArgumentException("Mensualidad no encontrada"));
         log.info("Mensualidad obtenida: {}", mensualidad);
         return mensualidadMapper.toDTO(mensualidad);
-    }
-
-    public List<MensualidadResponse> listarMensualidades() {
-        log.info("Listando todas las mensualidades");
-        List<MensualidadResponse> respuestas = mensualidadRepositorio.findAll()
-                .stream()
-                .map(mensualidadMapper::toDTO)
-                .collect(Collectors.toList());
-        log.info("Total de mensualidades listadas: {}", respuestas.size());
-        return respuestas;
     }
 
     @Override

@@ -8,8 +8,6 @@ import ledance.repositorios.DetallePagoRepositorio;
 import ledance.repositorios.MensualidadRepositorio;
 import ledance.repositorios.ProcesoEjecutadoRepositorio;
 import ledance.repositorios.RecargoRepositorio;
-import ledance.servicios.detallepago.DetallePagoServicio;
-import ledance.servicios.mensualidad.MensualidadServicio;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -31,7 +29,8 @@ public class RecargoServicio {
     private final DetallePagoRepositorio detallePagoRepositorio;
     private final ProcesoEjecutadoRepositorio procesoEjecutadoRepositorio;
 
-    public RecargoServicio(RecargoRepositorio recargoRepositorio, RecargoMapper recargoMapper, MensualidadRepositorio mensualidadRepositorio, DetallePagoRepositorio detallePagoRepositorio, DetallePagoServicio detallePagoServicio, ProcesoEjecutadoRepositorio procesoEjecutadoRepositorio) {
+    public RecargoServicio(RecargoRepositorio recargoRepositorio, RecargoMapper recargoMapper, MensualidadRepositorio mensualidadRepositorio, DetallePagoRepositorio detallePagoRepositorio,
+                           ProcesoEjecutadoRepositorio procesoEjecutadoRepositorio) {
         this.recargoRepositorio = recargoRepositorio;
         this.recargoMapper = recargoMapper;
         this.mensualidadRepositorio = mensualidadRepositorio;
@@ -82,7 +81,7 @@ public class RecargoServicio {
      * Se invoca al login para aplicar recargos automáticos, tanto de día 15 como de día 1 (mes vencido).
      */
     @Transactional
-    public void aplicarRecargosAutomaticosEnLogin() {
+    public void aplicarRecargosAutomaticos() {
         LocalDate today = LocalDate.now();
         log.info("Iniciando aplicación de recargos automáticos en login. Fecha actual: {}", today);
 

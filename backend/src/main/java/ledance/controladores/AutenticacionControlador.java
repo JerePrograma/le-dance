@@ -50,7 +50,7 @@ public class AutenticacionControlador {
 
         mensualidadServicio.generarMensualidadesParaMesVigente();
         matriculaServicio.generarMatriculasAnioVigente();
-        recargoServicio.aplicarRecargosAutomaticosEnLogin();
+        recargoServicio.aplicarRecargosAutomaticos();
         asistenciaMensualServicio.crearAsistenciasParaInscripcionesActivasDetallado();
 
         var authToken = new UsernamePasswordAuthenticationToken(datos.nombreUsuario(), datos.contrasena());
