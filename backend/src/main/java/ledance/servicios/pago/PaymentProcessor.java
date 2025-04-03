@@ -232,9 +232,10 @@ public class PaymentProcessor {
     @Transactional
     public Pago actualizarPagoHistoricoConAbonos(Pago pagoHistorico, PagoRegistroRequest request) {
         log.info("[actualizarPagoHistoricoConAbonos] Iniciando actualización del pago id={} con abonos", pagoHistorico.getId());
+
         Optional<MetodoPago> metodoPago = metodoPagoRepositorio.findById(request.metodoPagoId());
         pagoHistorico.setMetodoPago(metodoPago.get());
-        log.info("[actualizarPagoHistoricoConAbonos] Iniciando actualización del pago id={} con abonos", metodoPago);
+        log.info("[actualizarPagoHistoricoConAbonos] Método de pago asignado: {}", metodoPago.get());
 
         for (DetallePagoRegistroRequest detalleReq : request.detallePagos()) {
             // Normalizamos la descripción para evitar conflictos de espacios o mayúsculas
@@ -255,10 +256,23 @@ public class PaymentProcessor {
                 log.info("[actualizarPagoHistoricoConAbonos] Actualizando aCobrar del detalle id={} (acumulado: {})",
                         detalleExistente.getId(), detalleReq.aCobrar());
                 detalleExistente.setaCobrar(detalleReq.aCobrar());
+                // Si el frontend envía un importePendiente válido, lo usamos para actualizar el detalle
+                if (detalleReq.importePendiente() != null && detalleReq.importePendiente() > 0) {
+                    detalleExistente.setImportePendiente(detalleReq.importePendiente());
+                    detalleExistente.setImporteInicial(detalleReq.importePendiente());
+                    log.info("[actualizarPagoHistoricoConAbonos] Se actualiza importePendiente a {} en detalle id={}",
+                            detalleReq.importePendiente(), detalleExistente.getId());
+                }
                 procesarDetalle(pagoHistorico, detalleExistente, pagoHistorico.getAlumno());
             } else {
                 log.info("[actualizarPagoHistoricoConAbonos] No se encontró detalle existente para '{}'. Creando nuevo detalle.", descripcionNormalizada);
                 DetallePago nuevoDetalle = crearNuevoDetalleFromRequest(detalleReq, pagoHistorico);
+                // Si el request trae importePendiente, se lo asignamos al nuevo detalle
+                if (detalleReq.importePendiente() != null && detalleReq.importePendiente() > 0) {
+                    nuevoDetalle.setImportePendiente(detalleReq.importePendiente());
+                    nuevoDetalle.setImporteInicial(detalleReq.importePendiente());
+                    log.info("[actualizarPagoHistoricoConAbonos] Nuevo detalle actualizado con importePendiente del frontend: {}", detalleReq.importePendiente());
+                }
                 log.info("[actualizarPagoHistoricoConAbonos] Nuevo detalle creado: '{}', importePendiente={}",
                         nuevoDetalle.getDescripcionConcepto(), nuevoDetalle.getImportePendiente());
                 if (nuevoDetalle.getImportePendiente() > 0) {
@@ -509,9 +523,11 @@ public class PaymentProcessor {
                 }
 
                 // Reatachar mensualidad, si existe
-                detalle.getMensualidad().setEsClon(true);
-                nuevoDetalle.setMensualidad(detalle.getMensualidad());
-                log.debug("[clonarDetallesConPendiente] Mensualidad reatachada en detalle clonado ID: {}", nuevoDetalle.getId());
+                if (detalle.getDescripcionConcepto().contains("CUOTA")) {
+                    detalle.getMensualidad().setEsClon(true);
+                    nuevoDetalle.setMensualidad(detalle.getMensualidad());
+                    log.debug("[clonarDetallesConPendiente] Mensualidad reatachada en detalle clonado ID: {}", nuevoDetalle.getId());
+                }
 
                 nuevoDetalle.setTipo(detalle.getTipo());
                 if (nuevoDetalle.getConcepto() != null && nuevoDetalle.getSubConcepto() == null) {

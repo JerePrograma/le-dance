@@ -202,7 +202,7 @@ const ConsultaCajaDiaria: React.FC = () => {
           >
             {/* Si es "mis", mostramos el nombre del usuario autenticado */}
             <option value="mis">
-              {user ? `Pagos de ${user.nombre}` : "Mis pagos"}
+              {user ? `Pagos de ${user.nombreUsuario}` : "Mis pagos"}
             </option>
             <option value="todos">Todos</option>
           </select>
