@@ -104,9 +104,9 @@ public class PaymentCalculationServicio {
     void procesarAbono(DetallePago detalle, Double montoAbono, Double importeInicialCalculado) {
         // 1. Inicio y validaciones iniciales
         log.info("[procesarAbono] INICIO - Procesando abono para DetallePago ID: {}", detalle.getId());
-        log.debug("[procesarAbono] Parámetros recibidos - MontoAbono: {}, ImporteInicialCalculado: {}",
+        log.info("[procesarAbono] Parámetros recibidos - MontoAbono: {}, ImporteInicialCalculado: {}",
                 montoAbono, importeInicialCalculado);
-        log.debug("[procesarAbono] Estado inicial del detalle: {}", detalle.toString());
+        log.info("[procesarAbono] Estado inicial del detalle: {}", detalle.toString());
 
         // 2. Validación de monto de abono
         if (montoAbono == null || montoAbono < 0) {
@@ -120,21 +120,21 @@ public class PaymentCalculationServicio {
         if (detalle.getImporteInicial() == null) {
             log.info("[procesarAbono] Importe inicial no definido - Asignando valor");
             if (importeInicialCalculado != null) {
-                log.debug("[procesarAbono] Usando importe inicial calculado: {}", importeInicialCalculado);
+                log.info("[procesarAbono] Usando importe inicial calculado: {}", importeInicialCalculado);
                 detalle.setImporteInicial(importeInicialCalculado);
             } else {
                 log.warn("[procesarAbono] Usando monto de abono como importe inicial (valor por defecto)");
                 detalle.setImporteInicial(montoAbono);
             }
         }
-        log.debug("[procesarAbono] Importe inicial final: {}", detalle.getImporteInicial());
+        log.info("[procesarAbono] Importe inicial final: {}", detalle.getImporteInicial());
 
         // 4. Cálculo de importe pendiente
         log.info("[procesarAbono] Calculando importe pendiente actual");
         Double importePendienteActual = (detalle.getImportePendiente() == null)
                 ? detalle.getImporteInicial()
                 : detalle.getImportePendiente();
-        log.debug("[procesarAbono] Importe pendiente calculado: {}", importePendienteActual);
+        log.info("[procesarAbono] Importe pendiente calculado: {}", importePendienteActual);
 
         if (importePendienteActual == null) {
             log.error("[procesarAbono] ERROR - No se puede determinar el importe pendiente");
@@ -144,36 +144,36 @@ public class PaymentCalculationServicio {
         // 5. Ajuste de monto de abono
         log.info("[procesarAbono] Ajustando monto de abono al mínimo entre {} y {}", montoAbono, importePendienteActual);
         montoAbono = Math.min(montoAbono, importePendienteActual);
-        log.debug("[procesarAbono] Monto de abono ajustado: {}", montoAbono);
+        log.info("[procesarAbono] Monto de abono ajustado: {}", montoAbono);
 
         // 6. Actualización de valores
         log.info("[procesarAbono] Actualizando valores del detalle");
         detalle.setaCobrar(montoAbono);
-        log.debug("[procesarAbono] aCobrar asignado: {}", detalle.getaCobrar());
+        log.info("[procesarAbono] aCobrar asignado: {}", detalle.getaCobrar());
 
         double nuevoPendiente = importePendienteActual - montoAbono;
         detalle.setImportePendiente(nuevoPendiente);
-        log.debug("[procesarAbono] Nuevo importe pendiente: {}", nuevoPendiente);
+        log.info("[procesarAbono] Nuevo importe pendiente: {}", nuevoPendiente);
 
         // 7. Gestión de estado de cobro
         if (nuevoPendiente <= 0) {
             log.info("[procesarAbono] Detalle completamente pagado - Marcando como cobrado");
             detalle.setImportePendiente(0.0);
             detalle.setCobrado(true);
-            log.debug("[procesarAbono] Estado cobrado actualizado: {}", detalle.getCobrado());
+            log.info("[procesarAbono] Estado cobrado actualizado: {}", detalle.getCobrado());
 
             // 7.1 Actualización de entidades relacionadas
             if (detalle.getTipo() == TipoDetallePago.MENSUALIDAD ) {
                 log.info("[procesarAbono] Actualizando estado de mensualidad a PAGADO");
                 detalle.getMensualidad().setEstado(EstadoMensualidad.PAGADO);
-                log.debug("[procesarAbono] Estado mensualidad actualizado: {}",
+                log.info("[procesarAbono] Estado mensualidad actualizado: {}",
                         detalle.getMensualidad().getEstado());
             }
 
             if (detalle.getTipo() == TipoDetallePago.MATRICULA && detalle.getMatricula() != null) {
                 log.info("[procesarAbono] Marcando matrícula como pagada");
                 detalle.getMatricula().setPagada(true);
-                log.debug("[procesarAbono] Estado matrícula actualizado: {}",
+                log.info("[procesarAbono] Estado matrícula actualizado: {}",
                         detalle.getMatricula().getPagada());
             }
         } else {
@@ -183,7 +183,7 @@ public class PaymentCalculationServicio {
 
         log.info("[procesarAbono] FIN - Procesamiento completado para DetallePago ID: {} | Pendiente final: {} | Cobrado: {}",
                 detalle.getId(), detalle.getImportePendiente(), detalle.getCobrado());
-        log.debug("[procesarAbono] Estado final del detalle: {}", detalle.toString());
+        log.info("[procesarAbono] Estado final del detalle: {}", detalle.toString());
     }
 
     // ============================================================
@@ -291,7 +291,7 @@ public class PaymentCalculationServicio {
                     detalle.getAlumno().setCreditoAcumulado(nuevoCredito);
                     log.info("[procesarYCalcularDetalle] Crédito actualizado para alumno ID {}: {}", detalle.getAlumno().getId(), nuevoCredito);
                 } else {
-                    log.debug("[procesarYCalcularDetalle] No se modifica crédito para Detalle id={}", detalle.getId());
+                    log.info("[procesarYCalcularDetalle] No se modifica crédito para Detalle id={}", detalle.getId());
                 }
                 break;
         }
@@ -389,21 +389,21 @@ public class PaymentCalculationServicio {
     String extraerNombreDisciplina(String descripcion) {
         log.info("[extraerNombreDisciplina] INICIO - Extrayendo nombre de disciplina de: '{}'", descripcion);
 
-        log.debug("[extraerNombreDisciplina] Separando descripción por ' - '");
+        log.info("[extraerNombreDisciplina] Separando descripción por ' - '");
         String[] partes = descripcion.split(" - ");
-        log.debug("[extraerNombreDisciplina] Partes encontradas: {}", (Object) partes);
+        log.info("[extraerNombreDisciplina] Partes encontradas: {}", (Object) partes);
 
         String nombre;
         if (partes.length > 0) {
             nombre = partes[0].trim();
-            log.debug("[extraerNombreDisciplina] Primera parte seleccionada: '{}'", partes[0]);
+            log.info("[extraerNombreDisciplina] Primera parte seleccionada: '{}'", partes[0]);
         } else {
             nombre = descripcion.trim();
-            log.debug("[extraerNombreDisciplina] Usando descripción completa: '{}'", descripcion);
+            log.info("[extraerNombreDisciplina] Usando descripción completa: '{}'", descripcion);
         }
 
         log.info("[extraerNombreDisciplina] Nombre final extraído: '{}'", nombre);
-        log.debug("[extraerNombreDisciplina] Longitud del nombre: {}", nombre.length());
+        log.info("[extraerNombreDisciplina] Longitud del nombre: {}", nombre.length());
 
         log.info("[extraerNombreDisciplina] FIN - Retornando nombre extraído");
         return nombre;
@@ -743,7 +743,7 @@ public class PaymentCalculationServicio {
         }
 
         String conceptoNorm = descripcionConcepto.trim().toUpperCase();
-        log.debug("[determinarTipoDetalle] Descripción normalizada: '{}'", conceptoNorm);
+        log.info("[determinarTipoDetalle] Descripción normalizada: '{}'", conceptoNorm);
 
         // 2. Verificación de MATRÍCULA
         if (conceptoNorm.startsWith("MATRICULA")) {
@@ -766,12 +766,12 @@ public class PaymentCalculationServicio {
         }
 
         // 4. Verificación de STOCK
-        log.debug("[determinarTipoDetalle] Verificando existencia en stock");
+        log.info("[determinarTipoDetalle] Verificando existencia en stock");
         if (existeStockConNombre(conceptoNorm)) {
             log.info("[determinarTipoDetalle] Tipo STOCK detectado - Existe en inventario");
             return TipoDetallePago.STOCK;
         } else {
-            log.debug("[determinarTipoDetalle] No existe coincidencia en stock");
+            log.info("[determinarTipoDetalle] No existe coincidencia en stock");
         }
 
         // 5. Tipo por defecto

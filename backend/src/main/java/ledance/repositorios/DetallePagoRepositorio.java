@@ -1,5 +1,6 @@
 package ledance.repositorios;
 
+import jakarta.validation.constraints.NotNull;
 import ledance.entidades.*;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -42,4 +43,7 @@ public interface DetallePagoRepositorio extends JpaRepository<DetallePago, Long>
     Optional<DetallePago> findByMensualidadAndEsClon(Mensualidad mensualidad, Boolean esClon);
 
     List<DetallePago> findByFechaRegistroBetween(
-            LocalDate fechaDesde, LocalDate fechaHasta);}
+            LocalDate fechaDesde, LocalDate fechaHasta);
+
+    boolean existsByAlumnoIdAndDescripcionConceptoIgnoreCaseAndTipoAndEstadoPago(Long alumnoId, String descripcionConcepto, TipoDetallePago tipo, @NotNull EstadoPago estadoPago);
+}

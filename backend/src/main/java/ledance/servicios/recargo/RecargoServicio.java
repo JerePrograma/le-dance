@@ -274,29 +274,29 @@ public class RecargoServicio {
 
         // Obtener importe inicial
         double base = m.getImporteInicial();
-        log.debug("Obtenido importe inicial: base={}", base);
+        log.info("Obtenido importe inicial: base={}", base);
 
         // Calcular recargo
-        log.debug("Calculando recargo para mensualidad id={} con porcentaje={}", m.getId(), m.getRecargo());
+        log.info("Calculando recargo para mensualidad id={} con porcentaje={}", m.getId(), m.getRecargo());
         double recargoValue = calcularRecargo(m.getRecargo(), base);
-        log.debug("Recargo calculado: recargoValue={}", recargoValue);
+        log.info("Recargo calculado: recargoValue={}", recargoValue);
 
         // Calcular nuevo total
         double nuevoTotal = base + recargoValue;
-        log.debug("Nuevo total calculado: base={} + recargoValue={} = nuevoTotal={}",
+        log.info("Nuevo total calculado: base={} + recargoValue={} = nuevoTotal={}",
                 base, recargoValue, nuevoTotal);
 
         // Obtener monto abonado
         double montoAbonado = m.getMontoAbonado();
-        log.debug("Monto abonado obtenido: montoAbonado={}", montoAbonado);
+        log.info("Monto abonado obtenido: montoAbonado={}", montoAbonado);
 
         // Calcular nuevo pendiente
         double nuevoPendiente = nuevoTotal - montoAbonado;
-        log.debug("Nuevo pendiente calculado: nuevoTotal={} - montoAbonado={} = nuevoPendiente={}",
+        log.info("Nuevo pendiente calculado: nuevoTotal={} - montoAbonado={} = nuevoPendiente={}",
                 nuevoTotal, montoAbonado, nuevoPendiente);
 
         // Actualizar importe pendiente
-        log.debug("Actualizando importe pendiente a nuevoPendiente={}", nuevoPendiente);
+        log.info("Actualizando importe pendiente a nuevoPendiente={}", nuevoPendiente);
         m.setImportePendiente(nuevoPendiente);
 
         // Resumen de la operación
@@ -304,7 +304,7 @@ public class RecargoServicio {
                 m.getId(), base, recargoValue, nuevoTotal, montoAbonado, nuevoPendiente);
 
         // Guardar cambios
-        log.debug("Guardando cambios en repositorio para mensualidad id={}", m.getId());
+        log.info("Guardando cambios en repositorio para mensualidad id={}", m.getId());
         mensualidadRepositorio.save(m);
         log.info("Mensualidad id={} guardada exitosamente", m.getId());
     }
