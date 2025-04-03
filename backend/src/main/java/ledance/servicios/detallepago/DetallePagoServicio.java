@@ -286,55 +286,65 @@ public class DetallePagoServicio {
     public void eliminarDetallePago(Long id) {
         log.info("Iniciando eliminación de DetallePago con id={}", id);
 
-        log.info("Buscando DetallePago en repositorio con id={}", id);
+        // 1. Buscar el DetallePago
         DetallePago detalle = detallePagoRepositorio.findById(id).orElseThrow(() -> {
             log.error("DetallePago con id {} no encontrado", id);
             return new EntityNotFoundException("DetallePago con id " + id + " no encontrado");
         });
         log.info("DetallePago encontrado: {}", detalle);
 
-        log.info("Obteniendo Pago asociado al DetallePago");
+        // 2. Obtener el Pago asociado
         Pago pago = detalle.getPago();
         if (pago != null) {
-            log.info("Pago encontrado: {}", pago);
-            log.info("Removiendo detalle de la colección del pago");
+            log.info("Pago asociado encontrado: {}", pago);
+
+            // 3. Remover el detalle de la colección del pago (orphanRemoval se encargará de eliminarlo)
             pago.removerDetalle(detalle);
             log.info("Detalle removido de la colección del pago");
 
-            log.info("Calculando nuevos montos para el pago");
+            // 4. Recalcular nuevos montos para el pago
             double valorACobrar = detalle.getaCobrar();
             double montoActual = pago.getMonto();
             double montoPagadoActual = pago.getMontoPagado();
-            log.info("Valores actuales - Monto: {}, MontoPagado: {}, aCobrar: {}", montoActual, montoPagadoActual, valorACobrar);
+            log.info("Valores actuales - Monto: {}, MontoPagado: {}, aCobrar: {}",
+                    montoActual, montoPagadoActual, valorACobrar);
 
             double nuevoMonto = montoActual - valorACobrar;
             double nuevoMontoPagado = montoPagadoActual - valorACobrar;
-            log.info("Nuevos valores calculados - Monto: {}, MontoPagado: {}", nuevoMonto, nuevoMontoPagado);
+            log.info("Nuevos valores calculados - Monto: {}, MontoPagado: {}",
+                    nuevoMonto, nuevoMontoPagado);
 
-            log.info("Actualizando montos del pago");
+            // 5. Actualizar montos del pago y guardar cambios
             pago.setMonto(nuevoMonto);
             pago.setMontoPagado(nuevoMontoPagado);
             log.info("Montos actualizados en el objeto Pago");
 
-            // Evaluar si el monto restante es igual al recargo definido en el método de pago
-            if (pago.getMonto() == pago.getMetodoPago().getRecargo()) {
-                log.info("El monto restante ({}) es igual al recargo ({}). Limpiando detalles y eliminando pago...", pago.getMonto(), pago.getMetodoPago().getRecargo());
-                pago.getDetallePagos().clear();
-                log.info("Detalles del pago limpiados. Eliminando pago...");
+            // Guardar cambios en el pago
+            pagoRepositorio.save(pago);
+            log.info("Pago guardado exitosamente");
+
+            // 6. Verificar si se debe eliminar el Pago (por ejemplo, si ya no tiene detalles activos o monto = 0)
+            if (pago.getDetallePagos().isEmpty()) {
+                // Romper asociaciones de todos los detalles para evitar conflictos
+                List<DetallePago> copiaDetalles = new ArrayList<>(pago.getDetallePagos());
+                for (DetallePago dp : copiaDetalles) {
+                    dp.setPago(null);
+                }
+                detallePagoRepositorio.flush();
+
+                // Eliminar el Pago
+                pago.setDetallePagos(null);
                 pagoRepositorio.delete(pago);
+                detallePagoRepositorio.flush();
                 log.info("Pago eliminado exitosamente");
-            } else {
-                log.info("Guardando cambios en el pago");
-                pagoRepositorio.save(pago);
-                log.info("Pago guardado exitosamente");
             }
         } else {
             log.info("No se encontró pago asociado al detalle");
         }
 
-        log.info("Eliminando DetallePago con id={}", id);
-        detallePagoRepositorio.deleteById(id);
-        log.info("DetallePago eliminado exitosamente con id={}", id);
+        // No es necesario eliminar explícitamente el DetallePago,
+        // ya que al removerlo de la colección se elimina automáticamente.
+        log.info("Eliminación de DetallePago finalizada para id={}", id);
     }
 
     @Transactional

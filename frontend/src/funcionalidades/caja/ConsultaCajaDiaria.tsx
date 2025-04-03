@@ -39,7 +39,6 @@ export interface CajaDetalleDTO {
   egresosDelDia: EgresoDelDia[];
 }
 
-// EgresoRegistroRequest según lo definido
 export interface EgresoRegistroRequest {
   id?: number;
   fecha: string; // Formato ISO (ej: "2025-03-17")
@@ -49,10 +48,10 @@ export interface EgresoRegistroRequest {
 }
 
 const ConsultaCajaDiaria: React.FC = () => {
-  // Obtenemos el usuario autenticado a través del contexto
+  // Obtenemos el usuario autenticado a través del contexto.
+  // Recordá que el objeto usuario se envía con la propiedad "nombreUsuario"
+  // según el login, por lo que usaremos user.nombreUsuario al mostrarlo.
   const { user } = useAuth();
-
-  // Suponemos que si user no está definido, se puede manejar el caso o retornar un mensaje
   const currentUserId = user?.id || 0;
 
   // Obtener la fecha actual en formato "YYYY-MM-DD" en GMT-3 (zona de Buenos Aires)
@@ -65,6 +64,7 @@ const ConsultaCajaDiaria: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   // Estado para el filtro de pagos: "mis" o "todos"
+  // Ahora, en el select mostraremos el nombre del usuario para "mis pagos"
   const [filtroPago, setFiltroPago] = useState<"mis" | "todos">("mis");
 
   // Estados del Modal de Egreso
@@ -105,7 +105,7 @@ const ConsultaCajaDiaria: React.FC = () => {
   const pagos: PagoDelDia[] = data?.pagosDelDia || [];
   const pagosFiltrados = pagos.filter((p) => p.monto !== 0);
 
-  // Ordenar los pagos
+  // Ordenar los pagos (los más recientes primero)
   const sortedPagos = [...pagosFiltrados].sort((a, b) => b.id - a.id);
 
   // Aplicar filtro según opción seleccionada: "mis" pagos o "todos"
@@ -200,7 +200,10 @@ const ConsultaCajaDiaria: React.FC = () => {
             value={filtroPago}
             onChange={(e) => setFiltroPago(e.target.value as "mis" | "todos")}
           >
-            <option value="mis">Mis pagos</option>
+            {/* Si es "mis", mostramos el nombre del usuario autenticado */}
+            <option value="mis">
+              {user ? `Pagos de ${user.nombre}` : "Mis pagos"}
+            </option>
             <option value="todos">Todos</option>
           </select>
         </div>

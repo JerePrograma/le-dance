@@ -13,10 +13,9 @@ import { toast } from "react-toastify";
 // Definimos la interfaz del perfil de usuario
 export interface UserProfile {
   id: number;
-  nombre: string;
+  nombreUsuario: string;
   email?: string;
   rol: string;
-  // Otros campos que devuelva tu endpoint de perfil
 }
 
 interface AuthContextProps {
