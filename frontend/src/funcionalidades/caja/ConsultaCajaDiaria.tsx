@@ -24,7 +24,7 @@ interface PagoDelDia {
   observaciones: string;
   monto: number;
   metodoPago?: MetodoPago | null;
-  usuarioId?: number; // Identificador del usuario que realizó el pago
+  usuarioId: number; // Identificador del usuario que realizó el pago
 }
 
 interface EgresoDelDia {

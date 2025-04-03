@@ -28,6 +28,7 @@ public interface PagoMapper {
     Pago toEntity(PagoRegistroRequest request);
 
     @Mapping(target = "alumno", expression = "java(alumnoMapper.toResponse(pago.getAlumno()))")
+    @Mapping(target = "usuarioId", source = "usuario.id")
     PagoResponse toDTO(Pago pago);
 
     // Actualización de una entidad existente con datos del request.
