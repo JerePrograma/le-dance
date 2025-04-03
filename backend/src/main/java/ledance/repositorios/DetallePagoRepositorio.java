@@ -8,7 +8,6 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
-import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -24,15 +23,6 @@ public interface DetallePagoRepositorio extends JpaRepository<DetallePago, Long>
 
     boolean existsByMensualidadId(Long id);
 
-    Optional<DetallePago> findByPago_Alumno_IdAndDescripcionConceptoIgnoreCaseAndTipoAndCobradoFalseAndMatricula_Id(
-            Long alumnoId, String descripcion, TipoDetallePago tipo, Long matriculaId);
-
-    Optional<DetallePago> findByPago_Alumno_IdAndDescripcionConceptoIgnoreCaseAndTipoAndCobradoFalseAndMensualidad_Id(
-            Long alumnoId, String descripcion, TipoDetallePago tipo, Long mensualidadId);
-
-    Optional<DetallePago> findByPago_Alumno_IdAndDescripcionConceptoIgnoreCaseAndTipoAndCobradoFalse(
-            Long alumnoId, String descripcion, TipoDetallePago tipo);
-
     Optional<DetallePago> findByMatriculaId(Long matriculaId);
 
     Optional<DetallePago> findByMensualidad(Mensualidad mensualidad);
@@ -41,6 +31,8 @@ public interface DetallePagoRepositorio extends JpaRepository<DetallePago, Long>
 
     List<DetallePago> findByFechaRegistroBetween(
             LocalDate fechaDesde, LocalDate fechaHasta);
+
+    boolean existsByAlumnoIdAndDescripcionConceptoIgnoreCaseAndTipoAndEstadoPago(Long alumnoId, String descripcion, TipoDetallePago tipoDetallePago, EstadoPago estadoPago);
 
     Optional<DetallePago> findByAlumnoIdAndDescripcionConceptoIgnoreCaseAndTipo(Long alumnoId, String descripcion, TipoDetallePago tipoDetallePago);
 }

@@ -140,7 +140,7 @@ public class InscripcionServicio implements IInscripcionServicio {
         log.info("[crearInscripcion] Inscripcion finalizada exitosamente para alumno id={}", alumno.getId());
 
         // Actualizar totales del pago basandose en los DetallePago obtenidos
-        paymentProcessor.recalcularTotales(pagoPendiente);
+        paymentProcessor.recalcularTotalesNuevo(pagoPendiente);
         pagoRepositorio.save(pagoPendiente);
         log.info("[crearInscripcion] Totales de Pago actualizados. Pago ID: {}", pagoPendiente.getId());
         if(alumno.getInscripciones() != null){

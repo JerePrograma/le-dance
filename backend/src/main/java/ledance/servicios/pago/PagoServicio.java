@@ -132,53 +132,48 @@ public class PagoServicio {
      * 3. Marca el pago activo como HISTORICO.
      * Retorna el nuevo pago (con los detalles pendientes) que representa el abono en curso.
      */
-    private Pago procesarAbonoParcial(Pago pagoActivo, PagoRegistroRequest request) {
+    @Transactional
+    public Pago procesarAbonoParcial(Pago pagoActivo, PagoRegistroRequest request) {
         log.info("[procesarAbonoParcial] INICIO - Procesando abono parcial para Pago ID: {}", pagoActivo.getId());
 
-        // 1. Actualizar pago histórico con abonos
+        // Actualizar el pago histórico con los abonos (sin transferir totales)
         log.info("[procesarAbonoParcial] Invocando actualización de pago histórico con abonos");
-        Pago pagoActualizado = paymentProcessor.actualizarPagoHistoricoConAbonos(pagoActivo, request);
-        log.info("[procesarAbonoParcial] Pago actualizado - ID: {}, Estado: {}, Monto: {}, Saldo: {}",
-                pagoActualizado.getId(),
-                pagoActualizado.getEstadoPago(),
-                pagoActualizado.getMonto(),
-                pagoActualizado.getSaldoRestante());
-        Optional<Usuario> usuario = usuarioRepositorio.findById(request.usuarioId());
-        Usuario cobrador = usuario.get();
-        pagoActualizado.setUsuario(cobrador);
-        Optional<MetodoPago> metodoPago = metodoPagoRepositorio.findById(request.metodoPagoId());
-        pagoActualizado.setMetodoPago(metodoPago.get());
-        // 2. Clonar detalles con pendiente
+        Pago pagoHistoricoActualizado = paymentProcessor.actualizarPagoHistoricoConAbonos(pagoActivo, request);
+        log.info("[procesarAbonoParcial] Pago histórico actualizado - ID: {}, Estado: {}, Monto: {}, Saldo: {}",
+                pagoHistoricoActualizado.getId(),
+                pagoHistoricoActualizado.getEstadoPago(),
+                pagoHistoricoActualizado.getMonto(),
+                pagoHistoricoActualizado.getSaldoRestante());
+
+        Optional<Usuario> usuarioOpt = usuarioRepositorio.findById(request.usuarioId());
+        Usuario cobrador = usuarioOpt.get();
+        pagoHistoricoActualizado.setUsuario(cobrador);
+
+        Optional<MetodoPago> metodoPagoOpt = metodoPagoRepositorio.findById(request.metodoPagoId());
+        pagoHistoricoActualizado.setMetodoPago(metodoPagoOpt.get());
+
+        // Clonar los detalles pendientes para generar el nuevo pago con los totales correctos
         log.info("[procesarAbonoParcial] Verificando detalles pendientes para nuevo pago");
-        Pago nuevoPago = paymentProcessor.clonarDetallesConPendiente(pagoActualizado);
+        Pago nuevoPago = paymentProcessor.clonarDetallesConPendiente(pagoHistoricoActualizado);
+
         if (nuevoPago == null) {
-            log.info("[procesarAbonoParcial] CASO 1 - No hay detalles pendientes");
-            log.debug("[procesarAbonoParcial] Total detalles en pago actualizado: {}",
-                    pagoActualizado.getDetallePagos().size());
-            log.info("[procesarAbonoParcial] Marcando pago como histórico - ID: {}", pagoActualizado.getId());
-            paymentProcessor.marcarPagoComoHistorico(pagoActualizado);
-            log.info("[procesarAbonoParcial] Pago marcado como {} - ID: {}",
-                    pagoActualizado.getEstadoPago(), pagoActualizado.getId());
-            pagoActivo.setMetodoPago(metodoPago.get());
-            log.info("[procesarAbonoParcial] FIN - Retornando pago histórico actualizado");
-            return pagoActualizado;
+            log.info("[procesarAbonoParcial] CASO 1 - No hay detalles pendientes en el pago histórico");
+            log.info("[procesarAbonoParcial] Marcando pago histórico como cerrado");
+            paymentProcessor.marcarPagoComoHistorico(pagoHistoricoActualizado);
+            log.info("[procesarAbonoParcial] Retornando pago histórico actualizado");
+            return pagoHistoricoActualizado;
         } else {
-            log.info("[procesarAbonoParcial] CASO 2 - Hay detalles pendientes");
-            log.info("[procesarAbonoParcial] Nuevo pago generado - ID: {}, Detalles: {}",
+            log.info("[procesarAbonoParcial] CASO 2 - Se clonaron detalles pendientes. Nuevo pago generado - ID: {}, Detalles: {}",
                     nuevoPago.getId(), nuevoPago.getDetallePagos().size());
-            nuevoPago.setMetodoPago(metodoPago.get());
-
-            log.info("[procesarAbonoParcial] Marcando pago original como histórico - ID: {}", pagoActualizado.getId());
-            paymentProcessor.marcarPagoComoHistorico(pagoActualizado);
-            log.info("[procesarAbonoParcial] Pago original ahora es {} - ID: {}",
-                    pagoActualizado.getEstadoPago(), pagoActualizado.getId());
+            nuevoPago.setMetodoPago(metodoPagoOpt.get());
+            log.info("[procesarAbonoParcial] Marcando pago histórico como cerrado - ID: {}", pagoHistoricoActualizado.getId());
+            paymentProcessor.marcarPagoComoHistorico(pagoHistoricoActualizado);
+            log.info("[procesarAbonoParcial] Pago histórico ahora es {} - ID: {}",
+                    pagoHistoricoActualizado.getEstadoPago(), pagoHistoricoActualizado.getId());
             pagoActivo.setObservaciones(request.observaciones());
-            log.info("[procesarAbonoParcial] Nuevo pago creado - ID: {}, Estado: {}",
-                    nuevoPago.getId(), nuevoPago.getEstadoPago());
-            log.debug("[procesarAbonoParcial] Detalles del nuevo pago: {}", nuevoPago.getDetallePagos());
-
-            log.info("[procesarAbonoParcial] FIN - Retornando nuevo pago con detalles pendientes");
             nuevoPago.setUsuario(cobrador);
+            log.info("[procesarAbonoParcial] Retornando nuevo pago con detalles pendientes - ID: {}, Estado: {}",
+                    nuevoPago.getId(), nuevoPago.getEstadoPago());
             return nuevoPago;
         }
     }
@@ -298,7 +293,7 @@ public class PagoServicio {
         log.info("[actualizarDetallesPago] Procesando lista de detalles DTO");
         List<DetallePago> detallesFinales = detallesDTO.stream()
                 .map(dto -> {
-                    log.debug("[actualizarDetallesPago] Procesando detalle DTO id={}", dto.id());
+                    log.info("[actualizarDetallesPago] Procesando detalle DTO id={}", dto.id());
                     return obtenerODefinirDetallePago(dto, detallesExistentes, pago);
                 })
                 .toList();

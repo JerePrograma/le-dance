@@ -41,13 +41,14 @@ public class MensualidadServicio implements IMensualidadService {
     private final BonificacionRepositorio bonificacionRepositorio;
     private final ProcesoEjecutadoRepositorio procesoEjecutadoRepositorio;
     private final RecargoServicio recargoServicio;
+    private final DisciplinaRepositorio disciplinaRepositorio;
 
     public MensualidadServicio(DetallePagoRepositorio detallePagoRepositorio, MensualidadRepositorio mensualidadRepositorio,
                                InscripcionRepositorio inscripcionRepositorio,
                                MensualidadMapper mensualidadMapper,
                                RecargoRepositorio recargoRepositorio,
                                BonificacionRepositorio bonificacionRepositorio,
-                               ProcesoEjecutadoRepositorio procesoEjecutadoRepositorio, RecargoServicio recargoServicio) {
+                               ProcesoEjecutadoRepositorio procesoEjecutadoRepositorio, RecargoServicio recargoServicio, DisciplinaRepositorio disciplinaRepositorio) {
         this.detallePagoRepositorio = detallePagoRepositorio;
         this.mensualidadRepositorio = mensualidadRepositorio;
         this.inscripcionRepositorio = inscripcionRepositorio;
@@ -56,6 +57,7 @@ public class MensualidadServicio implements IMensualidadService {
         this.bonificacionRepositorio = bonificacionRepositorio;
         this.procesoEjecutadoRepositorio = procesoEjecutadoRepositorio;
         this.recargoServicio = recargoServicio;
+        this.disciplinaRepositorio = disciplinaRepositorio;
     }
 
     @Override
@@ -814,21 +816,20 @@ public class MensualidadServicio implements IMensualidadService {
     public Mensualidad obtenerOMarcarPendienteMensualidad(Long alumnoId, String descripcionConcepto) {
         log.info("[obtenerOMarcarPendienteMensualidad] INICIO para alumnoId={}, concepto='{}'", alumnoId, descripcionConcepto);
 
-        // Usamos la nueva consulta que filtra sólo las mensualidades originales (no clones)
+        // Buscamos mensualidades originales (no clones) que coincidan con la descripción completa
         List<Mensualidad> mensualidades = mensualidadRepositorio
                 .findAllByInscripcionAlumnoIdAndDescripcionAndEsClonFalse(alumnoId, descripcionConcepto);
         log.info("[obtenerOMarcarPendienteMensualidad] Mensualidades encontradas (originales): {}", mensualidades.size());
 
-        Mensualidad mensualidad;
         if (!mensualidades.isEmpty()) {
+            Mensualidad mensualidad = mensualidades.get(0);
             if (mensualidades.size() > 1) {
                 log.warn("[obtenerOMarcarPendienteMensualidad] Se encontraron {} mensualidades para alumnoId={} y concepto='{}'. Se usará la primera.",
                         mensualidades.size(), alumnoId, descripcionConcepto);
             }
-            mensualidad = mensualidades.get(0);
             log.info("[obtenerOMarcarPendienteMensualidad] Mensualidad encontrada: id={}, estado={}", mensualidad.getId(), mensualidad.getEstado());
 
-            // Si la mensualidad no está en estado PENDIENTE, se actualiza
+            // Actualizamos el estado a PENDIENTE si no lo está
             if (!EstadoMensualidad.PENDIENTE.equals(mensualidad.getEstado())) {
                 log.info("[obtenerOMarcarPendienteMensualidad] Actualizando estado a PENDIENTE para Mensualidad id={}", mensualidad.getId());
                 mensualidad.setEstado(EstadoMensualidad.PENDIENTE);
@@ -839,12 +840,31 @@ public class MensualidadServicio implements IMensualidadService {
             }
             return mensualidad;
         } else {
-            log.info("[obtenerOMarcarPendienteMensualidad] No se encontró mensualidad original con concepto='{}'. Buscando inscripción activa para alumnoId={}",
-                    descripcionConcepto, alumnoId);
-            Optional<Inscripcion> optionalInscripcion = inscripcionRepositorio.findByAlumnoIdAndEstado(alumnoId, EstadoInscripcion.ACTIVA);
+            log.info("[obtenerOMarcarPendienteMensualidad] No se encontró mensualidad original con concepto='{}'. Se procederá a buscar la inscripción activa asociada a la disciplina.", descripcionConcepto);
+
+            // Extraemos la disciplina a partir de la descripción (por ejemplo: "DANZA - CUOTA - ABRIL DE 2025")
+            String nombreDisciplina = extraerDisciplina(descripcionConcepto);
+            if (nombreDisciplina == null) {
+                log.warn("[obtenerOMarcarPendienteMensualidad] No se pudo extraer la disciplina de la descripción '{}'", descripcionConcepto);
+                throw new IllegalArgumentException("La descripción del concepto no contiene información de disciplina válida: " + descripcionConcepto);
+            }
+            log.info("[obtenerOMarcarPendienteMensualidad] Disciplina extraída: '{}'", nombreDisciplina);
+
+            // Buscamos la disciplina en el repositorio usando la parte extraída
+            Disciplina disciplina = disciplinaRepositorio.findByNombreContainingIgnoreCase(nombreDisciplina);
+            if (disciplina == null) {
+                log.warn("[obtenerOMarcarPendienteMensualidad] No se encontró una disciplina que coincida con '{}'", nombreDisciplina);
+                throw new IllegalArgumentException("No se encontró una disciplina que coincida con la descripción: " + nombreDisciplina);
+            }
+            log.info("[obtenerOMarcarPendienteMensualidad] Disciplina encontrada: id={}, nombre={}", disciplina.getId(), disciplina.getNombre());
+
+            // Buscamos la inscripción activa para el alumno en la disciplina encontrada
+            Optional<Inscripcion> optionalInscripcion = inscripcionRepositorio
+                    .findByAlumnoIdAndDisciplinaIdAndEstado(alumnoId, disciplina.getId(), EstadoInscripcion.ACTIVA);
             if (optionalInscripcion.isPresent()) {
                 Inscripcion inscripcion = optionalInscripcion.get();
-                log.info("[obtenerOMarcarPendienteMensualidad] Inscripción activa encontrada: id={}", inscripcion.getId());
+                log.info("[obtenerOMarcarPendienteMensualidad] Inscripción activa encontrada: id={}, disciplina={}",
+                        inscripcion.getId(), inscripcion.getDisciplina().getNombre());
 
                 MesAnio mesAnio = extraerMesYAnio(descripcionConcepto);
                 if (mesAnio == null) {
@@ -855,10 +875,29 @@ public class MensualidadServicio implements IMensualidadService {
                 log.info("[obtenerOMarcarPendienteMensualidad] Generando cuota para mes={}, año={}", mesAnio.mes(), mesAnio.anio());
                 return generarCuota(alumnoId, inscripcion.getId(), mesAnio.mes(), mesAnio.anio());
             } else {
-                log.warn("[obtenerOMarcarPendienteMensualidad] No se encontró inscripción activa para alumnoId={}", alumnoId);
-                throw new IllegalArgumentException("No se encontró inscripción activa para el alumno con id: " + alumnoId);
+                log.warn("[obtenerOMarcarPendienteMensualidad] No se encontró inscripción activa para alumnoId={} en la disciplina id={}",
+                        alumnoId, disciplina.getId());
+                throw new IllegalArgumentException("No se encontró inscripción activa para el alumno con id: " + alumnoId +
+                        " en la disciplina: " + disciplina.getNombre());
             }
         }
+    }
+
+    /**
+     * Extrae la parte de la descripción correspondiente al nombre de la disciplina.
+     * Se asume que la descripción tiene el formato "DISCIPLINA - CUOTA - PERIODO".
+     *
+     * @param descripcionConcepto la descripción completa del concepto
+     * @return el nombre de la disciplina, o null si no se puede extraer
+     */
+    private String extraerDisciplina(String descripcionConcepto) {
+        if (descripcionConcepto != null && !descripcionConcepto.isEmpty()) {
+            String[] partes = descripcionConcepto.split("-");
+            if (partes.length > 0) {
+                return partes[0].trim();
+            }
+        }
+        return null;
     }
 
     /**

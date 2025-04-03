@@ -51,12 +51,12 @@ public class DetallePagoServicio {
         // 1. Inicio y validación de concepto
         String conceptoDesc = (detalle.getDescripcionConcepto() != null) ? detalle.getDescripcionConcepto() : "N/A";
         log.info("[calcularImporte] INICIO - Cálculo para Detalle ID: {} | Concepto: '{}' | Tipo: {}", detalle.getId(), conceptoDesc, detalle.getTipo());
-        log.debug("[calcularImporte] Detalle completo al inicio: {}", detalle.toString());
+        log.info("[calcularImporte] Detalle completo al inicio: {}", detalle.toString());
 
         // 2. Obtención de valor base
         double base = Optional.ofNullable(detalle.getValorBase()).orElse(0.0);
         log.info("[calcularImporte] Valor base obtenido: {}", base);
-        log.debug("[calcularImporte] Cuota/Cantidad: {}", detalle.getCuotaOCantidad());
+        log.info("[calcularImporte] Cuota/Cantidad: {}", detalle.getCuotaOCantidad());
 
         // 3. Cálculo de descuentos
         double descuento;
@@ -64,11 +64,11 @@ public class DetallePagoServicio {
             log.info("[calcularImporte] Procesando descuento para MENSUALIDAD con bonificación");
 
             double descuentoFijo = Optional.ofNullable(detalle.getBonificacion().getValorFijo()).orElse(0.0);
-            log.debug("[calcularImporte] Descuento fijo: {}", descuentoFijo);
+            log.info("[calcularImporte] Descuento fijo: {}", descuentoFijo);
 
             Integer porcentaje = Optional.ofNullable(detalle.getBonificacion().getPorcentajeDescuento()).orElse(0);
             double descuentoPorcentaje = (porcentaje / 100.0) * base;
-            log.debug("[calcularImporte] Descuento porcentual ({}%): {}", porcentaje, descuentoPorcentaje);
+            log.info("[calcularImporte] Descuento porcentual ({}%): {}", porcentaje, descuentoPorcentaje);
 
             descuento = descuentoFijo + descuentoPorcentaje;
             log.info("[calcularImporte] Descuento TOTAL para mensualidad: {}", descuento);
@@ -85,7 +85,7 @@ public class DetallePagoServicio {
             recargo = (detalle.getRecargo() != null) ? obtenerValorRecargo(detalle, base) : 0.0;
             log.info("[calcularImporte] Recargo aplicado: {}", recargo);
         } else {
-            log.debug("[calcularImporte] Sin recargo aplicable");
+            log.info("[calcularImporte] Sin recargo aplicable");
         }
 
         // 5. Cálculo de importe inicial
@@ -99,25 +99,25 @@ public class DetallePagoServicio {
         if (detalle.getImportePendiente() == null) {
             log.info("[calcularImporte] Importe pendiente nulo - Asignando valor inicial: {}", importeInicial);
         } else {
-            log.debug("[calcularImporte] Importe pendiente mantiene su valor actual: {}", detalle.getImportePendiente());
+            log.info("[calcularImporte] Importe pendiente mantiene su valor actual: {}", detalle.getImportePendiente());
         }
 
         log.info("[calcularImporte] FIN - Resultados para Detalle ID: {} | Inicial: {} | Pendiente: {} | Cobrado: {}", detalle.getId(), detalle.getImporteInicial(), detalle.getImportePendiente(), detalle.getCobrado());
-        log.debug("[calcularImporte] Estado final del detalle: {}", detalle.toString());
+        log.info("[calcularImporte] Estado final del detalle: {}", detalle.toString());
     }
 
     public double calcularDescuento(DetallePago detalle, double base) {
         log.info("[calcularDescuento] INICIO - Cálculo para Detalle ID: {}", detalle.getId());
 
         if (detalle.getBonificacion() != null) {
-            log.debug("[calcularDescuento] Bonificación encontrada: ID {}", detalle.getBonificacion().getId());
+            log.info("[calcularDescuento] Bonificación encontrada: ID {}", detalle.getBonificacion().getId());
 
             double descuentoFijo = Optional.ofNullable(detalle.getBonificacion().getValorFijo()).orElse(0.0);
-            log.debug("[calcularDescuento] Componente fijo: {}", descuentoFijo);
+            log.info("[calcularDescuento] Componente fijo: {}", descuentoFijo);
 
             Integer porcentaje = Optional.ofNullable(detalle.getBonificacion().getPorcentajeDescuento()).orElse(0);
             double descuentoPorcentaje = (porcentaje / 100.0) * base;
-            log.debug("[calcularDescuento] Componente porcentual ({}% de {}): {}", porcentaje, base, descuentoPorcentaje);
+            log.info("[calcularDescuento] Componente porcentual ({}% de {}): {}", porcentaje, base, descuentoPorcentaje);
 
             double totalDescuento = descuentoFijo + descuentoPorcentaje;
             log.info("[calcularDescuento] Descuento TOTAL calculado: {}", totalDescuento);
@@ -446,8 +446,9 @@ public class DetallePagoServicio {
 
             if (mensualidadOpt.isPresent()) {
                 // Si se encontró una mensualidad que contenga "CUOTA", se verifica si ya existe un detalle duplicado
-                boolean existeDetalleDuplicado = detallePagoRepositorio.existsByAlumnoIdAndDescripcionConceptoIgnoreCaseAndTipo(alumnoId, descripcion, TipoDetallePago.MENSUALIDAD);
-                if (existeDetalleDuplicado) {
+                boolean existeDetalleDuplicado = detallePagoRepositorio.existsByAlumnoIdAndDescripcionConceptoIgnoreCaseAndTipoAndEstadoPago(alumnoId, descripcion, TipoDetallePago.MENSUALIDAD, EstadoPago.HISTORICO);
+                boolean existeDetalleDuplicado2 = detallePagoRepositorio.existsByAlumnoIdAndDescripcionConceptoIgnoreCaseAndTipoAndEstadoPago(alumnoId, descripcion, TipoDetallePago.MENSUALIDAD, EstadoPago.ACTIVO);
+                if (existeDetalleDuplicado || existeDetalleDuplicado2) {
                     log.error("Ya existe una mensualidad o detalle de pago con descripción '{}' para alumnoId={}", descripcion, alumnoId);
                     throw new IllegalStateException("MENSUALIDAD YA COBRADA");
                 }
