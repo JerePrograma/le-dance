@@ -95,6 +95,7 @@ public class PagoServicio {
         }
         pagoFinal.setObservaciones(request.observaciones());
         pagoFinal.setFecha(request.fecha());
+        pagoFinal.setFechaVencimiento(request.fecha());
         Optional<Usuario> usuario = usuarioRepositorio.findById(request.usuarioId());
         Usuario cobrador = usuario.get();
         pagoFinal.setUsuario(cobrador);

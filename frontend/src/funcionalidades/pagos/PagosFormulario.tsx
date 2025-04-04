@@ -289,7 +289,16 @@ const CobranzasFormHeader: React.FC<CobranzasFormHeaderProps> = ({
             type="date"
             className="border p-2 w-full"
             value={values.fecha}
-            onChange={(e) => setFieldValue("fecha", e.target.value)}
+            onChange={(e) => {
+              // e.target.value retorna una cadena en formato "YYYY-MM-DD"
+              const selected = e.target.value;
+              // Crear una fecha asumiendo la hora 00:00:00 en GMT–3.
+              // Al parsearla, se obtiene un objeto Date que se ajusta a UTC.
+              const gmt3Date = new Date(selected + "T00:00:00-03:00")
+                .toISOString()
+                .split("T")[0];
+              setFieldValue("fecha", gmt3Date);
+            }}
           />
         </div>
       </div>

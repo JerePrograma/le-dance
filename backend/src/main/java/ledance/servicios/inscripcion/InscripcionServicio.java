@@ -170,6 +170,7 @@ public class InscripcionServicio implements IInscripcionServicio {
     private static Pago getNuevoPago(Alumno alumno, LocalDate fecha) {
         Pago nuevoPago = new Pago();
         nuevoPago.setFecha(fecha);
+        nuevoPago.setFechaVencimiento(fecha);
         // Asignar una fecha de vencimiento realista, por ejemplo 5 dias despues de la inscripcion
         nuevoPago.setFechaVencimiento(fecha.plusDays(30));
         nuevoPago.setAlumno(alumno);

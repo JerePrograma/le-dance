@@ -111,12 +111,18 @@ public class DetallePago {
 
     @PrePersist
     public void prePersist() {
+        // Si ya existe un pago asociado y éste tiene fecha, se usa esa fecha.
+        if (this.pago != null && this.pago.getFecha() != null) {
+            this.fechaRegistro = this.pago.getFecha();
+        } else if (this.fechaRegistro == null) {
+            // En caso contrario, se usa la fecha actual
+            this.fechaRegistro = LocalDate.now();
+        }
+        // Normalizar la descripción (opcional)
         if (this.descripcionConcepto != null) {
             this.descripcionConcepto = this.descripcionConcepto.toUpperCase();
         }
-        if (this.fechaRegistro == null) {
-            this.fechaRegistro = LocalDate.now();
-        }
+        // Si es matrícula y no hay descripción, asignarla por defecto.
         if (this.matricula != null && (this.descripcionConcepto == null || this.descripcionConcepto.trim().isEmpty())) {
             this.descripcionConcepto = "MATRICULA " + LocalDate.now().getYear();
         }
@@ -124,9 +130,15 @@ public class DetallePago {
 
     @PreUpdate
     public void preUpdate() {
+        // Si el detalle tiene un pago asociado y éste tiene fecha, se sincroniza con ella.
+        if (this.pago != null && this.pago.getFecha() != null) {
+            this.fechaRegistro = this.pago.getFecha();
+        }
+        // Normalizar la descripción
         if (this.descripcionConcepto != null) {
             this.descripcionConcepto = this.descripcionConcepto.toUpperCase();
         }
+        // Si es matrícula y la descripción está vacía, asignarla por defecto.
         if (this.matricula != null && (this.descripcionConcepto == null || this.descripcionConcepto.trim().isEmpty())) {
             this.descripcionConcepto = "MATRICULA " + LocalDate.now().getYear();
         }
