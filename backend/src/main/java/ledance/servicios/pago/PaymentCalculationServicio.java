@@ -69,7 +69,7 @@ public class PaymentCalculationServicio {
         double base = detalle.getValorBase();
         log.info("[calcularImporteInicial] Valor base obtenido: {} para DetallePago id={}", base, detalle.getId());
 
-        if (!detalle.getTieneRecargo() ) {
+        if (!detalle.getTieneRecargo()) {
             detalle.setTieneRecargo(false);
             log.info("[calcularImporteInicial] Se omite recargo para Detalle id={} (tieneRecargo=false o nulo)", detalle.getId());
         }
@@ -142,8 +142,6 @@ public class PaymentCalculationServicio {
         }
 
         // 5. Ajuste de monto de abono
-        log.info("[procesarAbono] Ajustando monto de abono al mínimo entre {} y {}", montoAbono, importePendienteActual);
-        montoAbono = Math.min(montoAbono, importePendienteActual);
         log.info("[procesarAbono] Monto de abono ajustado: {}", montoAbono);
 
         // 6. Actualización de valores
@@ -159,11 +157,12 @@ public class PaymentCalculationServicio {
         if (nuevoPendiente <= 0) {
             log.info("[procesarAbono] Detalle completamente pagado - Marcando como cobrado");
             detalle.setImportePendiente(0.0);
+            detalle.setEstadoPago(EstadoPago.HISTORICO);
             detalle.setCobrado(true);
             log.info("[procesarAbono] Estado cobrado actualizado: {}", detalle.getCobrado());
 
             // 7.1 Actualización de entidades relacionadas
-            if (detalle.getTipo() == TipoDetallePago.MENSUALIDAD ) {
+            if (detalle.getTipo() == TipoDetallePago.MENSUALIDAD) {
                 log.info("[procesarAbono] Actualizando estado de mensualidad a PAGADO");
                 detalle.getMensualidad().setEstado(EstadoMensualidad.PAGADO);
                 log.info("[procesarAbono] Estado mensualidad actualizado: {}",
@@ -233,13 +232,8 @@ public class PaymentCalculationServicio {
         }
 
         // 4. Validar recargo: respetar el flag tieneRecargo del cliente.
-        if (!detalle.getTieneRecargo() ) {
-            // Si el cliente indica que NO se debe aplicar recargo, se limpia el campo
+        if (!detalle.getTieneRecargo()) {
             detalle.setTieneRecargo(false);
-            // Forzamos que el importe pendiente sea igual al importe inicial
-            if (!detalle.getTipo().equals(TipoDetallePago.MATRICULA)) {
-                detalle.setImportePendiente(detalle.getImporteInicial());
-            }
             log.info("[procesarYCalcularDetalle] Recargo desactivado (tieneRecargo=false) para Detalle id={}", detalle.getId());
         } else {
             log.info("[procesarYCalcularDetalle] Recargo activo; manteniendo valor existente: {}", detalle.getRecargo());
@@ -314,6 +308,8 @@ public class PaymentCalculationServicio {
         boolean cobrado = impPendienteFinal <= 0.0;
         detalle.setCobrado(cobrado);
         if (cobrado) {
+            detalle.setEstadoPago(EstadoPago.HISTORICO);
+            detalle.setCobrado(true);
             detalle.setImportePendiente(0.0);
             log.info("[procesarYCalcularDetalle] DetallePago marcado como cobrado");
         }
@@ -360,9 +356,12 @@ public class PaymentCalculationServicio {
 
         double nuevoImportePendiente = importePendienteOriginal - valorACobrar;
         // Evitamos valores negativos, en caso de que se supere el cobro.
-        if (nuevoImportePendiente < 0) {
+        if (nuevoImportePendiente <= 0) {
             log.warn("[procesarClaseDePrueba] Nuevo importe pendiente calculado es negativo ({}). Se ajusta a 0.", nuevoImportePendiente);
             nuevoImportePendiente = 0.0;
+            detalle.setEstadoPago(EstadoPago.HISTORICO);
+            detalle.setCobrado(true);
+            detalle.setImportePendiente(0.0);
         }
         detalle.setImportePendiente(nuevoImportePendiente);
         log.info("[procesarClaseDePrueba] Nuevo importe pendiente calculado: {} (Original: {} - aCobrar: {})",
@@ -487,7 +486,7 @@ public class PaymentCalculationServicio {
         }
 
         // 3. Manejo del recargo
-        if ((!detalle.getTieneRecargo() ) ||
+        if ((!detalle.getTieneRecargo()) ||
                 detalle.getTipo() == TipoDetallePago.MENSUALIDAD) {
             detalle.setTieneRecargo(false);
             log.info("[calcularMatricula] Sin recargo para Detalle id={}", detalle.getId());
@@ -517,6 +516,7 @@ public class PaymentCalculationServicio {
         if (detalle.getImportePendiente() <= 0.0) {
             detalle.setCobrado(true);
             detalle.setImportePendiente(0.0);
+            detalle.setEstadoPago(EstadoPago.HISTORICO);
             matricula.setPagada(true);
             log.info("[calcularMatricula] Detalle id={} marcado como cobrado", detalle.getId());
         } else {
@@ -630,11 +630,11 @@ public class PaymentCalculationServicio {
 
         // 4. Actualizar estado de cobro según el importe pendiente
         if (detalle.getImportePendiente() <= 0.0) {
+            detalle.setEstadoPago(EstadoPago.HISTORICO);
             detalle.setCobrado(true);
             detalle.setImportePendiente(0.0);
             log.info("[calcularMensualidad] Detalle id={} marcado como cobrado", detalle.getId());
         } else {
-            detalle.setCobrado(false);
             log.info("[calcularMensualidad] Detalle id={} NO cobrado (importe pendiente > 0)", detalle.getId());
         }
         log.info("[calcularMensualidad] Finalizando cálculo DetallePago: {}", detalle);

@@ -19,7 +19,9 @@ import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.Objects;
+import java.util.Optional;
 
 import static ledance.servicios.mensualidad.MensualidadServicio.validarRecargo;
 
@@ -153,7 +155,13 @@ public class PdfService {
                 double importe = det.getImporteInicial() != null ? det.getImporteInicial() : 0.0;
                 addCell(table, "$ " + String.format("%,.2f", importe), cellFont);
                 addCell(table, "$ " + String.format("%,.2f", det.getaCobrar()), cellFont);
-                total += det.getaCobrar();
+                double cobrado;
+                if (det.getaCobrar() == null || det.getaCobrar() <= 0) {
+                    cobrado = 0;
+                } else {
+                    cobrado = det.getaCobrar();
+                }
+                total += cobrado;
             }
 
             document.add(table);
