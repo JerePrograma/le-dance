@@ -32,7 +32,6 @@ public class Pago {
     private LocalDate fechaVencimiento;
 
     @NotNull
-    @Min(value = 0, message = "El monto debe ser mayor o igual a 0")
     private Double monto;
 
     private Double valorBase;

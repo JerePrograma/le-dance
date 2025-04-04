@@ -11,6 +11,7 @@ import ledance.repositorios.DetallePagoRepositorio;
 import ledance.repositorios.MatriculaRepositorio;
 import ledance.repositorios.MensualidadRepositorio;
 import ledance.repositorios.PagoRepositorio;
+import ledance.servicios.mensualidad.MensualidadServicio;
 import org.flywaydb.core.internal.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,12 +35,16 @@ public class DetallePagoServicio {
     private final DetallePagoMapper detallePagoMapper;
     private final MensualidadRepositorio mensualidadRepositorio;
     private final PagoRepositorio pagoRepositorio;
+    private final MensualidadServicio mensualidadServicio;
+    private final MatriculaRepositorio matriculaRepositorio;
 
-    public DetallePagoServicio(DetallePagoRepositorio detallePagoRepositorio, DetallePagoMapper detallePagoMapper, MensualidadRepositorio mensualidadRepositorio, PagoRepositorio pagoRepositorio) {
+    public DetallePagoServicio(DetallePagoRepositorio detallePagoRepositorio, DetallePagoMapper detallePagoMapper, MensualidadRepositorio mensualidadRepositorio, PagoRepositorio pagoRepositorio, MensualidadServicio mensualidadServicio, MatriculaRepositorio matriculaRepositorio) {
         this.detallePagoRepositorio = detallePagoRepositorio;
         this.detallePagoMapper = detallePagoMapper;
         this.mensualidadRepositorio = mensualidadRepositorio;
         this.pagoRepositorio = pagoRepositorio;
+        this.mensualidadServicio = mensualidadServicio;
+        this.matriculaRepositorio = matriculaRepositorio;
     }
 
     /**
@@ -284,51 +289,62 @@ public class DetallePagoServicio {
 
     @Transactional
     public void eliminarDetallePago(Long id) {
-        log.info("Iniciando eliminación de DetallePago con id={}", id);
+        log.info("[eliminarDetallePago] Iniciando eliminación de DetallePago con id={}", id);
 
         // 1. Buscar el DetallePago
-        DetallePago detalle = detallePagoRepositorio.findById(id).orElseThrow(() -> {
-            log.error("DetallePago con id {} no encontrado", id);
-            return new EntityNotFoundException("DetallePago con id " + id + " no encontrado");
-        });
-        log.info("DetallePago encontrado: {}", detalle);
+        Optional<DetallePago> optionalDetalle = detallePagoRepositorio.findById(id);
+        if (optionalDetalle.isEmpty()) {
+            log.warn("[eliminarDetallePago] DetallePago con id={} no encontrado. No se realizará acción.", id);
+            return;
+        }
+
+        DetallePago detalle = optionalDetalle.get();
+        log.info("[eliminarDetallePago] DetallePago encontrado: {}", detalle);
 
         // 2. Obtener el Pago asociado
         Pago pago = detalle.getPago();
         if (pago != null) {
-            log.info("Pago asociado encontrado: {}", pago);
+            log.info("[eliminarDetallePago] Pago asociado encontrado: id={}", pago.getId());
 
             // 3. Remover el detalle de la colección del pago (orphanRemoval se encargará de eliminarlo)
             pago.removerDetalle(detalle);
-            log.info("Detalle removido de la colección del pago");
+            log.info("[eliminarDetallePago] Detalle removido de la colección del pago");
 
             // 4. Recalcular nuevos montos para el pago
             double valorACobrar = detalle.getaCobrar();
-            double montoActual = pago.getMonto();
-            double montoPagadoActual = pago.getMontoPagado();
-            log.info("Valores actuales - Monto: {}, MontoPagado: {}, aCobrar: {}",
-                    montoActual, montoPagadoActual, valorACobrar);
+            double nuevoMonto = pago.getMonto() - valorACobrar;
+            double nuevoMontoPagado = pago.getMontoPagado() - valorACobrar;
 
-            double nuevoMonto = montoActual - valorACobrar;
-            double nuevoMontoPagado = montoPagadoActual - valorACobrar;
-            log.info("Nuevos valores calculados - Monto: {}, MontoPagado: {}",
-                    nuevoMonto, nuevoMontoPagado);
+            if (nuevoMonto <= 0 || nuevoMonto == pago.getMetodoPago().getRecargo()) {
+                nuevoMonto = 0.0;
+                nuevoMontoPagado = 0.0;
+            }
 
-            // 5. Actualizar montos del pago y guardar cambios
             pago.setMonto(nuevoMonto);
             pago.setMontoPagado(nuevoMontoPagado);
-            log.info("Montos actualizados en el objeto Pago");
+            log.info("[eliminarDetallePago] Montos actualizados - monto={}, pagado={}", nuevoMonto, nuevoMontoPagado);
 
-            // Guardar cambios en el pago
+            // 5. Guardar el pago (y eliminar el detalle automáticamente)
             pagoRepositorio.save(pago);
-            log.info("Pago guardado exitosamente");
         } else {
-            log.info("No se encontró pago asociado al detalle");
+            log.warn("[eliminarDetallePago] No se encontró pago asociado al detalle");
         }
 
-        // No es necesario eliminar explícitamente el DetallePago,
-        // ya que al removerlo de la colección se elimina automáticamente.
-        log.info("Eliminación de DetallePago finalizada para id={}", id);
+        // 6. Eliminar mensualidad asociada si corresponde
+        Mensualidad mensualidad = obtenerMensualidadSiExiste(detalle);
+        if (mensualidad != null) {
+            mensualidadRepositorio.delete(mensualidad);
+            log.info("[eliminarDetallePago] Mensualidad eliminada: {}", mensualidad.getId());
+        }
+
+        // 7. Eliminar matrícula asociada si corresponde
+        Matricula matricula = obtenerMatriculaSiExiste(detalle);
+        if (matricula != null) {
+            matriculaRepositorio.delete(matricula);
+            log.info("[eliminarDetallePago] Matrícula eliminada: {}", matricula.getId());
+        }
+
+        log.info("[eliminarDetallePago] Eliminación finalizada para DetallePago id={}", id);
     }
 
     @Transactional
@@ -353,7 +369,7 @@ public class DetallePagoServicio {
             double nuevoMonto = montoActual - valorACobrar;
             double nuevoMontoPagado = montoPagadoActual - valorACobrar;
             log.info("Nuevos valores calculados - Monto: {}, MontoPagado: {}", nuevoMonto, nuevoMontoPagado);
-            if (nuevoMonto == pago.getMetodoPago().getRecargo()) {
+            if (nuevoMonto == pago.getMetodoPago().getRecargo() || nuevoMonto <= 0) {
                 nuevoMonto = 0;
                 nuevoMontoPagado = 0;
             }
@@ -373,6 +389,14 @@ public class DetallePagoServicio {
             detalle.setEstadoPago(EstadoPago.ANULADO);
             detalle.setCobrado(false);
             detalle.setaCobrar(0.0);
+            Mensualidad mensualidad = obtenerMensualidadSiExiste(detalle);
+            if (mensualidad != null) {
+                mensualidadRepositorio.delete(mensualidad);
+            }
+            Matricula matricula = obtenerMatriculaSiExiste(detalle);
+            if (matricula != null) {
+                matriculaRepositorio.delete(matricula);
+            }
             detallePagoRepositorio.save(detalle);
         } else {
             log.info("No se encontró pago asociado al detalle");
@@ -381,6 +405,39 @@ public class DetallePagoServicio {
         DetallePagoResponse response = detallePagoMapper.toDTO(detalle);
         log.info("DetallePago anulado exitosamente con id={}, estado={}", detalle.getId(), detalle.getEstadoPago());
         return response;
+    }
+
+    @Transactional
+    public Matricula obtenerMatriculaSiExiste(DetallePago detalle) {
+        Long alumnoId = detalle.getAlumno().getId();
+        String descripcion = detalle.getDescripcionConcepto();
+        log.info("[obtenerMatriculaSiExiste] Verificando existencia de matrícula para alumnoId={} con descripción '{}'", alumnoId, descripcion);
+
+        // Solo se verifica si la descripción contiene "MATRICULA"
+        if (descripcion != null && descripcion.toUpperCase().contains("MATRICULA")) {
+            Optional<DetallePago> detalleExistenteOpt = detallePagoRepositorio
+                    .findByAlumnoIdAndDescripcionConceptoIgnoreCaseAndTipo(alumnoId, descripcion, TipoDetallePago.MATRICULA);
+
+            if (detalleExistenteOpt.isPresent()) {
+                DetallePago detalleExistente = detalleExistenteOpt.get();
+                // Si se encontró un detalle y su estado NO es ANULADO, se considera que ya existe y se lanza excepción
+                if (detalleExistente.getEstadoPago() != EstadoPago.ANULADO) {
+                    log.error("[obtenerMatriculaSiExiste] Ya existe un DetallePago activo (no anulado) con descripción '{}' para alumnoId={}", descripcion, alumnoId);
+                    throw new IllegalStateException("MATRICULA YA COBRADA");
+                } else {
+                    // Se asume que el detalle de matrícula posee la asociación a una entidad Matricula
+                    Matricula matricula = detalleExistente.getMatricula();
+                    log.info("[obtenerMatriculaSiExiste] Se encontró una matrícula (anulada) para alumnoId={} con descripción '{}'", alumnoId, descripcion);
+                    return matricula;
+                }
+            } else {
+                log.info("[obtenerMatriculaSiExiste] No se encontró ningún DetallePago para alumnoId={} con descripción '{}'.", alumnoId, descripcion);
+                return null;
+            }
+        } else {
+            log.info("[obtenerMatriculaSiExiste] La descripción '{}' no contiene 'MATRICULA', no se realiza verificación.", descripcion);
+            return null;
+        }
     }
 
     public List<DetallePagoResponse> listarDetallesPagos() {
@@ -424,5 +481,35 @@ public class DetallePagoServicio {
         }
     }
 
+    @Transactional
+    public Mensualidad obtenerMensualidadSiExiste(DetallePago detalle) {
+        Long alumnoId = detalle.getAlumno().getId();
+        String descripcion = detalle.getDescripcionConcepto();
+        log.info("Verificando existencia de mensualidad para alumnoId={} con descripción '{}'", alumnoId, descripcion);
+
+        if (descripcion != null && descripcion.toUpperCase().contains("CUOTA")) {
+            Optional<Mensualidad> mensualidadOpt = mensualidadRepositorio
+                    .findByInscripcionAlumnoIdAndDescripcionIgnoreCase(alumnoId, descripcion);
+            if (mensualidadOpt.isPresent()) {
+                // Verificar si ya existe un detalle duplicado, ya sea activo o histórico.
+                boolean existeDetalleDuplicado = detallePagoRepositorio.existsByAlumnoIdAndDescripcionConceptoIgnoreCaseAndTipoAndEstadoPago(
+                        alumnoId, descripcion, TipoDetallePago.MENSUALIDAD, EstadoPago.HISTORICO);
+                boolean existeDetalleDuplicado2 = detallePagoRepositorio.existsByAlumnoIdAndDescripcionConceptoIgnoreCaseAndTipoAndEstadoPago(
+                        alumnoId, descripcion, TipoDetallePago.MENSUALIDAD, EstadoPago.ACTIVO);
+                if (existeDetalleDuplicado || existeDetalleDuplicado2) {
+                    log.error("Ya existe una mensualidad o detalle de pago con descripción '{}' para alumnoId={}", descripcion, alumnoId);
+                    throw new IllegalStateException("MENSUALIDAD YA COBRADA");
+                }
+                log.info("Mensualidad encontrada para alumnoId={} con descripción '{}'", alumnoId, descripcion);
+                return mensualidadOpt.get();
+            } else {
+                log.info("No se encontró mensualidad para alumnoId={} con descripción '{}'", alumnoId, descripcion);
+                return null;
+            }
+        } else {
+            log.info("La descripción '{}' no corresponde a una mensualidad", descripcion);
+            return null;
+        }
+    }
 
 }
