@@ -86,7 +86,7 @@ public class PagoServicio {
             log.info("[registrarPago] No se encontró pago activo. Se creó un nuevo pago: {}", pagoFinal);
         } else if (esAbonoParcial(ultimoPagoActivo, request)) {
             // Existe un pago activo y se cumple la lógica para abono parcial.
-            pagoFinal = procesarAbonoParcial(ultimoPagoActivo, request);
+            pagoFinal = paymentProcessor.procesarAbonoParcial(ultimoPagoActivo, request);
             log.info("[registrarPago] Pago procesado por abono parcial: {}", pagoFinal);
         } else {
             // Existe un pago activo y no se cumple la condición de abono parcial, se reutiliza el existente.
@@ -94,7 +94,10 @@ public class PagoServicio {
             log.info("[registrarPago] Se utiliza el pago activo existente: {}", pagoFinal);
         }
         pagoFinal.setObservaciones(request.observaciones());
-
+        pagoFinal.setFecha(request.fecha());
+        Optional<Usuario> usuario = usuarioRepositorio.findById(request.usuarioId());
+        Usuario cobrador = usuario.get();
+        pagoFinal.setUsuario(cobrador);
         // Asignar el método de pago y persistir el pago final.
         // Se recomienda usar saveAndFlush para asegurarse de que el pago tenga asignado un ID.
         paymentProcessor.asignarMetodoYPersistir(pagoFinal, request.metodoPagoId());
@@ -102,9 +105,6 @@ public class PagoServicio {
 
         limpiarAsociacionesParaRespuesta(pagoFinal);
         log.info("[registrarPago] Asociaciones limpiadas para respuesta del pago id={}", pagoFinal.getId());
-        Optional<Usuario> usuario = usuarioRepositorio.findById(request.usuarioId());
-        Usuario cobrador = usuario.get();
-        pagoFinal.setUsuario(cobrador);
         PagoResponse response = pagoMapper.toDTO(pagoFinal);
         log.info("[registrarPago] Pago registrado con éxito. Respuesta final: {}", response);
         if (!pagoFinal.getMetodoPago().getDescripcion().equalsIgnoreCase("DEBITO")) {
@@ -122,59 +122,6 @@ public class PagoServicio {
         if (pago.getAlumno() != null && pago.getAlumno().getInscripciones() != null) {
             pago.getAlumno().getInscripciones().clear();
             log.info("[limpiarAsociacionesParaRespuesta] Inscripciones del alumno limpiadas.");
-        }
-    }
-
-    /**
-     * Procesa el abono parcial:
-     * 1. Actualiza el pago activo con los abonos.
-     * 2. Clona los detalles pendientes en un nuevo pago.
-     * 3. Marca el pago activo como HISTORICO.
-     * Retorna el nuevo pago (con los detalles pendientes) que representa el abono en curso.
-     */
-    @Transactional
-    public Pago procesarAbonoParcial(Pago pagoActivo, PagoRegistroRequest request) {
-        log.info("[procesarAbonoParcial] INICIO - Procesando abono parcial para Pago ID: {}", pagoActivo.getId());
-
-        // Actualizar el pago histórico con los abonos (sin transferir totales)
-        log.info("[procesarAbonoParcial] Invocando actualización de pago histórico con abonos");
-        Pago pagoHistoricoActualizado = paymentProcessor.actualizarPagoHistoricoConAbonos(pagoActivo, request);
-        log.info("[procesarAbonoParcial] Pago histórico actualizado - ID: {}, Estado: {}, Monto: {}, Saldo: {}",
-                pagoHistoricoActualizado.getId(),
-                pagoHistoricoActualizado.getEstadoPago(),
-                pagoHistoricoActualizado.getMonto(),
-                pagoHistoricoActualizado.getSaldoRestante());
-
-        Optional<Usuario> usuarioOpt = usuarioRepositorio.findById(request.usuarioId());
-        Usuario cobrador = usuarioOpt.get();
-        pagoHistoricoActualizado.setUsuario(cobrador);
-
-        Optional<MetodoPago> metodoPagoOpt = metodoPagoRepositorio.findById(request.metodoPagoId());
-        pagoHistoricoActualizado.setMetodoPago(metodoPagoOpt.get());
-
-        // Clonar los detalles pendientes para generar el nuevo pago con los totales correctos
-        log.info("[procesarAbonoParcial] Verificando detalles pendientes para nuevo pago");
-        Pago nuevoPago = paymentProcessor.clonarDetallesConPendiente(pagoHistoricoActualizado);
-
-        if (nuevoPago == null) {
-            log.info("[procesarAbonoParcial] CASO 1 - No hay detalles pendientes en el pago histórico");
-            log.info("[procesarAbonoParcial] Marcando pago histórico como cerrado");
-            paymentProcessor.marcarPagoComoHistorico(pagoHistoricoActualizado);
-            log.info("[procesarAbonoParcial] Retornando pago histórico actualizado");
-            return pagoHistoricoActualizado;
-        } else {
-            log.info("[procesarAbonoParcial] CASO 2 - Se clonaron detalles pendientes. Nuevo pago generado - ID: {}, Detalles: {}",
-                    nuevoPago.getId(), nuevoPago.getDetallePagos().size());
-            nuevoPago.setMetodoPago(metodoPagoOpt.get());
-            log.info("[procesarAbonoParcial] Marcando pago histórico como cerrado - ID: {}", pagoHistoricoActualizado.getId());
-            paymentProcessor.marcarPagoComoHistorico(pagoHistoricoActualizado);
-            log.info("[procesarAbonoParcial] Pago histórico ahora es {} - ID: {}",
-                    pagoHistoricoActualizado.getEstadoPago(), pagoHistoricoActualizado.getId());
-            pagoActivo.setObservaciones(request.observaciones());
-            nuevoPago.setUsuario(cobrador);
-            log.info("[procesarAbonoParcial] Retornando nuevo pago con detalles pendientes - ID: {}, Estado: {}",
-                    nuevoPago.getId(), nuevoPago.getEstadoPago());
-            return nuevoPago;
         }
     }
 
@@ -385,6 +332,7 @@ public class PagoServicio {
         for (Pago pago : pagosPendientes) {
             if (pago.getDetallePagos() != null) {
                 for (DetallePago detalle : pago.getDetallePagos()) {
+                    detalle.setFechaRegistro(pago.getFecha());
                     detalle.setAlumno(pago.getAlumno());
                     detalle.setConcepto(detalle.getConcepto());
                     detalle.setSubConcepto(detalle.getSubConcepto());
@@ -424,6 +372,7 @@ public class PagoServicio {
 
         if (pago.getDetallePagos() != null) {
             for (DetallePago detalle : pago.getDetallePagos()) {
+                detalle.setFechaRegistro(pago.getFecha());
                 detalle.setConcepto(detalle.getConcepto());
                 detalle.setSubConcepto(detalle.getSubConcepto());
                 detalle.setAlumno(pago.getAlumno());
@@ -486,6 +435,7 @@ public class PagoServicio {
         // Actualizacion de cada detalle segun el abono asignado
         log.info("[registrarPagoParcial] Procesando {} detalles de pago", pago.getDetallePagos().size());
         for (DetallePago detalle : pago.getDetallePagos()) {
+            detalle.setFechaRegistro(pago.getFecha());
             detalle.setConcepto(detalle.getConcepto());
             detalle.setSubConcepto(detalle.getSubConcepto());
             log.info("[registrarPagoParcial] Procesando detalle id={}", detalle.getId());

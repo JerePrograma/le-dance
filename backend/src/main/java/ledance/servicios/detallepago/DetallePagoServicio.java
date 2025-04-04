@@ -322,22 +322,6 @@ public class DetallePagoServicio {
             // Guardar cambios en el pago
             pagoRepositorio.save(pago);
             log.info("Pago guardado exitosamente");
-
-            // 6. Verificar si se debe eliminar el Pago (por ejemplo, si ya no tiene detalles activos o monto = 0)
-            if (pago.getDetallePagos().isEmpty()) {
-                // Romper asociaciones de todos los detalles para evitar conflictos
-                List<DetallePago> copiaDetalles = new ArrayList<>(pago.getDetallePagos());
-                for (DetallePago dp : copiaDetalles) {
-                    dp.setPago(null);
-                }
-                detallePagoRepositorio.flush();
-
-                // Eliminar el Pago
-                pago.setDetallePagos(null);
-                pagoRepositorio.delete(pago);
-                detallePagoRepositorio.flush();
-                log.info("Pago eliminado exitosamente");
-            }
         } else {
             log.info("No se encontró pago asociado al detalle");
         }
@@ -390,22 +374,6 @@ public class DetallePagoServicio {
             detalle.setCobrado(false);
             detalle.setaCobrar(0.0);
             detallePagoRepositorio.save(detalle);
-
-            if (pago.getDetallePagos().isEmpty() || pago.getMonto() == 0) {
-                // Romper la asociación en todos los detalles y hacer flush
-                List<DetallePago> copiaDetalles = new ArrayList<>(pago.getDetallePagos());
-                for (DetallePago dp : copiaDetalles) {
-                    dp.setPago(null);
-                }
-                detallePagoRepositorio.flush();
-
-                // Eliminar el Pago
-                pago.setDetallePagos(null);
-                pagoRepositorio.delete(pago);
-                detallePagoRepositorio.flush();
-                log.info("Pago eliminado exitosamente");
-            }
-
         } else {
             log.info("No se encontró pago asociado al detalle");
         }

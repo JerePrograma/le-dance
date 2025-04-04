@@ -874,7 +874,7 @@ public class PaymentCalculationServicio {
             }
         }
 
-        log.info("[reatacharAsociaciones] FIN: Reatachamiento completado para DetallePago id={}", detalle.getId());
+        log.info("[reatacharAsociaciones] FIN: Reatachamiento completado para DetallePago id={}", detalle);
     }
 
 }

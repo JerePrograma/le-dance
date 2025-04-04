@@ -84,6 +84,7 @@ public class MatriculaServicio {
         log.info("[registrarDetallePagoMatricula] Iniciando registro del DetallePago para matrícula id={}", matricula.getId());
 
         DetallePago detalle = new DetallePago();
+        detalle.setFechaRegistro(pagoPendiente.getFecha());
         // Asignar datos obligatorios
         detalle.setMatricula(matricula);
         detalle.setAlumno(matricula.getAlumno());
