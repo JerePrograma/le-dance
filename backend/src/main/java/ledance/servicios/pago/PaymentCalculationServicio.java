@@ -106,7 +106,7 @@ public class PaymentCalculationServicio {
         log.info("[procesarAbono] INICIO - Procesando abono para DetallePago ID: {}", detalle.getId());
         log.info("[procesarAbono] Parámetros recibidos - MontoAbono: {}, ImporteInicialCalculado: {}",
                 montoAbono, importeInicialCalculado);
-        log.info("[procesarAbono] Estado inicial del detalle: {}", detalle.toString());
+        log.info("[procesarAbono] Estado inicial del detalle: {}", detalle);
 
         // 2. Validación de monto de abono
         if (montoAbono == null || montoAbono < 0) {
