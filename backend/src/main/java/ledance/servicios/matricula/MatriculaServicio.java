@@ -159,27 +159,16 @@ public class MatriculaServicio {
     public void verificarMatriculaNoDuplicada(DetallePago detalle) {
         Long alumnoId = detalle.getAlumno().getId();
         String descripcion = detalle.getDescripcionConcepto();
-        log.info("[verificarMatriculaNoDuplicada] Verificando existencia de matrícula o detalle de pago para alumnoId={} con descripción '{}'",
-                alumnoId, descripcion);
+        log.info("[verificarMatriculaNoDuplicada] Verificando existencia de matrícula para alumnoId={} con descripción '{}'", alumnoId, descripcion);
 
         // Solo se verifica si la descripción contiene "MATRICULA"
         if (descripcion != null && descripcion.toUpperCase().contains("MATRICULA")) {
-            // Buscar el detalle de pago existente para el alumno, descripción y tipo MATRÍCULA
-            Optional<DetallePago> detalleExistenteOpt = detallePagoRepositorio
-                    .findByAlumnoIdAndDescripcionConceptoIgnoreCaseAndTipo(alumnoId, descripcion, TipoDetallePago.MATRICULA);
-
-            if (detalleExistenteOpt.isPresent()) {
-                DetallePago detalleExistente = detalleExistenteOpt.get();
-                // Si se encontró el detalle y su estado NO es ANULADO, se considera que ya existe y no se permite crear otro
-                if (detalleExistente.getEstadoPago() != EstadoPago.ANULADO) {
-                    log.error("[verificarMatriculaNoDuplicada] Ya existe un DetallePago activo (no anulado) con descripción '{}' para alumnoId={}",
-                            descripcion, alumnoId);
-                    throw new IllegalStateException("MATRICULA YA COBRADA");
-                } else {
-                    log.info("[verificarMatriculaNoDuplicada] Se encontró un DetallePago con estado ANULADO, se permite crear uno nuevo.");
-                }
-            } else {
-                log.info("[verificarMatriculaNoDuplicada] No se encontró ningún DetallePago para alumnoId={} con descripción '{}'.", alumnoId, descripcion);
+            boolean existeDetalleActivo = detallePagoRepositorio
+                    .existsByAlumnoIdAndDescripcionConceptoIgnoreCaseAndTipoAndEstadoPagoNot(
+                            alumnoId, descripcion, TipoDetallePago.MATRICULA, EstadoPago.ANULADO);
+            if (existeDetalleActivo) {
+                log.error("[verificarMatriculaNoDuplicada] Ya existe un DetallePago activo (no anulado) con descripción '{}' para alumnoId={}", descripcion, alumnoId);
+                throw new IllegalStateException("MATRICULA YA COBRADA");
             }
         } else {
             log.info("[verificarMatriculaNoDuplicada] La descripción '{}' no contiene 'MATRICULA', no se realiza verificación.", descripcion);

@@ -357,7 +357,7 @@ public class DetallePagoServicio {
         });
         log.info("DetallePago encontrado: {}", detalle);
 
-        // 2. Actualizar el Pago asociado, recalculando montos
+        // 2. Actualizar el Pago asociado y recalcular montos
         Pago pago = detalle.getPago();
         if (pago != null) {
             log.info("Pago encontrado: {}", pago);
@@ -372,38 +372,41 @@ public class DetallePagoServicio {
             log.info("Nuevos valores calculados - Monto: {}, MontoPagado: {}",
                     nuevoMonto, nuevoMontoPagado);
             if (nuevoMonto == pago.getMetodoPago().getRecargo() || nuevoMonto <= 0) {
-                nuevoMonto = 0;
-                nuevoMontoPagado = 0;
+                nuevoMonto = 0.0;
+                nuevoMontoPagado = 0.0;
             }
             pago.setMonto(nuevoMonto);
             pago.setMontoPagado(nuevoMontoPagado);
-            log.info("Montos actualizados en el objeto Pago");
-
             pagoRepositorio.save(pago);
             log.info("Pago guardado exitosamente");
         } else {
             log.info("No se encontró pago asociado al detalle");
         }
 
-        // 3. Eliminar la Mensualidad asociada si corresponde, sin hacer merge
+        // 3. Eliminar la Mensualidad asociada si corresponde
         Mensualidad mensualidad = obtenerMensualidadSiExiste(detalle);
         if (mensualidad != null && mensualidad.getId() != null) {
             mensualidadRepositorio.delete(mensualidad);
             log.info("Mensualidad eliminada: {}", mensualidad.getId());
+            // Quitar la referencia en el detalle
+            detalle.setMensualidad(null);
         }
 
-        // 4. Eliminar la Matrícula asociada si corresponde, sin hacer merge
+        // 4. Eliminar la Matrícula asociada si corresponde
         Matricula matricula = obtenerMatriculaSiExiste(detalle);
         if (matricula != null && matricula.getId() != null) {
-            matricula.setPagada(false);
-            matricula.setFechaPago(null);
+            matriculaRepositorio.delete(matricula);
             log.info("Matrícula eliminada: {}", matricula.getId());
+            // Quitar la referencia en el detalle para evitar que Hibernate intente fusionarla
+            detalle.setMatricula(null);
         }
 
-        // 5. Actualizar el DetallePago: marcarlo como ANULADO, cobrado en false y aCobrar en 0.
+        // 5. Actualizar el DetallePago para anulación
         detalle.setEstadoPago(EstadoPago.ANULADO);
         detalle.setCobrado(false);
         detalle.setaCobrar(0.0);
+
+        // 6. Guardar el DetallePago actualizado
         detalle = detallePagoRepositorio.save(detalle);
         log.info("DetallePago anulado exitosamente con id={}, estado={}", detalle.getId(), detalle.getEstadoPago());
 
@@ -417,7 +420,7 @@ public class DetallePagoServicio {
         log.info("[obtenerMatriculaSiExiste] Verificando existencia de matrícula para alumnoId={} con descripción '{}'", alumnoId, descripcion);
 
         if (descripcion != null && descripcion.toUpperCase().contains("MATRICULA")) {
-            // Obtener todos los detalles de tipo MATRÍCULA para el alumno y descripción dada
+            // Obtener todos los detalles de tipo MATRÍCULA para el alumno y la descripción dada
             List<DetallePago> detalles = detallePagoRepositorio
                     .findAllByAlumnoIdAndDescripcionConceptoIgnoreCaseAndTipo(alumnoId, descripcion, TipoDetallePago.MATRICULA);
 
@@ -425,19 +428,24 @@ public class DetallePagoServicio {
                 // Ordenar los detalles por ID de forma ascendente
                 detalles.sort(Comparator.comparing(DetallePago::getId));
                 DetallePago primerDetalle = detalles.get(0);
-                // Si el primer detalle no está anulado, se lanza excepción
+
+                // Si el primer detalle no está anulado, se fuerza a ANULADO (o se lanza excepción, según la lógica de negocio)
                 if (primerDetalle.getEstadoPago() != EstadoPago.ANULADO) {
-                    log.error("[obtenerMatriculaSiExiste] Ya existe un DetallePago activo (no anulado) con descripción '{}' para alumnoId={}", descripcion, alumnoId);
+                    log.error("[obtenerMatriculaSiExiste] Se encontró un DetallePago activo (no anulado) con descripción '{}' para alumnoId={}. Forzando anulación.", descripcion, alumnoId);
                     primerDetalle.setEstadoPago(EstadoPago.ANULADO);
+                    detallePagoRepositorio.save(primerDetalle);
                 }
-                // Eliminar los detalles duplicados (aquellos con ID mayor)
-                for (int i = 1; i < detalles.size(); i++) {
-                    DetallePago detalleDuplicado = detalles.get(i);
-                    log.info("[obtenerMatriculaSiExiste] Eliminando detalle duplicado de matrícula con id={}", detalleDuplicado.getId());
-                    detallePagoRepositorio.delete(detalleDuplicado);
+
+                // Desligar la matrícula de todos los DetallePago asociados para evitar problemas al eliminar la matrícula
+                for (DetallePago dp : detalles) {
+                    if (dp.getMatricula() != null) {
+                        dp.setMatricula(null);
+                        detallePagoRepositorio.save(dp);
+                        log.info("[obtenerMatriculaSiExiste] Se desvinculó la matrícula del DetallePago id={}", dp.getId());
+                    }
                 }
-                Matricula matricula = primerDetalle.getMatricula();
-                log.info("[obtenerMatriculaSiExiste] Se retorna la matrícula asociada al DetallePago id={} para alumnoId={}", primerDetalle.getId(), alumnoId);
+                Matricula matricula = primerDetalle.getMatricula(); // Ahora debería quedar la referencia "vieja" en el primer detalle
+                log.info("[obtenerMatriculaSiExiste] Se retorna la matrícula asociada al primer DetallePago (id={}) para alumnoId={}", primerDetalle.getId(), alumnoId);
                 return matricula;
             } else {
                 log.info("[obtenerMatriculaSiExiste] No se encontró ningún DetallePago para alumnoId={} con descripción '{}'.", alumnoId, descripcion);
@@ -507,7 +515,6 @@ public class DetallePagoServicio {
                         alumnoId, descripcion, TipoDetallePago.MENSUALIDAD, EstadoPago.ACTIVO);
                 if (existeDetalleDuplicado || existeDetalleDuplicado2) {
                     log.error("Ya existe una mensualidad o detalle de pago con descripción '{}' para alumnoId={}", descripcion, alumnoId);
-                    throw new IllegalStateException("MENSUALIDAD YA COBRADA");
                 }
                 log.info("Mensualidad encontrada para alumnoId={} con descripción '{}'", alumnoId, descripcion);
                 return mensualidadOpt.get();
