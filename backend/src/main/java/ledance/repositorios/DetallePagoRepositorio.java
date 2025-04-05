@@ -15,9 +15,6 @@ import java.util.Optional;
 public interface DetallePagoRepositorio extends JpaRepository<DetallePago, Long>, JpaSpecificationExecutor<DetallePago> {
     List<DetallePago> findByAlumnoIdAndImportePendienteGreaterThan(Long alumnoId, double valor);
 
-    @Query("SELECT dp FROM DetallePago dp WHERE dp.id = :id")
-    DetallePago buscarPorIdJPQL(@Param("id") Long id);
-
     @Query("SELECT CASE WHEN COUNT(dp) > 0 THEN true ELSE false END FROM DetallePago dp WHERE dp.matricula.id = :id")
     boolean existsByMatriculaId(@Param("id") Long id);
 

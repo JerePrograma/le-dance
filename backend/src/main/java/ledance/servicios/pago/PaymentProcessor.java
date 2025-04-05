@@ -82,8 +82,11 @@ public class PaymentProcessor {
                 cobrado = detalle.getaCobrar();
             }
             totalACobrar += (cobrado);
-
-            detalle.setImportePendiente(detalle.getImportePendiente() - cobrado);
+            if (detalle.getImportePendiente() > 0) {
+                detalle.setImportePendiente(detalle.getImportePendiente() - cobrado);
+            } else {
+                detalle.setImportePendiente(0.0);
+            }
             totalPendiente += detalle.getImportePendiente();
             log.info("[recalcularTotalesNuevo] Detalle ID {}: aCobrar={}, importePendiente={}. Acumulado: totalACobrar={}, totalPendiente={}",
                     detalle.getId(), cobrado, detalle.getImportePendiente(), totalACobrar, totalPendiente);
@@ -540,7 +543,8 @@ public class PaymentProcessor {
         return recargoRepositorio.findById(id).orElse(null);
     }
 
-    private @NotNull @Min(value = 0, message = "El monto base no puede ser negativo") Double calcularImporteInicialDesdeDetalles(List<DetallePago> detallePagos) {
+    private @NotNull @Min(value = 0, message = "El monto base no puede ser negativo") Double calcularImporteInicialDesdeDetalles
+            (List<DetallePago> detallePagos) {
         log.info("[calcularImporteInicialDesdeDetalles] Iniciando calculo del importe inicial.");
 
         if (detallePagos == null || detallePagos.isEmpty()) {
@@ -881,6 +885,11 @@ public class PaymentProcessor {
 
         Pago pagoHistoricoActualizado = actualizarPagoHistoricoConAbonos(nuevoPago, request);
 
+        MetodoPago metodoPago = metodoPagoRepositorio.findById(request.metodoPagoId())
+                .orElseGet(() -> {
+                    return metodoPagoRepositorio.findByDescripcionContainingIgnoreCase("EFECTIVO");
+                });
+        nuevoPago.setMetodoPago(metodoPago);
         recalcularTotalesNuevo(nuevoPago);
 
         log.info("[procesarAbonoParcial] Pago histórico actualizado - ID: {}, Estado: {}, Monto: {}, Saldo: {}",

@@ -42,13 +42,16 @@ public class MensualidadServicio implements IMensualidadService {
     private final ProcesoEjecutadoRepositorio procesoEjecutadoRepositorio;
     private final RecargoServicio recargoServicio;
     private final DisciplinaRepositorio disciplinaRepositorio;
+    private final PagoRepositorio pagoRepositorio;
+    private final UsuarioRepositorio usuarioRepositorio;
 
     public MensualidadServicio(DetallePagoRepositorio detallePagoRepositorio, MensualidadRepositorio mensualidadRepositorio,
                                InscripcionRepositorio inscripcionRepositorio,
                                MensualidadMapper mensualidadMapper,
                                RecargoRepositorio recargoRepositorio,
                                BonificacionRepositorio bonificacionRepositorio,
-                               ProcesoEjecutadoRepositorio procesoEjecutadoRepositorio, RecargoServicio recargoServicio, DisciplinaRepositorio disciplinaRepositorio) {
+                               ProcesoEjecutadoRepositorio procesoEjecutadoRepositorio, RecargoServicio recargoServicio, DisciplinaRepositorio disciplinaRepositorio,
+                               PagoRepositorio pagoRepositorio, UsuarioRepositorio usuarioRepositorio) {
         this.detallePagoRepositorio = detallePagoRepositorio;
         this.mensualidadRepositorio = mensualidadRepositorio;
         this.inscripcionRepositorio = inscripcionRepositorio;
@@ -58,6 +61,8 @@ public class MensualidadServicio implements IMensualidadService {
         this.procesoEjecutadoRepositorio = procesoEjecutadoRepositorio;
         this.recargoServicio = recargoServicio;
         this.disciplinaRepositorio = disciplinaRepositorio;
+        this.pagoRepositorio = pagoRepositorio;
+        this.usuarioRepositorio = usuarioRepositorio;
     }
 
     @Override
@@ -471,57 +476,94 @@ public class MensualidadServicio implements IMensualidadService {
     public void registrarDetallePagoMensualidad(Mensualidad mensualidad) {
         log.info("[registrarDetallePagoMensualidad] Iniciando registro del DetallePago para Mensualidad id={}", mensualidad.getId());
 
-        // Verificar si ya existe un DetallePago asociado a esta mensualidad
+        // Verificar si ya existe un DetallePago asociado a esta mensualidad.
         boolean existeDetalle = detallePagoRepositorio.existsByMensualidadId(mensualidad.getId());
         if (existeDetalle) {
             log.info("[registrarDetallePagoMensualidad] Ya existe un DetallePago para Mensualidad id={}. No se creará uno nuevo.", mensualidad.getId());
             return;
         }
 
-        // Crear el nuevo DetallePago y asignar datos básicos de la mensualidad
-        DetallePago detalle = new DetallePago();
-        detalle.setVersion(0L);
-
+        // Obtener el alumno de la inscripción de la mensualidad.
         Alumno alumno = mensualidad.getInscripcion().getAlumno();
-        detalle.setAlumno(alumno);
-        // La descripción se toma directamente de la mensualidad; se asume que ya tiene el formato esperado
-        detalle.setDescripcionConcepto(mensualidad.getDescripcion());
 
-        Double valorBase = mensualidad.getValorBase();
-        detalle.setValorBase(valorBase);
+        // Buscar el último pago pendiente del alumno.
+        Pago ultimoPago = obtenerUltimoPagoPendienteEntidad(alumno.getId());
+        Pago pagoAsociado;
+        if (ultimoPago != null) {
+            pagoAsociado = ultimoPago;
+            log.info("[registrarDetallePagoMensualidad] Se encontró un pago pendiente (ID={}) para el alumno; se agregará el nuevo DetallePago a este pago.", pagoAsociado.getId());
+        } else {
+            // No se encontró un pago pendiente: se crea uno nuevo.
+            pagoAsociado = new Pago();
+            pagoAsociado.setAlumno(alumno);
+            pagoAsociado.setFechaVencimiento(LocalDate.now().plusDays(30));
+            pagoAsociado.setFecha(LocalDate.now());
+            // Inicializamos los importes en 0 (o según tu lógica de negocio).
+            pagoAsociado.setImporteInicial(0.0);
+            pagoAsociado.setMonto(0.0);
+            pagoAsociado.setSaldoRestante(0.0);
+            Optional<Usuario> cobrado = usuarioRepositorio.findById(1L);
+            if (cobrado.isPresent()) {
+                pagoAsociado.setUsuario(cobrado.get());
+            }
+            // Persistir el nuevo pago.
+            pagoRepositorio.save(pagoAsociado);
+            log.info("[registrarDetallePagoMensualidad] No se encontró un pago pendiente; se creó un nuevo pago con ID={}.", pagoAsociado.getId());
+        }
+
+        // Crear el nuevo DetallePago para la mensualidad.
+        DetallePago detalle = new DetallePago();
+        // No es necesario asignar versión manualmente; JPA se encarga de ello.
+        detalle.setAlumno(alumno);
+        detalle.setDescripcionConcepto(mensualidad.getDescripcion());
+        detalle.setValorBase(mensualidad.getValorBase());
         double importeInicial = mensualidad.getImporteInicial();
         detalle.setImporteInicial(importeInicial);
-
-        // Inicialmente, no se cobra nada
-        double aCobrar = 0.0;
-        detalle.setaCobrar(aCobrar);
-        double importePendiente = importeInicial - aCobrar;
+        // En este caso, asumimos que inicialmente no se cobra nada; puedes ajustar según tus reglas.
+        detalle.setaCobrar(0.0);
+        double importePendiente = importeInicial - 0.0;
         detalle.setImportePendiente(importePendiente);
-        detalle.setCobrado(importePendiente == 0);
-
+        detalle.setCobrado(importePendiente == 0.0);
         detalle.setTipo(TipoDetallePago.MENSUALIDAD);
         detalle.setFechaRegistro(LocalDate.now());
-
-        // Relacionar la mensualidad con el DetallePago
+        // Relacionar la mensualidad con el detalle.
         detalle.setMensualidad(mensualidad);
 
-        // --- Aplicar recargo si corresponde ---
-        // En este método no se hará ningún cálculo, sino que se delega en el método mensajeAplicarRecargo.
-        // Se verifica que la mensualidad tenga la descripción esperada (ya configurada en el proceso de generación)
-        // y que cuente con un recargo asignado.
+        // Si la mensualidad tiene descripción y recargo asignado, delegamos la aplicación del recargo.
         if (mensualidad.getDescripcion() != null && mensualidad.getRecargo() != null) {
-            log.info("[registrarDetallePagoMensualidad] Mensualidad id={} tiene recargo asignado. Se delega la aplicación de recargo.", mensualidad.getId());
-            // Se delega la aplicación del recargo (este método se encargará de asignarlo al DetallePago y recalcular sus importes)
+            log.info("[registrarDetallePagoMensualidad] Mensualidad id={} tiene recargo asignado. Se delega la aplicación del recargo.", mensualidad.getId());
             mensajeAplicarRecargo(mensualidad, mensualidad.getRecargo());
         } else {
             log.info("[registrarDetallePagoMensualidad] Mensualidad id={} no tiene recargo asignado o la descripción es nula; no se aplica recargo.", mensualidad.getId());
         }
-        // --- Fin de delegación de lógica de recargo ---
 
-        // Guardar el DetallePago
+        // Asignar el pago al detalle.
+        detalle.setPago(pagoAsociado);
+        // Guardar el nuevo DetallePago.
         detallePagoRepositorio.save(detalle);
         log.info("[registrarDetallePagoMensualidad] DetallePago para Mensualidad id={} creado con importeInicial={} e importePendiente={}",
                 mensualidad.getId(), importeInicial, importePendiente);
+
+        // Actualizar el pago: agregar el detalle y sumar sus importes.
+        if (pagoAsociado.getDetallePagos() == null) {
+            pagoAsociado.setDetallePagos(new ArrayList<>());
+        }
+        pagoAsociado.getDetallePagos().add(detalle);
+        double nuevoMonto = (pagoAsociado.getMonto() != null ? pagoAsociado.getMonto() : 0.0);
+        pagoAsociado.setMonto(nuevoMonto);
+        double nuevoSaldo = (pagoAsociado.getSaldoRestante() != null ? pagoAsociado.getSaldoRestante() : 0.0);
+        pagoAsociado.setSaldoRestante(nuevoSaldo);
+        pagoRepositorio.save(pagoAsociado);
+        log.info("[registrarDetallePagoMensualidad] Pago (ID={}) actualizado: nuevo monto={} y nuevo saldoRestante={}.",
+                pagoAsociado.getId(), nuevoMonto, nuevoSaldo);
+    }
+
+    @Transactional
+    public Pago obtenerUltimoPagoPendienteEntidad(Long alumnoId) {
+        log.info("[obtenerUltimoPagoPendienteEntidad] Buscando el último pago pendiente para alumnoId={}", alumnoId);
+        Pago ultimo = pagoRepositorio.findTopByAlumnoIdAndEstadoPagoAndSaldoRestanteGreaterThanOrderByFechaDesc(alumnoId, EstadoPago.ACTIVO, 0.0).orElse(null);
+        log.info("[obtenerUltimoPagoPendienteEntidad] Resultado para alumno id={}: {}", alumnoId, ultimo);
+        return ultimo;
     }
 
     @Transactional

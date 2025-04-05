@@ -28,7 +28,6 @@ public class Pago {
     @NotNull
     private LocalDate fecha;
 
-    @NotNull
     private LocalDate fechaVencimiento;
 
     @NotNull

@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.Year;
 import java.time.YearMonth;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -27,14 +28,16 @@ public class MatriculaServicio {
     private final DetallePagoRepositorio detallePagoRepositorio;
     private final ConceptoRepositorio conceptoRepositorio;
     private final ProcesoEjecutadoRepositorio procesoEjecutadoRepositorio;
+    private final PagoRepositorio pagoRepositorio;
 
-    public MatriculaServicio(MatriculaRepositorio matriculaRepositorio, AlumnoRepositorio alumnoRepositorio, MatriculaMapper matriculaMapper, DetallePagoRepositorio detallePagoRepositorio, ConceptoRepositorio conceptoRepositorio, ProcesoEjecutadoRepositorio procesoEjecutadoRepositorio) {
+    public MatriculaServicio(MatriculaRepositorio matriculaRepositorio, AlumnoRepositorio alumnoRepositorio, MatriculaMapper matriculaMapper, DetallePagoRepositorio detallePagoRepositorio, ConceptoRepositorio conceptoRepositorio, ProcesoEjecutadoRepositorio procesoEjecutadoRepositorio, PagoRepositorio pagoRepositorio) {
         this.matriculaRepositorio = matriculaRepositorio;
         this.alumnoRepositorio = alumnoRepositorio;
         this.matriculaMapper = matriculaMapper;
         this.detallePagoRepositorio = detallePagoRepositorio;
         this.conceptoRepositorio = conceptoRepositorio;
         this.procesoEjecutadoRepositorio = procesoEjecutadoRepositorio;
+        this.pagoRepositorio = pagoRepositorio;
     }
 
     @Transactional
@@ -77,29 +80,52 @@ public class MatriculaServicio {
     protected void registrarDetallePagoMatriculaAutomatica(Matricula matricula, Pago pagoPendiente) {
         log.info("[registrarDetallePagoMatricula] Iniciando registro del DetallePago para matrícula id={}", matricula.getId());
 
-        DetallePago detalle = new DetallePago();
-        if (pagoPendiente == null) {
-            if (detalle.getFechaRegistro() == null) {
-                detalle.setFechaRegistro(LocalDate.now());
-            }
-        } else if (pagoPendiente.getFecha() == null && detalle.getFechaRegistro() == null) {
-            detalle.setFechaRegistro(LocalDate.now());
+        Alumno alumno = matricula.getAlumno();
+        // Buscar el último pago pendiente para el alumno
+        pagoPendiente = obtenerUltimoPagoPendienteEntidad(alumno.getId());
+        Pago pagoAsociado;
+        if (pagoPendiente != null) {
+            pagoAsociado = pagoPendiente;
+            log.info("[registrarDetallePagoMatricula] Se encontró un pago pendiente para alumno id={}: Pago id={}", alumno.getId(), pagoAsociado.getId());
+        } else {
+            // No se encontró un pago pendiente: se crea uno nuevo.
+            pagoAsociado = new Pago();
+            pagoAsociado.setAlumno(alumno);
+            pagoAsociado.setFecha(LocalDate.now());
+            // Asigna una fecha de vencimiento (por ejemplo, 30 días después)
+            pagoAsociado.setFechaVencimiento(LocalDate.now().plusDays(30));
+            // Inicializamos importes en 0 (o según tu lógica de negocio)
+            pagoAsociado.setImporteInicial(0.0);
+            pagoAsociado.setMonto(0.0);
+            pagoAsociado.setSaldoRestante(0.0);
+            pagoAsociado.setEstadoPago(EstadoPago.ACTIVO);
+            // Si el pago debe tener otros campos (como observaciones o método de pago), asígnalos acá.
+            pagoRepositorio.save(pagoAsociado);
+            log.info("[registrarDetallePagoMatricula] No se encontró un pago pendiente; se creó un nuevo pago con ID={}", pagoAsociado.getId());
         }
-        // Asignar datos obligatorios
+
+        // Crear el nuevo DetallePago para la matrícula.
+        DetallePago detalle = new DetallePago();
+        // Se asigna la matrícula y el alumno
         detalle.setMatricula(matricula);
-        detalle.setAlumno(matricula.getAlumno());
+        detalle.setAlumno(alumno);
+
+        // Asignar una descripción basada en el año actual
         int anio = LocalDate.now().getYear();
         String descripcionConcepto = "MATRICULA " + anio;
         detalle.setDescripcionConcepto(descripcionConcepto);
+
+        // Tipo de detalle: MATRÍCULA
         detalle.setTipo(TipoDetallePago.MATRICULA);
         detalle.setFechaRegistro(LocalDate.now());
-        detalle.setVersion(0L);
 
-        // Verificar duplicidad en detalle de pago (se busca por alumno, descripción y tipo)
+        // Verificar duplicidad (según tu lógica de negocio)
         verificarDetallePagoUnico(detalle);
 
-        // Asignar Concepto y SubConcepto basados en el año actual
+        // Asignar Concepto y SubConcepto (según tu lógica de negocio)
         asignarConceptoDetallePago(detalle);
+
+        // Suponiendo que el precio del concepto determina el valor base
         Double valorBase = detalle.getConcepto().getPrecio();
         detalle.setValorBase(valorBase);
         detalle.setImporteInicial(valorBase);
@@ -107,11 +133,25 @@ public class MatriculaServicio {
         detalle.setaCobrar(0.0);
         detalle.setCobrado(false);
 
-        detalle.setPago(pagoPendiente);
+        // Asociar el pago al detalle
+        detalle.setPago(pagoAsociado);
 
+        // Guardar el DetallePago
         detallePagoRepositorio.save(detalle);
         log.info("[registrarDetallePagoMatricula] DetallePago para matrícula id={} creado y guardado exitosamente.", matricula.getId());
 
+        // Actualizar el pago: agregar el detalle y sumar el importe
+        if (pagoAsociado.getDetallePagos() == null) {
+            pagoAsociado.setDetallePagos(new ArrayList<>());
+        }
+        pagoAsociado.getDetallePagos().add(detalle);
+        double nuevoMonto = (pagoAsociado.getMonto() != null ? pagoAsociado.getMonto() : 0.0);
+        pagoAsociado.setMonto(nuevoMonto);
+        double nuevoSaldo = (pagoAsociado.getSaldoRestante() != null ? pagoAsociado.getSaldoRestante() : 0.0);
+        pagoAsociado.setSaldoRestante(nuevoSaldo);
+        pagoRepositorio.save(pagoAsociado);
+        log.info("[registrarDetallePagoMatricula] Pago (ID={}) actualizado: nuevo monto={} y saldo restante={}",
+                pagoAsociado.getId(), nuevoMonto, nuevoSaldo);
     }
 
     /**
@@ -228,6 +268,14 @@ public class MatriculaServicio {
         proceso.setUltimaEjecucion(today);
         procesoEjecutadoRepositorio.save(proceso);
         log.info("Proceso MATRÍCULA_AUTOMATICA completado. Flag actualizado a {}", today);
+    }
+
+    @Transactional
+    public Pago obtenerUltimoPagoPendienteEntidad(Long alumnoId) {
+        log.info("[obtenerUltimoPagoPendienteEntidad] Buscando el último pago pendiente para alumnoId={}", alumnoId);
+        Pago ultimo = pagoRepositorio.findTopByAlumnoIdAndEstadoPagoAndSaldoRestanteGreaterThanOrderByFechaDesc(alumnoId, EstadoPago.ACTIVO, 0.0).orElse(null);
+        log.info("[obtenerUltimoPagoPendienteEntidad] Resultado para alumno id={}: {}", alumnoId, ultimo);
+        return ultimo;
     }
 
 }

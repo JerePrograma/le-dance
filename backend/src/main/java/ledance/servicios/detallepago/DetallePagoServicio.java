@@ -352,10 +352,8 @@ public class DetallePagoServicio {
         log.info("Iniciando anulación de DetallePago con id={}", id);
 
         // 1. Buscar el DetallePago
-        DetallePago detalle = detallePagoRepositorio.findById(id).orElseThrow(() -> {
-            log.error("DetallePago con id {} no encontrado", id);
-            return new EntityNotFoundException("DetallePago con id " + id + " no encontrado");
-        });
+        DetallePago detalle = detallePagoRepositorio.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("DetallePago con id " + id + " no encontrado"));
         log.info("DetallePago encontrado: {}", detalle);
 
         // 2. Actualizar el Pago asociado y recalcular montos
@@ -370,9 +368,8 @@ public class DetallePagoServicio {
 
             double nuevoMonto = montoActual - valorACobrar;
             double nuevoMontoPagado = montoPagadoActual - valorACobrar;
-            log.info("Nuevos valores calculados - Monto: {}, MontoPagado: {}",
-                    nuevoMonto, nuevoMontoPagado);
-            if (nuevoMonto == pago.getMetodoPago().getRecargo() || nuevoMonto <= 0) {
+            // Si el nuevo monto es 0 o menor, se reinician los valores
+            if (nuevoMonto <= 0) {
                 nuevoMonto = 0.0;
                 nuevoMontoPagado = 0.0;
             }
@@ -384,22 +381,25 @@ public class DetallePagoServicio {
             log.info("No se encontró pago asociado al detalle");
         }
 
-        // 3. Eliminar la Mensualidad asociada si corresponde
-        Mensualidad mensualidad = obtenerMensualidadSiExiste(detalle);
-        if (mensualidad != null && mensualidad.getId() != null) {
+        // 3. Desvincular y eliminar Mensualidad (si corresponde)
+        if (detalle.getMensualidad() != null) {
+            Mensualidad mensualidad = detalle.getMensualidad();
+            // Quitar la asociación antes de eliminar
+            detalle.setMensualidad(null);
+            detallePagoRepositorio.save(detalle);
+            entityManager.flush(); // Forzar sincronización del cambio
             mensualidadRepositorio.delete(mensualidad);
             log.info("Mensualidad eliminada: {}", mensualidad.getId());
-            // Quitar la referencia en el detalle
-            detalle.setMensualidad(null);
         }
 
-        // 4. Eliminar la Matrícula asociada si corresponde
-        Matricula matricula = obtenerMatriculaSiExiste(detalle);
-        if (matricula != null && matricula.getId() != null) {
+        // 4. Desvincular y eliminar Matrícula (si corresponde)
+        if (detalle.getMatricula() != null) {
+            Matricula matricula = detalle.getMatricula();
+            detalle.setMatricula(null);
+            detallePagoRepositorio.save(detalle);
+            entityManager.flush();
             matriculaRepositorio.delete(matricula);
             log.info("Matrícula eliminada: {}", matricula.getId());
-            // Quitar la referencia en el detalle para evitar que Hibernate intente fusionarla
-            detalle.setMatricula(null);
         }
 
         // 5. Actualizar el DetallePago para anulación
@@ -407,7 +407,7 @@ public class DetallePagoServicio {
         detalle.setCobrado(false);
         detalle.setaCobrar(0.0);
 
-        // 6. Guardar el DetallePago actualizado
+        // Guardar el DetallePago actualizado
         detalle = detallePagoRepositorio.save(detalle);
         log.info("DetallePago anulado exitosamente con id={}, estado={}", detalle.getId(), detalle.getEstadoPago());
 
@@ -476,29 +476,6 @@ public class DetallePagoServicio {
         return detalles.stream().map(detallePagoMapper::toDTO).collect(Collectors.toList());
     }
 
-
-    @Transactional
-    public void verificarMensualidadNoDuplicada(DetallePago detalle) {
-        Long alumnoId = detalle.getAlumno().getId();
-        String descripcion = detalle.getDescripcionConcepto();
-        log.info("Verificando existencia de mensualidad o detalle de pago para alumnoId={} con descripción '{}'", alumnoId, descripcion);
-
-        // Solo se verifica si la descripción contiene "CUOTA"
-        if (descripcion != null && descripcion.toUpperCase().contains("CUOTA")) {
-            Optional<Mensualidad> mensualidadOpt = mensualidadRepositorio.findByInscripcionAlumnoIdAndDescripcionIgnoreCase(alumnoId, descripcion);
-
-            if (mensualidadOpt.isPresent()) {
-                // Si se encontró una mensualidad que contenga "CUOTA", se verifica si ya existe un detalle duplicado
-                boolean existeDetalleDuplicado = detallePagoRepositorio.existsByAlumnoIdAndDescripcionConceptoIgnoreCaseAndTipoAndEstadoPago(alumnoId, descripcion, TipoDetallePago.MENSUALIDAD, EstadoPago.HISTORICO);
-                boolean existeDetalleDuplicado2 = detallePagoRepositorio.existsByAlumnoIdAndDescripcionConceptoIgnoreCaseAndTipoAndEstadoPago(alumnoId, descripcion, TipoDetallePago.MENSUALIDAD, EstadoPago.ACTIVO);
-                if (existeDetalleDuplicado || existeDetalleDuplicado2) {
-                    log.error("Ya existe una mensualidad o detalle de pago con descripción '{}' para alumnoId={}", descripcion, alumnoId);
-                    throw new IllegalStateException("MENSUALIDAD YA COBRADA");
-                }
-            }
-        }
-    }
-
     @Transactional
     public Mensualidad obtenerMensualidadSiExiste(DetallePago detalle) {
         Long alumnoId = detalle.getAlumno().getId();
@@ -529,4 +506,24 @@ public class DetallePagoServicio {
         }
     }
 
+    @Transactional
+    public void verificarMensualidadNoDuplicada(DetallePago detalle) {
+        Long alumnoId = detalle.getAlumno().getId();
+        String descripcion = detalle.getDescripcionConcepto();
+        log.info("Verificando existencia de mensualidad o detalle de pago para alumnoId={} con descripción '{}'", alumnoId, descripcion);
+
+        // Solo se verifica si la descripción contiene "CUOTA"
+        if (descripcion != null && descripcion.toUpperCase().contains("CUOTA")) {
+            Optional<Mensualidad> mensualidadOpt = mensualidadRepositorio.findByInscripcionAlumnoIdAndDescripcionIgnoreCase(alumnoId, descripcion);
+
+            if (mensualidadOpt.isPresent()) {
+                // Si se encontró una mensualidad que contenga "CUOTA", se verifica si ya existe un detalle duplicado
+                boolean existeDetalleDuplicado = detallePagoRepositorio.existsByAlumnoIdAndDescripcionConceptoIgnoreCaseAndTipoAndEstadoPago(alumnoId, descripcion, TipoDetallePago.MENSUALIDAD, EstadoPago.HISTORICO);
+                boolean existeDetalleDuplicado2 = detallePagoRepositorio.existsByAlumnoIdAndDescripcionConceptoIgnoreCaseAndTipoAndEstadoPago(alumnoId, descripcion, TipoDetallePago.MENSUALIDAD, EstadoPago.ACTIVO);
+                if (existeDetalleDuplicado || existeDetalleDuplicado2) {
+                    mensualidadOpt.get();
+                }
+            }
+        }
+    }
 }
