@@ -1,7 +1,3 @@
-// Refactor del componente Alumnos para agregar:
-// 1. Ordenamiento por ID
-// 2. Filtro por estado (Activo/Inactivo)
-
 "use client";
 
 import React, {
@@ -140,7 +136,12 @@ const Alumnos: React.FC = () => {
   return (
     <div ref={containerRef} className="flex flex-col h-screen overflow-hidden">
       <div className="flex-none p-6 pb-2 flex justify-between items-center">
-        <h1 className="text-3xl font-bold tracking-tight">Alumnos</h1>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Alumnos</h1>
+          <p className="text-sm text-gray-600">
+            Total de alumnos: {alumnos.length}
+          </p>
+        </div>
         <Boton
           onClick={() => navigate("/alumnos/formulario")}
           className="inline-flex gap-2 bg-primary text-primary-foreground hover:bg-primary/90"

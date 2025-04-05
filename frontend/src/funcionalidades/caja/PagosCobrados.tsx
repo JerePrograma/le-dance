@@ -122,10 +122,13 @@ const DetallePagoList: React.FC = () => {
   // Filtrar detalles para mostrar solo los que hayan sido cobrados
   const detallesCobrado = useMemo(() => {
     return detalles.filter(
-      (detalle) => detalle.cobrado || detalle.estadoPago === "ANULADO"
+      (detalle) =>
+        detalle.aCobrar != null &&
+        detalle.aCobrar > 0 &&
+        (detalle.cobrado || detalle.estadoPago === "ANULADO")
     );
   }, [detalles]);
-
+  
   // Ajustar visibleCount según la altura del contenedor principal
   const adjustVisibleCount = useCallback(() => {
     if (containerRef.current) {
@@ -163,6 +166,14 @@ const DetallePagoList: React.FC = () => {
     () => detallesCobrado.slice(0, visibleCount),
     [detallesCobrado, visibleCount]
   );
+
+  // Cálculo de la suma total de "aCobrar" de los elementos visibles
+  const totalACobrar = useMemo(() => {
+    return currentItems.reduce(
+      (acc, item) => acc + Number(item.aCobrar || 0),
+      0
+    );
+  }, [currentItems]);
 
   // Determina si hay más elementos para cargar
   const hasMore = useMemo(
@@ -401,6 +412,15 @@ const DetallePagoList: React.FC = () => {
               emptyMessage="No hay pagos cobrados"
             />
           </ListaConInfiniteScroll>
+        </div>
+      </div>
+
+      {/* Footer similar al de CajaPagina */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="bg-gray-50 rounded-lg shadow p-4">
+          <p className="text-right text-xl font-bold text-gray-900">
+            Total cobrado: {totalACobrar}
+          </p>
         </div>
       </div>
     </div>

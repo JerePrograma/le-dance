@@ -122,7 +122,10 @@ const DetallePagoList: React.FC = () => {
   const detallesNoCobrado = useMemo(() => {
     return Array.isArray(detalles)
       ? detalles.filter(
-          (detalle) => !detalle.cobrado && !(detalle.estadoPago === "ANULADO")
+          (detalle) =>
+            detalle.importePendiente > 0 &&
+            detalle.estadoPago !== "ANULADO" &&
+            !detalle.cobrado
         )
       : [];
   }, [detalles]);
@@ -164,6 +167,14 @@ const DetallePagoList: React.FC = () => {
     () => detallesNoCobrado.slice(0, visibleCount),
     [detallesNoCobrado, visibleCount]
   );
+
+  // Cálculo de la suma total de "importePendiente" de los elementos visibles
+  const totalImportePendiente = useMemo(() => {
+    return currentItems.reduce(
+      (acc, item) => acc + Number(item.importePendiente || 0),
+      0
+    );
+  }, [currentItems]);
 
   // Determina si hay más elementos para cargar
   const hasMore = useMemo(
@@ -402,6 +413,15 @@ const DetallePagoList: React.FC = () => {
               emptyMessage="No hay pagos pendientes"
             />
           </ListaConInfiniteScroll>
+        </div>
+      </div>
+
+      {/* Footer con la suma total de "importePendiente" de los elementos visibles */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="bg-gray-50 rounded-lg shadow p-4">
+          <p className="text-right text-xl font-bold text-gray-900">
+            Deuda total: {totalImportePendiente}
+          </p>
         </div>
       </div>
     </div>
