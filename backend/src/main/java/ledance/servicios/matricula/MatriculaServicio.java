@@ -28,11 +28,7 @@ public class MatriculaServicio {
     private final ConceptoRepositorio conceptoRepositorio;
     private final ProcesoEjecutadoRepositorio procesoEjecutadoRepositorio;
 
-    public MatriculaServicio(MatriculaRepositorio matriculaRepositorio,
-                             AlumnoRepositorio alumnoRepositorio,
-                             MatriculaMapper matriculaMapper, DetallePagoRepositorio detallePagoRepositorio,
-                             ConceptoRepositorio conceptoRepositorio,
-                             ProcesoEjecutadoRepositorio procesoEjecutadoRepositorio) {
+    public MatriculaServicio(MatriculaRepositorio matriculaRepositorio, AlumnoRepositorio alumnoRepositorio, MatriculaMapper matriculaMapper, DetallePagoRepositorio detallePagoRepositorio, ConceptoRepositorio conceptoRepositorio, ProcesoEjecutadoRepositorio procesoEjecutadoRepositorio) {
         this.matriculaRepositorio = matriculaRepositorio;
         this.alumnoRepositorio = alumnoRepositorio;
         this.matriculaMapper = matriculaMapper;
@@ -64,19 +60,17 @@ public class MatriculaServicio {
     @Transactional
     public Matricula obtenerOMarcarPendienteMatricula(Long alumnoId, int anio) {
         // Busca la matrícula pendiente ya registrada para el alumno en el año indicado
-        return matriculaRepositorio.findByAlumnoIdAndAnio(alumnoId, anio)
-                .orElseGet(() -> {
-                    Alumno alumno = alumnoRepositorio.findById(alumnoId)
-                            .orElseThrow(() -> new IllegalArgumentException("Alumno no encontrado."));
-                    Matricula nuevaMatricula = new Matricula();
-                    nuevaMatricula.setAlumno(alumno);
-                    nuevaMatricula.setAnio(anio);
-                    nuevaMatricula.setPagada(false);
-                    nuevaMatricula = matriculaRepositorio.save(nuevaMatricula);
-                    matriculaRepositorio.flush(); // Asegura visibilidad en la transacción actual
-                    log.info("Nueva matrícula creada: id={} para alumnoId={}", nuevaMatricula.getId(), alumnoId);
-                    return nuevaMatricula;
-                });
+        return matriculaRepositorio.findByAlumnoIdAndAnio(alumnoId, anio).orElseGet(() -> {
+            Alumno alumno = alumnoRepositorio.findById(alumnoId).orElseThrow(() -> new IllegalArgumentException("Alumno no encontrado."));
+            Matricula nuevaMatricula = new Matricula();
+            nuevaMatricula.setAlumno(alumno);
+            nuevaMatricula.setAnio(anio);
+            nuevaMatricula.setPagada(false);
+            nuevaMatricula = matriculaRepositorio.save(nuevaMatricula);
+            matriculaRepositorio.flush(); // Asegura visibilidad en la transacción actual
+            log.info("Nueva matrícula creada: id={} para alumnoId={}", nuevaMatricula.getId(), alumnoId);
+            return nuevaMatricula;
+        });
     }
 
     @Transactional
@@ -84,7 +78,13 @@ public class MatriculaServicio {
         log.info("[registrarDetallePagoMatricula] Iniciando registro del DetallePago para matrícula id={}", matricula.getId());
 
         DetallePago detalle = new DetallePago();
-        detalle.setFechaRegistro(pagoPendiente.getFecha());
+        if (pagoPendiente == null) {
+            if (detalle.getFechaRegistro() == null) {
+                detalle.setFechaRegistro(LocalDate.now());
+            }
+        } else if (pagoPendiente.getFecha() == null && detalle.getFechaRegistro() == null) {
+            detalle.setFechaRegistro(LocalDate.now());
+        }
         // Asignar datos obligatorios
         detalle.setMatricula(matricula);
         detalle.setAlumno(matricula.getAlumno());
@@ -124,8 +124,7 @@ public class MatriculaServicio {
         String descripcion = detalle.getDescripcionConcepto();
         if (descripcion != null && descripcion.toUpperCase().contains("MATRICULA")) {
             log.info("[verificarDetallePagoUnico] Verificando duplicidad para alumnoId={} con descripción '{}'", alumnoId, descripcion);
-            boolean existeDetalleDuplicado = detallePagoRepositorio
-                    .existsByAlumnoIdAndDescripcionConceptoIgnoreCaseAndTipo(alumnoId, descripcion, TipoDetallePago.MATRICULA);
+            boolean existeDetalleDuplicado = detallePagoRepositorio.existsByAlumnoIdAndDescripcionConceptoIgnoreCaseAndTipo(alumnoId, descripcion, TipoDetallePago.MATRICULA);
             if (existeDetalleDuplicado) {
                 log.error("[verificarDetallePagoUnico] DetallePago duplicado encontrado para alumnoId={} con descripción '{}'", alumnoId, descripcion);
                 throw new IllegalStateException("MATRICULA YA COBRADA");
@@ -151,8 +150,7 @@ public class MatriculaServicio {
         Concepto concepto = optConcepto.get();
         detalle.setConcepto(concepto);
         detalle.setSubConcepto(concepto.getSubConcepto());
-        log.info("[asignarConceptoDetallePago] Se asignaron Concepto: {} y SubConcepto: {} al DetallePago",
-                detalle.getConcepto(), detalle.getSubConcepto());
+        log.info("[asignarConceptoDetallePago] Se asignaron Concepto: {} y SubConcepto: {} al DetallePago", detalle.getConcepto(), detalle.getSubConcepto());
     }
 
     @Transactional
@@ -163,9 +161,7 @@ public class MatriculaServicio {
 
         // Solo se verifica si la descripción contiene "MATRICULA"
         if (descripcion != null && descripcion.toUpperCase().contains("MATRICULA")) {
-            boolean existeDetalleActivo = detallePagoRepositorio
-                    .existsByAlumnoIdAndDescripcionConceptoIgnoreCaseAndTipoAndEstadoPagoNot(
-                            alumnoId, descripcion, TipoDetallePago.MATRICULA, EstadoPago.ANULADO);
+            boolean existeDetalleActivo = detallePagoRepositorio.existsByAlumnoIdAndDescripcionConceptoIgnoreCaseAndTipoAndEstadoPagoNot(alumnoId, descripcion, TipoDetallePago.MATRICULA, EstadoPago.ANULADO);
             if (existeDetalleActivo) {
                 log.error("[verificarMatriculaNoDuplicada] Ya existe un DetallePago activo (no anulado) con descripción '{}' para alumnoId={}", descripcion, alumnoId);
                 throw new IllegalStateException("MATRICULA YA COBRADA");
@@ -178,8 +174,7 @@ public class MatriculaServicio {
     // Metodo para actualizar el estado de la matricula (ya existente)
     @Transactional
     public MatriculaResponse actualizarEstadoMatricula(Long matriculaId, MatriculaRegistroRequest request) {
-        Matricula m = matriculaRepositorio.findById(matriculaId)
-                .orElseThrow(() -> new IllegalArgumentException("Matricula no encontrada."));
+        Matricula m = matriculaRepositorio.findById(matriculaId).orElseThrow(() -> new IllegalArgumentException("Matricula no encontrada."));
         matriculaMapper.updateEntityFromRequest(request, m);
         return matriculaMapper.toResponse(matriculaRepositorio.save(m));
     }
@@ -189,9 +184,7 @@ public class MatriculaServicio {
         LocalDate today = LocalDate.now();
         int anioActual = today.getYear();
 
-        ProcesoEjecutado proceso = procesoEjecutadoRepositorio
-                .findByProceso("MATRICULA_AUTOMATICA")
-                .orElse(new ProcesoEjecutado("MATRICULA_AUTOMATICA", null));
+        ProcesoEjecutado proceso = procesoEjecutadoRepositorio.findByProceso("MATRICULA_AUTOMATICA").orElse(new ProcesoEjecutado("MATRICULA_AUTOMATICA", null));
 
         YearMonth mesActual = YearMonth.from(today);
         if (proceso.getUltimaEjecucion() != null && YearMonth.from(proceso.getUltimaEjecucion()).equals(mesActual)) {
@@ -199,11 +192,7 @@ public class MatriculaServicio {
             return;
         }
 
-        List<Alumno> alumnosConInscripciones = alumnoRepositorio
-                .findAll()
-                .stream()
-                .filter(alumno -> Boolean.TRUE.equals(alumno.getActivo()) && alumno.getInscripciones() != null && !alumno.getInscripciones().isEmpty())
-                .toList();
+        List<Alumno> alumnosConInscripciones = alumnoRepositorio.findAll().stream().filter(alumno -> Boolean.TRUE.equals(alumno.getActivo()) && alumno.getInscripciones() != null && !alumno.getInscripciones().isEmpty()).toList();
 
         log.info("Total de alumnos con al menos una inscripción activa: {}", alumnosConInscripciones.size());
 
