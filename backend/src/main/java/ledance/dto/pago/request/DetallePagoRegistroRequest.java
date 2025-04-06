@@ -26,7 +26,8 @@ public record DetallePagoRegistroRequest(
         Double importeInicial,
         Double importeOriginal,
         Long usuarioId,
-        String estadoPago
+        String estadoPago,
+        Boolean removido
 ) {
     public DetallePagoRegistroRequest {
         if (cobrado == null) {

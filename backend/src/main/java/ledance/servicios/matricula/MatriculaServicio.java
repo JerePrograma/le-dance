@@ -120,7 +120,9 @@ public class MatriculaServicio {
         detalle.setFechaRegistro(LocalDate.now());
 
         // Verificar duplicidad (según tu lógica de negocio)
-        verificarDetallePagoUnico(detalle);
+        if (verificarDetallePagoUnico(detalle)) {
+            return;
+        }
 
         // Asignar Concepto y SubConcepto (según tu lógica de negocio)
         asignarConceptoDetallePago(detalle);
@@ -159,7 +161,7 @@ public class MatriculaServicio {
      * Si la descripción contiene "MATRICULA" y ya existe un registro, se lanza una excepción.
      */
     @Transactional
-    public void verificarDetallePagoUnico(DetallePago detalle) {
+    public boolean verificarDetallePagoUnico(DetallePago detalle) {
         Long alumnoId = detalle.getAlumno().getId();
         String descripcion = detalle.getDescripcionConcepto();
         if (descripcion != null && descripcion.toUpperCase().contains("MATRICULA")) {
@@ -167,11 +169,12 @@ public class MatriculaServicio {
             boolean existeDetalleDuplicado = detallePagoRepositorio.existsByAlumnoIdAndDescripcionConceptoIgnoreCaseAndTipo(alumnoId, descripcion, TipoDetallePago.MATRICULA);
             if (existeDetalleDuplicado) {
                 log.error("[verificarDetallePagoUnico] DetallePago duplicado encontrado para alumnoId={} con descripción '{}'", alumnoId, descripcion);
-                throw new IllegalStateException("MATRICULA YA COBRADA");
+                return true;
             }
         } else {
             log.info("[verificarDetallePagoUnico] No se requiere verificación de duplicidad para la descripción '{}'", descripcion);
         }
+        return false;
     }
 
     /**

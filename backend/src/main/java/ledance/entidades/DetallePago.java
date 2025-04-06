@@ -100,6 +100,9 @@ public class DetallePago {
     @Column(name = "estado_pago", nullable = false)
     private EstadoPago estadoPago = EstadoPago.ACTIVO;
 
+    @Column(name = "removido")
+    private Boolean removido = false;
+
     // Getters y Setters para aCobrar (u otros metodos personalizados)
     public Double getaCobrar() {
         return aCobrar;

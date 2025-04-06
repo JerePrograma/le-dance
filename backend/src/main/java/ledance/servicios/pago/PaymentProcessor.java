@@ -73,23 +73,25 @@ public class PaymentProcessor {
 
         // Procesa cada detalle del nuevo pago.
         for (DetallePago detalle : pagoNuevo.getDetallePagos()) {
-            log.info("[recalcularTotalesNuevo] Iniciando recalculo para detalle (ID: {}), : {})", detalle.getId(), detalle);
-            detalle.setFechaRegistro(pagoNuevo.getFecha());
-            double cobrado;
-            if (detalle.getaCobrar() == null || detalle.getaCobrar() <= 0) {
-                cobrado = 0;
-            } else {
-                cobrado = detalle.getaCobrar();
+            if (!detalle.getRemovido()) {
+                log.info("[recalcularTotalesNuevo] Iniciando recalculo para detalle (ID: {}), : {})", detalle.getId(), detalle);
+                detalle.setFechaRegistro(pagoNuevo.getFecha());
+                double cobrado;
+                if (detalle.getaCobrar() == null || detalle.getaCobrar() <= 0) {
+                    cobrado = 0;
+                } else {
+                    cobrado = detalle.getaCobrar();
+                }
+                totalACobrar += (cobrado);
+                if (detalle.getImportePendiente() > 0) {
+                    detalle.setImportePendiente(detalle.getImportePendiente() - cobrado);
+                } else {
+                    detalle.setImportePendiente(0.0);
+                }
+                totalPendiente += detalle.getImportePendiente();
+                log.info("[recalcularTotalesNuevo] Detalle ID {}: aCobrar={}, importePendiente={}. Acumulado: totalACobrar={}, totalPendiente={}",
+                        detalle.getId(), cobrado, detalle.getImportePendiente(), totalACobrar, totalPendiente);
             }
-            totalACobrar += (cobrado);
-            if (detalle.getImportePendiente() > 0) {
-                detalle.setImportePendiente(detalle.getImportePendiente() - cobrado);
-            } else {
-                detalle.setImportePendiente(0.0);
-            }
-            totalPendiente += detalle.getImportePendiente();
-            log.info("[recalcularTotalesNuevo] Detalle ID {}: aCobrar={}, importePendiente={}. Acumulado: totalACobrar={}, totalPendiente={}",
-                    detalle.getId(), cobrado, detalle.getImportePendiente(), totalACobrar, totalPendiente);
         }
 
         // Determinar si se aplica recargo según el método de pago.
@@ -183,6 +185,7 @@ public class PaymentProcessor {
             if (detalleOpt.isPresent()) {
                 DetallePago detalleExistente = detalleOpt.get();
                 detalleExistente.setTieneRecargo(detalleReq.tieneRecargo());
+                detalleExistente.setRemovido(detalleReq.removido());
                 log.info("[actualizarPagoHistoricoConAbonos] Detalle existente encontrado ={}",
                         detalleExistente);
                 detalleExistente.setaCobrar(detalleReq.aCobrar());
@@ -248,8 +251,10 @@ public class PaymentProcessor {
         log.info("[clonarDetallesConPendiente] Datos básicos del nuevo pago copiados.");
 
         log.info("[clonarDetallesConPendiente] Obteniendo usuario cobrador del pago histórico");
-        Usuario cobrador = pagoHistorico.getUsuario();
-        log.info("[clonarDetallesConPendiente] Cobrador asignado: {}", cobrador.getId());
+        if (pagoHistorico.getUsuario() != null) {
+            Usuario cobrador = pagoHistorico.getUsuario();
+            log.info("[clonarDetallesConPendiente] Cobrador asignado: {}", cobrador.getId());
+        }
 
         int detallesClonados = 0;
 
@@ -265,9 +270,6 @@ public class PaymentProcessor {
             log.info("[clonarDetallesConPendiente] Clonando detalle: {}", detalle);
             DetallePago nuevoDetalle = clonarDetallePago(detalle, nuevoPago);
             log.info("[clonarDetallesConPendiente] Detalle clonado temporal ID: {}", nuevoDetalle.getId());
-
-            log.info("[clonarDetallesConPendiente] Asignando cobrador al detalle: {}", cobrador.getId());
-            nuevoDetalle.setUsuario(cobrador);
 
             log.info("[clonarDetallesConPendiente] Estableciendo fecha registro en detalle clonado: {}", nuevoPago.getFecha());
             nuevoDetalle.setFechaRegistro(nuevoPago.getFecha());
@@ -331,9 +333,6 @@ public class PaymentProcessor {
         double importeInicial = calcularImporteInicialDesdeDetalles(nuevoPago.getDetallePagos());
         log.info("[clonarDetallesConPendiente] Importe inicial calculado: {}", importeInicial);
         nuevoPago.setImporteInicial(importeInicial);
-
-        log.info("[clonarDetallesConPendiente] Asignando cobrador al nuevo pago: {}", cobrador.getId());
-        nuevoPago.setUsuario(cobrador);
 
         log.info("[clonarDetallesConPendiente] Estableciendo método de pago: {}", pagoHistorico.getMetodoPago());
         nuevoPago.setMetodoPago(pagoHistorico.getMetodoPago());

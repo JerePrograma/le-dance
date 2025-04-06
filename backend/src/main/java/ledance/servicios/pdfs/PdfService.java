@@ -144,24 +144,27 @@ public class PdfService {
             double total = 0.0;
 
             for (DetallePago det : pago.getDetallePagos()) {
-                addCell(table, det.getId().toString(), cellFont);
-                addCell(table, det.getDescripcionConcepto(), cellFont);
-                addCell(table, det.getCuotaOCantidad() != null ? det.getCuotaOCantidad() : "MATRICULA", cellFont);
-                addCell(table, "$ " + String.format("%,.2f", det.getValorBase() != null ? det.getValorBase() : 0.0), cellFont);
-                addCell(table, "$ " + String.format("%,.2f", det.getBonificacion() != null ?
-                        calcularDescuento(det.getValorBase(), det.getBonificacion()) : 0.0), cellFont);
-                addCell(table, "$ " + String.format("%,.2f", det.getRecargo() != null ?
-                        calcularRecargo(det.getValorBase(), det.getRecargo()) : 0.0), cellFont);
-                double importe = det.getImporteInicial() != null ? det.getImporteInicial() : 0.0;
-                addCell(table, "$ " + String.format("%,.2f", importe), cellFont);
-                addCell(table, "$ " + String.format("%,.2f", det.getaCobrar()), cellFont);
-                double cobrado;
-                if (det.getaCobrar() == null || det.getaCobrar() <= 0) {
-                    cobrado = 0;
-                } else {
-                    cobrado = det.getaCobrar();
+                if (!det.getRemovido()) {
+                    addCell(table, det.getId().toString(), cellFont);
+                    addCell(table, det.getDescripcionConcepto(), cellFont);
+                    addCell(table, det.getCuotaOCantidad() != null ? det.getCuotaOCantidad() : "MATRICULA", cellFont);
+                    addCell(table, "$ " + String.format("%,.2f", det.getValorBase() != null ? det.getValorBase() : 0.0), cellFont);
+                    addCell(table, "$ " + String.format("%,.2f", det.getBonificacion() != null ?
+                            calcularDescuento(det.getValorBase(), det.getBonificacion()) : 0.0), cellFont);
+                    addCell(table, "$ " + String.format("%,.2f", det.getRecargo() != null ?
+                            calcularRecargo(det.getValorBase(), det.getRecargo()) : 0.0), cellFont);
+                    double importe = det.getImporteInicial() != null ? det.getImporteInicial() : 0.0;
+                    addCell(table, "$ " + String.format("%,.2f", importe), cellFont);
+                    addCell(table, "$ " + String.format("%,.2f", det.getaCobrar()), cellFont);
+                    double cobrado;
+                    if (det.getaCobrar() == null || det.getaCobrar() <= 0) {
+                        cobrado = 0;
+                    } else {
+                        cobrado = det.getaCobrar();
+                    }
+                    total += cobrado;
+
                 }
-                total += cobrado;
             }
 
             document.add(table);
