@@ -13,6 +13,7 @@ pdfs/
 # Node.js / Vite
 node_modules/
 frontend/dist/
+frontend/src/paginas/Login.tsx
 frontend/src/api/axiosConfig.ts
 npm-debug.log*
 yarn-debug.log*

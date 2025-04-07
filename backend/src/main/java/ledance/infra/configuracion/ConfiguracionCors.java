@@ -15,8 +15,16 @@ public class ConfiguracionCors implements WebMvcConfigurer {
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // Permitir cualquier origen
-        configuration.setAllowedOriginPatterns(List.of("*"));
+
+        // Especificar los orígenes permitidos
+        configuration.setAllowedOriginPatterns(List.of(
+                "http://localhost:5173",
+                "http://82.25.68.21",
+                "https://jereprograma.com",
+                "http://82.29.61.150",
+                "https://ledance.com.ar"
+        ));
+
         configuration.setAllowedMethods(List.of("GET", "POST", "OPTIONS", "PUT", "DELETE", "PATCH"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
         configuration.addExposedHeader("Authorization");
