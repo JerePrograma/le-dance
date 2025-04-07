@@ -322,7 +322,7 @@ const TotalsUpdater: React.FC<{ metodosPago: MetodoPagoResponse[] }> = ({
     );
 
     const computedTotalCobrado = visibleDetalles.reduce(
-      (total: number, item: any) => total + Number(item.aCobrar || 0),
+      (total: number, item: any) => total + Number(item.ACobrar || 0),
       0
     );
 
@@ -610,7 +610,7 @@ const DetallesTable: React.FC = () => {
                                   newValue
                                 );
                                 form.setFieldValue(
-                                  `detallePagos.${index}.aCobrar`,
+                                  `detallePagos.${index}.ACobrar`,
                                   newValue
                                 );
                               }}
@@ -620,7 +620,7 @@ const DetallesTable: React.FC = () => {
                         </Field>
                       </td>
                       <td className="border p-2 text-center text-sm">
-                        <Field name={`detallePagos.${index}.aCobrar`}>
+                        <Field name={`detallePagos.${index}.ACobrar`}>
                           {({ field }: any) => (
                             <div>
                               <input
@@ -656,7 +656,7 @@ const DetallesTable: React.FC = () => {
                             } else {
                               // Si es autogenerado, se marca como removido para ocultarlo visualmente.
                               form.setFieldValue(
-                                `detallePagos.${index}.aCobrar`,
+                                `detallePagos.${index}.ACobrar`,
                                 0
                               );
                               form.setFieldValue(
@@ -821,7 +821,7 @@ const CobranzasForm: React.FC = () => {
                 : "",
               recargoId: detalle.recargo ? detalle.recargo.id : null,
               recargoNombre: detalle.recargo ? detalle.recargo.descripcion : "",
-              aCobrar:
+              ACobrar:
                 detalle.importePendiente == null ||
                 Number(detalle.importePendiente) === 0
                   ? detalle.valorBase
@@ -918,7 +918,7 @@ const CobranzasForm: React.FC = () => {
                 version: 0,
                 alumno: values.alumno,
                 descripcionConcepto: conceptoDetalle,
-                aCobrar: total,
+                ACobrar: total,
                 cobrado: false,
                 valorBase: total,
               } as unknown as DetallePagoRegistroRequest);
@@ -936,7 +936,7 @@ const CobranzasForm: React.FC = () => {
                 importePendiente: total,
                 bonificacionId: null,
                 recargoId: null,
-                aCobrar: total,
+                ACobrar: total,
                 cobrado: false,
                 mensualidadId: null,
                 matriculaId: null,
@@ -970,7 +970,7 @@ const CobranzasForm: React.FC = () => {
                 importePendiente: selectedConcept.precio,
                 bonificacionId: null,
                 recargoId: null,
-                aCobrar: selectedConcept.precio,
+                ACobrar: selectedConcept.precio,
                 cobrado: false,
                 mensualidadId: null,
                 matriculaId: null,
@@ -1036,7 +1036,7 @@ const CobranzasForm: React.FC = () => {
             valorBase: totalOriginal,
             bonificacionId: null,
             recargoId: null,
-            aCobrar: totalDescontado,
+            ACobrar: totalDescontado,
             cobrado: false,
             conceptoId: selectedDisciplina.id,
             subConceptoId: null,
@@ -1064,7 +1064,7 @@ const CobranzasForm: React.FC = () => {
             importePendiente: totalDescontado,
             bonificacionId: null,
             recargoId: null,
-            aCobrar: totalDescontado,
+            ACobrar: totalDescontado,
             cobrado: false,
             mensualidadId: null,
             matriculaId: null,
@@ -1100,7 +1100,7 @@ const CobranzasForm: React.FC = () => {
               importePendiente: total,
               bonificacionId: null,
               recargoId: null,
-              aCobrar: total,
+              ACobrar: total,
               cobrado: false,
               mensualidadId: null,
               matriculaId: null,
@@ -1171,7 +1171,7 @@ const CobranzasForm: React.FC = () => {
           valorBase: d.valorBase,
           bonificacionId: d.bonificacionId ? Number(d.bonificacionId) : null,
           recargoId: d.recargoId ? Number(d.recargoId) : null,
-          aCobrar: d.aCobrar,
+          ACobrar: d.ACobrar,
           cobrado: d.cobrado,
           importeInicial: d.importeInicial,
           mensualidadId: d.mensualidadId ?? null,
@@ -1190,14 +1190,14 @@ const CobranzasForm: React.FC = () => {
           values.detallePagos
             .filter((detalle) => !detalle.removido)
             .map((detalle) => {
-              const aCobrar = Number(detalle.aCobrar || 0);
+              const ACobrar = Number(detalle.ACobrar || 0);
               const pendiente = Number(detalle.importePendiente || 0);
               const concepto = detalle.descripcionConcepto || "";
-              if (aCobrar === 0) {
+              if (ACobrar === 0) {
                 return `DEUDA ${concepto}`;
-              } else if (aCobrar === pendiente) {
+              } else if (ACobrar === pendiente) {
                 return `SALDA ${concepto}`;
-              } else if (aCobrar < pendiente) {
+              } else if (ACobrar < pendiente) {
                 return `CTA ${concepto}`;
               } else {
                 return null;
@@ -1251,7 +1251,7 @@ const CobranzasForm: React.FC = () => {
 
           useEffect(() => {
             const nuevoTotalCobrado = values.detallePagos.reduce(
-              (sum: number, detalle: any) => sum + Number(detalle.aCobrar || 0),
+              (sum: number, detalle: any) => sum + Number(detalle.ACobrar || 0),
               0
             );
             if (nuevoTotalCobrado !== values.totalCobrado) {
@@ -1276,7 +1276,7 @@ const CobranzasForm: React.FC = () => {
                 return {
                   ...detalle,
                   importePendiente: detalle.importeInicial,
-                  aCobrar: detalle.importeInicial,
+                  ACobrar: detalle.importeInicial,
                   tieneRecargo: false,
                 };
               }
@@ -1346,7 +1346,7 @@ const CobranzasForm: React.FC = () => {
                         const updatedDetalles = values.detallePagos.map(
                           (detalle: any) => {
                             if (detalle.autoGenerated && detalle.autoRemoved) {
-                              return { ...detalle, aCobrar: 0 };
+                              return { ...detalle, ACobrar: 0 };
                             }
                             const defaultValue =
                               detalle.importePendiente == null ||
@@ -1355,7 +1355,7 @@ const CobranzasForm: React.FC = () => {
                                 : Number(detalle.importePendiente);
                             return {
                               ...detalle,
-                              aCobrar: defaultValue,
+                              ACobrar: defaultValue,
                               modifiedACobrar: false,
                             };
                           }
@@ -1363,7 +1363,7 @@ const CobranzasForm: React.FC = () => {
                         setFieldValue("detallePagos", updatedDetalles);
                         const computedImporte = updatedDetalles.reduce(
                           (sum: number, detalle: any) =>
-                            sum + Number(detalle.aCobrar || 0),
+                            sum + Number(detalle.ACobrar || 0),
                           0
                         );
                         const totalConRecargo = computedImporte + recargo;

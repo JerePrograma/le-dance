@@ -123,8 +123,8 @@ const DetallePagoList: React.FC = () => {
   const detallesCobrado = useMemo(() => {
     return detalles.filter(
       (detalle) =>
-        detalle.aCobrar != null &&
-        detalle.aCobrar > 0 &&
+        detalle.ACobrar != null &&
+        detalle.ACobrar > 0 &&
         (detalle.cobrado || detalle.estadoPago === "ANULADO")
     );
   }, [detalles]);
@@ -167,10 +167,10 @@ const DetallePagoList: React.FC = () => {
     [detallesCobrado, visibleCount]
   );
 
-  // Cálculo de la suma total de "aCobrar" de los elementos visibles
+  // Cálculo de la suma total de "ACobrar" de los elementos visibles
   const totalACobrar = useMemo(() => {
     return currentItems.reduce(
-      (acc, item) => acc + Number(item.aCobrar || 0),
+      (acc, item) => acc + Number(item.ACobrar || 0),
       0
     );
   }, [currentItems]);
@@ -403,7 +403,7 @@ const DetallePagoList: React.FC = () => {
                   fila.pagoId || fila.id,
                   fila.alumnoDisplay,
                   fila.descripcionConcepto,
-                  fila.aCobrar,
+                  fila.ACobrar,
                   bonificacionNombre || "-",
                   recargoNombre || "-",
                   fila.cobrado ? "Sí" : "No",

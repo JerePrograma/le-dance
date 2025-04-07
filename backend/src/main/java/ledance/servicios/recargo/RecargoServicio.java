@@ -309,7 +309,7 @@ public class RecargoServicio {
     }
 
     /**
-     * Recalcula el importe pendiente de un DetallePago, sumando el recargo (calculado sobre el importeInicial) y descontando lo que ya se haya cobrado (aCobrar).
+     * Recalcula el importe pendiente de un DetallePago, sumando el recargo (calculado sobre el importeInicial) y descontando lo que ya se haya cobrado (ACobrar).
      */
     public void recalcularImporteDetalle(DetallePago detalle) {
         double base = detalle.getImporteInicial();
@@ -318,10 +318,10 @@ public class RecargoServicio {
             recargoValue = calcularRecargo(detalle.getRecargo(), base);
         }
         double nuevoTotal = base + recargoValue;
-        double nuevoPendiente = nuevoTotal - detalle.getaCobrar();
+        double nuevoPendiente = nuevoTotal - detalle.getACobrar();
         detalle.setImportePendiente(nuevoPendiente);
-        log.info("DetallePago id={} recalculado: base={}, recargoValue={}, nuevoTotal={}, aCobrar={}, nuevoPendiente={}",
-                detalle.getId(), base, recargoValue, nuevoTotal, detalle.getaCobrar(), nuevoPendiente);
+        log.info("DetallePago id={} recalculado: base={}, recargoValue={}, nuevoTotal={}, ACobrar={}, nuevoPendiente={}",
+                detalle.getId(), base, recargoValue, nuevoTotal, detalle.getACobrar(), nuevoPendiente);
         detallePagoRepositorio.save(detalle);
     }
 

@@ -46,7 +46,7 @@ const mapDetallePagos = (
       recargoId: det.recargoId ?? null,
       // Aquí ya tenemos el importePendiente modificado si corresponde
       importePendiente: baseValue,
-      aCobrar: baseValue, // También lo ajustamos
+      ACobrar: baseValue, // También lo ajustamos
       cobrado: det.cobrado ?? false,
       mensualidadId: det.mensualidadId ?? null,
       matriculaId: det.matriculaId ?? null,

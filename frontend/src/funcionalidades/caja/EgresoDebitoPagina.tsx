@@ -184,7 +184,7 @@ export default function EgresosDebitoPagina() {
           bonificacionNombre: "",
           recargoId: null,
           recargoNombre: "",
-          aCobrar: totalRecargo,
+          ACobrar: totalRecargo,
           cobrado: true,
           conceptoId: null,
           subConceptoId: null,
@@ -294,10 +294,10 @@ export default function EgresosDebitoPagina() {
   };
 
   /* ----------------- Cálculos Totales ----------------- */
-  // Total Cobrado: suma de todos los valores de aCobrar (incluyendo los items agregados)
+  // Total Cobrado: suma de todos los valores de ACobrar (incluyendo los items agregados)
   const totalCobrado = useMemo(() => {
     return sortedFinalItems.reduce(
-      (sum, item) => sum + Number(item.aCobrar || 0),
+      (sum, item) => sum + Number(item.ACobrar || 0),
       0
     );
   }, [sortedFinalItems]);
@@ -376,7 +376,7 @@ export default function EgresosDebitoPagina() {
               fila.id,
               fila.alumnoDisplay || "-",
               fila.descripcionConcepto,
-              fila.aCobrar,
+              fila.ACobrar,
               fila.bonificacionNombre || "-",
               fila.recargoNombre || "-",
             ]}

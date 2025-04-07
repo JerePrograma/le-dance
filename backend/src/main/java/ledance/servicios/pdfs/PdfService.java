@@ -155,12 +155,12 @@ public class PdfService {
                             calcularRecargo(det.getValorBase(), det.getRecargo()) : 0.0), cellFont);
                     double importe = det.getImporteInicial() != null ? det.getImporteInicial() : 0.0;
                     addCell(table, "$ " + String.format("%,.2f", importe), cellFont);
-                    addCell(table, "$ " + String.format("%,.2f", det.getaCobrar()), cellFont);
+                    addCell(table, "$ " + String.format("%,.2f", det.getACobrar()), cellFont);
                     double cobrado;
-                    if (det.getaCobrar() == null || det.getaCobrar() <= 0) {
+                    if (det.getACobrar() == null || det.getACobrar() <= 0) {
                         cobrado = 0;
                     } else {
-                        cobrado = det.getaCobrar();
+                        cobrado = det.getACobrar();
                     }
                     total += cobrado;
 

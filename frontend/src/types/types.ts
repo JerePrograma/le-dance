@@ -745,7 +745,7 @@ export interface DetallePagoResponse {
   bonificacionNombre?: string; // <-- Agregado
   recargoId?: number | null;
   recargoNombre?: string; // <-- Agregado
-  aCobrar: number;
+  ACobrar: number;
   cobrado: boolean;
   conceptoId?: number | null;
   subConceptoId?: number | null;
@@ -771,7 +771,7 @@ export interface DetallePagoRegistroRequest {
   descripcionConcepto: string;
   cuotaOCantidad?: string;
   valorBase: number;
-  aCobrar: number;
+  ACobrar: number;
   bonificacionId?: number | null;
   recargoId?: number | null;
   cobrado?: boolean;

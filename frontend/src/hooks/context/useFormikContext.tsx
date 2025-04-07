@@ -39,7 +39,7 @@ export const MatriculaAutoAdd: React.FC<MatriculaAutoAddProps> = ({ matricula, c
           descripcionConcepto: conceptoMatricula.descripcion.toUpperCase(), // "MATRICULA"
           cuotaOCantidad: "1",
           valorBase: conceptoMatricula.precio,
-          aCobrar: conceptoMatricula.precio,
+          ACobrar: conceptoMatricula.precio,
           bonificacionId: null,
           recargoId: null,
           cobrado: false,

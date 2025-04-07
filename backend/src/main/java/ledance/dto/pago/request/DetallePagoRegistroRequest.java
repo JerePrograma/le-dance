@@ -13,7 +13,7 @@ public record DetallePagoRegistroRequest(
         @NotNull @Min(0) Double valorBase,
         Long bonificacionId,
         Long recargoId,
-        Double aCobrar,
+        Double ACobrar,
         Boolean cobrado,
         Long conceptoId,
         Long subConceptoId,

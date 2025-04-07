@@ -259,8 +259,8 @@ public class PagoServicio {
             log.info("[actualizarDetallesPago] Recalculando importe para detalle id={} (Descripción: {})",
                     detalle.getId(), detalle.getDescripcionConcepto());
             detallePagoServicio.calcularImporte(detalle);
-            log.info("[actualizarDetallesPago] Detalle id={} - Importe recalculado: aCobrar={}, pendiente={}",
-                    detalle.getId(), detalle.getaCobrar(), detalle.getImportePendiente());
+            log.info("[actualizarDetallesPago] Detalle id={} - Importe recalculado: ACobrar={}, pendiente={}",
+                    detalle.getId(), detalle.getACobrar(), detalle.getImportePendiente());
         });
 
         log.info("[actualizarDetallesPago] FIN - Proceso completado para pago id={}", pago.getId());
@@ -297,8 +297,8 @@ public class PagoServicio {
             nuevo.setValorBase(dto.valorBase());
             // Asigna el nuevo campo unificado para la descripcion.
             nuevo.setDescripcionConcepto(dto.descripcionConcepto());
-            // Si aCobrar esta definido y es mayor a 0, se utiliza; de lo contrario se usa valorBase.
-            nuevo.setaCobrar((dto.aCobrar() != null && dto.aCobrar() > 0) ? dto.aCobrar() : 0);
+            // Si ACobrar esta definido y es mayor a 0, se utiliza; de lo contrario se usa valorBase.
+            nuevo.setACobrar((dto.ACobrar() != null && dto.ACobrar() > 0) ? dto.ACobrar() : 0);
             return verificarBonificacion(dto, nuevo);
         }
     }

@@ -247,19 +247,19 @@ const DetallePagoList: React.FC<DetallePagoListProps> = ({
     return () => window.removeEventListener("resize", adjustTableHeight);
   }, []);
 
-  // Filtrar los detalles que cumplen: aCobrar > 0 || importePendiente === 0 || estadoPago === "ANULADO"
+  // Filtrar los detalles que cumplen: ACobrar > 0 || importePendiente === 0 || estadoPago === "ANULADO"
   const filteredDetalles = useMemo(() => {
     if (filtroCobrado === "COBRADOS") {
       return detalles.filter(
         (d) =>
-          d.aCobrar > 0 ||
+          d.ACobrar > 0 ||
           d.importePendiente === 0 ||
           d.estadoPago.toUpperCase() === "ANULADO"
       );
     } else if (filtroCobrado === "GENERADOS") {
       return detalles.filter(
         (d) =>
-          d.aCobrar === 0 &&
+          d.ACobrar === 0 &&
           d.importePendiente > 0 &&
           d.estadoPago.toUpperCase() !== "ANULADO"
       );
@@ -602,7 +602,7 @@ const DetallePagoList: React.FC<DetallePagoListProps> = ({
                 const cobradoValue =
                   filtroCobrado === "GENERADOS"
                     ? `Deuda: ${fila.importePendiente}`
-                    : fila.aCobrar;
+                    : fila.ACobrar;
                 return [
                   fila.id,
                   fila.alumnoDisplay,

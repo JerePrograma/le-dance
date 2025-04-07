@@ -12,7 +12,7 @@ public record DetallePagoResponse(
         Long bonificacionId,
         String bonificacionNombre,
         Long recargoId,
-        Double aCobrar,
+        Double ACobrar,
         Boolean cobrado,
         Long conceptoId,
         Long subConceptoId,

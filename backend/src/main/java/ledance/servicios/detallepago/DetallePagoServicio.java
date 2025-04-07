@@ -50,7 +50,7 @@ public class DetallePagoServicio {
     /**
      * Calcula el importe final de un DetallePago usando:
      * totalAjustado = valorBase - descuento + recargo
-     * importe = totalAjustado - aCobrar (acumulado)
+     * importe = totalAjustado - ACobrar (acumulado)
      */
     public void calcularImporte(DetallePago detalle) {
         // 1. Inicio y validación de concepto
@@ -102,10 +102,10 @@ public class DetallePagoServicio {
         // 6. Gestión de importe pendiente
         if (detalle.getImportePendiente() == null) {
             log.info("[calcularImporte] Importe pendiente nulo - Asignando valor inicial: {}", importeInicial);
-            if (detalle.getaCobrar() == null) {
-                detalle.setaCobrar(0.0);
+            if (detalle.getACobrar() == null) {
+                detalle.setACobrar(0.0);
             }
-            detalle.setImportePendiente(importeInicial - detalle.getaCobrar());
+            detalle.setImportePendiente(importeInicial - detalle.getACobrar());
         } else {
             log.info("[calcularImporte] Importe pendiente mantiene su valor actual: {}", detalle.getImportePendiente());
         }
@@ -280,7 +280,7 @@ public class DetallePagoServicio {
         detalleExistente.setBonificacion(detalleActualizado.getBonificacion());
         detalleExistente.setRecargo(detalleActualizado.getRecargo());
         detalleExistente.setValorBase(detalleActualizado.getValorBase());
-        // Si es necesario, actualiza otros campos relacionados (importeInicial, importePendiente, aCobrar, etc.)
+        // Si es necesario, actualiza otros campos relacionados (importeInicial, importePendiente, ACobrar, etc.)
 
         // Recalcular importes
         calcularImporte(detalleExistente);
@@ -313,7 +313,7 @@ public class DetallePagoServicio {
             log.info("[eliminarDetallePago] Detalle removido de la colección del pago");
 
             // 4. Recalcular nuevos montos para el pago
-            double valorACobrar = detalle.getaCobrar();
+            double valorACobrar = detalle.getACobrar();
             double nuevoMonto = pago.getMonto() - valorACobrar;
             double nuevoMontoPagado = pago.getMontoPagado() - valorACobrar;
 
@@ -363,10 +363,10 @@ public class DetallePagoServicio {
         Pago pago = detalle.getPago();
         if (pago != null) {
             log.info("Pago encontrado: {}", pago);
-            double valorACobrar = detalle.getaCobrar();
+            double valorACobrar = detalle.getACobrar();
             double montoActual = pago.getMonto();
             double montoPagadoActual = pago.getMontoPagado();
-            log.info("Valores actuales - Monto: {}, MontoPagado: {}, aCobrar: {}",
+            log.info("Valores actuales - Monto: {}, MontoPagado: {}, ACobrar: {}",
                     montoActual, montoPagadoActual, valorACobrar);
 
             double nuevoMonto = montoActual - valorACobrar;
@@ -408,7 +408,7 @@ public class DetallePagoServicio {
         // 5. Actualizar el DetallePago para anulación
         detalle.setEstadoPago(EstadoPago.ANULADO);
         detalle.setCobrado(false);
-        detalle.setaCobrar(0.0);
+        detalle.setACobrar(0.0);
 
         // Guardar el DetallePago actualizado
         detalle = detallePagoRepositorio.save(detalle);

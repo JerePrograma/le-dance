@@ -98,7 +98,7 @@ public class PaymentCalculationServicio {
     /**
      * Procesa el abono de un detalle, asegurandose de que:
      * - El monto abonado no exceda el importe pendiente.
-     * - Se actualicen los campos aCobrar e importePendiente correctamente.
+     * - Se actualicen los campos ACobrar e importePendiente correctamente.
      */
     // Método corregido para procesar correctamente los abonos y actualizar estados
     void procesarAbono(DetallePago detalle, Double montoAbono, Double importeInicialCalculado) {
@@ -146,8 +146,8 @@ public class PaymentCalculationServicio {
 
         // 6. Actualización de valores
         log.info("[procesarAbono] Actualizando valores del detalle");
-        detalle.setaCobrar(montoAbono);
-        log.info("[procesarAbono] aCobrar asignado: {}", detalle.getaCobrar());
+        detalle.setACobrar(montoAbono);
+        log.info("[procesarAbono] ACobrar asignado: {}", detalle.getACobrar());
 
         double nuevoPendiente = importePendienteActual - montoAbono;
         detalle.setImportePendiente(nuevoPendiente);
@@ -261,17 +261,14 @@ public class PaymentCalculationServicio {
                     mensualidadServicio.procesarAbonoMensualidad(mensualidad, detalle);
                 }
                 break;
-
             case MATRICULA:
                 log.info("[procesarYCalcularDetalle] Procesando matrícula");
                 calcularMatricula(detalle, detalle.getPago());
                 break;
-
             case STOCK:
                 log.info("[procesarYCalcularDetalle] Procesando stock");
                 calcularStock(detalle);
                 break;
-
             default:
                 log.info("[procesarYCalcularDetalle] Procesando concepto general para Detalle id={}", detalle.getId());
                 detalle.setTipo(TipoDetallePago.CONCEPTO);
@@ -281,7 +278,7 @@ public class PaymentCalculationServicio {
                 if (descripcion.contains("CLASE SUELTA")) {
                     log.info("[procesarYCalcularDetalle] Actualizando crédito del alumno por CLASE SUELTA");
                     double creditoActual = Optional.ofNullable(detalle.getAlumno().getCreditoAcumulado()).orElse(0.0);
-                    double nuevoCredito = creditoActual + detalle.getaCobrar();
+                    double nuevoCredito = creditoActual + detalle.getACobrar();
                     detalle.getAlumno().setCreditoAcumulado(nuevoCredito);
                     log.info("[procesarYCalcularDetalle] Crédito actualizado para alumno ID {}: {}", detalle.getAlumno().getId(), nuevoCredito);
                 } else {
@@ -290,19 +287,19 @@ public class PaymentCalculationServicio {
                 break;
         }
 
-        // 6. Validar consistencia en importes: importeInicial, aCobrar y estado de cobro
+        // 6. Validar consistencia en importes: importeInicial, ACobrar y estado de cobro
         Double impInicialFinal = Optional.ofNullable(detalle.getImporteInicial()).orElse(detalle.getValorBase());
         if (impInicialFinal == null || impInicialFinal <= 0) {
             impInicialFinal = Optional.ofNullable(detalle.getImportePendiente()).orElse(0.0);
             detalle.setImporteInicial(impInicialFinal);
             log.warn("[procesarYCalcularDetalle] Importe inicial inválido; se asignó nuevo valor: {}", impInicialFinal);
         }
-        double aCobrarFinal = Optional.ofNullable(detalle.getaCobrar()).orElse(0.0);
-        if (aCobrarFinal < 0) {
-            aCobrarFinal = 0.0;
-            log.warn("[procesarYCalcularDetalle] aCobrar inválido; se asignó 0.0");
+        double ACobrarFinal = Optional.ofNullable(detalle.getACobrar()).orElse(0.0);
+        if (ACobrarFinal < 0) {
+            ACobrarFinal = 0.0;
+            log.warn("[procesarYCalcularDetalle] ACobrar inválido; se asignó 0.0");
         }
-        detalle.setaCobrar(aCobrarFinal);
+        detalle.setACobrar(ACobrarFinal);
 
         Double impPendienteFinal = Optional.ofNullable(detalle.getImportePendiente()).orElse(0.0);
         boolean cobrado = impPendienteFinal <= 0.0;
@@ -343,9 +340,9 @@ public class PaymentCalculationServicio {
         log.info("[procesarClaseDePrueba] Importe de clase de prueba obtenido: {}", importeClasePrueba);
         detalle.setImporteInicial(importeClasePrueba);
 
-        // 4. Mantener el valor de aCobrar que viene del detalle.
-        double valorACobrar = detalle.getaCobrar();
-        log.info("[procesarClaseDePrueba] Valor aCobrar recibido del detalle: {}", valorACobrar);
+        // 4. Mantener el valor de ACobrar que viene del detalle.
+        double valorACobrar = detalle.getACobrar();
+        log.info("[procesarClaseDePrueba] Valor ACobrar recibido del detalle: {}", valorACobrar);
         // No se modifica, se utiliza el valor que ya tiene el detalle.
 
         // 5. Calcular el importe pendiente:
@@ -364,7 +361,7 @@ public class PaymentCalculationServicio {
             detalle.setImportePendiente(0.0);
         }
         detalle.setImportePendiente(nuevoImportePendiente);
-        log.info("[procesarClaseDePrueba] Nuevo importe pendiente calculado: {} (Original: {} - aCobrar: {})",
+        log.info("[procesarClaseDePrueba] Nuevo importe pendiente calculado: {} (Original: {} - ACobrar: {})",
                 nuevoImportePendiente, importePendienteOriginal, valorACobrar);
 
         // 6. Actualizar el crédito acumulado del alumno asociado al pago.
@@ -410,7 +407,7 @@ public class PaymentCalculationServicio {
 
     /**
      * Aplica el descuento del crédito acumulado al detalle de matrícula.
-     * En vez de modificar el monto a cobrar (aCobrar), se actualiza el importeInicial
+     * En vez de modificar el monto a cobrar (ACobrar), se actualiza el importeInicial
      * (y también el importePendiente) para reflejar el descuento.
      */
     private void aplicarDescuentoCreditoEnMatricula(Pago pago, DetallePago detalle) {
@@ -439,7 +436,7 @@ public class PaymentCalculationServicio {
         // Se aplica como máximo el crédito disponible o la diferencia obtenida
         double creditoAplicable = Math.min(creditoAlumno, diferencia);
 
-        // Ahora, en vez de modificar aCobrar, actualizamos el importeInicial y el importePendiente
+        // Ahora, en vez de modificar ACobrar, actualizamos el importeInicial y el importePendiente
         double nuevoValorBase = importeInicialOriginal - creditoAplicable; // 35000 - 8000 = 27000
         detalle.setImporteInicial(nuevoValorBase);
         detalle.setImportePendiente(nuevoValorBase);
@@ -505,11 +502,11 @@ public class PaymentCalculationServicio {
         log.info("[calcularMatricula] Actualizado importeInicial a: {} tras aplicar descuento", detalle.getImporteInicial());
 
         // 7. Fase de abono: se descuenta el valor abonado del importe pendiente
-        double aCobrar = detalle.getaCobrar() != null ? detalle.getaCobrar() : 0.0;
-        if (aCobrar > 0) {
-            double nuevoPendiente = detalle.getImportePendiente() - aCobrar;
+        double ACobrar = detalle.getACobrar() != null ? detalle.getACobrar() : 0.0;
+        if (ACobrar > 0) {
+            double nuevoPendiente = detalle.getImportePendiente() - ACobrar;
             detalle.setImportePendiente(nuevoPendiente);
-            log.info("[calcularMatricula] Abono procesado: aCobrar={} => nuevo importePendiente={}", aCobrar, nuevoPendiente);
+            log.info("[calcularMatricula] Abono procesado: ACobrar={} => nuevo importePendiente={}", ACobrar, nuevoPendiente);
         }
 
         // 8. Marcar el detalle como cobrado si el importe pendiente es cero o menor
@@ -563,9 +560,9 @@ public class PaymentCalculationServicio {
         log.info("[calcularStock] Detalle id={} - Importe Inicial Calculado: {}", detalle.getId(), importeInicialCalculado);
 
         // Procesar abono para el detalle STOCK (unica llamada para este tipo)
-        log.info("[calcularStock] Detalle id={} - Procesando abono para STOCK. aCobrar: {}, importeInicialCalculado: {}",
-                detalle.getId(), detalle.getaCobrar(), importeInicialCalculado);
-        procesarAbono(detalle, detalle.getaCobrar(), importeInicialCalculado);
+        log.info("[calcularStock] Detalle id={} - Procesando abono para STOCK. ACobrar: {}, importeInicialCalculado: {}",
+                detalle.getId(), detalle.getACobrar(), importeInicialCalculado);
+        procesarAbono(detalle, detalle.getACobrar(), importeInicialCalculado);
 
         // Marcar como procesado (podrias setear una bandera en el detalle, por ejemplo, detalle.setAbonoProcesado(true))
         // Aqui usamos el hecho de que el detalle ya esta cobrado y su importe pendiente es 0.
@@ -620,12 +617,12 @@ public class PaymentCalculationServicio {
                     recargo, nuevoImportePendiente, detalle.getId());
         }
 
-        // 3. Procesar abono: descontar aCobrar si corresponde
-        if (detalle.getaCobrar() != null && detalle.getaCobrar() > 0) {
-            double nuevoPendiente = detalle.getImportePendiente() - detalle.getaCobrar();
+        // 3. Procesar abono: descontar ACobrar si corresponde
+        if (detalle.getACobrar() != null && detalle.getACobrar() > 0) {
+            double nuevoPendiente = detalle.getImportePendiente() - detalle.getACobrar();
             detalle.setImportePendiente(nuevoPendiente);
-            log.info("[calcularMensualidad] Abono procesado: aCobrar={} -> nuevo importePendiente={}",
-                    detalle.getaCobrar(), nuevoPendiente);
+            log.info("[calcularMensualidad] Abono procesado: ACobrar={} -> nuevo importePendiente={}",
+                    detalle.getACobrar(), nuevoPendiente);
         }
 
         // 4. Actualizar estado de cobro según el importe pendiente
@@ -650,7 +647,7 @@ public class PaymentCalculationServicio {
      */
     void calcularConceptoGeneral(DetallePago detalle) {
         double importeInicialCalculado = calcularImporteInicial(detalle, null, false);
-        procesarAbono(detalle, detalle.getaCobrar(), importeInicialCalculado);
+        procesarAbono(detalle, detalle.getACobrar(), importeInicialCalculado);
         detalle.setCobrado(detalle.getImportePendiente() == 0.0);
     }
 
@@ -814,10 +811,10 @@ public class PaymentCalculationServicio {
     public void reatacharAsociaciones(DetallePago detalle, Pago pago) {
         log.info("[reatacharAsociaciones] INICIO: Reatachando asociaciones para DetallePago id={}", detalle.getId());
 
-        // 1. Asegurar que aCobrar tenga un valor válido
-        if (detalle.getaCobrar() == null) {
-            detalle.setaCobrar(0.0);
-            log.info("[reatacharAsociaciones] Se asignó aCobrar=0.0 para DetallePago id={}", detalle.getId());
+        // 1. Asegurar que ACobrar tenga un valor válido
+        if (detalle.getACobrar() == null) {
+            detalle.setACobrar(0.0);
+            log.info("[reatacharAsociaciones] Se asignó ACobrar=0.0 para DetallePago id={}", detalle.getId());
         }
 
         // 2. Reatachar Alumno desde el pago si es necesario

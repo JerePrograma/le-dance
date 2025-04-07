@@ -132,7 +132,7 @@ public class MatriculaServicio {
         detalle.setValorBase(valorBase);
         detalle.setImporteInicial(valorBase);
         detalle.setImportePendiente(valorBase);
-        detalle.setaCobrar(0.0);
+        detalle.setACobrar(0.0);
         detalle.setCobrado(false);
 
         // Asociar el pago al detalle

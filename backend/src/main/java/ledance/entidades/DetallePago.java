@@ -50,20 +50,22 @@ public class DetallePago {
     private Double valorBase;
     private Double importeInicial;
     private Double importePendiente;
-    private Double aCobrar;
+
+    @Column(name = "a_cobrar")
+    private Double ACobrar;
 
     @ManyToOne
     @JoinColumn(name = "pago_id", nullable = false)
     private Pago pago;
 
     // En DetallePago, para eliminar Mensualidad al borrar el DetallePago:
-    @ManyToOne(cascade = CascadeType.REMOVE)
+    @ManyToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "mensualidad_id", nullable = true)
     @ToString.Exclude // Evita recursividad con Mensualidad
     private Mensualidad mensualidad;
 
     // Para Matricula:
-    @ManyToOne(cascade = CascadeType.REMOVE)
+    @ManyToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "matricula_id", nullable = true)
     private Matricula matricula;
 
@@ -102,15 +104,6 @@ public class DetallePago {
 
     @Column(name = "removido")
     private Boolean removido = false;
-
-    // Getters y Setters para aCobrar (u otros metodos personalizados)
-    public Double getaCobrar() {
-        return aCobrar;
-    }
-
-    public void setaCobrar(Double aCobrar) {
-        this.aCobrar = aCobrar;
-    }
 
     @PrePersist
     public void prePersist() {

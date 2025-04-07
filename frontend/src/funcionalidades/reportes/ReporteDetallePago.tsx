@@ -189,7 +189,7 @@ const ReporteDetallePago: React.FC = () => {
   };
 
   const totalACobrar = resultados.reduce(
-    (sum, item) => sum + Number(item.aCobrar || 0),
+    (sum, item) => sum + Number(item.ACobrar || 0),
     0
   );
   const montoPorcentaje = totalACobrar * (porcentaje / 100);
@@ -406,12 +406,12 @@ const ReporteDetallePago: React.FC = () => {
                 />,
                 <input
                   type="number"
-                  value={item.aCobrar}
+                  value={item.ACobrar}
                   onChange={(e) =>
                     setResultados((prev) =>
                       prev.map((it) =>
                         it.id === item.id
-                          ? { ...it, aCobrar: Number(e.target.value) }
+                          ? { ...it, ACobrar: Number(e.target.value) }
                           : it
                       )
                     )
