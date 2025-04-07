@@ -1,16 +1,12 @@
-// src/funcionalidades/alumnos/AlumnosFormulario.tsx
-import { useState, useEffect, useCallback, useRef } from "react";
+"use client";
+
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Formik, Form, Field, ErrorMessage, type FormikHelpers } from "formik";
-import { alumnoEsquema } from "../../validaciones/alumnoEsquema";
+import { toast } from "react-toastify";
 import alumnosApi from "../../api/alumnosApi";
 import inscripcionesApi from "../../api/inscripcionesApi";
-import { toast } from "react-toastify";
-import type {
-  AlumnoResponse,
-  AlumnoRegistro,
-  InscripcionResponse,
-} from "../../types/types";
+import { alumnoEsquema } from "../../validaciones/alumnoEsquema";
 import useDebounce from "../../hooks/useDebounce";
 import Boton from "../../componentes/comunes/Boton";
 import Tabla from "../../componentes/comunes/Tabla";
@@ -18,7 +14,21 @@ import { Search, X } from "lucide-react";
 import { Button } from "../../componentes/ui/button";
 import ResponsiveContainer from "../../componentes/comunes/ResponsiveContainer";
 
-// Pre-cargamos la fecha de incorporación con la fecha actual (formato "yyyy-MM-dd")
+// IMPORTACIONES PARA EL FORMULARIO DE INSCRIPCIONES (Modal)
+import disciplinasApi from "../../api/disciplinasApi";
+import bonificacionesApi from "../../api/bonificacionesApi";
+import { inscripcionEsquema } from "../../validaciones/inscripcionEsquema";
+
+import type {
+  AlumnoResponse,
+  AlumnoRegistro,
+  InscripcionResponse,
+  InscripcionRegistroRequest,
+  BonificacionResponse,
+  DisciplinaDetalleResponse,
+} from "../../types/types";
+
+// --- Valores iniciales ---
 const today = new Date().toISOString().split("T")[0];
 
 const initialAlumnoValues: AlumnoRegistro = {
@@ -41,17 +51,455 @@ const initialAlumnoValues: AlumnoRegistro = {
   cuotaTotal: 0,
 };
 
+const initialInscripcion: InscripcionRegistroRequest = {
+  alumno: { id: 0, nombre: "", apellido: "" },
+  // Se asigna un objeto de disciplina vacío (sin horarios)
+  disciplina: {
+    id: 0,
+    nombre: "",
+    salonId: 0,
+    profesorId: 0,
+    valorCuota: 0,
+    matricula: 0,
+    horarios: [],
+  },
+  bonificacionId: undefined,
+  fechaInscripcion: today,
+};
+
+// --- Componente Modal para Inscripciones ---
+interface InscripcionesModalProps {
+  alumnoId: number;
+  onClose: () => void;
+  // Callback para notificar al componente padre que se deben recargar las inscripciones
+  onInscripcionesChange: (alumnoId: number) => void;
+}
+
+const InscripcionesModal: React.FC<InscripcionesModalProps> = ({
+  alumnoId,
+  onClose,
+  onInscripcionesChange,
+}) => {
+  const [disciplinas, setDisciplinas] = useState<DisciplinaDetalleResponse[]>(
+    []
+  );
+  const [bonificaciones, setBonificaciones] = useState<BonificacionResponse[]>(
+    []
+  );
+  const [inscripcionesList, setInscripcionesList] = useState<
+    InscripcionRegistroRequest[]
+  >([
+    {
+      ...initialInscripcion,
+      alumno: { ...initialInscripcion.alumno, id: alumnoId },
+    },
+  ]);
+  const [prevInscripciones, setPrevInscripciones] = useState<
+    InscripcionResponse[]
+  >([]);
+
+  // Cargar catálogos
+  useEffect(() => {
+    const fetchCatalogos = async () => {
+      try {
+        const [discData, bonData] = await Promise.all([
+          disciplinasApi.listarDisciplinas(),
+          bonificacionesApi.listarBonificaciones(),
+        ]);
+        setDisciplinas(discData || []);
+        setBonificaciones(bonData || []);
+      } catch (error) {
+        console.error("Error al cargar catálogos", error);
+      }
+    };
+    fetchCatalogos();
+  }, []);
+
+  // Cargar inscripciones previas del alumno
+  const fetchPrevInscripciones = useCallback(async () => {
+    if (alumnoId) {
+      try {
+        const lista = await inscripcionesApi.listar(alumnoId);
+        setPrevInscripciones(lista);
+      } catch (error) {
+        console.error("Error al cargar inscripciones previas", error);
+      }
+    }
+  }, [alumnoId]);
+
+  useEffect(() => {
+    fetchPrevInscripciones();
+  }, [fetchPrevInscripciones]);
+
+  const agregarInscripcion = () => {
+    setInscripcionesList((prev) => [
+      ...prev,
+      {
+        ...initialInscripcion,
+        alumno: { ...initialInscripcion.alumno, id: alumnoId },
+      },
+    ]);
+  };
+
+  const eliminarInscripcionRow = (index: number) => {
+    setInscripcionesList((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleGuardarInscripcion = async (
+    values: InscripcionRegistroRequest,
+    resetForm: () => void,
+    index: number
+  ) => {
+    if (
+      !values.alumno.id ||
+      values.alumno.id === 0 ||
+      !values.disciplina.id ||
+      values.disciplina.id === 0
+    ) {
+      return;
+    }
+    try {
+      const payload: InscripcionRegistroRequest = {
+        alumno: values.alumno,
+        disciplina: values.disciplina,
+        bonificacionId: values.bonificacionId,
+        fechaInscripcion: values.fechaInscripcion,
+      };
+
+      if ((values as any).id) {
+        await inscripcionesApi.actualizar((values as any).id, payload);
+        setInscripcionesList((prev) =>
+          prev.map((insc, i) => (i === index ? { ...values } : insc))
+        );
+      } else {
+        await inscripcionesApi.crear(values);
+      }
+      // Recargar inscripciones previas en el modal
+      await fetchPrevInscripciones();
+      // Notifica al componente padre para recargar la lista principal
+      onInscripcionesChange(alumnoId);
+      resetForm();
+      eliminarInscripcionRow(index);
+      toast.success("Inscripción guardada correctamente.");
+    } catch (err) {
+      toast.error("Error al guardar la inscripción.");
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 flex items-center justify-center z-50">
+      <div
+        className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+        onClick={onClose}
+      ></div>
+      <div className="relative bg-card rounded-lg p-6 max-h-full overflow-auto w-full max-w-4xl shadow-lg border border-border">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-bold">Registrar Inscripciones</h2>
+          <Button onClick={onClose}>
+            <X className="w-5 h-5" />
+          </Button>
+        </div>
+        {/* Listado de inscripciones previas en el modal */}
+        {prevInscripciones.length > 0 && (
+          <div className="mb-6">
+            <h3 className="text-xl font-semibold mb-2">
+              Inscripciones Previas
+            </h3>
+            <div className="overflow-x-auto">
+              <Tabla
+                headers={[
+                  "ID",
+                  "Disciplina",
+                  "Fecha Inscripción",
+                  "Cuota",
+                  "Bonificación (%)",
+                  "Bonificación (monto)",
+                  "Total",
+                ]}
+                data={[...prevInscripciones, { _totals: true } as any]}
+                customRender={(fila: any) => {
+                  if (fila._totals) {
+                    const totales = prevInscripciones.reduce(
+                      (acc, ins) => {
+                        const cuota = ins.disciplina?.valorCuota || 0;
+                        const bonifPct =
+                          ins.bonificacion?.porcentajeDescuento || 0;
+                        const bonifMonto = ins.bonificacion?.valorFijo || 0;
+                        const total =
+                          cuota - bonifMonto - (cuota * bonifPct) / 100;
+                        return {
+                          cuota: acc.cuota + cuota,
+                          bonifPct: acc.bonifPct + bonifPct,
+                          bonifMonto: acc.bonifMonto + bonifMonto,
+                          total: acc.total + total,
+                        };
+                      },
+                      { cuota: 0, bonifPct: 0, bonifMonto: 0, total: 0 }
+                    );
+                    return [
+                      <span key="totales" className="font-bold text-center">
+                        Totales
+                      </span>,
+                      "",
+                      "",
+                      totales.cuota.toFixed(2),
+                      totales.bonifPct.toFixed(2),
+                      totales.bonifMonto.toFixed(2),
+                      totales.total.toFixed(2),
+                      "",
+                    ];
+                  } else {
+                    const cuota = fila.disciplina?.valorCuota || 0;
+                    const bonifPct =
+                      fila.bonificacion?.porcentajeDescuento || 0;
+                    const bonifMonto = fila.bonificacion?.valorFijo || 0;
+                    const total = cuota - bonifMonto - (cuota * bonifPct) / 100;
+                    return [
+                      fila.id,
+                      fila.disciplina?.nombre || "Sin Disciplina",
+                      fila.fechaInscripcion,
+                      cuota.toFixed(2),
+                      bonifPct.toFixed(2),
+                      bonifMonto.toFixed(2),
+                      total.toFixed(2),
+                    ];
+                  }
+                }}
+                actions={() => null}
+              />
+            </div>
+          </div>
+        )}
+        {/* Formularios dinámicos para agregar/editar inscripciones */}
+        {inscripcionesList.map((inscripcion, index) => (
+          <div
+            key={inscripcion.id || index}
+            className="border border-border rounded-lg p-6 mb-6 bg-card"
+          >
+            <Formik
+              initialValues={inscripcion}
+              validationSchema={inscripcionEsquema}
+              onSubmit={async (values, actions) => {
+                await handleGuardarInscripcion(
+                  values,
+                  actions.resetForm,
+                  index
+                );
+                actions.setSubmitting(false);
+              }}
+            >
+              {({ isSubmitting, values, setFieldValue }) => {
+                const selectedDisc = disciplinas.find(
+                  (d) => d.id === Number(values.disciplina.id)
+                );
+                const cuota = selectedDisc?.valorCuota || 0;
+                const selectedBon = bonificaciones.find(
+                  (b) => b.id === Number(values.bonificacionId)
+                );
+                const bonifPct = selectedBon?.porcentajeDescuento || 0;
+                const bonifMonto = selectedBon?.valorFijo || 0;
+                const total = cuota - bonifMonto - (cuota * bonifPct) / 100;
+                return (
+                  <Form className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 border-b pb-4">
+                      <div className="space-y-2">
+                        <label
+                          htmlFor="disciplina.id"
+                          className="block text-sm font-medium"
+                        >
+                          Disciplina
+                        </label>
+                        <Field
+                          as="select"
+                          name="disciplina.id"
+                          className="w-full px-3 py-2 border border-border rounded-md bg-background"
+                          onChange={(
+                            e: React.ChangeEvent<HTMLSelectElement>
+                          ) => {
+                            const selectedId = Number(e.target.value);
+                            setFieldValue("disciplina.id", selectedId);
+                            const found = disciplinas.find(
+                              (d) => d.id === selectedId
+                            );
+                            if (found) {
+                              setFieldValue("disciplina", {
+                                id: found.id,
+                                nombre: found.nombre,
+                                salonId: found.salonId,
+                                profesorId: found.profesorId,
+                                valorCuota: found.valorCuota,
+                                matricula: found.matricula,
+                                horarios: [],
+                              });
+                            } else {
+                              setFieldValue("disciplina", {
+                                id: 0,
+                                nombre: "",
+                                salonId: 0,
+                                profesorId: 0,
+                                valorCuota: 0,
+                                matricula: 0,
+                                horarios: [],
+                              });
+                            }
+                          }}
+                        >
+                          <option value={0}>-- Seleccione Disciplina --</option>
+                          {disciplinas.map((disc) => (
+                            <option key={disc.id} value={disc.id}>
+                              {disc.nombre}
+                            </option>
+                          ))}
+                        </Field>
+                        <ErrorMessage
+                          name="disciplina.id"
+                          component="div"
+                          className="text-destructive text-sm"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label
+                          htmlFor="bonificacionId"
+                          className="block text-sm font-medium"
+                        >
+                          Bonificación (Opcional)
+                        </label>
+                        <Field
+                          as="select"
+                          name="bonificacionId"
+                          className="w-full px-3 py-2 border border-border rounded-md bg-background"
+                          onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                            setFieldValue(
+                              "bonificacionId",
+                              e.target.value
+                                ? Number(e.target.value)
+                                : undefined
+                            )
+                          }
+                        >
+                          <option value="">-- Ninguna --</option>
+                          {bonificaciones.map((bon) => (
+                            <option key={bon.id} value={bon.id}>
+                              {bon.descripcion}
+                            </option>
+                          ))}
+                        </Field>
+                        <ErrorMessage
+                          name="bonificacionId"
+                          component="div"
+                          className="text-destructive text-sm"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label
+                          htmlFor="fechaInscripcion"
+                          className="block text-sm font-medium"
+                        >
+                          Fecha de Inscripción
+                        </label>
+                        <Field
+                          name="fechaInscripcion"
+                          type="date"
+                          className="w-full px-3 py-2 border border-border rounded-md bg-background"
+                        />
+                        <ErrorMessage
+                          name="fechaInscripcion"
+                          component="div"
+                          className="text-destructive text-sm"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="space-y-1 text-sm">
+                        <label className="font-medium">Cuota</label>
+                        <input
+                          type="number"
+                          value={cuota}
+                          readOnly
+                          className="w-full px-2 py-1 border border-border rounded bg-muted text-foreground text-center"
+                        />
+                      </div>
+                      <div className="space-y-1 text-sm">
+                        <label className="font-medium">Bonificación (%)</label>
+                        <input
+                          type="number"
+                          value={bonifPct}
+                          readOnly
+                          className="w-full px-2 py-1 border border-border rounded bg-muted text-foreground text-center"
+                        />
+                      </div>
+                      <div className="space-y-1 text-sm">
+                        <label className="font-medium">
+                          Bonificación (monto)
+                        </label>
+                        <input
+                          type="number"
+                          value={bonifMonto}
+                          readOnly
+                          className="w-full px-2 py-1 border border-border rounded bg-muted text-foreground text-center"
+                        />
+                      </div>
+                      <div className="space-y-1 text-sm">
+                        <label className="font-medium">Total</label>
+                        <input
+                          type="number"
+                          value={total.toFixed(2)}
+                          readOnly
+                          className="w-full px-2 py-1 border border-border rounded bg-muted text-foreground text-center"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-4 mt-6">
+                      <Boton
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="inline-flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+                      >
+                        {values.id ? "Actualizar" : "Guardar"} Inscripción
+                      </Boton>
+                      <Boton
+                        type="button"
+                        onClick={() => eliminarInscripcionRow(index)}
+                        className="inline-flex items-center gap-2 bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Cerrar
+                      </Boton>
+                    </div>
+                  </Form>
+                );
+              }}
+            </Formik>
+          </div>
+        ))}
+        <div className="flex gap-4">
+          <Boton
+            onClick={agregarInscripcion}
+            className="inline-flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            Agregar Inscripción
+          </Boton>
+          <Boton
+            onClick={onClose}
+            className="inline-flex items-center gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/90"
+          >
+            Volver
+          </Boton>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- Componente Principal: Formulario de Alumno con Modal de Inscripciones ---
 const AlumnosFormulario: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Estados para alumno e inscripciones
   const [alumnoId, setAlumnoId] = useState<number | null>(null);
+  // Usamos InscripcionResponse[], ya que es lo que devuelve la API
   const [inscripciones, setInscripciones] = useState<InscripcionResponse[]>([]);
   const [mensaje, setMensaje] = useState("");
-  // Estado para el input de búsqueda por ID (se usará para mostrar el número de alumno)
   const [idBusqueda, setIdBusqueda] = useState("");
-  // Estados para la búsqueda por nombre y sugerencias
   const [nombreBusqueda, setNombreBusqueda] = useState("");
   const [sugerenciasAlumnos, setSugerenciasAlumnos] = useState<
     AlumnoResponse[]
@@ -59,15 +507,13 @@ const AlumnosFormulario: React.FC = () => {
   const [activeSuggestionIndex, setActiveSuggestionIndex] =
     useState<number>(-1);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  // Estado del formulario
   const [formValues, setFormValues] =
     useState<AlumnoRegistro>(initialAlumnoValues);
+  const [showInscripcionModal, setShowInscripcionModal] = useState(false);
 
-  // Ref para detectar clicks fuera del bloque de búsqueda
   const searchWrapperRef = useRef<HTMLDivElement>(null);
   const debouncedNombreBusqueda = useDebounce(nombreBusqueda, 300);
 
-  // Función para calcular la edad a partir de la fecha de nacimiento
   const calcularEdad = (fecha: string): number => {
     const hoy = new Date();
     const nacimiento = new Date(fecha);
@@ -79,7 +525,6 @@ const AlumnosFormulario: React.FC = () => {
     return edad;
   };
 
-  // Función para resetear formulario y estados relacionados
   const resetearFormulario = () => {
     setFormValues(initialAlumnoValues);
     setAlumnoId(null);
@@ -91,7 +536,6 @@ const AlumnosFormulario: React.FC = () => {
     setSearchParams({});
   };
 
-  // Cargar inscripciones del alumno
   const cargarInscripciones = useCallback(async (alumnoId: number | null) => {
     if (alumnoId) {
       const inscripcionesDelAlumno = await inscripcionesApi.listar(alumnoId);
@@ -101,7 +545,16 @@ const AlumnosFormulario: React.FC = () => {
     }
   }, []);
 
-  // Manejar búsqueda por ID (se activa al hacer clic en "Buscar")
+  // Función para recargar inscripciones y actualizar el listado en el componente principal
+  const recargarInscripciones = async (alumnoId: number) => {
+    try {
+      const listaActualizada = await inscripcionesApi.listar(alumnoId);
+      setInscripciones(listaActualizada);
+    } catch (error) {
+      console.error("Error al recargar inscripciones", error);
+    }
+  };
+
   const handleBuscar = useCallback(
     async (id: string) => {
       try {
@@ -128,7 +581,6 @@ const AlumnosFormulario: React.FC = () => {
     [cargarInscripciones]
   );
 
-  // Manejar selección de alumno desde las sugerencias
   const handleSeleccionarAlumno = async (
     id: number,
     nombreCompleto: string
@@ -153,13 +605,11 @@ const AlumnosFormulario: React.FC = () => {
     }
   };
 
-  // Manejar envío del formulario (guardar o actualizar)
   const handleGuardarAlumno = async (
     values: AlumnoRegistro,
     { setSubmitting }: FormikHelpers<AlumnoRegistro>
   ) => {
     try {
-      // Evitar duplicados al crear un nuevo alumno
       if (!alumnoId) {
         const alumnoDuplicado = sugerenciasAlumnos.find(
           (a) =>
@@ -188,7 +638,6 @@ const AlumnosFormulario: React.FC = () => {
         successMsg = "Alumno creado correctamente";
       }
       setMensaje(successMsg);
-      toast.success(successMsg);
     } catch (error: any) {
       const errorMessage =
         error.response?.data?.message ||
@@ -202,18 +651,16 @@ const AlumnosFormulario: React.FC = () => {
     }
   };
 
-  // Función para eliminar inscripción y recargar el listado
-  const handleEliminarInscripcion = async (id: number) => {
+  const handleEliminarInscripcion = async (ins: InscripcionResponse) => {
     try {
-      await inscripcionesApi.eliminar(id);
+      await inscripcionesApi.eliminar(ins.id);
+      toast.success("Inscripción eliminada correctamente.");
       if (alumnoId) {
         await cargarInscripciones(alumnoId);
       }
-    } catch (error) {
-    }
+    } catch (error) {}
   };
 
-  // Cargar alumno si viene en query params
   useEffect(() => {
     const alumnoIdParam =
       searchParams.get("alumnoId") || searchParams.get("id");
@@ -222,7 +669,6 @@ const AlumnosFormulario: React.FC = () => {
     }
   }, [searchParams, handleBuscar]);
 
-  // Buscar sugerencias por nombre (con debounce)
   useEffect(() => {
     const buscarSugerencias = async () => {
       const query = debouncedNombreBusqueda.trim();
@@ -237,7 +683,6 @@ const AlumnosFormulario: React.FC = () => {
     buscarSugerencias();
   }, [debouncedNombreBusqueda]);
 
-  // Manejo de teclas para navegación en sugerencias
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (sugerenciasAlumnos.length > 0) {
       if (e.key === "ArrowDown") {
@@ -269,7 +714,6 @@ const AlumnosFormulario: React.FC = () => {
     }
   };
 
-  // Ocultar sugerencias al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (
@@ -295,9 +739,8 @@ const AlumnosFormulario: React.FC = () => {
         >
           {({ isSubmitting, setFieldValue, resetForm, values }) => (
             <Form className="formulario max-w-4xl mx-auto">
-              {/* Campo oculto para enviar el ID */}
+              {/* Campo oculto */}
               <Field name="id" type="hidden" />
-
               <div className="form-grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {/* Búsqueda por ID */}
                 <div className="col-span-full mb-4">
@@ -324,8 +767,7 @@ const AlumnosFormulario: React.FC = () => {
                     </Boton>
                   </div>
                 </div>
-
-                {/* Búsqueda por Nombre con sugerencias */}
+                {/* Búsqueda por Nombre */}
                 <div className="col-span-full mb-4">
                   <label htmlFor="nombreBusqueda" className="auth-label">
                     Buscar por Nombre:
@@ -403,8 +845,6 @@ const AlumnosFormulario: React.FC = () => {
                     />
                   </div>
                 ))}
-
-                {/* Fecha de Nacimiento y Edad estimada */}
                 <div className="mb-4">
                   <label htmlFor="fechaNacimiento" className="auth-label">
                     Fecha de Nacimiento:
@@ -415,7 +855,6 @@ const AlumnosFormulario: React.FC = () => {
                     className="form-input"
                     id="fechaNacimiento"
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                      // Actualiza el campo y se recalcula la edad al instante
                       setFieldValue("fechaNacimiento", e.target.value);
                     }}
                   />
@@ -430,8 +869,6 @@ const AlumnosFormulario: React.FC = () => {
                     </div>
                   )}
                 </div>
-
-                {/* Fecha de Incorporación */}
                 <div className="mb-4">
                   <label htmlFor="fechaIncorporacion" className="auth-label">
                     Fecha de Incorporación:
@@ -448,7 +885,6 @@ const AlumnosFormulario: React.FC = () => {
                     className="auth-error"
                   />
                 </div>
-
                 {[
                   { name: "celular1", label: "Celular 1" },
                   { name: "celular2", label: "Celular 2" },
@@ -473,8 +909,6 @@ const AlumnosFormulario: React.FC = () => {
                     />
                   </div>
                 ))}
-
-                {/* Checkbox: Autorizado para salir solo */}
                 <div className="mb-4 col-span-full">
                   <label className="flex items-center space-x-2">
                     <Field
@@ -485,8 +919,6 @@ const AlumnosFormulario: React.FC = () => {
                     <span>Autorizado para salir solo</span>
                   </label>
                 </div>
-
-                {/* Checkbox: Activo (solo en edición) */}
                 {alumnoId !== null && (
                   <div className="mb-4 col-span-full">
                     <label className="flex items-center space-x-2">
@@ -506,8 +938,6 @@ const AlumnosFormulario: React.FC = () => {
                     </label>
                   </div>
                 )}
-
-                {/* Otras Notas */}
                 <div className="col-span-full mb-4">
                   <label htmlFor="otrasNotas" className="auth-label">
                     Otras Notas:
@@ -525,7 +955,6 @@ const AlumnosFormulario: React.FC = () => {
                   />
                 </div>
               </div>
-
               <div className="form-acciones flex gap-4">
                 <Button
                   type="submit"
@@ -548,7 +977,6 @@ const AlumnosFormulario: React.FC = () => {
                   Volver al Listado
                 </Button>
               </div>
-
               {mensaje && (
                 <p
                   className={`form-mensaje ${
@@ -560,8 +988,6 @@ const AlumnosFormulario: React.FC = () => {
                   {mensaje}
                 </p>
               )}
-
-              {/* Sección de Inscripciones del Alumno */}
               <fieldset className="form-fieldset mt-8">
                 <legend className="form-legend text-xl font-semibold">
                   Inscripciones del Alumno
@@ -570,11 +996,7 @@ const AlumnosFormulario: React.FC = () => {
                   <>
                     <div className="page-button-group flex justify-end mb-4">
                       <Boton
-                        onClick={() =>
-                          navigate(
-                            `/inscripciones/formulario?alumnoId=${alumnoId}`
-                          )
-                        }
+                        onClick={() => setShowInscripcionModal(true)}
                         className="page-button"
                       >
                         Agregar Disciplina
@@ -589,7 +1011,6 @@ const AlumnosFormulario: React.FC = () => {
                           "Bonificación (%)",
                           "Bonificación (monto)",
                           "Total",
-                          "Acciones",
                         ]}
                         data={[...inscripciones, { _totals: true } as any]}
                         customRender={(fila: any) => {
@@ -675,9 +1096,7 @@ const AlumnosFormulario: React.FC = () => {
                                 Editar
                               </Boton>
                               <Boton
-                                onClick={() =>
-                                  handleEliminarInscripcion(fila.id)
-                                }
+                                onClick={() => handleEliminarInscripcion(fila)}
                                 className="bg-accent text-white hover:bg-accent/90"
                               >
                                 Eliminar
@@ -699,6 +1118,14 @@ const AlumnosFormulario: React.FC = () => {
           )}
         </Formik>
       </div>
+      {/* Modal de Inscripciones */}
+      {showInscripcionModal && alumnoId && (
+        <InscripcionesModal
+          alumnoId={alumnoId}
+          onClose={() => setShowInscripcionModal(false)}
+          onInscripcionesChange={recargarInscripciones}
+        />
+      )}
     </ResponsiveContainer>
   );
 };
