@@ -742,7 +742,7 @@ public class PaymentCalculationServicio {
         String conceptoNorm = descripcionConcepto.trim().toUpperCase();
         log.info("[determinarTipoDetalle] Descripción normalizada: '{}'", conceptoNorm);
 
-        // 2. Verificación de MATRÍCULA
+        // 2. Verificación de MATRICULA
         if (conceptoNorm.startsWith("MATRICULA")) {
             log.info("[determinarTipoDetalle] Tipo MATRICULA detectado - Patrón: 'MATRICULA'");
             return TipoDetallePago.MATRICULA;

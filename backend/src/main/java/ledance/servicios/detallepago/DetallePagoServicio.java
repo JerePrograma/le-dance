@@ -424,7 +424,7 @@ public class DetallePagoServicio {
         log.info("[obtenerMatriculaSiExiste] Verificando existencia de matrícula para alumnoId={} con descripción '{}'", alumnoId, descripcion);
 
         if (descripcion != null && descripcion.toUpperCase().contains("MATRICULA")) {
-            // Obtener todos los detalles de tipo MATRÍCULA para el alumno y la descripción dada
+            // Obtener todos los detalles de tipo MATRICULA para el alumno y la descripción dada
             List<DetallePago> detalles = detallePagoRepositorio
                     .findAllByAlumnoIdAndDescripcionConceptoIgnoreCaseAndTipo(alumnoId, descripcion, TipoDetallePago.MATRICULA);
 

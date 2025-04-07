@@ -115,7 +115,7 @@ public class MatriculaServicio {
         String descripcionConcepto = "MATRICULA " + anio;
         detalle.setDescripcionConcepto(descripcionConcepto);
 
-        // Tipo de detalle: MATRÍCULA
+        // Tipo de detalle: MATRICULA
         detalle.setTipo(TipoDetallePago.MATRICULA);
         detalle.setFechaRegistro(LocalDate.now());
 
@@ -231,7 +231,7 @@ public class MatriculaServicio {
 
         YearMonth mesActual = YearMonth.from(today);
         if (proceso.getUltimaEjecucion() != null && YearMonth.from(proceso.getUltimaEjecucion()).equals(mesActual)) {
-            log.info("El proceso MATRÍCULA_AUTOMATICA ya fue ejecutado este mes: {}", proceso.getUltimaEjecucion());
+            log.info("El proceso MATRICULA_AUTOMATICA ya fue ejecutado este mes: {}", proceso.getUltimaEjecucion());
             return;
         }
 
@@ -270,7 +270,7 @@ public class MatriculaServicio {
 
         proceso.setUltimaEjecucion(today);
         procesoEjecutadoRepositorio.save(proceso);
-        log.info("Proceso MATRÍCULA_AUTOMATICA completado. Flag actualizado a {}", today);
+        log.info("Proceso MATRICULA_AUTOMATICA completado. Flag actualizado a {}", today);
     }
 
     @Transactional
