@@ -1188,6 +1188,7 @@ const CobranzasForm: React.FC = () => {
         observaciones: [
           values.observaciones,
           values.detallePagos
+            .filter((detalle) => !detalle.removido)
             .map((detalle) => {
               const aCobrar = Number(detalle.aCobrar || 0);
               const pendiente = Number(detalle.importePendiente || 0);

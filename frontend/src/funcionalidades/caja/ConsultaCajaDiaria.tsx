@@ -216,18 +216,29 @@ const ConsultaCajaDiaria: React.FC = () => {
       </div>
 
       {/* Tabla de Pagos */}
-      <div className="border p-2">
+      <div className="hidden sm:block rounded-lg border h-full overflow-auto">
         {loading ? (
           <p>Cargando...</p>
         ) : (
           <Tabla
+            className="table-fixed w-full"
             headers={["Recibo", "Código", "Alumno", "Observaciones", "Importe"]}
             data={pagosFiltradosPorUsuario}
             customRender={(p: PagoDelDia) => [
               p.id,
               p.alumno?.id || "",
               p.alumno ? `${p.alumno.nombre} ${p.alumno.apellido}` : "",
-              p.observaciones,
+              <div
+                style={{
+                  maxWidth: "30vw", // 30% del ancho de la ventana, se ajusta al tamaño de la pantalla
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+                title={p.observaciones}
+              >
+                {p.observaciones}
+              </div>,
               p.monto.toLocaleString(),
             ]}
             emptyMessage="No hay pagos para el día"
