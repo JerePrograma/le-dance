@@ -735,6 +735,7 @@ export interface PagoResponse {
 }
 // DetallePagoResponse.ts
 export interface DetallePagoResponse {
+  removido: any;
   id: number;
   version: number;
   descripcionConcepto: string;

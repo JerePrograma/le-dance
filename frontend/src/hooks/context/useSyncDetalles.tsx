@@ -55,6 +55,7 @@ const mapDetallePagos = (
       pagoId: det.pagoId ?? null,
       tieneRecargo: det.tieneRecargo,
       estadoPago: det.estadoPago,
+      removido: det.removido,
     };
   });
 };
