@@ -199,6 +199,7 @@ export default function EgresosDebitoPagina() {
           alumnoDisplay: pago.alumno.nombre + ", " + pago.alumno.apellido,
           tieneRecargo: false,
           estadoPago: "",
+          removido: undefined
         };
         result.push(aggregatedItem);
       }
