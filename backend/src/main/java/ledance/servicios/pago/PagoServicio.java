@@ -379,7 +379,6 @@ public class PagoServicio {
                 detalle.setAlumno(pago.getAlumno());
                 detalle.setRecargo(null);
                 detalle.setTieneRecargo(false);
-                detalle.setImportePendiente(detalle.getImporteInicial());
                 detallePagoServicio.calcularImporte(detalle);
             }
         }

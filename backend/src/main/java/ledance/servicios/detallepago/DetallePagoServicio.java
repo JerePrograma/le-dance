@@ -102,7 +102,7 @@ public class DetallePagoServicio {
         // 6. Gestión de importe pendiente
         if (detalle.getImportePendiente() == null) {
             log.info("[calcularImporte] Importe pendiente nulo - Asignando valor inicial: {}", importeInicial);
-            detalle.setImportePendiente(importeInicial);
+            detalle.setImportePendiente(importeInicial - detalle.getaCobrar());
         } else {
             log.info("[calcularImporte] Importe pendiente mantiene su valor actual: {}", detalle.getImportePendiente());
         }

@@ -83,11 +83,7 @@ public class PaymentProcessor {
                     cobrado = detalle.getaCobrar();
                 }
                 totalACobrar += (cobrado);
-                if (detalle.getImportePendiente() > 0) {
-                    detalle.setImportePendiente(detalle.getImportePendiente() - cobrado);
-                } else {
-                    detalle.setImportePendiente(0.0);
-                }
+
                 totalPendiente += detalle.getImportePendiente();
                 log.info("[recalcularTotalesNuevo] Detalle ID {}: aCobrar={}, importePendiente={}. Acumulado: totalACobrar={}, totalPendiente={}",
                         detalle.getId(), cobrado, detalle.getImportePendiente(), totalACobrar, totalPendiente);
@@ -189,8 +185,8 @@ public class PaymentProcessor {
                 log.info("[actualizarPagoHistoricoConAbonos] Detalle existente encontrado ={}",
                         detalleExistente);
                 detalleExistente.setaCobrar(detalleReq.aCobrar());
-                detalleExistente.setImportePendiente(detalleReq.importePendiente());
                 detalleExistente.setImporteInicial(detalleReq.importePendiente());
+                detalleExistente.setImportePendiente(detalleReq.importePendiente() - detalleReq.aCobrar());
                 log.info("[actualizarPagoHistoricoConAbonos] Se actualiza importePendiente a {} en detalle id={}",
                         detalleReq.importePendiente(), detalleExistente.getId());
                 procesarDetalle(pagoHistorico, detalleExistente, pagoHistorico.getAlumno());
@@ -791,9 +787,6 @@ public class PaymentProcessor {
         persistido.setFechaRegistro(LocalDate.now());
         persistido.setRecargo(request.getRecargo());
         persistido.setTieneRecargo(request.getTieneRecargo());
-        if (!request.getTieneRecargo() && request.getMensualidad() != null || request.getTipo() == TipoDetallePago.MENSUALIDAD) {
-            persistido.setImportePendiente(request.getImporteInicial());
-        }
     }
 
     /**
