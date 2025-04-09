@@ -36,6 +36,20 @@ import ResponsiveContainer from "../../componentes/comunes/ResponsiveContainer";
 import { useSyncDetalles } from "../../hooks/context/useSyncDetalles";
 import { normalizeInscripcion } from "./normalizeInscripcion";
 
+// ----- Helper: Función para truncar la descripción visualmente -----
+const getTruncatedDescription = (descripcion: string): string => {
+  if (!descripcion) return "";
+  if (descripcion.toUpperCase().includes("MATRICULA")) {
+    // Toma la parte anterior al primer espacio
+    return descripcion.split(" ")[0].trim();
+  }
+  if (descripcion.indexOf("-") !== -1) {
+    // Toma la parte anterior al primer guión
+    return descripcion.split("-")[0].trim();
+  }
+  return descripcion;
+};
+
 // ----- Utilidades -----
 const getMesVigente = (): string => {
   return new Date()
@@ -149,12 +163,10 @@ function normalizeAlumno(alumno: AlumnoResponse): AlumnoRegistroRequest {
 }
 
 // ----- Función para extraer cuota del string -----
-// Esta función se usará para procesar la descripción en nuevos detalles.
 const splitConceptAndCuota = (
   text: string
 ): { concept: string; cuota: string } => {
   if (!text) return { concept: "", cuota: "" };
-  // Si existe "-" se extrae lo posterior al primer guión.
   if (text.indexOf("-") !== -1) {
     const parts = text.split("-");
     return {
@@ -162,7 +174,6 @@ const splitConceptAndCuota = (
       cuota: parts.slice(1).join("-").trim(),
     };
   }
-  // Si no hay guión, se retorna la cadena vacía en cuota.
   return { concept: text.trim(), cuota: "" };
 };
 
@@ -510,20 +521,7 @@ const DetallesTable: React.FC = () => {
     return !isNaN(Number(value));
   };
 
-  // Para mostrar el valor derivado en caso de que el campo sea vacío.
-  const localSplitConceptAndCuota = (
-    text: string
-  ): { concept: string; cuota: string } => {
-    if (!text) return { concept: "", cuota: "" };
-    const parts = text.split("-");
-    if (parts.length < 2) {
-      return { concept: text.trim(), cuota: "" };
-    }
-    return {
-      concept: parts[0].trim(),
-      cuota: parts.slice(1).join("-").trim(),
-    };
-  };
+  // Se mantiene la función localSplitConceptAndCuota para otros usos si fuera necesario.
 
   return (
     <FieldArray name="detallePagos">
@@ -575,15 +573,15 @@ const DetallesTable: React.FC = () => {
                           r.id === Number(detalle.recargoId)
                       )?.descripcion || ""
                     : "";
-                  const { concept, cuota } = localSplitConceptAndCuota(
-                    detalle.descripcionConcepto || ""
-                  );
+                  // Para la presentación visual se utiliza la función getTruncatedDescription
                   return (
                     <tr key={index} className="hover:bg-gray-50">
                       <td className="border p-2 text-center text-sm">
                         <input
                           type="text"
-                          value={concept}
+                          value={getTruncatedDescription(
+                            detalle.descripcionConcepto
+                          )}
                           readOnly
                           className="w-full px-2 py-1 border rounded text-center"
                         />
@@ -591,14 +589,13 @@ const DetallesTable: React.FC = () => {
                       <td className="border p-2 text-center text-sm">
                         <Field name={`detallePagos.${index}.cuotaOCantidad`}>
                           {({ field, form }: any) => {
-                            // Si field.value no es numérico, se forzará el input a "text"
                             const inputType = isNumeric(field.value)
                               ? "number"
                               : "text";
                             return (
                               <input
                                 type={inputType}
-                                value={field.value || cuota}
+                                value={field.value || ""}
                                 {...field}
                                 {...(detalle.tipo !== "disciplina" && {
                                   min: "1",
@@ -866,7 +863,6 @@ const CobranzasForm: React.FC = () => {
               descripcionConcepto: detalle.descripcionConcepto ?? "",
               conceptoId: detalle.conceptoId ?? null,
               subConceptoId: detalle.subConceptoId ?? null,
-              // Para datos persistidos se usa el valor existente o se fuerza mediante split.
               cuotaOCantidad:
                 detalle.cuotaOCantidad ??
                 (splitConceptAndCuota(detalle.descripcionConcepto || "")
@@ -950,11 +946,6 @@ const CobranzasForm: React.FC = () => {
     return valorBase - descuento + recargoCalculado;
   };
 
-  // ******* MODIFICACIÓN EN handleAgregarDetalle *******
-  // Para los nuevos detalles (aquellos que se agregan manualmente), se "fuerza" el valor de cuotaOCantidad:
-  // - Si se trata de una matrícula, se extrae la parte posterior al primer espacio (ejemplo: "MATRICULA 2025" → "2025")
-  // - Para detalles de concepto "CUOTA", se arma la cadena con el mes/periodo.
-  // - Para stock, se usa la cantidad ingresada.
   const handleAgregarDetalle = useCallback(
     async (
       values: CobranzasFormValues,
@@ -978,7 +969,6 @@ const CobranzasForm: React.FC = () => {
         if (selectedConcept) {
           const descMayus = (selectedConcept.descripcion || "").toUpperCase();
           if (descMayus.includes("MATRICULA")) {
-            // Para matrícula, se genera la descripción y se fuerza el valor de cuotaOCantidad extrayendo el año.
             const credit = Number(values.alumno?.creditoAcumulado || 0);
             const originalPrice = selectedConcept.precio;
             const usado = Math.min(originalPrice, credit);
@@ -1002,7 +992,6 @@ const CobranzasForm: React.FC = () => {
                 subConceptoId: selectedConcept.subConcepto
                   ? selectedConcept.subConcepto.id
                   : null,
-                // Fuerza: extrae la parte posterior al primer espacio (ej: "MATRICULA 2025" → "2025")
                 cuotaOCantidad: conceptoDetalle.split(" ")[1] || "1",
                 valorBase: total,
                 importeInicial: total,
@@ -1032,7 +1021,6 @@ const CobranzasForm: React.FC = () => {
               toast.error("Concepto ya se encuentra agregado");
             } else {
               const cantidad = Number(values.cantidad) || 1;
-              // Para conceptos NO matrícula, si la tarifa es "CUOTA" se arma la cadena con el mes/periodo.
               newDetails.push({
                 id: 0,
                 descripcionConcepto: String(selectedConcept.descripcion),
@@ -1042,8 +1030,8 @@ const CobranzasForm: React.FC = () => {
                   : null,
                 cuotaOCantidad:
                   values.tarifa === "CUOTA"
-                    ? `${"CUOTA"} - ${values.periodoMensual}` // Fuerza el formato para cuota.
-                    : cantidad.toString(), // Caso contrario, usa la cantidad ingresada.
+                    ? `${"CUOTA"} - ${values.periodoMensual}`
+                    : cantidad.toString(),
                 valorBase: selectedConcept.precio,
                 importeInicial: selectedConcept.precio * cantidad,
                 importePendiente: selectedConcept.precio * cantidad,
