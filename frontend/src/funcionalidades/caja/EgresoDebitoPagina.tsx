@@ -14,6 +14,7 @@ import type {
   EgresoRegistroRequest,
   DetallePagoResponse,
   PagoResponse,
+  AlumnoResponse,
 } from "../../types/types";
 
 export default function EgresosDebitoPagina() {
@@ -152,6 +153,28 @@ export default function EgresosDebitoPagina() {
       return pago && pago.metodoPago?.descripcion?.toLowerCase() === "debito";
     });
   }, [detallesDebito, pagos]);
+  const defaultAlumno: AlumnoResponse = {
+    id: 0,
+    nombre: "",
+    apellido: "",
+    fechaNacimiento: new Date().toISOString().split("T")[0],
+    fechaIncorporacion: new Date().toISOString().split("T")[0],
+    edad: 0,
+    celular1: "",
+    celular2: "",
+    email1: "",
+    email2: "",
+    documento: "",
+    fechaDeBaja: null,
+    deudaPendiente: false,
+    nombrePadres: "",
+    autorizadoParaSalirSolo: false,
+    activo: false,
+    otrasNotas: "",
+    cuotaTotal: 0,
+    inscripciones: [],
+    creditoAcumulado: 0,
+  };
 
   /* ----------------- Agrupación y Agregado por Pago Único ----------------- */
   // Para cada pago único, se agrega un item "Pago por débito" que muestra el valor del recargo
@@ -196,10 +219,10 @@ export default function EgresosDebitoPagina() {
           tipo: "",
           fechaRegistro: new Date().toISOString(),
           pagoId: pagoId,
-          alumnoDisplay: pago.alumno.nombre + ", " + pago.alumno.apellido,
           tieneRecargo: false,
           estadoPago: "",
-          removido: undefined
+          removido: undefined,
+          alumno: defaultAlumno,
         };
         result.push(aggregatedItem);
       }
