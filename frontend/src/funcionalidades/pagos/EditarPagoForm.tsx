@@ -34,6 +34,12 @@ const itemsPerPage = 25; // Valor base (fallback)
 const DetallePagoList: React.FC<DetallePagoListProps> = ({
   alumnoId: alumnoIdProp,
 }) => {
+  // Función auxiliar para formatear la fecha en formato dd-mm-aaaa
+  const formatDateArgentino = (dateString: string): string => {
+    if (!dateString) return "";
+    const [year, month, day] = dateString.split("-");
+    return `${day}-${month}-${year}`;
+  };
   // Estados de datos y carga
   const [detalles, setDetalles] = useState<DetallePagoResponse[]>([]);
   const [loading, setLoading] = useState(false);
@@ -373,7 +379,9 @@ const DetallePagoList: React.FC<DetallePagoListProps> = ({
     <div ref={containerRef} className="flex flex-col h-screen overflow-hidden">
       {/* Header */}
       <div className="flex-none p-6 pb-2">
-        <h1 className="text-3xl font-bold tracking-tight">Pagos cobrados</h1>
+        <h1 className="text-3xl font-bold tracking-tight">
+          Correción de Pagos
+        </h1>
       </div>
 
       {/* Sección de filtros */}
@@ -596,7 +604,13 @@ const DetallePagoList: React.FC<DetallePagoListProps> = ({
             fillAvailable={true}
           >
             <Tabla
-              headers={["Código", "Alumno", "Concepto", "Cobrado", "Estado"]}
+              headers={[
+                "N° Recibo",
+                "Alumno",
+                "Concepto",
+                "Cobrado",
+                "Fecha pago",
+              ]}
               data={sortedItems}
               customRender={(fila: DetallePagoResponse) => {
                 const cobradoValue =
@@ -604,11 +618,11 @@ const DetallePagoList: React.FC<DetallePagoListProps> = ({
                     ? `Deuda: ${fila.importePendiente}`
                     : fila.ACobrar;
                 return [
-                  fila.id,
-                  fila.alumnoDisplay,
+                  fila.pagoId,
+                  fila.alumno.nombre + " " + fila.alumno.apellido,
                   fila.descripcionConcepto,
                   cobradoValue,
-                  fila.estadoPago,
+                  formatDateArgentino(fila.fechaRegistro),
                 ];
               }}
               actions={(fila: DetallePagoResponse) => (

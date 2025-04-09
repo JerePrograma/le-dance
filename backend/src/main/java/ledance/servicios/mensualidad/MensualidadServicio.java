@@ -3,6 +3,7 @@ package ledance.servicios.mensualidad;
 import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
+import ledance.dto.alumno.AlumnoMapper;
 import ledance.dto.mensualidad.MensualidadMapper;
 import ledance.dto.mensualidad.request.MensualidadRegistroRequest;
 import ledance.dto.mensualidad.response.MensualidadResponse;
@@ -44,6 +45,7 @@ public class MensualidadServicio implements IMensualidadService {
     private final DisciplinaRepositorio disciplinaRepositorio;
     private final PagoRepositorio pagoRepositorio;
     private final UsuarioRepositorio usuarioRepositorio;
+    private final AlumnoMapper alumnoMapper;
 
     public MensualidadServicio(DetallePagoRepositorio detallePagoRepositorio, MensualidadRepositorio mensualidadRepositorio,
                                InscripcionRepositorio inscripcionRepositorio,
@@ -51,7 +53,7 @@ public class MensualidadServicio implements IMensualidadService {
                                RecargoRepositorio recargoRepositorio,
                                BonificacionRepositorio bonificacionRepositorio,
                                ProcesoEjecutadoRepositorio procesoEjecutadoRepositorio, RecargoServicio recargoServicio, DisciplinaRepositorio disciplinaRepositorio,
-                               PagoRepositorio pagoRepositorio, UsuarioRepositorio usuarioRepositorio) {
+                               PagoRepositorio pagoRepositorio, UsuarioRepositorio usuarioRepositorio, AlumnoMapper alumnoMapper) {
         this.detallePagoRepositorio = detallePagoRepositorio;
         this.mensualidadRepositorio = mensualidadRepositorio;
         this.inscripcionRepositorio = inscripcionRepositorio;
@@ -63,6 +65,7 @@ public class MensualidadServicio implements IMensualidadService {
         this.disciplinaRepositorio = disciplinaRepositorio;
         this.pagoRepositorio = pagoRepositorio;
         this.usuarioRepositorio = usuarioRepositorio;
+        this.alumnoMapper = alumnoMapper;
     }
 
     @Override
@@ -798,9 +801,7 @@ public class MensualidadServicio implements IMensualidadService {
                 detalle.getTipo(),
                 detalle.getFechaRegistro(),
                 detalle.getPago() != null ? detalle.getPago().getId() : null,
-                detalle.getAlumno() != null
-                        ? detalle.getAlumno().getNombre() + " " + detalle.getAlumno().getApellido()
-                        : "",
+                alumnoMapper.toAlumnoListadoResponse(detalle.getAlumno()),
                 detalle.getTieneRecargo(),
                 detalle.getUsuario().getId(),
                 detalle.getEstadoPago().toString()

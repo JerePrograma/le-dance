@@ -402,7 +402,7 @@ const DetallePagoList: React.FC = () => {
                     ?.descripcion;
                 return [
                   fila.pagoId || fila.id,
-                  fila.alumnoDisplay,
+                  fila.alumno.nombre + " " + fila.alumno.apellido,
                   fila.descripcionConcepto,
                   fila.importePendiente,
                   bonificacionNombre || "-",

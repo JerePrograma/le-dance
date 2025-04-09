@@ -1,14 +1,11 @@
 package ledance.servicios.profesor;
 
-import ledance.dto.alumno.response.AlumnoResponse;
 import ledance.dto.disciplina.DisciplinaMapper;
 import ledance.dto.profesor.ProfesorMapper;
 import ledance.dto.profesor.request.ProfesorModificacionRequest;
 import ledance.dto.profesor.request.ProfesorRegistroRequest;
 import ledance.dto.disciplina.response.DisciplinaResponse;
 import ledance.dto.profesor.response.ProfesorResponse;
-import ledance.entidades.Disciplina;
-import ledance.entidades.DisciplinaHorario;
 import ledance.entidades.Profesor;
 import ledance.infra.errores.TratadorDeErrores;
 import ledance.repositorios.DisciplinaHorarioRepositorio;
@@ -21,7 +18,6 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.Period;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -31,13 +27,11 @@ public class ProfesorServicio implements IProfesorServicio {
 
     private final ProfesorRepositorio profesorRepositorio;
     private final ProfesorMapper profesorMapper;
-    private final DisciplinaHorarioRepositorio disciplinaHorarioRepositorio;
     private final DisciplinaMapper disciplinaMapper;
 
     public ProfesorServicio(ProfesorRepositorio profesorRepositorio, ProfesorMapper profesorMapper, DisciplinaHorarioRepositorio disciplinaHorarioRepositorio, DisciplinaMapper disciplinaMapper) {
         this.profesorRepositorio = profesorRepositorio;
         this.profesorMapper = profesorMapper;
-        this.disciplinaHorarioRepositorio = disciplinaHorarioRepositorio;
         this.disciplinaMapper = disciplinaMapper;
     }
 

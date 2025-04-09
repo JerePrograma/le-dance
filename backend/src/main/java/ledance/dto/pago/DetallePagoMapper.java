@@ -16,7 +16,7 @@ public interface DetallePagoMapper {
 
     @Mapping(target = "id", expression = "java((request.id() != null && request.id() == 0) ? null : request.id())")
     @Mapping(target = "version", ignore = true)
-    @Mapping(target = "alumno", source = "alumno")
+    @Mapping(target = "alumno", source = "alumno")  // Se mapea directamente el objeto alumno
     @Mapping(target = "mensualidad", source = "mensualidadId", qualifiedByName = "mapMensualidad")
     @Mapping(target = "matricula", source = "matriculaId", qualifiedByName = "mapMatricula")
     @Mapping(target = "stock", source = "stockId", qualifiedByName = "mapStock")
@@ -91,8 +91,7 @@ public interface DetallePagoMapper {
     @Mapping(target = "matriculaId", expression = "java(detallePago.getMatricula() != null ? detallePago.getMatricula().getId() : null)")
     @Mapping(target = "stockId", expression = "java(detallePago.getStock() != null ? detallePago.getStock().getId() : null)")
     @Mapping(target = "pagoId", expression = "java(detallePago.getPago() != null ? detallePago.getPago().getId() : null)")
-    @Mapping(target = "alumnoDisplay",
-            expression = "java(detallePago.getAlumno().getNombre() + \", \" + detallePago.getAlumno().getApellido())")
+    @Mapping(target = "alumno", source = "alumno")  // Se mapea el objeto alumno mediante AlumnoMapper
     @Mapping(target = "tieneRecargo", source = "tieneRecargo")
     @Mapping(target = "estadoPago", source = "estadoPago")
     DetallePagoResponse toDTO(DetallePago detallePago);
@@ -155,5 +154,15 @@ public interface DetallePagoMapper {
         Usuario usuario = new Usuario();
         usuario.setId(usuarioId);
         return usuario;
+    }
+
+    @Named("mapAlumno")
+    default Alumno mapAlumno(Long alumnoId) {
+        if (alumnoId == null) {
+            return null;
+        }
+        Alumno alumno = new Alumno();
+        alumno.setId(alumnoId);
+        return alumno;
     }
 }

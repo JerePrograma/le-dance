@@ -552,7 +552,7 @@ const DetallesTable: React.FC = () => {
                           r.id === Number(detalle.recargoId)
                       )?.descripcion || ""
                     : "";
-                  const { concept, cuota } = splitConceptAndCuota(
+                  const { concept } = splitConceptAndCuota(
                     detalle.descripcionConcepto || ""
                   );
                   return (
@@ -566,12 +566,47 @@ const DetallesTable: React.FC = () => {
                         />
                       </td>
                       <td className="border p-2 text-center text-sm">
-                        <input
-                          type="text"
-                          value={cuota}
-                          readOnly
-                          className="w-full px-2 py-1 border rounded text-center"
-                        />
+                        <Field name={`detallePagos.${index}.cuotaOCantidad`}>
+                          {({ field, form }: any) => (
+                            <input
+                              // Si el detalle es de tipo disciplina (mensualidad) se usa "text"
+                              type={
+                                detalle.tipo === "disciplina"
+                                  ? "text"
+                                  : "number"
+                              }
+                              {...field}
+                              // Solo para detalles numéricos se aplica min y recálculo
+                              {...(detalle.tipo !== "disciplina" && {
+                                min: "1",
+                              })}
+                              onChange={(e) => {
+                                const newValue = e.target.value;
+                                form.setFieldValue(
+                                  `detallePagos.${index}.cuotaOCantidad`,
+                                  newValue
+                                );
+                                // Si no es de tipo disciplina, se recalculan los importes
+                                if (detalle.tipo !== "disciplina") {
+                                  const base =
+                                    Number(
+                                      form.values.detallePagos[index].valorBase
+                                    ) || 0;
+                                  const updatedTotal = base * Number(newValue);
+                                  form.setFieldValue(
+                                    `detallePagos.${index}.importePendiente`,
+                                    updatedTotal
+                                  );
+                                  form.setFieldValue(
+                                    `detallePagos.${index}.ACobrar`,
+                                    updatedTotal
+                                  );
+                                }
+                              }}
+                              className="w-full px-2 py-1 border rounded text-center"
+                            />
+                          )}
+                        </Field>
                       </td>
                       <td className="border p-2 text-center text-sm">
                         <Field
@@ -954,9 +989,12 @@ const CobranzasForm: React.FC = () => {
               return;
             }
           } else {
+            // Rama actual para Concepto (no matrícula)
+            // Rama modificada para Concepto (no matrícula)
             if (isDuplicate(selectedConcept.id)) {
               toast.error("Concepto ya se encuentra agregado");
             } else {
+              const cantidad = Number(values.cantidad) || 1;
               newDetails.push({
                 id: 0,
                 descripcionConcepto: String(selectedConcept.descripcion),
@@ -964,13 +1002,14 @@ const CobranzasForm: React.FC = () => {
                 subConceptoId: selectedConcept.subConcepto
                   ? selectedConcept.subConcepto.id
                   : null,
-                cuotaOCantidad: "1",
+                cuotaOCantidad: cantidad.toString(), // Se utiliza la cantidad ingresada
                 valorBase: selectedConcept.precio,
-                importeInicial: selectedConcept.precio,
-                importePendiente: selectedConcept.precio,
+                importeInicial: selectedConcept.precio * cantidad,
+                // Se multiplica el importe según la cantidad; si se requiere lógica adicional, ajustarla aquí
+                importePendiente: selectedConcept.precio * cantidad,
                 bonificacionId: null,
                 recargoId: null,
-                ACobrar: selectedConcept.precio,
+                ACobrar: selectedConcept.precio * cantidad,
                 cobrado: false,
                 mensualidadId: null,
                 matriculaId: null,
@@ -1007,6 +1046,7 @@ const CobranzasForm: React.FC = () => {
           precio = selectedDisciplina.clasePrueba || 0;
           tarifaLabel = "CLASE DE PRUEBA";
         }
+
         const cantidad = Number(values.cantidad) || 1;
         totalOriginal = precio * cantidad;
         conceptoDetalle = `${selectedDisciplina.nombre} - ${tarifaLabel} - ${values.periodoMensual}`;
@@ -1032,7 +1072,10 @@ const CobranzasForm: React.FC = () => {
             version: 0,
             alumno: values.alumno,
             descripcionConcepto: conceptoDetalle,
-            cuotaOCantidad: "1",
+            cuotaOCantidad:
+              values.tarifa === "CUOTA"
+                ? `${tarifaLabel} - ${values.periodoMensual}`
+                : cantidad.toString(),
             valorBase: totalOriginal,
             bonificacionId: null,
             recargoId: null,
@@ -1050,6 +1093,7 @@ const CobranzasForm: React.FC = () => {
           toast.error("MENSUALIDAD YA COBRADA");
           return;
         }
+
         if (isDuplicateString(conceptoDetalle)) {
           toast.error("Concepto ya se encuentra agregado");
         } else {
@@ -1058,7 +1102,10 @@ const CobranzasForm: React.FC = () => {
             descripcionConcepto: conceptoDetalle,
             conceptoId: null,
             subConceptoId: null,
-            cuotaOCantidad: cantidad.toString(),
+            cuotaOCantidad:
+              values.tarifa === "CUOTA"
+                ? `${tarifaLabel} - ${values.periodoMensual}`
+                : cantidad.toString(),
             valorBase: totalOriginal,
             importeInicial: totalDescontado,
             importePendiente: totalDescontado,
@@ -1073,6 +1120,8 @@ const CobranzasForm: React.FC = () => {
             pagoId: null,
             tieneRecargo: values.aplicarRecargo,
             removido: false,
+            // Nuevo: Identificamos el tipo de detalle
+            tipo: values.tarifa === "CUOTA" ? "disciplina" : "normal",
           } as unknown as DetallePagoRegistroRequestExt);
           added = true;
         }

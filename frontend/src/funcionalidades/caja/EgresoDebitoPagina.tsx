@@ -175,7 +175,7 @@ export default function EgresosDebitoPagina() {
       ) {
         const totalRecargo = pago.metodoPago.recargo;
         const aggregatedItem: DetallePagoResponse = {
-          id: pagoId * 1000000, // id sintético para evitar colisiones
+          id: 0, // id sintético para evitar colisiones
           version: 1,
           descripcionConcepto: "Pago por débito",
           cuotaOCantidad: "",
@@ -374,7 +374,7 @@ export default function EgresosDebitoPagina() {
             data={currentPagos}
             customRender={(fila: DetallePagoResponse) => [
               fila.id,
-              fila.alumnoDisplay || "-",
+              fila.alumno.nombre + " " + fila.alumno.apellido || "-",
               fila.descripcionConcepto,
               fila.ACobrar,
               fila.bonificacionNombre || "-",

@@ -1,5 +1,6 @@
 package ledance.dto.pago.response;
 
+import ledance.dto.alumno.response.AlumnoListadoResponse;
 import ledance.entidades.TipoDetallePago;
 import java.time.LocalDate;
 
@@ -24,7 +25,7 @@ public record DetallePagoResponse(
         TipoDetallePago tipo,
         LocalDate fechaRegistro,
         Long pagoId,
-        String alumnoDisplay,
+        AlumnoListadoResponse alumno,
         Boolean tieneRecargo,
         Long usuarioId,
         String estadoPago

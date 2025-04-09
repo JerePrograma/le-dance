@@ -7,62 +7,68 @@ import InfiniteScroll from "../../componentes/comunes/InfiniteScroll";
 import Boton from "../../componentes/comunes/Boton";
 import { PlusCircle } from "lucide-react";
 import { toast } from "react-toastify";
-import type { PagoResponse } from "../../types/types";
-import pagosApi from "../../api/pagosApi";
+import type { DetallePagoResponse } from "../../types/types";
+import detallesPagoApi from "../../api/detallesPagoApi";
 
-const PaymentListByAlumno: React.FC = () => {
+const DetallePagoListByAlumno: React.FC = () => {
   const { alumnoId } = useParams<{ alumnoId: string }>();
   const navigate = useNavigate();
 
-  const [pagos, setPagos] = useState<PagoResponse[]>([]);
+  const [detalles, setDetalles] = useState<DetallePagoResponse[]>([]);
   const [visibleCount, setVisibleCount] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const itemsPerLoad = 25;
 
-  // Obtener pagos para el alumno
-  const fetchPagos = useCallback(async () => {
+  // Función auxiliar para formatear la fecha en formato dd-mm-aaaa
+  const formatDateArgentino = (dateString: string): string => {
+    if (!dateString) return "";
+    const [year, month, day] = dateString.split("-");
+    return `${day}-${month}-${year}`;
+  };
+
+  const fetchDetalles = useCallback(async () => {
     if (!alumnoId) return;
     try {
       setLoading(true);
       setError(null);
       const parsedAlumnoId = Number(alumnoId);
-      const data = await pagosApi.listarPagosPorAlumno(parsedAlumnoId);
-      setPagos(data);
+      const data = await detallesPagoApi.listarDetallesPagos();
+      // Se filtran los detalles para el alumno actual y aquellos que tengan ACobrar > 0
+      const detallesFiltrados = data.filter(
+        (detalle) => detalle.alumno.id === parsedAlumnoId && detalle.ACobrar > 0
+      );
+      setDetalles(detallesFiltrados);
       setVisibleCount(itemsPerLoad);
     } catch (err) {
-      toast.error("Error al cargar pagos:");
-      setError("Error al cargar pagos.");
+      toast.error("Error al cargar detalles de pago.");
+      setError("Error al cargar detalles de pago.");
     } finally {
       setLoading(false);
     }
   }, [alumnoId, itemsPerLoad]);
 
   useEffect(() => {
-    fetchPagos();
-  }, [fetchPagos]);
+    fetchDetalles();
+  }, [fetchDetalles]);
 
   const currentItems = useMemo(
-    () => pagos.slice(0, visibleCount),
-    [pagos, visibleCount]
+    () => detalles.slice(0, visibleCount),
+    [detalles, visibleCount]
   );
-  const hasMore = visibleCount < pagos.length;
-
+  const hasMore = visibleCount < detalles.length;
   const loadMore = useCallback(() => {
-    setVisibleCount((prev) => Math.min(prev + itemsPerLoad, pagos.length));
-  }, [pagos.length, itemsPerLoad]);
+    setVisibleCount((prev) => Math.min(prev + itemsPerLoad, detalles.length));
+  }, [detalles.length, itemsPerLoad]);
 
-  if (loading && pagos.length === 0)
-    return <div className="text-center py-4">Cargando...</div>;
-  if (error && pagos.length === 0)
-    return <div className="text-center py-4 text-destructive">{error}</div>;
-
-  // Ordena los pagos de forma descendente
-  const sortedPagos = [...currentItems].sort((a, b) => b.id - a.id);
+  const sortedDetalles = useMemo(
+    () => [...currentItems].sort((a, b) => Number(b.pagoId) - Number(a.pagoId)),
+    [currentItems]
+  );
 
   return (
     <div className="page-container">
-      <h1 className="page-title">Pagos del Alumno {alumnoId}</h1>
+      <h1 className="page-title">DetallePagos del Alumno {alumnoId}</h1>
       <div className="page-button-group flex justify-end mb-4">
         <Boton
           type="button"
@@ -72,43 +78,38 @@ const PaymentListByAlumno: React.FC = () => {
           Volver a Pagos
         </Boton>
         <Boton
-          onClick={() => navigate("/pagos/formulario")}
+          onClick={() => navigate("/detalles-pago/formulario")}
           className="page-button"
-          aria-label="Registrar nuevo pago"
+          aria-label="Registrar nuevo detalle de pago"
         >
           <PlusCircle className="w-5 h-5 mr-2" />
-          Registrar Pago
+          Registrar Detalle de Pago
         </Boton>
       </div>
       <div className="page-card">
-        <Tabla
-          headers={[
-            "ID",
-            "Fecha",
-            "Monto",
-            "Método de Pago",
-            "Saldo Restante",
-            "Estado",
-            "Factura",
-          ]}
-          data={sortedPagos}
-          customRender={(fila) => [
-            fila.id,
-            fila.fecha,
-            fila.monto,
-            fila.metodoPago ? fila.metodoPago.descripcion : "Sin método",
-            fila.saldoRestante,
-            fila.estadoPago,
-            // Botón para descargar la factura
-            <button
-              type="button"
-              onClick={() => pagosApi.descargarRecibo(fila.id)}
-              className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-sm"
-            >
-              Descargar Factura
-            </button>,
-          ]}
-        />
+        {loading && detalles.length === 0 ? (
+          <div className="text-center py-4">Cargando...</div>
+        ) : error && detalles.length === 0 ? (
+          <div className="text-center py-4 text-destructive">{error}</div>
+        ) : (
+          <Tabla
+            headers={[
+              "N° Recibo",
+              "Alumno",
+              "Concepto",
+              "Cobrado",
+              "Fecha pago",
+            ]}
+            data={sortedDetalles}
+            customRender={(fila: DetallePagoResponse) => [
+              fila.pagoId,
+              fila.alumno.nombre + " " + fila.alumno.apellido,
+              fila.descripcionConcepto,
+              fila.ACobrar,
+              formatDateArgentino(fila.fechaRegistro),
+            ]}
+          />
+        )}
       </div>
       <InfiniteScroll
         onLoadMore={loadMore}
@@ -117,10 +118,10 @@ const PaymentListByAlumno: React.FC = () => {
         className="mt-4"
         children={undefined}
       >
-        {/* Mensaje opcional o dejar vacío */}
+        {/* Puedes dejar este espacio sin contenido o agregar un mensaje opcional */}
       </InfiniteScroll>
     </div>
   );
 };
 
-export default PaymentListByAlumno;
+export default DetallePagoListByAlumno;

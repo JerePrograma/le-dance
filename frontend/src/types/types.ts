@@ -757,7 +757,7 @@ export interface DetallePagoResponse {
   tipo: string;
   fechaRegistro: string;
   pagoId: number | null;
-  alumnoDisplay: string;
+  alumno: AlumnoResponse;
   tieneRecargo: boolean;
   estadoPago: string;
 }
