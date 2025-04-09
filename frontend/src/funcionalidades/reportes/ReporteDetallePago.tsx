@@ -364,7 +364,7 @@ const ReporteDetallePago: React.FC = () => {
                 />,
                 <input
                   type="text"
-                  value={item.alumnoDisplay}
+                  value={item.alumno.nombre + " " + item.alumno.apellido}
                   onChange={(e) =>
                     setResultados((prev) =>
                       prev.map((it) =>
