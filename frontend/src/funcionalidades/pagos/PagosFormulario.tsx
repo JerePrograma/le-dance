@@ -485,7 +485,6 @@ const ConceptosSection: React.FC<ConceptosSectionProps> = ({
 // ----- DetallesTable -----
 const DetallesTable: React.FC = () => {
   const { bonificaciones, recargos } = useCobranzasData();
-
   const splitConceptAndCuota = (
     text: string
   ): { concept: string; cuota: string } => {
@@ -552,7 +551,7 @@ const DetallesTable: React.FC = () => {
                           r.id === Number(detalle.recargoId)
                       )?.descripcion || ""
                     : "";
-                  const { concept } = splitConceptAndCuota(
+                  const { concept, cuota } = splitConceptAndCuota(
                     detalle.descripcionConcepto || ""
                   );
                   return (
@@ -569,24 +568,27 @@ const DetallesTable: React.FC = () => {
                         <Field name={`detallePagos.${index}.cuotaOCantidad`}>
                           {({ field, form }: any) => (
                             <input
-                              // Si el detalle es de tipo disciplina (mensualidad) se usa "text"
+                              // Usamos "text" para detalles de disciplina y "number" para los demás
                               type={
                                 detalle.tipo === "disciplina"
                                   ? "text"
                                   : "number"
                               }
+                              // Si el campo está vacío, se muestra el valor extraído (cuota)
+                              value={field.value || cuota}
                               {...field}
-                              // Solo para detalles numéricos se aplica min y recálculo
+                              // Si el detalle no es de disciplina, se establece un mínimo y la lógica de recálculo
                               {...(detalle.tipo !== "disciplina" && {
                                 min: "1",
                               })}
                               onChange={(e) => {
                                 const newValue = e.target.value;
+                                // Actualizamos el campo "cuotaOCantidad"
                                 form.setFieldValue(
                                   `detallePagos.${index}.cuotaOCantidad`,
                                   newValue
                                 );
-                                // Si no es de tipo disciplina, se recalculan los importes
+                                // Si no es de tipo disciplina, recalculamos los importes
                                 if (detalle.tipo !== "disciplina") {
                                   const base =
                                     Number(
@@ -820,6 +822,20 @@ const CobranzasForm: React.FC = () => {
     []
   );
 
+  const splitConceptAndCuota = (
+    text: string
+  ): { concept: string; cuota: string } => {
+    if (!text) return { concept: "", cuota: "" };
+    const parts = text.split("-");
+    if (parts.length < 2) {
+      return { concept: text.trim(), cuota: "" };
+    }
+    return {
+      concept: parts[0].trim(),
+      cuota: parts.slice(1).join("-").trim(),
+    };
+  };
+
   useEffect(() => {
     const idParam = searchParams.get("id");
     if (idParam) {
@@ -840,7 +856,12 @@ const CobranzasForm: React.FC = () => {
               descripcionConcepto: detalle.descripcionConcepto ?? "",
               conceptoId: detalle.conceptoId ?? null,
               subConceptoId: detalle.subConceptoId ?? null,
-              cuotaOCantidad: detalle.cuotaOCantidad || "1",
+              // Si cuotaOCantidad viene como null o undefined, se extrae la cuota de la descripción.
+              cuotaOCantidad:
+                detalle.cuotaOCantidad ??
+                (splitConceptAndCuota(detalle.descripcionConcepto || "")
+                  .cuota ||
+                  "1"),
               valorBase: detalle.valorBase,
               importeInicial: detalle.importeInicial ?? detalle.valorBase,
               importePendiente:

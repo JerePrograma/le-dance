@@ -1,4 +1,3 @@
-// src/hooks/useSyncDetalles.ts
 import { useEffect } from "react";
 import { useFormikContext } from "formik";
 import type {
@@ -8,8 +7,21 @@ import type {
   AlumnoDataResponse,
 } from "../../types/types";
 
-// Función para mapear los detalles pendientes
-// NOTA: Cambiamos la firma para que reciba 'alumnoData'
+// Función para separar concepto y cuota usando una expresión regular que soporte varios tipos de guión
+const splitConceptAndCuota = (
+  text: string
+): { concept: string; cuota: string } => {
+  if (!text) return { concept: "", cuota: "" };
+  const parts = text.split("-");
+  if (parts.length < 2) {
+    return { concept: text.trim(), cuota: "" };
+  }
+  return {
+    concept: parts[0].trim(),
+    cuota: parts.slice(1).join("-").trim(),
+  };
+};
+
 const mapDetallePagos = (
   detallesPendientes: DetallePagoResponse[],
   alumnoData: AlumnoDataResponse
@@ -26,10 +38,7 @@ const mapDetallePagos = (
       det.descripcionConcepto?.toUpperCase().includes("MATRICULA") &&
       creditoRestante > 0
     ) {
-      // Restamos y nos aseguramos de no caer por debajo de 0
       const nuevoValor = Math.max(0, baseValue - creditoRestante);
-
-      // Y asignamos la versión final a 'baseValue'
       baseValue = nuevoValor;
     }
 
@@ -40,22 +49,25 @@ const mapDetallePagos = (
       descripcionConcepto: det.descripcionConcepto || "",
       conceptoId: det.conceptoId ?? null,
       subConceptoId: det.subConceptoId ?? null,
-      cuotaOCantidad: det.cuotaOCantidad ?? "1",
+      // Si cuotaOCantidad es nulo, usamos la parte extraída; de lo contrario, usamos el valor existente
+      cuotaOCantidad:
+        det.cuotaOCantidad ??
+        (splitConceptAndCuota(det.descripcionConcepto || "").cuota || "1"),
       valorBase: det.valorBase ?? 0,
       bonificacionId: det.bonificacionId ?? null,
       recargoId: det.recargoId ?? null,
-      // Aquí ya tenemos el importePendiente modificado si corresponde
       importePendiente: baseValue,
-      ACobrar: baseValue, // También lo ajustamos
+      ACobrar: baseValue,
       cobrado: det.cobrado ?? false,
       mensualidadId: det.mensualidadId ?? null,
       matriculaId: det.matriculaId ?? null,
-      importeInicial: det.importeInicial ?? null,
+      importeInicial: det.importeInicial ?? 0,
       stockId: det.stockId ?? null,
       pagoId: det.pagoId ?? null,
       tieneRecargo: det.tieneRecargo,
       estadoPago: det.estadoPago,
       removido: det.removido,
+      alumno: alumnoData.alumno,
     };
   });
 };
@@ -63,27 +75,22 @@ const mapDetallePagos = (
 export const useSyncDetalles = (alumnoData: AlumnoDataResponse | undefined) => {
   const { setFieldValue } = useFormikContext<CobranzasFormValues>();
 
-  // Cada vez que cambia el alumno, se reinician los detalles (y se limpian los datos "autoRemoved")
   useEffect(() => {
     if (!alumnoData) return;
 
     const detallesPendientes =
       alumnoData.detallePagosPendientes || alumnoData.detallePagos || [];
 
-    // Mapear los detalles pendientes (ignoramos los detalles actuales para un reinicio total)
     const autoDetails = mapDetallePagos(detallesPendientes, alumnoData);
 
-    // Filtrar para conservar solo aquellos con un importe mayor a 0
     const autoDetailsFiltered = autoDetails.filter(
       (det) => Number(det.importePendiente) > 0
     );
 
-    // Reiniciamos el campo "detallePagos" y también borramos cualquier autoRemoved previo
     setFieldValue("detallePagos", autoDetailsFiltered);
     setFieldValue("autoRemoved", []);
   }, [alumnoData, setFieldValue]);
 
-  // Cada vez que cambia el alumno, se actualiza el número de recibo según el primer detalle pendiente
   useEffect(() => {
     if (!alumnoData) return;
 
