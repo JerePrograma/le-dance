@@ -58,13 +58,11 @@ public class DetallePago {
     @JoinColumn(name = "pago_id", nullable = false)
     private Pago pago;
 
-    // En DetallePago, para eliminar Mensualidad al borrar el DetallePago:
     @ManyToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "mensualidad_id", nullable = true)
-    @ToString.Exclude // Evita recursividad con Mensualidad
+    @ToString.Exclude
     private Mensualidad mensualidad;
 
-    // Para Matricula:
     @ManyToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "matricula_id", nullable = true)
     private Matricula matricula;
@@ -105,28 +103,35 @@ public class DetallePago {
     @Column(name = "removido")
     private Boolean removido = false;
 
+    /*
+     * --------------------------
+     * Callbacks JPA
+     * --------------------------
+     */
+
     @PrePersist
     public void prePersist() {
-        // Si ya existe un pago asociado y éste tiene fecha, se usa esa fecha.
+        // Ajuste fecha de registro
         if (this.pago != null && this.pago.getFecha() != null) {
             this.fechaRegistro = this.pago.getFecha();
         } else if (this.fechaRegistro == null) {
-            // En caso contrario, se usa la fecha actual
             this.fechaRegistro = LocalDate.now();
         }
-        // Normalizar la descripción (opcional)
+        // Normalizar la descripción
         if (this.descripcionConcepto != null) {
             this.descripcionConcepto = this.descripcionConcepto.toUpperCase();
         }
-        // Si es matrícula y no hay descripción, asignarla por defecto.
+        // Asignar descripción por defecto si es matrícula
         if (this.matricula != null && (this.descripcionConcepto == null || this.descripcionConcepto.trim().isEmpty())) {
             this.descripcionConcepto = "MATRICULA " + LocalDate.now().getYear();
         }
+        // Llamada a la lógica para setear 'cuotaOCantidad'
+        this.setCuotaFromDescripcion();
     }
 
     @PreUpdate
     public void preUpdate() {
-        // Si el detalle tiene un pago asociado y éste tiene fecha, se sincroniza con ella.
+        // Ajuste fecha de registro
         if (this.pago != null && this.pago.getFecha() != null) {
             this.fechaRegistro = this.pago.getFecha();
         }
@@ -134,9 +139,52 @@ public class DetallePago {
         if (this.descripcionConcepto != null) {
             this.descripcionConcepto = this.descripcionConcepto.toUpperCase();
         }
-        // Si es matrícula y la descripción está vacía, asignarla por defecto.
+        // Asignar descripción por defecto si es matrícula
         if (this.matricula != null && (this.descripcionConcepto == null || this.descripcionConcepto.trim().isEmpty())) {
             this.descripcionConcepto = "MATRICULA " + LocalDate.now().getYear();
+        }
+    }
+
+    /**
+     * Método privado para asignar el campo 'cuotaOCantidad'
+     * según la lógica deseada:
+     * - Si la descripción contiene "MATRICULA", usar lo posterior al primer espacio.
+     * - Si la descripción contiene '-', usar lo posterior al primer guión.
+     * - Caso contrario, usar "1".
+     */
+    private void setCuotaFromDescripcion() {
+        if (this.descripcionConcepto == null || this.descripcionConcepto.trim().isEmpty()) {
+            // Si la descripción está vacía, forzamos "1" por default.
+            this.cuotaOCantidad = "1";
+            return;
+        }
+
+        // Controlamos con indexOf y la cadena normalizada (ya en mayúsculas).
+        String upperDesc = this.descripcionConcepto.toUpperCase();
+
+        if (upperDesc.contains("MATRICULA")) {
+            // Extraer lo que haya después del primer espacio
+            int spaceIndex = upperDesc.indexOf(" ");
+            if (spaceIndex >= 0 && spaceIndex < this.descripcionConcepto.length() - 1) {
+                // Extraer la subcadena posterior al espacio
+                String sub = this.descripcionConcepto.substring(spaceIndex + 1).trim();
+                // sub contiene: "2025" en "MATRICULA 2025"
+                this.cuotaOCantidad = sub.isEmpty() ? "1" : sub;
+            } else {
+                this.cuotaOCantidad = "1";
+            }
+        } else if (upperDesc.contains("-")) {
+            int dashIndex = this.descripcionConcepto.indexOf("-");
+            if (dashIndex >= 0 && dashIndex < this.descripcionConcepto.length() - 1) {
+                String sub = this.descripcionConcepto.substring(dashIndex + 1).trim();
+                // sub contiene: "CUOTA - MARZO DE 2025" en "DANZA - CUOTA - MARZO DE 2025"
+                this.cuotaOCantidad = sub.isEmpty() ? "1" : sub;
+            } else {
+                this.cuotaOCantidad = "1";
+            }
+        } else {
+            // Si no se detectan "MATRICULA" ni "-"
+            this.cuotaOCantidad = "1";
         }
     }
 

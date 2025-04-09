@@ -361,13 +361,12 @@ public class DetallePagoServicio {
 
         // 2. Actualizar el Pago asociado: descontar el valor abonado (ACobrar) del total y del monto pagado
         Pago pago = detalle.getPago();
+        double valorACobrar = detalle.getACobrar(); // almacenar el valor original antes de anular
         if (pago != null) {
             log.info("Pago encontrado: {}", pago);
-            double valorACobrar = detalle.getACobrar();
             double montoActual = pago.getMonto();
             double montoPagadoActual = pago.getMontoPagado();
-            log.info("Valores actuales - Monto: {}, MontoPagado: {}, ACobrar: {}",
-                    montoActual, montoPagadoActual, valorACobrar);
+            log.info("Valores actuales - Monto: {}, MontoPagado: {}, ACobrar: {}", montoActual, montoPagadoActual, valorACobrar);
 
             double nuevoMonto = montoActual - valorACobrar;
             double nuevoMontoPagado = montoPagadoActual - valorACobrar;
@@ -380,7 +379,7 @@ public class DetallePagoServicio {
 
             // Actualizar las observaciones: reemplazar "SALDA" por "ANULA" (si corresponde)
             String obs = pago.getObservaciones();
-            if(obs != null && obs.contains("SALDA")) {
+            if (obs != null && obs.contains("SALDA")) {
                 pago.setObservaciones(obs.replace("SALDA", "ANULA"));
             }
             pagoRepositorio.save(pago);
@@ -389,53 +388,51 @@ public class DetallePagoServicio {
             log.info("No se encontró pago asociado al detalle");
         }
 
-        // 3. Determinar el monto total original de la cuota.
-        double montoTotal = detalle.getValorBase();
+        // 3. Actualizar el DetallePago original para marcarlo como anulado.
+        detalle.setCobrado(false);
+        detalle.setACobrar(0.0);
+        detalle.setImportePendiente(0.0);
+        detalle.setEstadoPago(EstadoPago.ANULADO);
+        // Se puede marcar el original como removido para mayor claridad
+        detalle.setRemovido(true);
+        detallePagoRepositorio.save(detalle);
+        log.info("DetallePago original (id={}) actualizado a estado ANULADO", detalle.getId());
 
-        // 4. Intentar unir con un detalle hermano (otro fragmento)
-        assert pago != null;
-        Optional<DetallePago> detalleHermanoOpt = pago.getDetallePagos().stream()
-                .filter(d -> !d.getId().equals(detalle.getId())
-                        && d.getDescripcionConcepto().equalsIgnoreCase(detalle.getDescripcionConcepto())
-                        && d.getEstadoPago() != EstadoPago.ANULADO)
-                .findFirst();
-
-        // Usamos el método auxiliar para clonar el detalle a anular
+        // 4. Clonar el detalle para registrar la anulación históricamente.
         DetallePago cloneDetalle = cloneDetallePago(detalle);
         cloneDetalle.setCobrado(false);
         cloneDetalle.setACobrar(0.0);
+        cloneDetalle.setImportePendiente(0.0);
         cloneDetalle.setEstadoPago(EstadoPago.ANULADO);
+        cloneDetalle.setEsClon(true); // marcar el clon como registro histórico
+        detallePagoRepositorio.save(cloneDetalle);
+        log.info("DetallePago clonado (id={}) marcado como ANULADO y guardado como registro histórico", cloneDetalle.getId());
 
-        if (detalleHermanoOpt.isPresent()) {
-            // Se ha encontrado un detalle hermano (fragmento) de la cuota.
-            DetallePago detalleHermano = detalleHermanoOpt.get();
-            log.info("Detalle hermano encontrado (id={}), se procederá a fusionar los valores", detalleHermano.getId());
-
-            // Fusionar: la suma del pendiente del hermano con el abono que se anula
-            double nuevoPendiente = detalleHermano.getImportePendiente() + detalle.getACobrar();
-            // Asegurarse de que no supere el valor total original
-            nuevoPendiente = Math.min(nuevoPendiente, montoTotal);
-
-            // Actualizar el detalle hermano
-            detalleHermano.setACobrar(0.0);
-            detalleHermano.setImportePendiente(nuevoPendiente);
-            detalleHermano.setCobrado(nuevoPendiente == 0.0);
-            detallePagoRepositorio.save(detalleHermano);
-            log.info("Detalle hermano (id={}) actualizado: nuevo importe pendiente={}", detalleHermano.getId(), nuevoPendiente);
-
-            // Guardar el clon del detalle como registro histórico de la anulación
-            detallePagoRepositorio.save(cloneDetalle);
-            log.info("DetallePago clonado (id={}) marcado como ANULADO", cloneDetalle.getId());
-        } else {
-            // No hay detalle hermano: se trata de un único fragmento
-            log.info("No se encontró detalle hermano, se clona el DetallePago (id={}) como registro de anulación", detalle.getId());
-            // Aquí podrías ajustar el importe pendiente según la lógica deseada; en este ejemplo se conserva el ACobrar en el clone como referencia
-            cloneDetalle.setImportePendiente(detalle.getACobrar());
-            detallePagoRepositorio.save(cloneDetalle);
-            log.info("DetallePago clonado (id={}) marcado como ANULADO", cloneDetalle.getId());
+        // 5. Si existe un detalle hermano, se procede a fusionar sus valores (si aplica).
+        if (pago != null) {
+            Optional<DetallePago> detalleHermanoOpt = pago.getDetallePagos().stream()
+                    .filter(d -> !d.getId().equals(detalle.getId())
+                            && d.getDescripcionConcepto().equalsIgnoreCase(detalle.getDescripcionConcepto())
+                            && d.getEstadoPago() != EstadoPago.ANULADO)
+                    .findFirst();
+            if (detalleHermanoOpt.isPresent()) {
+                DetallePago detalleHermano = detalleHermanoOpt.get();
+                log.info("Detalle hermano encontrado (id={}), se procederá a fusionar los valores", detalleHermano.getId());
+                // Fusionar: se suma el valor abonado originalmente que se está anulando.
+                double nuevoPendiente = detalleHermano.getImportePendiente() + valorACobrar;
+                double montoTotal = detalle.getValorBase();
+                nuevoPendiente = Math.min(nuevoPendiente, montoTotal);
+                detalleHermano.setACobrar(0.0);
+                detalleHermano.setImportePendiente(nuevoPendiente);
+                detalleHermano.setCobrado(nuevoPendiente == 0.0);
+                detallePagoRepositorio.save(detalleHermano);
+                log.info("Detalle hermano (id={}) actualizado: nuevo importe pendiente={}", detalleHermano.getId(), nuevoPendiente);
+            } else {
+                log.info("No se encontró detalle hermano para fusionar.");
+            }
         }
 
-        // 5. Si el detalle tiene asociado una Mensualidad o Matrícula, quitar la relación y proceder a eliminarlos.
+        // 6. Desvincular y eliminar Mensualidad o Matrícula, si corresponda.
         if (detalle.getMensualidad() != null) {
             Mensualidad mensualidad = detalle.getMensualidad();
             detalle.setMensualidad(null);
@@ -483,7 +480,7 @@ public class DetallePagoServicio {
         clone.setFechaRegistro(original.getFechaRegistro());
         clone.setTieneRecargo(original.getTieneRecargo());
         clone.setUsuario(original.getUsuario());
-        // En este caso no se copia el estado ni el identificador, se asignarán según la lógica de anulación.
+        // No se copia el identificador ni el estado, se asignarán de acuerdo a la anulación.
         return clone;
     }
 
