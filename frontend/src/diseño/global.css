@@ -472,6 +472,18 @@
   }
 }
 
+/* Para Chrome, Safari, Opera */
+.no-spinner::-webkit-inner-spin-button,
+.no-spinner::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Para Firefox */
+.no-spinner {
+  -moz-appearance: textfield;
+}
+
 /* ============================= */
 /*        UTILIDADES EXTRA       */
 /* ============================= */

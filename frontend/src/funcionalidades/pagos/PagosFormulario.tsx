@@ -652,19 +652,19 @@ const DetallesTable: React.FC = () => {
                                   newValue
                                 );
                               }}
-                              className="w-full px-2 py-1 border rounded text-center"
+                              className="w-full px-2 py-1 border rounded text-center no-spinner"
                             />
                           )}
                         </Field>
                       </td>
                       <td className="border p-2 text-center text-sm">
                         <Field name={`detallePagos.${index}.ACobrar`}>
-                          {({ field }: any) => (
+                          {({ field, form }: any) => (
                             <div>
                               <input
                                 type="number"
                                 {...field}
-                                className="w-full px-2 py-1 border rounded text-center"
+                                className="w-full px-2 py-1 border rounded text-center no-spinner"
                               />
                               {detalle.descripcionConcepto &&
                                 detalle.descripcionConcepto
