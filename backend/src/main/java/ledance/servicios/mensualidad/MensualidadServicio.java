@@ -494,6 +494,7 @@ public class MensualidadServicio implements IMensualidadService {
         DetallePago detalle = new DetallePago();
         detalle.setAlumno(alumno);
         detalle.setDescripcionConcepto(mensualidad.getDescripcion());
+        detalle.setCuotaOCantidad(extraerCuotaOCantidad(mensualidad.getDescripcion()));
         detalle.setValorBase(mensualidad.getValorBase());
         double importeInicial = mensualidad.getImporteInicial();
         detalle.setImporteInicial(importeInicial);
@@ -519,6 +520,19 @@ public class MensualidadServicio implements IMensualidadService {
         pagoRepositorio.save(pagoAsociado);
         log.info("[registrarDetallePagoMensualidad] Pago (ID={}) actualizado: nuevo monto={} y saldo restante={}",
                 pagoAsociado.getId(), pagoAsociado.getMonto(), pagoAsociado.getSaldoRestante());
+    }
+
+    /**
+     * Extrae todo lo que está después del primer guion ("-") en la descripción.
+     * Si no se encuentra el guion, se retorna una cadena vacía o un valor por defecto.
+     */
+    private String extraerCuotaOCantidad(String descripcion) {
+        if (descripcion != null && descripcion.contains("-")) {
+            // Se obtiene la posición del primer guion y se extrae lo que viene a continuación.
+            int primerGuionIndex = descripcion.indexOf("-");
+            return descripcion.substring(primerGuionIndex + 1).trim();
+        }
+        return "";  // O bien, retornar "1" si se requiere un valor por defecto.
     }
 
     @Transactional
