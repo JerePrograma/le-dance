@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import jakarta.transaction.Transactional;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -39,6 +40,8 @@ public class InscripcionServicio implements IInscripcionServicio {
     private final PaymentProcessor paymentProcessor;
     private final PagoRepositorio pagoRepositorio;
     private final AsistenciaDiariaServicio asistenciaDiariaServicio;
+    private final MensualidadRepositorio mensualidadRepositorio;
+    private final AsistenciaDiariaRepositorio asistenciaDiariaRepositorio;
 
     public InscripcionServicio(InscripcionRepositorio inscripcionRepositorio,
                                AlumnoRepositorio alumnoRepositorio,
@@ -50,7 +53,7 @@ public class InscripcionServicio implements IInscripcionServicio {
                                AsistenciaAlumnoMensualRepositorio asistenciaAlumnoMensualRepositorio,
                                MatriculaServicio matriculaServicio, PaymentProcessor paymentProcessor,
                                PagoRepositorio pagoRepositorio,
-                               AsistenciaDiariaServicio asistenciaDiariaServicio) {
+                               AsistenciaDiariaServicio asistenciaDiariaServicio, MensualidadRepositorio mensualidadRepositorio, AsistenciaDiariaRepositorio asistenciaDiariaRepositorio) {
         this.inscripcionRepositorio = inscripcionRepositorio;
         this.alumnoRepositorio = alumnoRepositorio;
         this.disciplinaRepositorio = disciplinaRepositorio;
@@ -63,6 +66,8 @@ public class InscripcionServicio implements IInscripcionServicio {
         this.paymentProcessor = paymentProcessor;
         this.pagoRepositorio = pagoRepositorio;
         this.asistenciaDiariaServicio = asistenciaDiariaServicio;
+        this.mensualidadRepositorio = mensualidadRepositorio;
+        this.asistenciaDiariaRepositorio = asistenciaDiariaRepositorio;
     }
 
     /**
@@ -230,36 +235,74 @@ public class InscripcionServicio implements IInscripcionServicio {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Elimina la inscripción y todas las entidades relacionadas en el orden correcto.
+     */
     @Transactional
     public void eliminarInscripcion(Long id) {
-        // Recuperar la inscripción; si no existe, lanza excepción
+        // Recuperar la inscripción o lanzar excepción si no se encuentra
         Inscripcion inscripcion = inscripcionRepositorio.findById(id)
                 .orElseThrow(() -> new TratadorDeErrores.RecursoNoEncontradoException("Inscripción no encontrada."));
-        Alumno alumno = inscripcion.getAlumno();
 
-        // Eliminar en bloque todos los registros de AsistenciaAlumnoMensual asociados a la inscripción
-        List<AsistenciaAlumnoMensual> asistenciasMensuales = asistenciaAlumnoMensualRepositorio.findByInscripcionId(inscripcion.getId());
-        if (asistenciasMensuales != null && !asistenciasMensuales.isEmpty()) {
-            // Para cada registro de asistencia mensual, eliminamos primero sus asistencias diarias
-            for (AsistenciaAlumnoMensual aam : asistenciasMensuales) {
-                asistenciaDiariaServicio.eliminarAsistenciaAlumnoMensual(aam.getId());
-            }
+        // ---------------------------------------------------------------------
+        // 1. Eliminar las asistencias mensuales asociadas a la inscripción
+        // (que incluyen, en forma manual, la eliminación de las asistencias diarias)
+        List<AsistenciaAlumnoMensual> asistenciasMensuales = new ArrayList<>(inscripcion.getAsistenciasAlumnoMensual());
+        for (AsistenciaAlumnoMensual aam : asistenciasMensuales) {
+            eliminarAsistenciaAlumnoMensual(aam.getId());
         }
 
-        // Remover la inscripción de la lista del alumno para evitar problemas en memoria
-        alumno.getInscripciones().remove(inscripcion);
+        // ---------------------------------------------------------------------
+        // 2. Eliminar las mensualidades asociadas (si se tienen)
+        if (inscripcion.getMensualidades() != null && !inscripcion.getMensualidades().isEmpty()) {
+            List<Mensualidad> mensualidades = new ArrayList<>(inscripcion.getMensualidades());
+            mensualidadRepositorio.deleteAll(mensualidades);
+            mensualidadRepositorio.flush();
+        }
 
-        // Eliminar la inscripción; se asume que las relaciones en cascada (orphanRemoval) borran mensualidades y demás
+        // ---------------------------------------------------------------------
+        // 3. Remover la inscripción de la lista de inscripciones del alumno
+        Alumno alumno = inscripcion.getAlumno();
+        if (alumno != null) {
+            alumno.getInscripciones().remove(inscripcion);
+            alumnoRepositorio.save(alumno);
+        }
+
+        // ---------------------------------------------------------------------
+        // 4. Eliminar la inscripción y hacer flush para sincronizar con la BD
         inscripcionRepositorio.delete(inscripcion);
         inscripcionRepositorio.flush();
 
-        // Si el alumno ya no tiene inscripciones, marcarlo como inactivo
-        if (alumno.getInscripciones().isEmpty()) {
+        // ---------------------------------------------------------------------
+        // 5. Marcar al alumno como inactivo si no tiene más inscripciones activas
+        if (alumno != null && alumno.getInscripciones().isEmpty()) {
             alumno.setActivo(false);
             alumnoRepositorio.save(alumno);
         }
     }
 
+    /**
+     * Elimina la AsistenciaAlumnoMensual y todas sus asistencias diarias asociadas.
+     */
+    @Transactional
+    public void eliminarAsistenciaAlumnoMensual(Long id) {
+        // Recuperar el registro de asistencia mensual
+        AsistenciaAlumnoMensual asistenciaMensual = asistenciaAlumnoMensualRepositorio.findById(id)
+                .orElseThrow(() -> new TratadorDeErrores.RecursoNoEncontradoException("AsistenciaAlumnoMensual no encontrada."));
+
+        // ---------------------------------------------------------------------
+        // 1. Eliminar todas las asistencias diarias asociadas a este registro
+        List<AsistenciaDiaria> asistenciasDiarias = new ArrayList<>(asistenciaMensual.getAsistenciasDiarias());
+        if (!asistenciasDiarias.isEmpty()) {
+            asistenciaDiariaRepositorio.deleteAll(asistenciasDiarias);
+            asistenciaDiariaRepositorio.flush();
+        }
+
+        // ---------------------------------------------------------------------
+        // 2. Eliminar el registro de AsistenciaAlumnoMensual
+        asistenciaAlumnoMensualRepositorio.delete(asistenciaMensual);
+        asistenciaAlumnoMensualRepositorio.flush();
+    }
 
     @Transactional
     public List<InscripcionResponse> listarInscripciones() {

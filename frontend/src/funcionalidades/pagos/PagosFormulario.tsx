@@ -36,20 +36,6 @@ import ResponsiveContainer from "../../componentes/comunes/ResponsiveContainer";
 import { useSyncDetalles } from "../../hooks/context/useSyncDetalles";
 import { normalizeInscripcion } from "./normalizeInscripcion";
 
-// ----- Helper: Función para truncar la descripción visualmente -----
-const getTruncatedDescription = (descripcion: string): string => {
-  if (!descripcion) return "";
-  if (descripcion.toUpperCase().includes("MATRICULA")) {
-    // Toma la parte anterior al primer espacio
-    return descripcion.split(" ")[0].trim();
-  }
-  if (descripcion.indexOf("-") !== -1) {
-    // Toma la parte anterior al primer guión
-    return descripcion.split("-")[0].trim();
-  }
-  return descripcion;
-};
-
 // ----- Utilidades -----
 const getMesVigente = (): string => {
   return new Date()
@@ -163,10 +149,12 @@ function normalizeAlumno(alumno: AlumnoResponse): AlumnoRegistroRequest {
 }
 
 // ----- Función para extraer cuota del string -----
+// Esta función se usará para procesar la descripción en nuevos detalles.
 const splitConceptAndCuota = (
   text: string
 ): { concept: string; cuota: string } => {
   if (!text) return { concept: "", cuota: "" };
+  // Si existe "-" se extrae lo posterior al primer guión.
   if (text.indexOf("-") !== -1) {
     const parts = text.split("-");
     return {
@@ -174,6 +162,7 @@ const splitConceptAndCuota = (
       cuota: parts.slice(1).join("-").trim(),
     };
   }
+  // Si no hay guión, se retorna la cadena vacía en cuota.
   return { concept: text.trim(), cuota: "" };
 };
 
@@ -517,11 +506,6 @@ const ConceptosSection: React.FC<ConceptosSectionProps> = ({
 // Este componente muestra la lista de detalles (persistidos y agregados).
 const DetallesTable: React.FC = () => {
   const { bonificaciones, recargos } = useCobranzasData();
-  const isNumeric = (value: any) => {
-    return !isNaN(Number(value));
-  };
-
-  // Se mantiene la función localSplitConceptAndCuota para otros usos si fuera necesario.
 
   return (
     <FieldArray name="detallePagos">
@@ -573,64 +557,56 @@ const DetallesTable: React.FC = () => {
                           r.id === Number(detalle.recargoId)
                       )?.descripcion || ""
                     : "";
-                  // Para la presentación visual se utiliza la función getTruncatedDescription
                   return (
                     <tr key={index} className="hover:bg-gray-50">
                       <td className="border p-2 text-center text-sm">
                         <input
                           type="text"
-                          value={getTruncatedDescription(
-                            detalle.descripcionConcepto
-                          )}
+                          // Usamos el valor completo de descripcionConcepto
+                          value={detalle.descripcionConcepto || ""}
                           readOnly
                           className="w-full px-2 py-1 border rounded text-center"
                         />
                       </td>
                       <td className="border p-2 text-center text-sm">
                         <Field name={`detallePagos.${index}.cuotaOCantidad`}>
-                          {({ field, form }: any) => {
-                            const inputType = isNumeric(field.value)
-                              ? "number"
-                              : "text";
-                            return (
-                              <input
-                                type={inputType}
-                                value={field.value || ""}
-                                {...field}
-                                {...(detalle.tipo !== "disciplina" && {
-                                  min: "1",
-                                })}
-                                onChange={(e) => {
-                                  const newValue = e.target.value;
+                          {({ field, form }: any) => (
+                            <input
+                              type={
+                                detalle.tipo === "MENSUALIDAD"
+                                  ? "text"
+                                  : "number"
+                              }
+                              value={field.value}
+                              {...field}
+                              {...(detalle.tipo !== "MENSUALIDAD" && {
+                                min: "1",
+                              })}
+                              onChange={(e) => {
+                                const newValue = e.target.value;
+                                form.setFieldValue(
+                                  `detallePagos.${index}.cuotaOCantidad`,
+                                  newValue
+                                );
+                                if (detalle.tipo !== "MENSUALIDAD") {
+                                  const base =
+                                    Number(
+                                      form.values.detallePagos[index].valorBase
+                                    ) || 0;
+                                  const updatedTotal = base * Number(newValue);
                                   form.setFieldValue(
-                                    `detallePagos.${index}.cuotaOCantidad`,
-                                    newValue
+                                    `detallePagos.${index}.importePendiente`,
+                                    updatedTotal
                                   );
-                                  if (
-                                    detalle.tipo !== "disciplina" &&
-                                    isNumeric(newValue)
-                                  ) {
-                                    const base =
-                                      Number(
-                                        form.values.detallePagos[index]
-                                          .valorBase
-                                      ) || 0;
-                                    const updatedTotal =
-                                      base * Number(newValue);
-                                    form.setFieldValue(
-                                      `detallePagos.${index}.importePendiente`,
-                                      updatedTotal
-                                    );
-                                    form.setFieldValue(
-                                      `detallePagos.${index}.ACobrar`,
-                                      updatedTotal
-                                    );
-                                  }
-                                }}
-                                className="w-full px-2 py-1 border rounded text-center"
-                              />
-                            );
-                          }}
+                                  form.setFieldValue(
+                                    `detallePagos.${index}.ACobrar`,
+                                    updatedTotal
+                                  );
+                                }
+                              }}
+                              className="w-full px-2 py-1 border rounded text-center"
+                            />
+                          )}
                         </Field>
                       </td>
                       <td className="border p-2 text-center text-sm">
@@ -863,6 +839,7 @@ const CobranzasForm: React.FC = () => {
               descripcionConcepto: detalle.descripcionConcepto ?? "",
               conceptoId: detalle.conceptoId ?? null,
               subConceptoId: detalle.subConceptoId ?? null,
+              // Para datos persistidos se usa el valor existente o se fuerza mediante split.
               cuotaOCantidad:
                 detalle.cuotaOCantidad ??
                 (splitConceptAndCuota(detalle.descripcionConcepto || "")
@@ -946,6 +923,11 @@ const CobranzasForm: React.FC = () => {
     return valorBase - descuento + recargoCalculado;
   };
 
+  // ******* MODIFICACIÓN EN handleAgregarDetalle *******
+  // Para los nuevos detalles (aquellos que se agregan manualmente), se "fuerza" el valor de cuotaOCantidad:
+  // - Si se trata de una matrícula, se extrae la parte posterior al primer espacio (ejemplo: "MATRICULA 2025" → "2025")
+  // - Para detalles de concepto "CUOTA", se arma la cadena con el mes/periodo.
+  // - Para stock, se usa la cantidad ingresada.
   const handleAgregarDetalle = useCallback(
     async (
       values: CobranzasFormValues,
@@ -969,6 +951,7 @@ const CobranzasForm: React.FC = () => {
         if (selectedConcept) {
           const descMayus = (selectedConcept.descripcion || "").toUpperCase();
           if (descMayus.includes("MATRICULA")) {
+            // Para matrícula, se genera la descripción y se fuerza el valor de cuotaOCantidad extrayendo el año.
             const credit = Number(values.alumno?.creditoAcumulado || 0);
             const originalPrice = selectedConcept.precio;
             const usado = Math.min(originalPrice, credit);
@@ -992,6 +975,7 @@ const CobranzasForm: React.FC = () => {
                 subConceptoId: selectedConcept.subConcepto
                   ? selectedConcept.subConcepto.id
                   : null,
+                // Fuerza: extrae la parte posterior al primer espacio (ej: "MATRICULA 2025" → "2025")
                 cuotaOCantidad: conceptoDetalle.split(" ")[1] || "1",
                 valorBase: total,
                 importeInicial: total,
@@ -1021,6 +1005,7 @@ const CobranzasForm: React.FC = () => {
               toast.error("Concepto ya se encuentra agregado");
             } else {
               const cantidad = Number(values.cantidad) || 1;
+              // Para conceptos NO matrícula, si la tarifa es "CUOTA" se arma la cadena con el mes/periodo.
               newDetails.push({
                 id: 0,
                 descripcionConcepto: String(selectedConcept.descripcion),
@@ -1030,8 +1015,8 @@ const CobranzasForm: React.FC = () => {
                   : null,
                 cuotaOCantidad:
                   values.tarifa === "CUOTA"
-                    ? `${"CUOTA"} - ${values.periodoMensual}`
-                    : cantidad.toString(),
+                    ? `${"CUOTA"} - ${values.periodoMensual}` // Fuerza el formato para cuota.
+                    : cantidad.toString(), // Caso contrario, usa la cantidad ingresada.
                 valorBase: selectedConcept.precio,
                 importeInicial: selectedConcept.precio * cantidad,
                 importePendiente: selectedConcept.precio * cantidad,
