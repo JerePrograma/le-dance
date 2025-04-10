@@ -35,6 +35,7 @@ import type {
 import ResponsiveContainer from "../../componentes/comunes/ResponsiveContainer";
 import { useSyncDetalles } from "../../hooks/context/useSyncDetalles";
 import { normalizeInscripcion } from "./normalizeInscripcion";
+import NumberInputWithoutScroll from "./NumberInputWithoutScroll";
 
 // ----- Utilidades -----
 const getMesVigente = (): string => {
@@ -638,8 +639,7 @@ const DetallesTable: React.FC = () => {
                       <td className="border p-2 text-center text-sm">
                         <Field name={`detallePagos.${index}.importePendiente`}>
                           {({ field, form }: any) => (
-                            <input
-                              type="number"
+                            <NumberInputWithoutScroll
                               {...field}
                               onChange={(e) => {
                                 const newValue = e.target.value;
@@ -661,8 +661,7 @@ const DetallesTable: React.FC = () => {
                         <Field name={`detallePagos.${index}.ACobrar`}>
                           {({ field, form }: any) => (
                             <div>
-                              <input
-                                type="number"
+                              <NumberInputWithoutScroll
                                 {...field}
                                 className="w-full px-2 py-1 border rounded text-center no-spinner"
                               />

@@ -788,6 +788,11 @@ public class PaymentProcessor {
         persistido.setDescripcionConcepto(request.getDescripcionConcepto());
         persistido.setACobrar(request.getACobrar());
         persistido.setImporteInicial(request.getImporteInicial());
+        // Si el request trae un importe pendiente, lo actualizamos;
+        // de lo contrario, podrías asignar un valor basado en la lógica de negocio.
+        if (request.getImportePendiente() != null) {
+            persistido.setImportePendiente(request.getImportePendiente() - persistido.getACobrar());
+        }
         persistido.setValorBase(request.getValorBase());
         persistido.setTipo(request.getTipo());
         persistido.setTieneRecargo(request.getTieneRecargo());
