@@ -892,6 +892,7 @@ export interface EgresoRegistroRequest {
   monto: number;
   observaciones?: string;
   metodoPagoId: number;
+  metodoPagoDescripcion: string;
 }
 
 export interface EgresoResponse {

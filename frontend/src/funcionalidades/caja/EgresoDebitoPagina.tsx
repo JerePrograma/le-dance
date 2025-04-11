@@ -157,8 +157,8 @@ export default function EgresosDebitoPagina() {
     id: 0,
     nombre: "",
     apellido: "",
-    fechaNacimiento: new Date().toISOString().split("T")[0],
-    fechaIncorporacion: new Date().toISOString().split("T")[0],
+    fechaNacimiento: defaultDate,
+    fechaIncorporacion: defaultDate,
     edad: 0,
     celular1: "",
     celular2: "",
@@ -287,7 +287,7 @@ export default function EgresosDebitoPagina() {
   const handleAbrirModal = () => {
     setMontoEgreso(0);
     setObsEgreso("");
-    setFecha(new Date().toISOString().split("T")[0]);
+    setFecha(defaultDate);
     setShowModal(true);
   };
 
@@ -305,7 +305,8 @@ export default function EgresosDebitoPagina() {
         fecha,
         monto: montoEgreso,
         observaciones: obsEgreso,
-        metodoPagoId: 2, // ID correspondiente para DEBITO
+        metodoPagoId: 0,
+        metodoPagoDescripcion: "DEBITO"
       };
       await egresosApi.registrarEgreso(nuevoEgreso);
       toast.success("Egreso agregado correctamente.");
