@@ -7,10 +7,13 @@ import Boton from "../../componentes/comunes/Boton";
 import { toast } from "react-toastify";
 import { useAuth } from "../../hooks/context/authContext";
 
-// Se incluyen los nuevos campos según lo requerido (asegúrate de que el backend los envíe)
 interface MetodoPago {
   id: number;
   descripcion: string;
+}
+
+interface DetallePago {
+  estadoPago: string; // Ejemplo: "ANULADO" u otro valor
 }
 
 interface PagoDelDia {
@@ -26,6 +29,8 @@ interface PagoDelDia {
   importePendiente: number;
   metodoPago?: MetodoPago | null;
   usuarioId: number;
+  // Propiedad opcional que permite conocer los detalles del pago.
+  detallePagos?: DetallePago[];
 }
 
 interface EgresoDelDia {
@@ -62,7 +67,6 @@ const RendicionMensual: React.FC = () => {
 
   const [data, setData] = useState<CajaDetalleDTO | null>(null);
   const [loading, setLoading] = useState(false);
-
   const [filtroPago, setFiltroPago] = useState<"mis" | "todos">("mis");
 
   const getLastDayOfMonth = (mes: string): string => {
@@ -86,9 +90,10 @@ const RendicionMensual: React.FC = () => {
         pagosDelDia: detalle.pagosDelDia.map((p: any) => ({
           ...p,
           alumno: p.alumno ?? { id: 0, nombre: "", apellido: "" },
-          // Aseguramos que si no hay datos, se asigna 0
           importeInicial: p.importeInicial ?? 0,
           importePendiente: p.importePendiente ?? 0,
+          // Aseguramos que la propiedad detallePagos exista (si el backend la envía)
+          detallePagos: p.detallePagos || [],
         })),
         egresosDelDia: detalle.egresosDelDia.map((egreso: any) => ({
           ...egreso,
@@ -103,14 +108,28 @@ const RendicionMensual: React.FC = () => {
     }
   };
 
-  // Usamos los pagos del backend y filtramos los que tengan monto, importeInicial e importePendiente 0.
+  // Filtrar pagos
   const pagos: PagoDelDia[] = data?.pagosDelDia || [];
-  const pagosValidos = pagos.filter(
-    (p) =>
-      !(p.monto === 0 && p.importeInicial === 0 && p.importePendiente === 0)
-  );
-  const sortedPagos = [...pagosValidos].sort((a, b) => b.id - a.id);
 
+  const pagosValidos = pagos.filter((p) => {
+    // Los valores numéricos se consideran 0 si son exactamente 0.
+    const numericZero =
+      p.monto === 0 && p.importeInicial === 0 && p.importePendiente === 0;
+    let todosAnulados = false;
+    // Si existen detalles, evaluamos si todos tienen estado "ANULADO"
+    if (p.detallePagos && p.detallePagos.length > 0) {
+      todosAnulados = p.detallePagos.every(
+        (d) => d.estadoPago.trim().toUpperCase() === "ANULADO"
+      );
+    }
+    // Si los valores numéricos son 0 y NO TODOS los detalles están anulados, se descarta el pago.
+    if (numericZero && !todosAnulados) {
+      return false;
+    }
+    return true;
+  });
+
+  const sortedPagos = [...pagosValidos].sort((a, b) => b.id - a.id);
   const pagosFiltradosPorUsuario =
     filtroPago === "mis"
       ? sortedPagos.filter((p) => p.usuarioId === currentUserId)
