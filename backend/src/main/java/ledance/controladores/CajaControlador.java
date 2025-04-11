@@ -1,14 +1,16 @@
 package ledance.controladores;
 
+import com.lowagie.text.DocumentException;
 import ledance.dto.caja.CajaDetalleDTO;
 import ledance.dto.caja.CajaDiariaDTO;
 import ledance.dto.caja.RendicionDTO;
 import ledance.dto.caja.response.CobranzasDataResponse;
 import ledance.servicios.caja.CajaServicio;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -36,9 +38,6 @@ public class CajaControlador {
         return cajaServicio.obtenerPlanillaGeneral(start, end);
     }
 
-    /**
-     * 2) Caja diaria (detalle) para una fecha dada
-     */
     @GetMapping("/dia/{fecha}")
     public CajaDetalleDTO obtenerCajaDia(
             @PathVariable("fecha")
@@ -47,35 +46,44 @@ public class CajaControlador {
         return cajaServicio.obtenerCajaDiaria(fecha);
     }
 
-    /**
-     * 4) Rendicion general en un rango de fechas
-     */
-    @GetMapping("/rendicion")
-    public RendicionDTO obtenerRendicion(
+    @GetMapping("/mes")
+    public CajaDetalleDTO obtenerCajaMes(
             @RequestParam("startDate")
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
 
             @RequestParam("endDate")
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end
     ) {
-        return cajaServicio.obtenerRendicionGeneral(start, end);
-    }
-
-    /**
-     * NUEVO: Endpoint para generar la rendicion mensual para el mes vigente.
-     * Se determina el primer y ultimo dia del mes actual.
-     */
-    @PostMapping("/rendicion/generar")
-    public RendicionDTO generarRendicionMensual() {
-        LocalDate start = LocalDate.now().withDayOfMonth(1);
-        LocalDate end = LocalDate.now().withDayOfMonth(LocalDate.now().lengthOfMonth());
-        return cajaServicio.obtenerRendicionGeneral(start, end);
+        // Se espera que start y end delimiten el período del mes que se desea consultar.
+        return cajaServicio.obtenerCajaMensual(start, end);
     }
 
     @GetMapping("/datos-unificados")
     public ResponseEntity<CobranzasDataResponse> obtenerDatosCobranzas() {
         CobranzasDataResponse response = cajaServicio.obtenerDatosCobranzas();
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/rendicion/imprimir")
+    public ResponseEntity<byte[]> imprimirRendicion(
+            @RequestParam("startDate")
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
+            @RequestParam("endDate")
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end) throws IOException, DocumentException {
+
+        // Se llama al servicio para generar el PDF; aquí se asume que cajaServicio tiene un método que recibe start y end.
+        byte[] pdfBytes = cajaServicio.generarRendicionMensualPdf(start, end);
+
+        // Configurar los headers para retornar un PDF descargable.
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDisposition(
+                ContentDisposition.builder("attachment")
+                        .filename("rendicion_" + start + "_" + end + ".pdf")
+                        .build()
+        );
+
+        return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
     }
 
 }

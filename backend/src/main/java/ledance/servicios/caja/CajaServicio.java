@@ -1,5 +1,6 @@
 package ledance.servicios.caja;
 
+import com.lowagie.text.DocumentException;
 import ledance.dto.alumno.response.AlumnoResponse;
 import ledance.dto.bonificacion.response.BonificacionResponse;
 import ledance.dto.caja.CajaDetalleDTO;
@@ -22,10 +23,12 @@ import ledance.servicios.bonificacion.BonificacionServicio;
 import ledance.servicios.concepto.ConceptoServicio;
 import ledance.servicios.disciplina.DisciplinaServicio;
 import ledance.servicios.pago.MetodoPagoServicio;
+import ledance.servicios.pdfs.PdfService;
 import ledance.servicios.recargo.RecargoServicio;
 import ledance.servicios.stock.StockServicio;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -44,12 +47,13 @@ public class CajaServicio {
     private final MetodoPagoServicio metodoPagoServicio;
     private final BonificacionServicio bonificacionServicio;
     private final RecargoServicio recargoServicio;
+    private final PdfService pdfService;
 
     public CajaServicio(PagoRepositorio pagoRepositorio,
                         EgresoRepositorio egresoRepositorio,
                         PagoMapper pagoMapper,
                         EgresoMapper egresoMapper,
-                        AlumnoServicio alumnoServicio, DisciplinaServicio disciplinaServicio, ConceptoServicio conceptoServicio, StockServicio stockServicio, MetodoPagoServicio metodoPagoServicio, BonificacionServicio bonificacionServicio, RecargoServicio recargoServicio) {
+                        AlumnoServicio alumnoServicio, DisciplinaServicio disciplinaServicio, ConceptoServicio conceptoServicio, StockServicio stockServicio, MetodoPagoServicio metodoPagoServicio, BonificacionServicio bonificacionServicio, RecargoServicio recargoServicio, PdfService pdfService) {
         this.pagoRepositorio = pagoRepositorio;
         this.egresoRepositorio = egresoRepositorio;
         this.pagoMapper = pagoMapper;
@@ -61,6 +65,7 @@ public class CajaServicio {
         this.metodoPagoServicio = metodoPagoServicio;
         this.bonificacionServicio = bonificacionServicio;
         this.recargoServicio = recargoServicio;
+        this.pdfService = pdfService;
     }
 
     // -------------------------------------------------------------------------
@@ -131,31 +136,12 @@ public class CajaServicio {
         return min == max ? "Recibo #" + min : String.format("Recibo #%d al #%d", min, max);
     }
 
-    // -------------------------------------------------------------------------
-    // 2. Caja Diaria: Obtener pagos y egresos de un dia especifico.
-    // -------------------------------------------------------------------------
     public CajaDetalleDTO obtenerCajaDiaria(LocalDate fecha) {
         List<Pago> pagosDia = pagoRepositorio.findByFechaBetween(fecha, fecha);
         List<Egreso> egresosDia = egresoRepositorio.findByFecha(fecha);
 
         // Se pueden mapear a DTOs si se requiere
         return new CajaDetalleDTO(pagoMapper.toDTOList(pagosDia), egresoMapper.toDTOList(egresosDia));
-    }
-
-    // -------------------------------------------------------------------------
-    // 3. Rendicion General de Caja: Detalles y totales en un rango.
-    // -------------------------------------------------------------------------
-    public RendicionDTO obtenerRendicionGeneral(LocalDate start, LocalDate end) {
-        List<Pago> pagos = pagoRepositorio.findByFechaBetween(start, end);
-        List<Egreso> egresos = egresoRepositorio.findByFechaBetween(start, end);
-
-        double totalEfectivo = sumarPorMetodoPago(pagos, "EFECTIVO");
-        double totalDebito = sumarPorMetodoPago(pagos, "DEBITO");
-        double totalEgresos = egresos.stream().mapToDouble(Egreso::getMonto).sum();
-
-        // Se mapean los pagos y egresos a DTOs si se desea, o se usan las entidades directamente
-        return new RendicionDTO(pagoMapper.toDTOList(pagos), egresoMapper.toDTOList(egresos),
-                totalEfectivo, totalDebito, totalEgresos);
     }
 
     public CobranzasDataResponse obtenerDatosCobranzas() {
@@ -181,4 +167,18 @@ public class CajaServicio {
         // 6. Armar y retornar el DTO unificado de cobranzas.
         return new CobranzasDataResponse(alumnos, disciplinas, stocks, metodosPago, conceptos, bonificaciones, recargos);
     }
+
+    public CajaDetalleDTO obtenerCajaMensual(LocalDate start, LocalDate end) {
+        List<Pago> pagosMes = pagoRepositorio.findByFechaBetween(start, end);
+        List<Egreso> egresosMes = egresoRepositorio.findByFechaBetween(start, end);
+
+        // Se mapean las entidades a DTOs (si tienes mappers)
+        return new CajaDetalleDTO(pagoMapper.toDTOList(pagosMes), egresoMapper.toDTOList(egresosMes));
+    }
+
+    public byte[] generarRendicionMensualPdf(LocalDate start, LocalDate end) throws IOException, DocumentException {
+        CajaDetalleDTO caja = obtenerCajaMensual(start, end); // ya implementado
+        return pdfService.generarRendicionMensualPdf(caja);
+    }
+
 }

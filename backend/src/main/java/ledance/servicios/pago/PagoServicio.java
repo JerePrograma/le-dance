@@ -52,7 +52,8 @@ public class PagoServicio {
                         DetallePagoServicio detallePagoServicio,
                         PaymentProcessor paymentProcessor,
                         SubConceptoRepositorio subConceptoRepositorio,
-                        ConceptoRepositorio conceptoRepositorio, ReciboStorageService reciboStorageService, UsuarioRepositorio usuarioRepositorio, UsuarioRepositorio usuarioRepositorio1) {
+                        ConceptoRepositorio conceptoRepositorio, ReciboStorageService reciboStorageService,
+                        UsuarioRepositorio usuarioRepositorio) {
         this.alumnoRepositorio = alumnoRepositorio;
         this.pagoRepositorio = pagoRepositorio;
         this.metodoPagoRepositorio = metodoPagoRepositorio;
@@ -65,7 +66,7 @@ public class PagoServicio {
         this.subConceptoRepositorio = subConceptoRepositorio;
         this.conceptoRepositorio = conceptoRepositorio;
         this.reciboStorageService = reciboStorageService;
-        this.usuarioRepositorio = usuarioRepositorio1;
+        this.usuarioRepositorio = usuarioRepositorio;
     }
 
     public PagoResponse registrarPago(PagoRegistroRequest request) {
@@ -84,7 +85,7 @@ public class PagoServicio {
             // No hay pago activo, se crea un único nuevo pago.
             pagoFinal = crearNuevoPago(alumnoPersistido, request);
             log.info("[registrarPago] No se encontró pago activo. Se creó un nuevo pago: {}", pagoFinal);
-        } else if (esAbonoParcial(ultimoPagoActivo, request)) {
+        } else if (esAbonoParcial(ultimoPagoActivo)) {
             // Existe un pago activo y se cumple la lógica para abono parcial.
             pagoFinal = paymentProcessor.procesarAbonoParcial(ultimoPagoActivo, request);
             log.info("[registrarPago] Pago procesado por abono parcial: {}", pagoFinal);
@@ -109,7 +110,7 @@ public class PagoServicio {
         PagoResponse response = pagoMapper.toDTO(pagoFinal);
         log.info("[registrarPago] Pago registrado con éxito. Respuesta final: {}", response);
         if (!pagoFinal.getMetodoPago().getDescripcion().equalsIgnoreCase("DEBITO")) {
-            reciboStorageService.generarYAlmacenarReciboDesdePagoHistorico(pagoFinal);
+            reciboStorageService.generarYAlmacenarYEnviarRecibo(pagoFinal);
         }
 
         return response;
@@ -129,7 +130,7 @@ public class PagoServicio {
     /**
      * Valida que exista un pago activo con saldo pendiente y que se cumpla la logica de migracion.
      */
-    private boolean esAbonoParcial(Pago ultimoPagoActivo, PagoRegistroRequest request) {
+    private boolean esAbonoParcial(Pago ultimoPagoActivo) {
         log.info("[esAbonoParcial] Evaluando si se trata de un abono parcial para el último pago activo.");
         boolean parcial = (ultimoPagoActivo != null
                 && ultimoPagoActivo.getSaldoRestante() > 0);

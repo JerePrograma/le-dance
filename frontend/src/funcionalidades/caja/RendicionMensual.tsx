@@ -1,121 +1,264 @@
 "use client";
-import React, { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
-import Boton from "../../componentes/comunes/Boton";
-import Tabla from "../../componentes/comunes/Tabla";
-// Se asume que tienes un API para Caja (cajaApi) que incluye la función para generar la rendición mensual
-import cajaApi from "../../api/cajaApi";
-import { RendicionDTO } from "../../types/types";
 
-// Interfaz esperada en el componente
-interface RendicionMensualDTO {
-    mes: string; // Ejemplo: "Marzo 2025"
-    totalIngresos: number;
-    totalEgresos: number;
-    totalNeto: number;
-    detalles: Array<{
-        concepto: string;
-        monto: number;
-    }>;
+import React, { useState } from "react";
+import cajaApi from "../../api/cajaApi";
+import Tabla from "../../componentes/comunes/Tabla";
+import Boton from "../../componentes/comunes/Boton";
+import { toast } from "react-toastify";
+import { useAuth } from "../../hooks/context/authContext";
+
+interface MetodoPago {
+  id: number;
+  descripcion: string;
+}
+
+interface PagoDelDia {
+  id: number;
+  alumno: {
+    id: number;
+    nombre: string;
+    apellido: string;
+  };
+  observaciones: string;
+  monto: number;
+  metodoPago?: MetodoPago | null;
+  usuarioId: number;
+}
+
+interface EgresoDelDia {
+  id: number;
+  fecha: string;
+  monto: number;
+  observaciones?: string;
+}
+
+export interface CajaDetalleDTO {
+  pagosDelDia: PagoDelDia[];
+  egresosDelDia: EgresoDelDia[];
+}
+
+export interface EgresoRegistroRequest {
+  id?: number;
+  fecha: string;
+  monto: number;
+  observaciones?: string;
+  metodoPagoId: number;
+  metodoPagoDescripcion: string;
 }
 
 const RendicionMensual: React.FC = () => {
-    const [rendicion, setRendicion] = useState<RendicionMensualDTO | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const navigate = useNavigate();
+  const { user } = useAuth();
+  const currentUserId = user?.id || 0;
 
-    // Función para obtener y transformar la rendición mensual desde el backend
-    const fetchRendicion = useCallback(async () => {
-        try {
-            setLoading(true);
-            setError(null);
-            // Se llama al endpoint para generar/obtener la rendición mensual (devuelve un objeto RendicionDTO)
-            const data: RendicionDTO = await cajaApi.generarRendicionMensual();
+  const mesAuto = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    year: "numeric",
+    month: "2-digit",
+  }).format(new Date()); // Ejemplo: "2025-04"
+  const [mes, setMes] = useState<string>(mesAuto);
 
-            // Transformar el objeto recibido a RendicionMensualDTO:
-            const mes = new Date().toLocaleString("default", { month: "long", year: "numeric" });
-            const totalIngresos = data.totalEfectivo + data.totalDebito;
-            const totalNeto = totalIngresos - data.totalEgresos;
+  const [data, setData] = useState<CajaDetalleDTO | null>(null);
+  const [loading, setLoading] = useState(false);
 
-            // Combinar pagos y egresos en un arreglo de detalles
-            const detalles = [
-                ...data.pagos.map((p) => ({
-                    concepto: p.descripcion ? `Ingreso: ${p.descripcion}` : "Ingreso",
-                    monto: p.monto,
-                })),
-                ...data.egresos.map((e) => ({
-                    concepto: e.observaciones ? `Egreso: ${e.observaciones}` : "Egreso",
-                    monto: e.monto,
-                })),
-            ];
+  const [filtroPago, setFiltroPago] = useState<"mis" | "todos">("mis");
 
-            const transformed: RendicionMensualDTO = {
-                mes,
-                totalIngresos,
-                totalEgresos: data.totalEgresos,
-                totalNeto,
-                detalles,
-            };
+  const getLastDayOfMonth = (mes: string): string => {
+    const [year, month] = mes.split("-").map(Number);
+    const date = new Date(year, month, 0);
+    const day = date.getDate().toString().padStart(2, "0");
+    return day;
+  };
 
-            setRendicion(transformed);
-            toast.success("Rendición mensual generada exitosamente.");
-        } catch (err) {
-            toast.error("Error al generar rendición mensual:");
-            setError("Error al generar rendición mensual.");
-        } finally {
-            setLoading(false);
-        }
-    }, []);
+  const handleVer = async () => {
+    try {
+      setLoading(true);
+      // Calcular primer día y último día del mes seleccionado.
+      const startDate = mes + "-01";
+      const lastDay = getLastDayOfMonth(mes);
+      const endDate = mes + "-" + lastDay;
 
-    useEffect(() => {
-        fetchRendicion();
-    }, [fetchRendicion]);
+      const detalle = await cajaApi.obtenerCajaMes(startDate, endDate);
+      const mappedDetalle: CajaDetalleDTO = {
+        ...detalle,
+        pagosDelDia: detalle.pagosDelDia.map((p: any) => ({
+          ...p,
+          alumno: p.alumno ?? { id: 0, nombre: "", apellido: "" },
+        })),
+        egresosDelDia: detalle.egresosDelDia.map((egreso: any) => ({
+          ...egreso,
+          observaciones: egreso.observaciones ?? "",
+        })),
+      };
+      setData(mappedDetalle);
+    } catch (err) {
+      toast.error("Error al consultar la caja del mes.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    if (loading)
-        return <div className="text-center py-4">Generando rendición mensual...</div>;
-    if (error)
-        return <div className="text-center py-4 text-destructive">{error}</div>;
-    if (!rendicion) return null;
+  const pagos: PagoDelDia[] = data?.pagosDelDia || [];
+  const sortedPagos = [...pagos].sort((a, b) => b.id - a.id);
+  const pagosFiltradosPorUsuario =
+    filtroPago === "mis"
+      ? sortedPagos.filter((p) => p.usuarioId === currentUserId)
+      : sortedPagos;
 
-    return (
-        <div className="page-container p-6">
-            <h1 className="text-3xl font-bold mb-4">Rendición Mensual</h1>
-            <div className="mb-4">
-                <p className="text-xl">Mes: {rendicion.mes}</p>
-                <p>Total Ingresos: ${rendicion.totalIngresos.toLocaleString()}</p>
-                <p>Total Egresos: ${rendicion.totalEgresos.toLocaleString()}</p>
-                <p className="font-bold">
-                    Total Neto: ${rendicion.totalNeto.toLocaleString()}
-                </p>
-            </div>
-            <div className="overflow-x-auto">
-                <Tabla
-                    headers={["Concepto", "Monto"]}
-                    data={rendicion.detalles}
-                    customRender={(detalle) => [
-                        detalle.concepto,
-                        detalle.monto.toLocaleString(),
-                    ]}
-                />
-            </div>
-            <div className="mt-4 flex gap-4">
-                <Boton
-                    onClick={fetchRendicion}
-                    className="bg-primary text-primary-foreground hover:bg-primary/90"
-                >
-                    Actualizar Rendición
-                </Boton>
-                <Boton
-                    onClick={() => navigate("/caja")}
-                    className="bg-secondary text-secondary-foreground hover:bg-secondary/90"
-                >
-                    Volver a Caja
-                </Boton>
-            </div>
+  const totalEfectivo = pagosFiltradosPorUsuario
+    .filter((p) => p.metodoPago?.descripcion?.toUpperCase() === "EFECTIVO")
+    .reduce((sum, p) => sum + p.monto, 0);
+
+  const totalDebito = pagosFiltradosPorUsuario
+    .filter((p) => p.metodoPago?.descripcion?.toUpperCase() === "DEBITO")
+    .reduce((sum, p) => sum + p.monto, 0);
+
+  const totalCobrado = totalEfectivo + totalDebito;
+
+  const egresos: EgresoDelDia[] = data?.egresosDelDia || [];
+  const sortedEgresos = [...egresos].sort((a, b) => b.id - a.id);
+  const totalEgresos = egresos.reduce((sum, e) => sum + e.monto, 0);
+
+  const handleImprimir = async () => {
+    try {
+      // Calcula el primer y último día del mes.
+      const startDate = mes + "-01";
+      const lastDay = getLastDayOfMonth(mes);
+      const endDate = mes + "-" + lastDay;
+
+      // Llama a la API para obtener el PDF.
+      const pdfBlob = await cajaApi.imprimirRendicion(startDate, endDate);
+
+      // Crea una URL para el blob y simula la descarga.
+      const url = window.URL.createObjectURL(pdfBlob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `rendicion_${startDate}_${endDate}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      toast.error("Error al imprimir la rendición.");
+    }
+  };
+
+  return (
+    <div className="page-container p-4">
+      <h1 className="text-2xl font-bold mb-4">Consulta de Caja (Mes)</h1>
+      <div className="flex gap-4 items-end mb-4">
+        <div>
+          <label className="block font-medium">Mes:</label>
+          <input
+            type="month"
+            className="border p-2"
+            value={mes}
+            onChange={(e) => setMes(e.target.value)}
+          />
         </div>
-    );
+        <div>
+          <label className="block font-medium">Mostrar:</label>
+          <select
+            className="border p-2"
+            value={filtroPago}
+            onChange={(e) => setFiltroPago(e.target.value as "mis" | "todos")}
+          >
+            <option value="mis">
+              {user ? `Pagos de ${user.nombreUsuario}` : "Mis pagos"}
+            </option>
+            <option value="todos">Todos</option>
+          </select>
+        </div>
+        <Boton
+          onClick={handleVer}
+          className="bg-green-500 text-white p-2 rounded"
+        >
+          Ver
+        </Boton>
+      </div>
+
+      <div className="hidden sm:block rounded-lg border h-full overflow-auto">
+        {loading ? (
+          <p>Cargando...</p>
+        ) : (
+          <Tabla
+            className="table-fixed w-full"
+            headers={["Recibo", "Código", "Alumno", "Observaciones", "Importe"]}
+            data={pagosFiltradosPorUsuario}
+            customRender={(p: PagoDelDia) => [
+              p.id,
+              p.alumno?.id || "",
+              p.alumno ? `${p.alumno.nombre} ${p.alumno.apellido}` : "",
+              <div
+                style={{
+                  maxWidth: "30vw",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+                title={p.observaciones}
+              >
+                {p.observaciones}
+              </div>,
+              p.monto.toLocaleString(),
+            ]}
+            emptyMessage="No hay pagos para el mes"
+          />
+        )}
+      </div>
+
+      {egresos.length > 0 && (
+        <div className="border p-2 mt-4">
+          <h2 className="font-semibold mb-2">Egresos del mes</h2>
+          <Tabla
+            headers={["ID", "Observaciones", "Monto"]}
+            data={sortedEgresos}
+            customRender={(e: EgresoDelDia) => [
+              e.id,
+              e.observaciones,
+              e.monto.toLocaleString(),
+            ]}
+            emptyMessage="No hay egresos para el mes"
+          />
+        </div>
+      )}
+
+      <div className="mt-4 flex gap-2">
+        <Boton
+          onClick={handleImprimir}
+          className="bg-pink-400 text-white p-2 rounded"
+        >
+          Imprimir
+        </Boton>
+      </div>
+
+      {/* Totales */}
+      <div className="text-right mt-2">
+        <p>
+          Efectivo: ${" "}
+          {pagosFiltradosPorUsuario
+            .filter(
+              (p) => p.metodoPago?.descripcion?.toUpperCase() === "EFECTIVO"
+            )
+            .reduce((sum, p) => sum + p.monto, 0)
+            .toLocaleString()}
+        </p>
+        <p>
+          Débito: ${" "}
+          {pagosFiltradosPorUsuario
+            .filter(
+              (p) => p.metodoPago?.descripcion?.toUpperCase() === "DEBITO"
+            )
+            .reduce((sum, p) => sum + p.monto, 0)
+            .toLocaleString()}
+        </p>
+        <p>Total neto: $ {(totalCobrado - totalEgresos).toLocaleString()}</p>
+        <p>Egresos en efectivo: $ {totalEgresos.toLocaleString()}</p>
+        <p>
+          Total efectivo: $ {(totalEfectivo - totalEgresos).toLocaleString()}
+        </p>
+      </div>
+    </div>
+  );
 };
 
 export default RendicionMensual;

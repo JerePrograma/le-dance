@@ -32,8 +32,6 @@ public class Alumno {
 
     @Email
     private String email1;
-    @Email
-    private String email2;
 
     private String documento;
     private String cuit;
