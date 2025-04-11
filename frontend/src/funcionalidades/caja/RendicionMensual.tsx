@@ -7,6 +7,7 @@ import Boton from "../../componentes/comunes/Boton";
 import { toast } from "react-toastify";
 import { useAuth } from "../../hooks/context/authContext";
 
+// Se incluyen los nuevos campos según lo requerido (asegúrate de que el backend los envíe)
 interface MetodoPago {
   id: number;
   descripcion: string;
@@ -21,6 +22,8 @@ interface PagoDelDia {
   };
   observaciones: string;
   monto: number;
+  importeInicial: number;
+  importePendiente: number;
   metodoPago?: MetodoPago | null;
   usuarioId: number;
 }
@@ -83,6 +86,9 @@ const RendicionMensual: React.FC = () => {
         pagosDelDia: detalle.pagosDelDia.map((p: any) => ({
           ...p,
           alumno: p.alumno ?? { id: 0, nombre: "", apellido: "" },
+          // Aseguramos que si no hay datos, se asigna 0
+          importeInicial: p.importeInicial ?? 0,
+          importePendiente: p.importePendiente ?? 0,
         })),
         egresosDelDia: detalle.egresosDelDia.map((egreso: any) => ({
           ...egreso,
@@ -97,8 +103,14 @@ const RendicionMensual: React.FC = () => {
     }
   };
 
+  // Usamos los pagos del backend y filtramos los que tengan monto, importeInicial e importePendiente 0.
   const pagos: PagoDelDia[] = data?.pagosDelDia || [];
-  const sortedPagos = [...pagos].sort((a, b) => b.id - a.id);
+  const pagosValidos = pagos.filter(
+    (p) =>
+      !(p.monto === 0 && p.importeInicial === 0 && p.importePendiente === 0)
+  );
+  const sortedPagos = [...pagosValidos].sort((a, b) => b.id - a.id);
+
   const pagosFiltradosPorUsuario =
     filtroPago === "mis"
       ? sortedPagos.filter((p) => p.usuarioId === currentUserId)
@@ -120,15 +132,12 @@ const RendicionMensual: React.FC = () => {
 
   const handleImprimir = async () => {
     try {
-      // Calcula el primer y último día del mes.
       const startDate = mes + "-01";
       const lastDay = getLastDayOfMonth(mes);
       const endDate = mes + "-" + lastDay;
 
-      // Llama a la API para obtener el PDF.
       const pdfBlob = await cajaApi.imprimirRendicion(startDate, endDate);
 
-      // Crea una URL para el blob y simula la descarga.
       const url = window.URL.createObjectURL(pdfBlob);
       const a = document.createElement("a");
       a.href = url;

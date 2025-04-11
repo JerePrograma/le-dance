@@ -408,16 +408,15 @@ public class PdfService {
     }
 
     private static PdfPTable getPdfPTable(List<PagoResponse> pagos, Font contentFont) {
+        // Se crea una tabla con 5 columnas y se definen los anchos relativos.
         PdfPTable tablaPagos = new PdfPTable(5);
-        tablaPagos.setWidthPercentage(100); // Usar 100% del ancho disponible
-
-        // Definir anchos relativos de columnas (deben sumar 100)
+        tablaPagos.setWidthPercentage(100);
         float[] anchosColumnasPagos = {10f, 10f, 25f, 40f, 15f};
         tablaPagos.setWidths(anchosColumnasPagos);
 
-        // Procesar cada pago
+        // Iterar sobre cada pago recibido
         for (PagoResponse pago : pagos) {
-            // Calcular suma a cobrar y verificar si todos los detalles están anulados
+            // Inicializar sumaACobrar y flag para determinar si TODOS los detalles están en estado ANULADO.
             double sumaACobrar = 0.0;
             boolean todosAnulados = true;
 
@@ -430,27 +429,38 @@ public class PdfService {
                 }
             }
 
-            // Omitir pagos con suma a cobrar igual a cero
-            if (sumaACobrar == 0.0) {
+            // Antes de procesar el pago, aplicar el filtro basado en las condiciones:
+            // Si (monto, importeInicial e importePendiente son 0) y NO todos son ANULADOS, omitir este pago.
+            double montoPago = (pago.monto() != null) ? pago.monto() : 0.0;
+            double importeInicial = (pago.importeInicial() != null) ? pago.importeInicial() : 0.0;
+            double importePendiente = (pago.saldoRestante() != null) ? pago.saldoRestante() : 0.0;
+
+            if (montoPago == 0.0 && importeInicial == 0.0 && importePendiente == 0.0 && !todosAnulados) {
                 continue;
             }
 
-            // Preparar datos para mostrar
-            String estado = todosAnulados ? "ANULADO" : "";
-            Long pagoId = (pago.id() != null) ? pago.id() : 0L;
-            Long codigoAlumno = (pago.alumno() != null && pago.alumno().id() != null) ? pago.alumno().id() : 0L;
+            // También se puede usar el criterio de la suma de abonos,
+            // pero se respeta la condición "salvo si es ANULADO"
+            if (sumaACobrar == 0.0 && !todosAnulados) {
+                continue;
+            }
 
-            // Construir nombre completo del alumno
+            // Determinar el estado del pago: si todos los detalles están anulados se marca como "ANULADO", sino queda vacío.
+            String estado = todosAnulados ? "ANULADO" : "";
+
+            // Preparar datos a mostrar
+            Long pagoId = (pago.id() != null) ? pago.id() : 0L;
+            Long codigoAlumno = (pago.alumno() != null && pago.alumno().id() != null)
+                    ? pago.alumno().id() : 0L;
             String nombreAlumno = "";
             if (pago.alumno() != null) {
                 String nombre = pago.alumno().nombre() != null ? pago.alumno().nombre() : "";
                 String apellido = pago.alumno().apellido() != null ? pago.alumno().apellido() : "";
                 nombreAlumno = nombre + " " + apellido;
             }
-
             String observaciones = (pago.observaciones() != null) ? pago.observaciones() : "";
 
-            // Determinar cómo mostrar el monto según el estado
+            // Si el pago está anulado, se mostrará su estado; de lo contrario se mostrará el monto formateado.
             String montoStr;
             if (estado.equals("ANULADO")) {
                 montoStr = estado;
@@ -459,31 +469,29 @@ public class PdfService {
                 montoStr = String.format("%,.2f", monto);
             }
 
-            // Agregar celdas a la tabla
+            // Crear celdas para cada columna
             PdfPCell celdaId = new PdfPCell(new Phrase(String.valueOf(pagoId), contentFont));
             PdfPCell celdaCodigo = new PdfPCell(new Phrase(String.valueOf(codigoAlumno), contentFont));
             PdfPCell celdaNombre = new PdfPCell(new Phrase(nombreAlumno, contentFont));
             PdfPCell celdaObs = new PdfPCell(new Phrase(observaciones, contentFont));
             PdfPCell celdaMonto = new PdfPCell(new Phrase(montoStr, contentFont));
 
-            // Configurar celdas sin bordes y con padding mínimo
+            // Configurar las celdas: sin bordes, con padding y alinear el monto a la derecha.
             celdaId.setBorder(Rectangle.NO_BORDER);
             celdaCodigo.setBorder(Rectangle.NO_BORDER);
             celdaNombre.setBorder(Rectangle.NO_BORDER);
             celdaObs.setBorder(Rectangle.NO_BORDER);
             celdaMonto.setBorder(Rectangle.NO_BORDER);
 
-            // Establecer padding mínimo
             celdaId.setPadding(2);
             celdaCodigo.setPadding(2);
             celdaNombre.setPadding(2);
             celdaObs.setPadding(2);
             celdaMonto.setPadding(2);
 
-            // Alinear monto a la derecha
             celdaMonto.setHorizontalAlignment(Element.ALIGN_RIGHT);
 
-            // Añadir celdas a la tabla
+            // Añadir las celdas a la tabla.
             tablaPagos.addCell(celdaId);
             tablaPagos.addCell(celdaCodigo);
             tablaPagos.addCell(celdaNombre);
@@ -492,4 +500,5 @@ public class PdfService {
         }
         return tablaPagos;
     }
+
 }
