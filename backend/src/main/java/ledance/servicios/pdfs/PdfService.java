@@ -303,7 +303,7 @@ public class PdfService {
      * @return Un arreglo de bytes representando el PDF generado.
      * @throws DocumentException En caso de error al crear el documento PDF.
      */
-    public byte[] generarRendicionMensualPdf(CajaDetalleDTO caja) throws DocumentException, IOException {
+    public byte[] generarRendicionMensualPdf(CajaDetalleDTO caja) throws DocumentException {
         // Configuración inicial del documento
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         Document document = new Document(PageSize.A4); // Usar orientación horizontal para más ancho
@@ -335,88 +335,7 @@ public class PdfService {
             document.add(new Paragraph(" ", contentFont));
         } else {
             // Crear tabla para mejor control del ancho
-            PdfPTable tablaPagos = new PdfPTable(5);
-            tablaPagos.setWidthPercentage(100); // Usar 100% del ancho disponible
-
-            // Definir anchos relativos de columnas (deben sumar 100)
-            float[] anchosColumnasPagos = {10f, 10f, 25f, 40f, 15f};
-            tablaPagos.setWidths(anchosColumnasPagos);
-
-            // Procesar cada pago
-            for (PagoResponse pago : pagos) {
-                // Calcular suma a cobrar y verificar si todos los detalles están anulados
-                double sumaACobrar = 0.0;
-                boolean todosAnulados = true;
-
-                if (pago.detallePagos() != null && !pago.detallePagos().isEmpty()) {
-                    for (var detalle : pago.detallePagos()) {
-                        sumaACobrar += (detalle.ACobrar() != null ? detalle.ACobrar() : 0.0);
-                        if (!"ANULADO".equalsIgnoreCase(detalle.estadoPago())) {
-                            todosAnulados = false;
-                        }
-                    }
-                }
-
-                // Omitir pagos con suma a cobrar igual a cero
-                if (sumaACobrar == 0.0) {
-                    continue;
-                }
-
-                // Preparar datos para mostrar
-                String estado = todosAnulados ? "ANULADO" : "";
-                Long pagoId = (pago.id() != null) ? pago.id() : 0L;
-                Long codigoAlumno = (pago.alumno() != null && pago.alumno().id() != null) ? pago.alumno().id() : 0L;
-
-                // Construir nombre completo del alumno
-                String nombreAlumno = "";
-                if (pago.alumno() != null) {
-                    String nombre = pago.alumno().nombre() != null ? pago.alumno().nombre() : "";
-                    String apellido = pago.alumno().apellido() != null ? pago.alumno().apellido() : "";
-                    nombreAlumno = nombre + " " + apellido;
-                }
-
-                String observaciones = (pago.observaciones() != null) ? pago.observaciones() : "";
-
-                // Determinar cómo mostrar el monto según el estado
-                String montoStr;
-                if (estado.equals("ANULADO")) {
-                    montoStr = estado;
-                } else {
-                    Double monto = (pago.monto() != null) ? pago.monto() : 0.0;
-                    montoStr = String.format("%,.2f", monto);
-                }
-
-                // Agregar celdas a la tabla
-                PdfPCell celdaId = new PdfPCell(new Phrase(String.valueOf(pagoId), contentFont));
-                PdfPCell celdaCodigo = new PdfPCell(new Phrase(String.valueOf(codigoAlumno), contentFont));
-                PdfPCell celdaNombre = new PdfPCell(new Phrase(nombreAlumno, contentFont));
-                PdfPCell celdaObs = new PdfPCell(new Phrase(observaciones, contentFont));
-                PdfPCell celdaMonto = new PdfPCell(new Phrase(montoStr, contentFont));
-
-                // Configurar celdas sin bordes y con padding mínimo
-                celdaId.setBorder(Rectangle.NO_BORDER);
-                celdaCodigo.setBorder(Rectangle.NO_BORDER);
-                celdaNombre.setBorder(Rectangle.NO_BORDER);
-                celdaObs.setBorder(Rectangle.NO_BORDER);
-                celdaMonto.setBorder(Rectangle.NO_BORDER);
-
-                // Establecer padding mínimo
-                celdaId.setPadding(2);
-                celdaCodigo.setPadding(2);
-                celdaNombre.setPadding(2);
-                celdaObs.setPadding(2);
-                celdaMonto.setPadding(2);
-
-                // Alinear monto a la derecha
-                celdaMonto.setHorizontalAlignment(Element.ALIGN_RIGHT);
-
-                // Añadir celdas a la tabla
-                tablaPagos.addCell(celdaId);
-                tablaPagos.addCell(celdaCodigo);
-                tablaPagos.addCell(celdaNombre);
-                tablaPagos.addCell(celdaObs);
-                tablaPagos.addCell(celdaMonto);
-            }
+            PdfPTable tablaPagos = getPdfPTable(pagos, contentFont);
 
             // Agregar tabla al documento
             document.add(tablaPagos);
@@ -436,42 +355,7 @@ public class PdfService {
             document.add(new Paragraph(" ", contentFont));
         } else {
             // Crear tabla para egresos
-            PdfPTable tablaEgresos = new PdfPTable(3);
-            tablaEgresos.setWidthPercentage(100);
-
-            // Definir anchos relativos de columnas
-            float[] anchosColumnasEgresos = {15f, 70f, 15f};
-            tablaEgresos.setWidths(anchosColumnasEgresos);
-
-            // Procesar cada egreso
-            for (EgresoResponse egreso : egresos) {
-                // Preparar datos para mostrar
-                Long egresoId = (egreso.id() != null) ? egreso.id() : 0L;
-                String observaciones = (egreso.observaciones() != null) ? egreso.observaciones() : "";
-                Double monto = (egreso.monto() != null) ? egreso.monto() : 0.0;
-
-                // Crear celdas
-                PdfPCell celdaId = new PdfPCell(new Phrase(String.valueOf(egresoId), contentFont));
-                PdfPCell celdaObs = new PdfPCell(new Phrase(observaciones, contentFont));
-                PdfPCell celdaMonto = new PdfPCell(new Phrase(String.format("%,.2f", monto), contentFont));
-
-                // Configurar celdas sin bordes y con padding mínimo
-                celdaId.setBorder(Rectangle.NO_BORDER);
-                celdaObs.setBorder(Rectangle.NO_BORDER);
-                celdaMonto.setBorder(Rectangle.NO_BORDER);
-
-                celdaId.setPadding(2);
-                celdaObs.setPadding(2);
-                celdaMonto.setPadding(2);
-
-                // Alinear monto a la derecha
-                celdaMonto.setHorizontalAlignment(Element.ALIGN_RIGHT);
-
-                // Añadir celdas a la tabla
-                tablaEgresos.addCell(celdaId);
-                tablaEgresos.addCell(celdaObs);
-                tablaEgresos.addCell(celdaMonto);
-            }
+            PdfPTable tablaEgresos = getPTable(egresos, contentFont);
 
             // Agregar tabla al documento
             document.add(tablaEgresos);
@@ -481,5 +365,131 @@ public class PdfService {
         // Cerrar documento y devolver bytes
         document.close();
         return bos.toByteArray();
+    }
+
+    private static PdfPTable getPTable(List<EgresoResponse> egresos, Font contentFont) {
+        PdfPTable tablaEgresos = new PdfPTable(3);
+        tablaEgresos.setWidthPercentage(100);
+
+        // Definir anchos relativos de columnas
+        float[] anchosColumnasEgresos = {15f, 70f, 15f};
+        tablaEgresos.setWidths(anchosColumnasEgresos);
+
+        // Procesar cada egreso
+        for (EgresoResponse egreso : egresos) {
+            // Preparar datos para mostrar
+            Long egresoId = (egreso.id() != null) ? egreso.id() : 0L;
+            String observaciones = (egreso.observaciones() != null) ? egreso.observaciones() : "";
+            Double monto = (egreso.monto() != null) ? egreso.monto() : 0.0;
+
+            // Crear celdas
+            PdfPCell celdaId = new PdfPCell(new Phrase(String.valueOf(egresoId), contentFont));
+            PdfPCell celdaObs = new PdfPCell(new Phrase(observaciones, contentFont));
+            PdfPCell celdaMonto = new PdfPCell(new Phrase(String.format("%,.2f", monto), contentFont));
+
+            // Configurar celdas sin bordes y con padding mínimo
+            celdaId.setBorder(Rectangle.NO_BORDER);
+            celdaObs.setBorder(Rectangle.NO_BORDER);
+            celdaMonto.setBorder(Rectangle.NO_BORDER);
+
+            celdaId.setPadding(2);
+            celdaObs.setPadding(2);
+            celdaMonto.setPadding(2);
+
+            // Alinear monto a la derecha
+            celdaMonto.setHorizontalAlignment(Element.ALIGN_RIGHT);
+
+            // Añadir celdas a la tabla
+            tablaEgresos.addCell(celdaId);
+            tablaEgresos.addCell(celdaObs);
+            tablaEgresos.addCell(celdaMonto);
+        }
+        return tablaEgresos;
+    }
+
+    private static PdfPTable getPdfPTable(List<PagoResponse> pagos, Font contentFont) {
+        PdfPTable tablaPagos = new PdfPTable(5);
+        tablaPagos.setWidthPercentage(100); // Usar 100% del ancho disponible
+
+        // Definir anchos relativos de columnas (deben sumar 100)
+        float[] anchosColumnasPagos = {10f, 10f, 25f, 40f, 15f};
+        tablaPagos.setWidths(anchosColumnasPagos);
+
+        // Procesar cada pago
+        for (PagoResponse pago : pagos) {
+            // Calcular suma a cobrar y verificar si todos los detalles están anulados
+            double sumaACobrar = 0.0;
+            boolean todosAnulados = true;
+
+            if (pago.detallePagos() != null && !pago.detallePagos().isEmpty()) {
+                for (var detalle : pago.detallePagos()) {
+                    sumaACobrar += (detalle.ACobrar() != null ? detalle.ACobrar() : 0.0);
+                    if (!"ANULADO".equalsIgnoreCase(detalle.estadoPago())) {
+                        todosAnulados = false;
+                    }
+                }
+            }
+
+            // Omitir pagos con suma a cobrar igual a cero
+            if (sumaACobrar == 0.0) {
+                continue;
+            }
+
+            // Preparar datos para mostrar
+            String estado = todosAnulados ? "ANULADO" : "";
+            Long pagoId = (pago.id() != null) ? pago.id() : 0L;
+            Long codigoAlumno = (pago.alumno() != null && pago.alumno().id() != null) ? pago.alumno().id() : 0L;
+
+            // Construir nombre completo del alumno
+            String nombreAlumno = "";
+            if (pago.alumno() != null) {
+                String nombre = pago.alumno().nombre() != null ? pago.alumno().nombre() : "";
+                String apellido = pago.alumno().apellido() != null ? pago.alumno().apellido() : "";
+                nombreAlumno = nombre + " " + apellido;
+            }
+
+            String observaciones = (pago.observaciones() != null) ? pago.observaciones() : "";
+
+            // Determinar cómo mostrar el monto según el estado
+            String montoStr;
+            if (estado.equals("ANULADO")) {
+                montoStr = estado;
+            } else {
+                Double monto = (pago.monto() != null) ? pago.monto() : 0.0;
+                montoStr = String.format("%,.2f", monto);
+            }
+
+            // Agregar celdas a la tabla
+            PdfPCell celdaId = new PdfPCell(new Phrase(String.valueOf(pagoId), contentFont));
+            PdfPCell celdaCodigo = new PdfPCell(new Phrase(String.valueOf(codigoAlumno), contentFont));
+            PdfPCell celdaNombre = new PdfPCell(new Phrase(nombreAlumno, contentFont));
+            PdfPCell celdaObs = new PdfPCell(new Phrase(observaciones, contentFont));
+            PdfPCell celdaMonto = new PdfPCell(new Phrase(montoStr, contentFont));
+
+            // Configurar celdas sin bordes y con padding mínimo
+            celdaId.setBorder(Rectangle.NO_BORDER);
+            celdaCodigo.setBorder(Rectangle.NO_BORDER);
+            celdaNombre.setBorder(Rectangle.NO_BORDER);
+            celdaObs.setBorder(Rectangle.NO_BORDER);
+            celdaMonto.setBorder(Rectangle.NO_BORDER);
+
+            // Establecer padding mínimo
+            celdaId.setPadding(2);
+            celdaCodigo.setPadding(2);
+            celdaNombre.setPadding(2);
+            celdaObs.setPadding(2);
+            celdaMonto.setPadding(2);
+
+            // Alinear monto a la derecha
+            celdaMonto.setHorizontalAlignment(Element.ALIGN_RIGHT);
+
+            // Añadir celdas a la tabla
+            tablaPagos.addCell(celdaId);
+            tablaPagos.addCell(celdaCodigo);
+            tablaPagos.addCell(celdaNombre);
+            tablaPagos.addCell(celdaObs);
+            tablaPagos.addCell(celdaMonto);
+        }
+        return tablaPagos;
     }
 }

@@ -627,7 +627,6 @@ const AlumnosFormulario: React.FC = () => {
         }
       }
 
-      let successMsg: string;
       if (alumnoId) {
         await alumnosApi.actualizar(alumnoId, values);
         toast.success("Alumno actualizado correctamente");
@@ -635,7 +634,6 @@ const AlumnosFormulario: React.FC = () => {
         const nuevoAlumno = await alumnosApi.registrar(values);
         setAlumnoId(nuevoAlumno.id);
         setIdBusqueda(String(nuevoAlumno.id));
-        successMsg = "Alumno creado correctamente";
       }
     } catch (error: any) {
       const errorMessage =
