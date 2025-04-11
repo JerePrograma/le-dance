@@ -45,6 +45,7 @@ export interface EgresoRegistroRequest {
   monto: number;
   observaciones?: string;
   metodoPagoId: number;
+  metodoPagoDescripcion: string;
 }
 
 const ConsultaCajaDiaria: React.FC = () => {
@@ -165,7 +166,8 @@ const ConsultaCajaDiaria: React.FC = () => {
         fecha,
         monto: montoEgreso,
         observaciones: obsEgreso,
-        metodoPagoId: 1, // Hardcodeado a EFECTIVO
+        metodoPagoDescripcion: "EFECTIVO",
+        metodoPagoId: 0,
       };
       await egresoApi.registrarEgreso(egresoRequest);
       toast.success("Egreso agregado correctamente.");

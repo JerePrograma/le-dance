@@ -5,7 +5,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import Tabla from "../../componentes/comunes/Tabla";
 import InfiniteScroll from "../../componentes/comunes/InfiniteScroll";
 import Boton from "../../componentes/comunes/Boton";
-import { PlusCircle } from "lucide-react";
 import { toast } from "react-toastify";
 import type { DetallePagoResponse } from "../../types/types";
 import detallesPagoApi from "../../api/detallesPagoApi";
@@ -78,14 +77,6 @@ const DetallePagoListByAlumno: React.FC = () => {
         >
           Volver a Pagos
         </Boton>
-        <Boton
-          onClick={() => navigate("/detalles-pago/formulario")}
-          className="page-button"
-          aria-label="Registrar nuevo detalle de pago"
-        >
-          <PlusCircle className="w-5 h-5 mr-2" />
-          Registrar Detalle de Pago
-        </Boton>
       </div>
       <div className="page-card">
         {loading && detalles.length === 0 ? (
@@ -108,6 +99,13 @@ const DetallePagoListByAlumno: React.FC = () => {
               fila.descripcionConcepto,
               fila.ACobrar,
               formatDateArgentino(fila.fechaRegistro),
+              <button
+              type="button"
+              onClick={() => pagosApi.verRecibo(fila.pagoId)}
+              className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-sm"
+            >
+              Ver Factura
+            </button>,
               <button
                 type="button"
                 onClick={() => pagosApi.descargarRecibo(fila.pagoId)}

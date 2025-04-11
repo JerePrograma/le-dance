@@ -38,6 +38,14 @@ const descargarRecibo = async (pagoId: number): Promise<void> => {
   }
 };
 
+const verRecibo = async (pagoId: number): Promise<void> => {
+  try {
+    window.open(`/api/pagos/recibo/${pagoId}`, "_blank");
+  } catch (error) {
+    console.error("Error al descargar el recibo", error);
+  }
+};
+
 const registrarPago = async (
   pago: PagoRegistroRequest
 ): Promise<PagoResponse> => {
@@ -202,6 +210,7 @@ const pagosApi = {
   obtenerPagoPorId,
   listarPagos,
   actualizarPago,
+  verRecibo,
   descargarRecibo,
   actualizarPagoParcial,
   eliminarPago,

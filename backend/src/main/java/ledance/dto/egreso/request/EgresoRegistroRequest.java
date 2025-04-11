@@ -7,5 +7,7 @@ public record EgresoRegistroRequest(
         LocalDate fecha,
         Double monto,
         String observaciones,
-        Long metodoPagoId
-) { }
+        Long metodoPagoId,
+        String metodoPagoDescripcion
+) {
+}

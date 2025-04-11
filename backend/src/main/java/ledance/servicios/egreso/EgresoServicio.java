@@ -35,14 +35,19 @@ public class EgresoServicio {
     public EgresoResponse agregarEgreso(EgresoRegistroRequest request) {
         // Mapear el request a la entidad
         Egreso egreso = egresoMapper.toEntity(request);
-        // Asignar el metodo de pago usando el ID del request
-        MetodoPago metodo = metodoPagoRepositorio.findById(request.metodoPagoId())
-                .orElseThrow(() -> new IllegalArgumentException("Metodo de pago no encontrado para id: " + request.metodoPagoId()));
-        egreso.setMetodoPago(metodo);
-        // Aseguramos que el egreso este activo
-        egreso.setActivo(true);
-        Egreso saved = egresoRepositorio.save(egreso);
-        return egresoMapper.toDTO(saved);
+
+        // Asignar el método de pago usando la descripción del request.
+        // Se busca el método de pago que tenga la descripción indicada.
+        MetodoPago metodo = metodoPagoRepositorio
+                .findByDescripcionContainingIgnoreCase(request.metodoPagoDescripcion());
+        if (metodo != null) {
+            egreso.setMetodoPago(metodo);
+            // Aseguramos que el egreso esté activo
+            egreso.setActivo(true);
+            Egreso saved = egresoRepositorio.save(egreso);
+            return egresoMapper.toDTO(saved);
+        }
+        return null;
     }
 
     // -------------------------------------------------------------------------
