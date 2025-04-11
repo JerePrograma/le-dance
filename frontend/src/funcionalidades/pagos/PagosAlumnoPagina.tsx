@@ -9,6 +9,7 @@ import { PlusCircle } from "lucide-react";
 import { toast } from "react-toastify";
 import type { DetallePagoResponse } from "../../types/types";
 import detallesPagoApi from "../../api/detallesPagoApi";
+import pagosApi from "../../api/pagosApi";
 
 const DetallePagoListByAlumno: React.FC = () => {
   const { alumnoId } = useParams<{ alumnoId: string }>();
@@ -107,6 +108,13 @@ const DetallePagoListByAlumno: React.FC = () => {
               fila.descripcionConcepto,
               fila.ACobrar,
               formatDateArgentino(fila.fechaRegistro),
+              <button
+                type="button"
+                onClick={() => pagosApi.descargarRecibo(fila.pagoId)}
+                className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-sm"
+              >
+                Descargar Factura
+              </button>,
             ]}
           />
         )}

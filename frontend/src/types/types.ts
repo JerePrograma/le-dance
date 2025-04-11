@@ -756,7 +756,7 @@ export interface DetallePagoResponse {
   importePendiente: number;
   tipo: string;
   fechaRegistro: string;
-  pagoId: number | null;
+  pagoId: number;
   alumno: AlumnoResponse;
   tieneRecargo: boolean;
   estadoPago: string;
