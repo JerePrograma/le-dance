@@ -28,16 +28,11 @@ public class EgresoServicio {
         this.metodoPagoRepositorio = metodoPagoRepositorio;
     }
 
-    // -------------------------------------------------------------------------
-    // Registrar (Crear) un nuevo Egreso
-    // -------------------------------------------------------------------------
     @Transactional
     public EgresoResponse agregarEgreso(EgresoRegistroRequest request) {
         // Mapear el request a la entidad
         Egreso egreso = egresoMapper.toEntity(request);
 
-        // Asignar el método de pago usando la descripción del request.
-        // Se busca el método de pago que tenga la descripción indicada.
         MetodoPago metodo = metodoPagoRepositorio
                 .findByDescripcionContainingIgnoreCase(request.metodoPagoDescripcion());
         if (metodo != null) {
@@ -50,9 +45,6 @@ public class EgresoServicio {
         return null;
     }
 
-    // -------------------------------------------------------------------------
-    // Actualizar un Egreso existente
-    // -------------------------------------------------------------------------
     @Transactional
     public EgresoResponse actualizarEgreso(Long id, EgresoRegistroRequest request) {
         Egreso egreso = egresoRepositorio.findById(id)
@@ -69,30 +61,20 @@ public class EgresoServicio {
         return egresoMapper.toDTO(saved);
     }
 
-    // -------------------------------------------------------------------------
-    // Eliminar (Baja logica) un Egreso
-    // -------------------------------------------------------------------------
     @Transactional
     public void eliminarEgreso(Long id) {
         Egreso egreso = egresoRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Egreso no encontrado para id: " + id));
         // Realizamos una baja logica (marcandolo inactivo)
-        egreso.setActivo(false);
-        egresoRepositorio.save(egreso);
+        egresoRepositorio.delete(egreso);
     }
 
-    // -------------------------------------------------------------------------
-    // Obtener un Egreso por ID
-    // -------------------------------------------------------------------------
     public EgresoResponse obtenerEgresoPorId(Long id) {
         Egreso egreso = egresoRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Egreso no encontrado para id: " + id));
         return egresoMapper.toDTO(egreso);
     }
 
-    // -------------------------------------------------------------------------
-    // Listar todos los Egresos activos
-    // -------------------------------------------------------------------------
     public List<EgresoResponse> listarEgresos() {
         return egresoRepositorio.findAll()
                 .stream()
@@ -101,9 +83,6 @@ public class EgresoServicio {
                 .collect(Collectors.toList());
     }
 
-    // -------------------------------------------------------------------------
-    // Listar egresos activos filtrados por metodo de pago
-    // -------------------------------------------------------------------------
     public List<EgresoResponse> listarEgresosPorMetodo(String metodoDescripcion) {
         return egresoRepositorio.findAll()
                 .stream()
@@ -114,7 +93,6 @@ public class EgresoServicio {
                 .collect(Collectors.toList());
     }
 
-    // Metodos convenientes
     public List<EgresoResponse> listarEgresosDebito() {
         return listarEgresosPorMetodo("DEBITO");
     }

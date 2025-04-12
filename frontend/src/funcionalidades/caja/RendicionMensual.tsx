@@ -172,7 +172,7 @@ const RendicionMensual: React.FC = () => {
 
   return (
     <div className="page-container p-4">
-      <h1 className="text-2xl font-bold mb-4">Consulta de Caja (Mes)</h1>
+      <h1 className="text-2xl font-bold mb-4">Rendición Mensual</h1>
       <div className="flex gap-4 items-end mb-4">
         <div>
           <label className="block font-medium">Mes:</label>

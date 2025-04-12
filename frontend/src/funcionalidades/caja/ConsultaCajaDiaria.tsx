@@ -101,6 +101,20 @@ const ConsultaCajaDiaria: React.FC = () => {
   };
 
   // --------------------------------------------------------------------------
+  // Función para eliminar un egreso
+  // --------------------------------------------------------------------------
+  const handleEliminarEgreso = async (id: number) => {
+    try {
+      await egresoApi.eliminarEgreso(id);
+      toast.success("Egreso eliminado correctamente.");
+      // Refrescar la caja diaria
+      handleVer();
+    } catch (err) {
+      toast.error("Error al eliminar egreso.");
+    }
+  };
+
+  // --------------------------------------------------------------------------
   // Filtrar pagos para excluir aquellos con monto = 0
   // --------------------------------------------------------------------------
   const pagos: PagoDelDia[] = data?.pagosDelDia || [];
@@ -248,17 +262,23 @@ const ConsultaCajaDiaria: React.FC = () => {
         )}
       </div>
 
-      {/* Tabla de Egresos */}
+      {/* Tabla de Egresos con opción de eliminar */}
       {egresos.length > 0 && (
         <div className="border p-2 mt-4">
           <h2 className="font-semibold mb-2">Egresos del día</h2>
           <Tabla
-            headers={["ID", "Observaciones", "Monto"]}
+            headers={["ID", "Observaciones", "Monto", "Acciones"]}
             data={sortedEgresos}
             customRender={(e: EgresoDelDia) => [
               e.id,
               e.observaciones,
               e.monto.toLocaleString(),
+              <Boton
+                onClick={() => handleEliminarEgreso(e.id)}
+                className="bg-red-500 text-white p-1 text-sm"
+              >
+                Eliminar
+              </Boton>,
             ]}
             emptyMessage="No hay egresos para el día"
           />
@@ -284,7 +304,7 @@ const ConsultaCajaDiaria: React.FC = () => {
       {/* Totales */}
       <div className="text-right mt-2">
         <p>
-          Efectivo: ${" "}
+          Efectivo:{" "}
           {pagosFiltradosPorUsuario
             .filter(
               (p) => p.metodoPago?.descripcion?.toUpperCase() === "EFECTIVO"
@@ -293,7 +313,7 @@ const ConsultaCajaDiaria: React.FC = () => {
             .toLocaleString()}
         </p>
         <p>
-          Débito: ${" "}
+          Débito:{" "}
           {pagosFiltradosPorUsuario
             .filter(
               (p) => p.metodoPago?.descripcion?.toUpperCase() === "DEBITO"
@@ -301,11 +321,9 @@ const ConsultaCajaDiaria: React.FC = () => {
             .reduce((sum, p) => sum + p.monto, 0)
             .toLocaleString()}
         </p>
-        <p>Total neto: $ {(totalCobrado - totalEgresos).toLocaleString()}</p>
-        <p>Egresos en efectivo: $ {totalEgresos.toLocaleString()}</p>
-        <p>
-          Total efectivo: $ {(totalEfectivo - totalEgresos).toLocaleString()}
-        </p>
+        <p>Total neto: {(totalCobrado - totalEgresos).toLocaleString()}</p>
+        <p>Egresos en efectivo: {totalEgresos.toLocaleString()}</p>
+        <p>Total efectivo: {(totalEfectivo - totalEgresos).toLocaleString()}</p>
       </div>
 
       {/* Modal para Agregar Egreso */}

@@ -263,12 +263,8 @@ const DetallePagoList: React.FC<DetallePagoListProps> = ({
           d.estadoPago.toUpperCase() === "ANULADO"
       );
     } else if (filtroCobrado === "GENERADOS") {
-      return detalles.filter(
-        (d) =>
-          d.ACobrar === 0 &&
-          d.importePendiente > 0 &&
-          d.estadoPago.toUpperCase() !== "ANULADO"
-      );
+      // Mostrar cualquier DetallePago que tenga importePendiente > 0
+      return detalles.filter((d) => d.importePendiente > 0);
     }
     return detalles;
   }, [detalles, filtroCobrado]);
