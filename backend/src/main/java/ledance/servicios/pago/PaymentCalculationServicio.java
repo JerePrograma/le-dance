@@ -420,32 +420,17 @@ public class PaymentCalculationServicio {
         }
         log.info("[aplicarDescuentoCreditoEnMatricula] Alumno obtenido: id={}", alumno.getId());
 
-        // Obtener el crédito del alumno (0.0 si es null)
         double creditoAlumno = alumno.getCreditoAcumulado() != null ? alumno.getCreditoAcumulado() : 0.0;
         log.info("[aplicarDescuentoCreditoEnMatricula] Crédito del alumno: {}", creditoAlumno);
 
-        // Suponemos que el payload ya trae:
-        //   importeInicial = 35000.0
-        //   importePendiente = 27000.0
-        // Por lo tanto, la diferencia (crédito aplicado) es:
-        double importeInicialOriginal = detalle.getImporteInicial(); // 35000.0
-        double importePendienteActual = detalle.getImportePendiente(); // 27000.0
-        log.info("[aplicarDescuentoCreditoEnMatricula] Actualizado importeInicial: {}  e importePendiente a: {}", detalle.getImporteInicial(), detalle.getImportePendiente());
-
-        double diferencia = importeInicialOriginal - importePendienteActual; // 35000 - 27000 = 8000
-        // Se aplica como máximo el crédito disponible o la diferencia obtenida
-        double creditoAplicable = Math.min(creditoAlumno, diferencia);
-
-        // Ahora, en vez de modificar ACobrar, actualizamos el importeInicial y el importePendiente
-        double nuevoValorBase = importeInicialOriginal - creditoAplicable; // 35000 - 8000 = 27000
+        double nuevoValorBase = detalle.getImportePendiente() - creditoAlumno; // 35000 - 8000 = 27000
         detalle.setImporteInicial(nuevoValorBase);
         detalle.setImportePendiente(nuevoValorBase);
         log.info("[aplicarDescuentoCreditoEnMatricula] Actualizado importeInicial e importePendiente a: {}", nuevoValorBase);
 
-        // Se consume el crédito aplicado del alumno
-        alumno.setCreditoAcumulado(creditoAlumno - creditoAplicable);
+        alumno.setCreditoAcumulado(0.0);
         log.info("[aplicarDescuentoCreditoEnMatricula] Crédito aplicado: {}. Crédito restante: {}",
-                creditoAplicable, alumno.getCreditoAcumulado());
+                creditoAlumno, alumno.getCreditoAcumulado());
         log.info("[aplicarDescuentoCreditoEnMatricula] FIN.");
     }
 

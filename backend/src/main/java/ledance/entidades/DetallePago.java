@@ -103,12 +103,6 @@ public class DetallePago {
     @Column(name = "removido")
     private Boolean removido = false;
 
-    /*
-     * --------------------------
-     * Callbacks JPA
-     * --------------------------
-     */
-
     @PrePersist
     public void prePersist() {
         // Ajuste fecha de registro

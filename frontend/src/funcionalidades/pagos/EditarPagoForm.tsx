@@ -40,6 +40,7 @@ const DetallePagoList: React.FC<DetallePagoListProps> = ({
     const [year, month, day] = dateString.split("-");
     return `${day}-${month}-${year}`;
   };
+
   // Estados de datos y carga
   const [detalles, setDetalles] = useState<DetallePagoResponse[]>([]);
   const [loading, setLoading] = useState(false);
@@ -96,6 +97,7 @@ const DetallePagoList: React.FC<DetallePagoListProps> = ({
         // Reiniciamos visibleCount al recargar datos
         setVisibleCount(itemsPerPage);
       } catch (error) {
+        // Podrías manejar el error aquí
       } finally {
         setLoading(false);
       }
@@ -253,7 +255,7 @@ const DetallePagoList: React.FC<DetallePagoListProps> = ({
     return () => window.removeEventListener("resize", adjustTableHeight);
   }, []);
 
-  // Filtrar los detalles que cumplen: ACobrar > 0 || importePendiente === 0 || estadoPago === "ANULADO"
+  // Filtrar los detalles según filtroCobrado
   const filteredDetalles = useMemo(() => {
     if (filtroCobrado === "COBRADOS") {
       return detalles.filter(
@@ -310,7 +312,13 @@ const DetallePagoList: React.FC<DetallePagoListProps> = ({
     }
   };
 
+  // Función para anular un detalle de pago. Se verifica que el estado no sea ya "ANULADO".
   const handleAnularDetalle = async (detalle: DetallePagoResponse) => {
+    // Si ya está anulado, informamos y no continuamos.
+    if (detalle.estadoPago && detalle.estadoPago.toUpperCase() === "ANULADO") {
+      toast.info("El detalle ya se encuentra anulado");
+      return;
+    }
     if (!detalle.id || Number(detalle.id) === 0 || isSubmitting) return;
     setIsSubmitting(true);
     try {
@@ -318,7 +326,6 @@ const DetallePagoList: React.FC<DetallePagoListProps> = ({
         detalle.id
       );
       if (!detalleActualizado) {
-        // O bien re-fetch de la lista
         await fetchDetalles();
         toast.success("Detalle anulado correctamente");
         return;
@@ -626,11 +633,17 @@ const DetallePagoList: React.FC<DetallePagoListProps> = ({
                   {filtroCobrado === "COBRADOS" ? (
                     <button
                       type="button"
-                      disabled={isSubmitting}
+                      disabled={
+                        isSubmitting ||
+                        fila.estadoPago?.toUpperCase() === "ANULADO"
+                      }
                       className="bg-green-500 hover:bg-green-600 text-white p-1 rounded text-xs transition-colors mx-auto block"
                       onClick={() => handleAnularDetalle(fila)}
                     >
-                      Anular
+                      {fila.estadoPago &&
+                      fila.estadoPago.toUpperCase() === "ANULADO"
+                        ? "Anulado"
+                        : "Anular"}
                     </button>
                   ) : (
                     <button

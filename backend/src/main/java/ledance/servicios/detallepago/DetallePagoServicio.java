@@ -486,7 +486,7 @@ public class DetallePagoServicio {
         clone.setFechaRegistro(original.getFechaRegistro());
         clone.setTieneRecargo(original.getTieneRecargo());
         clone.setUsuario(original.getUsuario());
-        // No se copia el identificador ni el estado; estos se asignarán de acuerdo a la anulación.
+        clone.setRemovido(false);
         return clone;
     }
 
