@@ -120,21 +120,23 @@ public class InscripcionServicio implements IInscripcionServicio {
         pagoPendiente = pagoRepositorio.save(pagoPendiente); // Persistir el pago pendiente
         log.info("[crearInscripcion] Pago pendiente persistido con ID: {}", pagoPendiente.getId());
 
-        // 5. Generar cuota automatica y gestionar matricula asociandolos al Pago pendiente
+        // 5. Generar cuota automática y gestionar matrícula asociándolos al pago pendiente
         try {
-            // Generar cuota automatica para la inscripcion
+            // Generar cuota automática para la inscripción
             DetallePago mensualidad = mensualidadServicio.generarCuotaAutomatica(inscripcionGuardada, pagoPendiente);
-            log.info("[crearInscripcion] Cuota automatica generada para inscripcion id={}", inscripcionGuardada.getId());
+            log.info("[crearInscripcion] Cuota automática generada para inscripción id={}", inscripcionGuardada.getId());
             pagoPendiente.getDetallePagos().add(mensualidad);
         } catch (Exception e) {
-            log.warn("[crearInscripcion] Error al generar cuota automatica: {}", e.getMessage());
+            log.warn("[crearInscripcion] Error al generar cuota automática: {}", e.getMessage());
         }
-        try {
-            matriculaServicio.obtenerOMarcarPendienteAutomatica(alumno.getId(), pagoPendiente);
-            log.info("[crearInscripcion] Matricula verificada o creada automaticamente para alumno id={}", alumno.getId());
 
+        try {
+            // Intentar obtener o marcar la matrícula pendiente en una nueva transacción
+            matriculaServicio.obtenerOMarcarPendienteAutomatica(alumno.getId(), pagoPendiente);
+            log.info("[crearInscripcion] Matrícula verificada o creada automáticamente para alumno id={}", alumno.getId());
         } catch (Exception e) {
-            log.warn("[crearInscripcion] Error al obtener o marcar matricula pendiente: {}", e.getMessage());
+            // Logueamos el error, pero continuamos el proceso de inscripción.
+            log.warn("[crearInscripcion] Error al obtener o marcar matrícula pendiente (se ignora para continuar): {}", e.getMessage());
         }
 
         // 6. Agregar alumno a la planilla de asistencia
@@ -142,13 +144,13 @@ public class InscripcionServicio implements IInscripcionServicio {
         int anioActual = LocalDate.now().getYear();
         log.info("[crearInscripcion] Agregando alumno a planilla de asistencia para mes={}, año={}", mesActual, anioActual);
         asistenciaMensualServicio.agregarAlumnoAPlanilla(inscripcionGuardada.getId(), mesActual, anioActual);
-        log.info("[crearInscripcion] Inscripcion finalizada exitosamente para alumno id={}", alumno.getId());
+        log.info("[crearInscripcion] Inscripción finalizada exitosamente para alumno id={}", alumno.getId());
 
-        // Actualizar totales del pago basandose en los DetallePago obtenidos
+        // Actualizar totales del pago basándose en los DetallePago obtenidos
         paymentProcessor.recalcularTotalesNuevo(pagoPendiente);
         pagoRepositorio.save(pagoPendiente);
         log.info("[crearInscripcion] Totales de Pago actualizados. Pago ID: {}", pagoPendiente.getId());
-        if(alumno.getInscripciones() != null){
+        if (alumno.getInscripciones() != null) {
             alumno.setActivo(true);
         }
         alumnoRepositorio.save(alumno);

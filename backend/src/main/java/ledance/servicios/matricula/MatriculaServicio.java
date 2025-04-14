@@ -50,21 +50,22 @@ public class MatriculaServicio {
         Matricula matricula = obtenerOMarcarPendienteMatricula(alumnoId, anio);
         log.info("Matrícula pendiente: id={} para alumnoId={}", matricula.getId(), alumnoId);
 
-        // Si ya existe un DetallePago asociado a la matrícula, se finaliza el proceso.
+        // Buscar si ya existe un DetallePago asociado a la matrícula.
         Optional<DetallePago> detalleOpt = detallePagoRepositorio.findByMatriculaId(matricula.getId());
-        if (detalleOpt.isPresent()) {
-            log.info("DetallePago ya existe para la matrícula id={}", matricula.getId());
+        // Si existe y su estado de pago NO es ANULADO, se asume que ya se realizó el proceso.
+        if (detalleOpt.isPresent() && detalleOpt.get().getEstadoPago() != EstadoPago.ANULADO) {
+            log.info("DetallePago ya existe y no está ANULADO para la matrícula id={}", matricula.getId());
             return;
         }
 
-        // Si no existe, se registra un nuevo DetallePago para la matrícula.
+        // Si no existe o existe pero está ANULADO, se continúa con el registro
         registrarDetallePagoMatriculaAutomatica(matricula, pagoPendiente);
     }
 
     @Transactional
     public Matricula obtenerOMarcarPendienteMatricula(Long alumnoId, int anio) {
         // Busca la matrícula pendiente ya registrada para el alumno en el año indicado
-        return matriculaRepositorio.findByAlumnoIdAndAnio(alumnoId, anio).orElseGet(() -> {
+        return matriculaRepositorio.findFirstByAlumnoIdAndAnioOrderByIdDesc(alumnoId, anio).orElseGet(() -> {
             Alumno alumno = alumnoRepositorio.findById(alumnoId).orElseThrow(() -> new IllegalArgumentException("Alumno no encontrado."));
             Matricula nuevaMatricula = new Matricula();
             nuevaMatricula.setAlumno(alumno);
@@ -245,7 +246,7 @@ public class MatriculaServicio {
 
         for (Alumno alumno : alumnosConInscripciones) {
             log.info("Procesando alumno id: {} - {}", alumno.getId(), alumno.getNombre());
-            Optional<Matricula> optMatricula = matriculaRepositorio.findByAlumnoIdAndAnio(alumno.getId(), anioActual);
+            Optional<Matricula> optMatricula = matriculaRepositorio.findFirstByAlumnoIdAndAnioOrderByIdDesc(alumno.getId(), anioActual);
             Matricula matricula;
             if (optMatricula.isPresent()) {
                 matricula = optMatricula.get();

@@ -35,16 +35,12 @@ public class EmailService {
                                                       byte[] inlineData, String contentId, String inlineMimeType)
             throws MessagingException {
         MimeMessage message = mailSender.createMimeMessage();
-        // Se indica true para multipart
         MimeMessageHelper helper = new MimeMessageHelper(message, true);
         helper.setFrom(from);
         helper.setTo(to);
         helper.setSubject(subject);
-        // Se envía el contenido en HTML
         helper.setText(htmlText, true);
-        // Agregar el archivo adjunto
         helper.addAttachment(attachmentFilename, new ByteArrayResource(attachmentData));
-        // Agregar la imagen inline identificada por el contentId
         helper.addInline(contentId, new ByteArrayResource(inlineData), inlineMimeType);
         mailSender.send(message);
     }

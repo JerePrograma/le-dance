@@ -902,24 +902,162 @@ const CobranzasForm: React.FC = () => {
     }
   }, [searchParams]);
 
+  // Interfaces de ejemplo para los datos
+  interface InscripcionResponse {
+    bonificacion?: { porcentajeDescuento: number };
+  }
+
+  interface Recargo {
+    id: string;
+    diaDelMesAplicacion: number; // Por ejemplo, 15 o 1
+    porcentaje?: number;
+    valorFijo?: number;
+  }
+
+  // Función para calcular el valor del recargo, de manera similar al backend.
+  const calcularRecargo = (recargo: Recargo, base: number): number => {
+    if (!recargo) return 0;
+    const recargoFijo = recargo.valorFijo ? recargo.valorFijo : 0;
+    const recargoPorcentaje = recargo.porcentaje
+      ? (recargo.porcentaje / 100) * base
+      : 0;
+    return recargoFijo + recargoPorcentaje;
+  };
+
+  // Función para obtener la fecha actual en GMT‑3
+  const obtenerFechaGMT3 = (): Date => {
+    // Utilizamos el API de Intl para obtener la cadena de fecha/hora en la zona deseada.
+    // En este ejemplo se utiliza la zona "America/Argentina/Buenos_Aires" (GMT‑3).
+    const dateString = new Date().toLocaleString("en-US", {
+      timeZone: "America/Argentina/Buenos_Aires",
+    });
+    return new Date(dateString);
+  };
+
+  // Función que determina y calcula el recargo a aplicar en función de la fecha de cuota.
+  // Se evalúa primero el recargo del día 15 y, en caso de no cumplirse, el de día 1 (pagos vencidos).
+  const calcularRecargoPorFecha = (
+    fechaCuota: Date,
+    recargoDia15: Recargo,
+    recargoDia1: Recargo,
+    base: number,
+    hoy: Date
+  ): number => {
+    // --- RECARGO DÍA 15 ---
+    // Para cada mensualidad se construye una fecha de comparación tomando la fecha de cuota,
+    // pero reemplazando el día con el indicado por recargoDia15 (por ejemplo, 15).
+    const fechaComparacion15 = new Date(fechaCuota);
+    fechaComparacion15.setDate(recargoDia15.diaDelMesAplicacion);
+
+    // Si la fecha de hoy es igual o posterior a fechaComparacion15, se aplica el recargo del día 15.
+    if (hoy >= fechaComparacion15) {
+      return calcularRecargo(recargoDia15, base);
+    } else {
+      // --- RECARGO DÍA 1 ---
+      // Para aplicar el recargo de día 1 (mensualidades vencidas) se requiere:
+      // • Que hoy sea posterior al primer día del mes siguiente.
+      // • Y que hoy sea posterior a la fecha de cuota incrementada en un mes.
+      const primerDiaMesSiguiente = new Date(
+        hoy.getFullYear(),
+        hoy.getMonth() + 1,
+        1
+      );
+      if (hoy >= primerDiaMesSiguiente) {
+        const fechaComparacion1 = new Date(fechaCuota);
+        fechaComparacion1.setMonth(fechaComparacion1.getMonth() + 1);
+        if (hoy > fechaComparacion1) {
+          return calcularRecargo(recargoDia1, base);
+        }
+      }
+    }
+    return 0;
+  };
+
+  // Función principal de cálculo de importe inicial
   const calcularImporteInicial = (
     valorBase: number,
     inscripcion: InscripcionResponse | undefined,
     esMatricula: boolean,
-    tieneRecargo: boolean,
-    recargo: number = 0
+    fechaCuota?: Date, // La fecha de la cuota, necesaria para saber si se debe aplicar recargo
+    recargoDia15?: Recargo, // Información del recargo a aplicar el día 15
+    recargoDia1?: Recargo // Información del recargo a aplicar el día 1 (mensualidades vencidas)
   ): number => {
+    // Si es matrícula no se aplica descuento ni recargo
     if (esMatricula) {
       return valorBase;
     }
+
+    // Cálculo del descuento (si hay bonificación)
     let descuento = 0;
     if (inscripcion && inscripcion.bonificacion) {
       descuento =
         valorBase * (inscripcion.bonificacion.porcentajeDescuento / 100);
     }
-    const recargoCalculado = tieneRecargo ? recargo : 0;
+
+    // Inicialmente no se suma recargo
+    let recargoCalculado = 0;
+
+    // Obtenemos la fecha actual en GMT-3
+    const hoy = obtenerFechaGMT3();
+
+    // Solo se calcula el recargo si se tiene información de fecha de cuota y de los dos recargos
+    if (fechaCuota && recargoDia15 && recargoDia1) {
+      recargoCalculado = calcularRecargoPorFecha(
+        fechaCuota,
+        recargoDia15,
+        recargoDia1,
+        valorBase,
+        hoy
+      );
+    }
+
     return valorBase - descuento + recargoCalculado;
   };
+
+  // ----- EJEMPLO DE USO -----
+  // Supongamos una mensualidad con fecha de cuota "2025-03-10", y que
+  // • El recargo día 15: tiene un valor fijo de 10 y 5% sobre la base.
+  // • El recargo día 1: tiene un valor fijo de 20 y 2% sobre la base.
+  // Además, hay una bonificación del 10% en la inscripción.
+
+  const inscripcionEjemplo: InscripcionResponse = {
+    bonificacion: { porcentajeDescuento: 10 },
+  };
+
+  const recargoDia15Ejemplo: Recargo = {
+    id: "recargo15",
+    diaDelMesAplicacion: 15,
+    valorFijo: 10,
+    porcentaje: 5,
+  };
+
+  const recargoDia1Ejemplo: Recargo = {
+    id: "recargo1",
+    diaDelMesAplicacion: 1,
+    valorFijo: 20,
+    porcentaje: 2,
+  };
+
+  // Fecha de cuota de la mensualidad
+  const fechaCuotaEjemplo = new Date("2025-03-10T00:00:00"); // se asume hora local
+
+  // Valor base (por ejemplo, la cuota sin descuentos ni recargos)
+  const valorBaseEjemplo = 100;
+
+  // ¿Es matrícula? En este ejemplo es una cuota, no matrícula.
+  const esMatriculaEjemplo = false;
+
+  // Calcular importe final
+  const importeFinal = calcularImporteInicial(
+    valorBaseEjemplo,
+    inscripcionEjemplo,
+    esMatriculaEjemplo,
+    fechaCuotaEjemplo,
+    recargoDia15Ejemplo,
+    recargoDia1Ejemplo
+  );
+
+  console.log("Importe Final:", importeFinal);
 
   // ----- handleAgregarDetalle refactorizado -----
   const handleAgregarDetalle = useCallback(

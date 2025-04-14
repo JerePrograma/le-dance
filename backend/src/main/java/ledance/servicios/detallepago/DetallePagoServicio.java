@@ -317,7 +317,11 @@ public class DetallePagoServicio {
             double nuevoMonto = pago.getMonto() - valorACobrar;
             double nuevoMontoPagado = pago.getMontoPagado() - valorACobrar;
 
-            if (nuevoMonto <= 0 || nuevoMonto == pago.getMetodoPago().getRecargo()) {
+            if (nuevoMonto <= 0) {
+                nuevoMonto = 0.0;
+                nuevoMontoPagado = 0.0;
+            }
+            if (pago.getMetodoPago() != null && nuevoMonto == pago.getMetodoPago().getRecargo()) {
                 nuevoMonto = 0.0;
                 nuevoMontoPagado = 0.0;
             }
