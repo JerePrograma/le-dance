@@ -902,19 +902,14 @@ const CobranzasForm: React.FC = () => {
     }
   }, [searchParams]);
 
-  // Interfaces de ejemplo para los datos
-  interface InscripcionResponse {
-    bonificacion?: { porcentajeDescuento: number };
-  }
-
   interface Recargo {
     id: string;
-    diaDelMesAplicacion: number; // Por ejemplo, 15 o 1
+    diaDelMesAplicacion: number; // 15 para recargo día 15 o 1 para mes vencido
     porcentaje?: number;
     valorFijo?: number;
   }
 
-  // Función para calcular el valor del recargo, de manera similar al backend.
+  // Función para calcular el valor del recargo, igual que en el backend.
   const calcularRecargo = (recargo: Recargo, base: number): number => {
     if (!recargo) return 0;
     const recargoFijo = recargo.valorFijo ? recargo.valorFijo : 0;
@@ -924,140 +919,105 @@ const CobranzasForm: React.FC = () => {
     return recargoFijo + recargoPorcentaje;
   };
 
-  // Función para obtener la fecha actual en GMT‑3
+  // Función para obtener la fecha actual en GMT‑3 (se usa la zona "America/Argentina/Buenos_Aires").
   const obtenerFechaGMT3 = (): Date => {
-    // Utilizamos el API de Intl para obtener la cadena de fecha/hora en la zona deseada.
-    // En este ejemplo se utiliza la zona "America/Argentina/Buenos_Aires" (GMT‑3).
     const dateString = new Date().toLocaleString("en-US", {
       timeZone: "America/Argentina/Buenos_Aires",
     });
     return new Date(dateString);
   };
 
-  // Función que determina y calcula el recargo a aplicar en función de la fecha de cuota.
-  // Se evalúa primero el recargo del día 15 y, en caso de no cumplirse, el de día 1 (pagos vencidos).
+  // Función que, dado la fecha de cuota y la base, decide y calcula el recargo a aplicar
+  // Evaluamos primero el recargo del día 15; si no se cumple, se verifica si corresponde el recargo por mes vencido.
   const calcularRecargoPorFecha = (
     fechaCuota: Date,
     recargoDia15: Recargo,
-    recargoDia1: Recargo,
+    recargoMesVencido: Recargo,
     base: number,
     hoy: Date
   ): number => {
-    // --- RECARGO DÍA 15 ---
-    // Para cada mensualidad se construye una fecha de comparación tomando la fecha de cuota,
-    // pero reemplazando el día con el indicado por recargoDia15 (por ejemplo, 15).
+    // Construye la fecha de comparación para el recargo del día 15
     const fechaComparacion15 = new Date(fechaCuota);
     fechaComparacion15.setDate(recargoDia15.diaDelMesAplicacion);
 
-    // Si la fecha de hoy es igual o posterior a fechaComparacion15, se aplica el recargo del día 15.
     if (hoy >= fechaComparacion15) {
+      // Si hoy es igual o posterior a la fecha de comparación para el día 15, se aplica ese recargo.
       return calcularRecargo(recargoDia15, base);
     } else {
-      // --- RECARGO DÍA 1 ---
-      // Para aplicar el recargo de día 1 (mensualidades vencidas) se requiere:
-      // • Que hoy sea posterior al primer día del mes siguiente.
-      // • Y que hoy sea posterior a la fecha de cuota incrementada en un mes.
+      // En otro caso, se verifica la condición para el recargo del mes vencido.
+      // Se define el primer día del mes siguiente a la fecha actual.
       const primerDiaMesSiguiente = new Date(
         hoy.getFullYear(),
         hoy.getMonth() + 1,
         1
       );
       if (hoy >= primerDiaMesSiguiente) {
+        // Se toma la fecha de cuota y se le suma un mes para obtener la fecha límite.
         const fechaComparacion1 = new Date(fechaCuota);
         fechaComparacion1.setMonth(fechaComparacion1.getMonth() + 1);
         if (hoy > fechaComparacion1) {
-          return calcularRecargo(recargoDia1, base);
+          return calcularRecargo(recargoMesVencido, base);
         }
       }
     }
     return 0;
   };
 
-  // Función principal de cálculo de importe inicial
-  const calcularImporteInicial = (
+  // Función que calcula el importe final (base, descuento y recargo) para cuotas.
+  // Se aplica solo si no es matrícula.
+  const calcularImporteFinal = (
     valorBase: number,
     inscripcion: InscripcionResponse | undefined,
     esMatricula: boolean,
-    fechaCuota?: Date, // La fecha de la cuota, necesaria para saber si se debe aplicar recargo
-    recargoDia15?: Recargo, // Información del recargo a aplicar el día 15
-    recargoDia1?: Recargo // Información del recargo a aplicar el día 1 (mensualidades vencidas)
+    aplicarRecargo: boolean,
+    fechaCuota: Date
   ): number => {
-    // Si es matrícula no se aplica descuento ni recargo
     if (esMatricula) {
+      // Para matrícula se retorna el valor base sin descuentos ni recargos.
       return valorBase;
     }
 
-    // Cálculo del descuento (si hay bonificación)
-    let descuento = 0;
-    if (inscripcion && inscripcion.bonificacion) {
-      descuento =
-        valorBase * (inscripcion.bonificacion.porcentajeDescuento / 100);
-    }
+    // Calcula el descuento (si existe una bonificación en la inscripción)
+    const descuento =
+      inscripcion && inscripcion.bonificacion
+        ? valorBase * (inscripcion.bonificacion.porcentajeDescuento / 100)
+        : 0;
 
-    // Inicialmente no se suma recargo
     let recargoCalculado = 0;
+    if (aplicarRecargo) {
+      // Definición de los recargos según la especificación:
+      // Recargo para día 15: 10%
+      // Recargo para mes vencido (día 1): 20%
+      const recargoDia15: Recargo = {
+        id: "dia15",
+        diaDelMesAplicacion: 15,
+        porcentaje: 10,
+        valorFijo: 0,
+      };
 
-    // Obtenemos la fecha actual en GMT-3
-    const hoy = obtenerFechaGMT3();
+      const recargoMesVencido: Recargo = {
+        id: "mesVencido",
+        diaDelMesAplicacion: 1,
+        porcentaje: 20,
+        valorFijo: 0,
+      };
 
-    // Solo se calcula el recargo si se tiene información de fecha de cuota y de los dos recargos
-    if (fechaCuota && recargoDia15 && recargoDia1) {
+      // Fecha actual en GMT‑3.
+      const hoy = obtenerFechaGMT3();
+
+      // Calcula el recargo a partir de la fecha de cuota, la base y los recargos definidos.
       recargoCalculado = calcularRecargoPorFecha(
         fechaCuota,
         recargoDia15,
-        recargoDia1,
+        recargoMesVencido,
         valorBase,
         hoy
       );
     }
 
+    // Importe final es la base menos descuento, más el recargo (si corresponde).
     return valorBase - descuento + recargoCalculado;
   };
-
-  // ----- EJEMPLO DE USO -----
-  // Supongamos una mensualidad con fecha de cuota "2025-03-10", y que
-  // • El recargo día 15: tiene un valor fijo de 10 y 5% sobre la base.
-  // • El recargo día 1: tiene un valor fijo de 20 y 2% sobre la base.
-  // Además, hay una bonificación del 10% en la inscripción.
-
-  const inscripcionEjemplo: InscripcionResponse = {
-    bonificacion: { porcentajeDescuento: 10 },
-  };
-
-  const recargoDia15Ejemplo: Recargo = {
-    id: "recargo15",
-    diaDelMesAplicacion: 15,
-    valorFijo: 10,
-    porcentaje: 5,
-  };
-
-  const recargoDia1Ejemplo: Recargo = {
-    id: "recargo1",
-    diaDelMesAplicacion: 1,
-    valorFijo: 20,
-    porcentaje: 2,
-  };
-
-  // Fecha de cuota de la mensualidad
-  const fechaCuotaEjemplo = new Date("2025-03-10T00:00:00"); // se asume hora local
-
-  // Valor base (por ejemplo, la cuota sin descuentos ni recargos)
-  const valorBaseEjemplo = 100;
-
-  // ¿Es matrícula? En este ejemplo es una cuota, no matrícula.
-  const esMatriculaEjemplo = false;
-
-  // Calcular importe final
-  const importeFinal = calcularImporteInicial(
-    valorBaseEjemplo,
-    inscripcionEjemplo,
-    esMatriculaEjemplo,
-    fechaCuotaEjemplo,
-    recargoDia15Ejemplo,
-    recargoDia1Ejemplo
-  );
-
-  console.log("Importe Final:", importeFinal);
 
   // ----- handleAgregarDetalle refactorizado -----
   const handleAgregarDetalle = useCallback(
@@ -1177,35 +1137,109 @@ const CobranzasForm: React.FC = () => {
         }
       }
 
-      // Si se seleccionó una disciplina (y por lo tanto una tarifa)
+      // --- Helper: Convierte un período en formato "MARZO DE 2025" en una fecha (día 1 del mes) ---
+      const obtenerFechaDePeriodo = (periodo: string): Date => {
+        // La expresión regular acepta letras para el mes, opcionalmente "DE" y luego 4 dígitos para el año.
+        const regex = /^([A-ZÁÉÍÓÚÑ]+)(?:\s+DE)?\s+(\d{4})$/i;
+        const match = periodo.match(regex);
+        if (!match) {
+          console.error(
+            `Formato de periodo inválido: "${periodo}". Se esperaba "MES [DE] AÑO".`
+          );
+          return new Date();
+        }
+        const mesStr = match[1].toUpperCase();
+        const anio = parseInt(match[2], 10);
+
+        const meses: Record<string, number> = {
+          ENERO: 0,
+          FEBRERO: 1,
+          MARZO: 2,
+          ABRIL: 3,
+          MAYO: 4,
+          JUNIO: 5,
+          JULIO: 6,
+          AGOSTO: 7,
+          SEPTIEMBRE: 8,
+          OCTUBRE: 9,
+          NOVIEMBRE: 10,
+          DICIEMBRE: 11,
+        };
+
+        const mes = meses[mesStr];
+        if (mes === undefined) {
+          console.error(
+            `Mes inválido en periodo: "${mesStr}" en el periodo "${periodo}".`
+          );
+          return new Date();
+        }
+
+        const fecha = new Date(anio, mes, 1);
+        console.log(
+          `Fecha obtenida para el período "${periodo}":`,
+          fecha.toISOString()
+        );
+        return fecha;
+      };
+
+      // --- Refactor del bloque CUOTA ---
       const selectedDisciplina = mappedDisciplinas.find(
         (disc) => disc.nombre === values.disciplina
       );
       if (selectedDisciplina) {
+        // Se obtiene la cantidad (valor mínimo 1)
+        const cantidad = Number(values.cantidad) || 1;
         let precio = 0;
         let tarifaLabel = "";
         let conceptoDetalle = "";
         let totalOriginal = 0;
         let totalDescontado = 0;
-        const cantidad = Number(values.cantidad) || 1;
 
         switch (values.tarifa) {
-          case "CUOTA":
+          case "CUOTA": {
+            // Se obtiene la fecha de cuota a partir del período mensual
+            const fechaCuota = obtenerFechaDePeriodo(values.periodoMensual);
+
+            // Asigna el precio y arma la descripción completa
             precio = selectedDisciplina.valorCuota;
             tarifaLabel = "CUOTA";
             conceptoDetalle = `${selectedDisciplina.nombre} - ${tarifaLabel} - ${values.periodoMensual}`;
             totalOriginal = precio * cantidad;
+
+            console.log("Datos iniciales de cuota:", {
+              precio,
+              cantidad,
+              totalOriginal,
+              conceptoDetalle,
+            });
+
+            // Busca la inscripción activa para la disciplina (para aplicar bonificaciones si corresponde)
             const inscripcion = activeInscripciones.find(
               (ins) => ins.disciplina.id === selectedDisciplina.id
             );
-            totalDescontado = calcularImporteInicial(
+            if (inscripcion) {
+              console.log("Inscripción encontrada:", inscripcion);
+            } else {
+              console.log(
+                "No se encontró inscripción activa para la disciplina:",
+                selectedDisciplina.id
+              );
+            }
+
+            // Calcula el importe final incluyendo descuentos y recargos
+            totalDescontado = calcularImporteFinal(
               totalOriginal,
               inscripcion,
-              false,
-              values.aplicarRecargo,
-              0
+              false, // No es matrícula
+              values.aplicarRecargo, // Bandera para aplicar recargo
+              fechaCuota
             );
-            // Verificamos la mensualidad
+            console.log(
+              "Importe final (descontado + recargo) calculado:",
+              totalDescontado
+            );
+
+            // Se realiza la verificación de la mensualidad vía API
             try {
               await pagosApi.verificarMensualidadOMatricula({
                 id: 0,
@@ -1226,11 +1260,17 @@ const CobranzasForm: React.FC = () => {
                 pagoId: null,
                 tieneRecargo: values.aplicarRecargo,
               } as unknown as DetallePagoRegistroRequest);
+              console.log(
+                "Verificación de mensualidad exitosa para:",
+                conceptoDetalle
+              );
             } catch (error) {
+              console.error("Error al verificar la mensualidad:", error);
               toast.error("MENSUALIDAD YA COBRADA");
               return;
             }
             break;
+          }
           case "CLASE_SUELTA":
             precio = selectedDisciplina.claseSuelta || 0;
             tarifaLabel = "CLASE SUELTA";
