@@ -1,95 +1,91 @@
 package ledance.servicios.notificaciones;
 
 import ledance.entidades.Alumno;
-import ledance.entidades.ProcesoEjecutado;
+import ledance.entidades.Notificacion;
 import ledance.entidades.Profesor;
 import ledance.repositorios.AlumnoRepositorio;
-import ledance.repositorios.ProcesoEjecutadoRepositorio;
+import ledance.repositorios.NotificacionRepositorio;
 import ledance.repositorios.ProfesorRepositorio;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Service
-public class NotificacionService implements INotificacionService {
-
-    private static final Logger log = LoggerFactory.getLogger(NotificacionService.class);
+public class NotificacionService {
 
     private final AlumnoRepositorio alumnoRepository;
     private final ProfesorRepositorio profesorRepository;
-    private final ProcesoEjecutadoRepositorio procesoEjecutadoRepository;
-
-    // Variable para cachear el resultado del día
-    private List<String> notificacionesCache = new ArrayList<>();
-    // Se guarda la fecha de la última actualización de cache para validar que es la misma
-    private LocalDate cacheFechaActual = null;
+    private final SimpMessagingTemplate messagingTemplate;
+    private final NotificacionRepositorio notificacionRepositorio;
 
     public NotificacionService(AlumnoRepositorio alumnoRepository,
                                ProfesorRepositorio profesorRepository,
-                               ProcesoEjecutadoRepositorio procesoEjecutadoRepository) {
+                               SimpMessagingTemplate messagingTemplate, NotificacionRepositorio notificacionRepositorio) {
         this.alumnoRepository = alumnoRepository;
         this.profesorRepository = profesorRepository;
-        this.procesoEjecutadoRepository = procesoEjecutadoRepository;
+        this.messagingTemplate = messagingTemplate;
+        this.notificacionRepositorio = notificacionRepositorio;
     }
 
-    public List<String> obtenerCumpleanerosDelDia() {
-        LocalDate hoy = LocalDate.now();
-
-        // Si ya se cacheó el resultado hoy, se retorna el resultado en memoria.
-        if (hoy.equals(cacheFechaActual) && !notificacionesCache.isEmpty()) {
-            log.info("Usando notificaciones cacheadas para el día {}", hoy);
-            return notificacionesCache;
+    /**
+     * Obtiene o calcula y almacena los cumpleaños del día.
+     */
+    public List<String> generarYObtenerCumpleanerosDelDia() {
+        LocalDateTime hoy = LocalDateTime.now();
+        // Aquí podrías consultar si ya se han generado notificaciones de cumpleaños
+        // en la tabla de Notificacion para evitar duplicados.
+        List<Notificacion> notificacionesExistentes = notificacionRepositorio.findByTipoAndFechaCreacion("CUMPLEANOS", hoy);
+        if (!notificacionesExistentes.isEmpty()) {
+            // Retornar mensajes ya almacenados (formateados)
+            return notificacionesExistentes.stream()
+                    .map(Notificacion::getMensaje)
+                    .toList();
         }
 
-        // Consultar si el proceso de cumpleaños ya se ejecutó hoy.
-        Optional<ProcesoEjecutado> procesoOpt = procesoEjecutadoRepository.findByProceso("CUMPLEANOS");
-        if (procesoOpt.isPresent() && hoy.equals(procesoOpt.get().getUltimaEjecucion())) {
-            log.info("El proceso de CUMPLEANOS ya se ejecutó hoy según la BD.");
-            // En este ejemplo, asumimos que la cache en memoria es la fuente
-            // Si quisieras persistir el resultado, deberías almacenar el resultado en la entidad (por ejemplo, en un campo JSON).
-            return notificacionesCache;
-        }
-
-        // Si no se ha ejecutado hoy, se procesan los cumpleaños
-        List<String> notificaciones = new ArrayList<>();
+        // Si no existen para hoy, calcular y almacenarlas:
+        List<String> mensajes = new ArrayList<>();
         int mes = hoy.getMonthValue();
         int dia = hoy.getDayOfMonth();
 
-        // Consulta y filtrado de alumnos
+        // Buscar alumnos
         List<Alumno> alumnos = alumnoRepository.findAll();
         for (Alumno alumno : alumnos) {
             if (alumno.getFechaNacimiento() != null &&
                     alumno.getFechaNacimiento().getMonthValue() == mes &&
                     alumno.getFechaNacimiento().getDayOfMonth() == dia) {
-                notificaciones.add("Alumno: " + alumno.getNombre() + " " + alumno.getApellido());
+                mensajes.add("Alumno: " + alumno.getNombre() + " " + alumno.getApellido());
             }
         }
 
-        // Consulta y filtrado de profesores
+        // Buscar profesores
         List<Profesor> profesores = profesorRepository.findAll();
         for (Profesor profesor : profesores) {
             if (profesor.getFechaNacimiento() != null &&
                     profesor.getFechaNacimiento().getMonthValue() == mes &&
                     profesor.getFechaNacimiento().getDayOfMonth() == dia) {
-                notificaciones.add("Profesor: " + profesor.getNombre() + " " + profesor.getApellido());
+                mensajes.add("Profesor: " + profesor.getNombre() + " " + profesor.getApellido());
             }
         }
 
-        // Actualiza la variable de cache y la fecha de actualización
-        notificacionesCache = notificaciones;
-        cacheFechaActual = hoy;
+        mensajes.forEach(mensaje -> {
+            Notificacion noti = new Notificacion();
+            // Asumir que para cumpleaños se envía a todos los usuarios o a un usuario en particular;
+            // en escenarios reales, se tendría que determinar el usuario destinatario.
+            noti.setUsuarioId(1L);
+            noti.setTipo("CUMPLEANOS");
+            noti.setMensaje(mensaje);
+            noti.setFechaCreacion(LocalDateTime.now());
+            noti.setLeida(false);
+            notificacionRepositorio.save(noti);
+        });
 
-        // Actualizar o crear el registro en la entidad ProcesoEjecutado
-        ProcesoEjecutado proceso = procesoOpt.orElse(new ProcesoEjecutado("CUMPLEANOS", hoy));
-        proceso.setUltimaEjecucion(hoy);
-        procesoEjecutadoRepository.save(proceso);
+        // (Opcional) Enviar vía WebSocket para notificaciones en tiempo real.
+        messagingTemplate.convertAndSend("/topic/notificaciones", mensajes);
 
-        log.info("Cumpleañeros procesados para el día {}: {}", hoy, notificaciones);
-        return notificaciones;
+        return mensajes;
     }
+
 }

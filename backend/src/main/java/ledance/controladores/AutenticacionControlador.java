@@ -9,6 +9,7 @@ import ledance.repositorios.UsuarioRepositorio;
 import ledance.servicios.asistencia.AsistenciaMensualServicio;
 import ledance.servicios.matricula.MatriculaServicio;
 import ledance.servicios.mensualidad.MensualidadServicio;
+import ledance.servicios.notificaciones.NotificacionService;
 import ledance.servicios.recargo.RecargoServicio;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,6 +18,8 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/login")
@@ -31,10 +34,12 @@ public class AutenticacionControlador {
     private final MensualidadServicio mensualidadServicio;
     private final MatriculaServicio matriculaServicio;
     private final AsistenciaMensualServicio asistenciaMensualServicio;
+    private final NotificacionService notificacionService;
 
     public AutenticacionControlador(AuthenticationManager authManager,
                                     TokenService tokenService,
-                                    UsuarioRepositorio usuarioRepositorio, RecargoServicio recargoServicio, MensualidadServicio mensualidadServicio, MatriculaServicio matriculaServicio, AsistenciaMensualServicio asistenciaMensualServicio) {
+                                    UsuarioRepositorio usuarioRepositorio, RecargoServicio recargoServicio, MensualidadServicio mensualidadServicio, MatriculaServicio matriculaServicio, AsistenciaMensualServicio asistenciaMensualServicio,
+                                    NotificacionService notificacionService) {
         this.authManager = authManager;
         this.tokenService = tokenService;
         this.usuarioRepositorio = usuarioRepositorio;
@@ -42,6 +47,7 @@ public class AutenticacionControlador {
         this.mensualidadServicio = mensualidadServicio;
         this.matriculaServicio = matriculaServicio;
         this.asistenciaMensualServicio = asistenciaMensualServicio;
+        this.notificacionService = notificacionService;
     }
 
     @PostMapping
@@ -53,6 +59,10 @@ public class AutenticacionControlador {
         recargoServicio.aplicarRecargosAutomaticos();
         asistenciaMensualServicio.crearAsistenciasParaInscripcionesActivasDetallado();
 
+        // Actualizar/obtener notificaciones de cumpleaños (ahora usando la nueva lógica)
+        List<String> cumpleaneros = notificacionService.generarYObtenerCumpleanerosDelDia();
+        log.info("Cumpleañeros del día: {}", cumpleaneros);
+
         var authToken = new UsernamePasswordAuthenticationToken(datos.nombreUsuario(), datos.contrasena());
         var usuarioAutenticado = authManager.authenticate(authToken);
         var user = (Usuario) usuarioAutenticado.getPrincipal();
@@ -62,7 +72,7 @@ public class AutenticacionControlador {
         var usuarioResponse = new UsuarioResponse(
                 user.getId(),
                 user.getNombreUsuario(),
-                user.getRol().getDescripcion(), // Ajusta esto según tu modelo
+                user.getRol().getDescripcion(),
                 user.getActivo()
         );
 

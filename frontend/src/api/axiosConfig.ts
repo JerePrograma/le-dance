@@ -14,7 +14,7 @@ const api = axios.create({
   },
 });
 
-// Agregar interceptor para incluir el token de acceso
+// Interceptor para incluir el token de acceso en cada petición.
 api.interceptors.request.use((config) => {
   const accessToken = localStorage.getItem("accessToken");
   if (accessToken) {
@@ -23,19 +23,19 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Interceptor para manejo de errores y refrescar token
+// Interceptor para manejo de errores y refrescar el token.
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    // Si recibimos un 403, el token es inválido: redirigimos al login
+    // Si se recibe un 403, se redirige al login.
     if (error.response?.status === 403) {
       toast.warn("Token inválido o expirado. Redirigiendo al login...");
       localStorage.clear();
       window.location.href = "/login";
       return Promise.reject(error);
     }
-    // Si recibimos 401 y no se ha reintentado el request, intentamos refrescar el token
+    // Si se recibe un 401, se intenta refrescar el token.
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       try {
@@ -51,13 +51,13 @@ api.interceptors.response.use(
             },
           }
         );
-        // Actualizamos tokens y perfil de usuario en localStorage
+        // Actualizar tokens en localStorage.
         localStorage.setItem("accessToken", data.accessToken);
         localStorage.setItem("refreshToken", data.refreshToken);
         if (data.usuario) {
           localStorage.setItem("usuario", JSON.stringify(data.usuario));
         }
-        // Actualizamos el header Authorization y reintentamos la petición original
+        // Reintentar la petición original.
         originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
         return api(originalRequest);
       } catch (refreshError) {

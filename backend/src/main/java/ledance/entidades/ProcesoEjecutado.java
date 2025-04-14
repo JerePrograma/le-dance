@@ -18,10 +18,11 @@ public class ProcesoEjecutado {
     private Long id;
 
     @NotNull
-    private String proceso; // Por ejemplo: "RECARGO_DIA_15", "RECARGO_DIA_1", "MENSUALIDAD_AUTOMATICA"
+    private String proceso;
 
     private LocalDate ultimaEjecucion;
 
+    // Constructor personalizado para inicializar sin id
     public ProcesoEjecutado(String proceso, LocalDate ultimaEjecucion) {
         this.proceso = proceso;
         this.ultimaEjecucion = ultimaEjecucion;
