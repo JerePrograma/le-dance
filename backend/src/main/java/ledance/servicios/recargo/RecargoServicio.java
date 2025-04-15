@@ -154,7 +154,7 @@ public class RecargoServicio {
                     mensualidadRepositorio.save(m);
                     recalcularImporteMensualidad(m);
 
-                    detallePagoRepositorio.findByMensualidad(m).ifPresent(detalle -> {
+                    detallePagoRepositorio.findTopByMensualidadOrderByFechaRegistroDesc(m).ifPresent(detalle -> {
                         detalle.setRecargo(recargo15);
                         detalle.setTieneRecargo(true);
                         log.info("Recalculando importe en DetallePago id={} para recargo de día 15", detalle.getId());
@@ -229,7 +229,7 @@ public class RecargoServicio {
                     mensualidadRepositorio.save(m);
                     recalcularImporteMensualidad(m);
 
-                    detallePagoRepositorio.findByMensualidad(m).ifPresent(detalle -> {
+                    detallePagoRepositorio.findTopByMensualidadOrderByFechaRegistroDesc(m).ifPresent(detalle -> {
                         detalle.setRecargo(recargo1);
                         detalle.setTieneRecargo(true);
                         log.info("Recalculando importe en DetallePago id={} para recargo de día 1", detalle.getId());
