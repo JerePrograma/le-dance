@@ -14,6 +14,12 @@ interface MetodoPago {
   descripcion: string; // "EFECTIVO", "DEBITO", etc.
 }
 
+interface DetallePago {
+  id: number;
+  ACobrar: number;
+  // Otras propiedades que pudieran existir...
+}
+
 interface PagoDelDia {
   id: number;
   alumno: {
@@ -25,6 +31,7 @@ interface PagoDelDia {
   monto: number;
   metodoPago?: MetodoPago | null;
   usuarioId: number; // Identificador del usuario que realizó el pago
+  detallePagos?: DetallePago[];
 }
 
 interface EgresoDelDia {
@@ -49,9 +56,6 @@ export interface EgresoRegistroRequest {
 }
 
 const ConsultaCajaDiaria: React.FC = () => {
-  // Obtenemos el usuario autenticado a través del contexto.
-  // Recordá que el objeto usuario se envía con la propiedad "nombreUsuario"
-  // según el login, por lo que usaremos user.nombreUsuario al mostrarlo.
   const { user } = useAuth();
   const currentUserId = user?.id || 0;
 
@@ -65,7 +69,6 @@ const ConsultaCajaDiaria: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   // Estado para el filtro de pagos: "mis" o "todos"
-  // Ahora, en el select mostraremos el nombre del usuario para "mis pagos"
   const [filtroPago, setFiltroPago] = useState<"mis" | "todos">("mis");
 
   // Estados del Modal de Egreso
@@ -80,7 +83,6 @@ const ConsultaCajaDiaria: React.FC = () => {
     try {
       setLoading(true);
       const detalle = await cajaApi.obtenerCajaDiaria(fecha);
-      // Asegurarse que cada objeto tenga la estructura esperada
       const mappedDetalle: CajaDetalleDTO = {
         ...detalle,
         pagosDelDia: detalle.pagosDelDia.map((p: any) => ({
@@ -107,7 +109,6 @@ const ConsultaCajaDiaria: React.FC = () => {
     try {
       await egresoApi.eliminarEgreso(id);
       toast.success("Egreso eliminado correctamente.");
-      // Refrescar la caja diaria
       handleVer();
     } catch (err) {
       toast.error("Error al eliminar egreso.");
@@ -115,10 +116,21 @@ const ConsultaCajaDiaria: React.FC = () => {
   };
 
   // --------------------------------------------------------------------------
-  // Filtrar pagos para excluir aquellos con monto = 0
+  // Filtrar pagos para excluir aquellos que:
+  // 1. Tengan monto igual a 0.
+  // 2. Tengan el arreglo detallePagos y TODOS sus elementos tengan ACobrar = 0.
   // --------------------------------------------------------------------------
   const pagos: PagoDelDia[] = data?.pagosDelDia || [];
-  const pagosFiltrados = pagos.filter((p) => p.monto !== 0);
+
+  const tieneDetalleActivo = (pago: PagoDelDia): boolean => {
+    if (pago.detallePagos && Array.isArray(pago.detallePagos)) {
+      return pago.detallePagos.some((detalle) => detalle.ACobrar !== 0);
+    }
+    // Si no se tiene detalle, se mantiene el pago (o se podría filtrar según requerimientos)
+    return true;
+  };
+
+  const pagosFiltrados = pagos.filter((p) => p.monto !== 0 && tieneDetalleActivo(p));
 
   // Ordenar los pagos (los más recientes primero)
   const sortedPagos = [...pagosFiltrados].sort((a, b) => b.id - a.id);
@@ -186,7 +198,6 @@ const ConsultaCajaDiaria: React.FC = () => {
       await egresoApi.registrarEgreso(egresoRequest);
       toast.success("Egreso agregado correctamente.");
       setShowModalEgreso(false);
-      // Refrescar la caja diaria
       handleVer();
     } catch (err) {
       toast.error("Error al agregar Egreso.");
@@ -214,9 +225,10 @@ const ConsultaCajaDiaria: React.FC = () => {
           <select
             className="border p-2"
             value={filtroPago}
-            onChange={(e) => setFiltroPago(e.target.value as "mis" | "todos")}
+            onChange={(e) =>
+              setFiltroPago(e.target.value as "mis" | "todos")
+            }
           >
-            {/* Si es "mis", mostramos el nombre del usuario autenticado */}
             <option value="mis">
               {user ? `Pagos de ${user.nombreUsuario}` : "Mis pagos"}
             </option>
@@ -238,15 +250,23 @@ const ConsultaCajaDiaria: React.FC = () => {
         ) : (
           <Tabla
             className="table-fixed w-full"
-            headers={["Recibo", "Código", "Alumno", "Observaciones", "Importe"]}
+            headers={[
+              "Recibo",
+              "Código",
+              "Alumno",
+              "Observaciones",
+              "Importe",
+            ]}
             data={pagosFiltradosPorUsuario}
             customRender={(p: PagoDelDia) => [
               p.id,
               p.alumno?.id || "",
-              p.alumno ? `${p.alumno.nombre} ${p.alumno.apellido}` : "",
+              p.alumno
+                ? `${p.alumno.nombre} ${p.alumno.apellido}`
+                : "",
               <div
                 style={{
-                  maxWidth: "30vw", // 30% del ancho de la ventana, se ajusta al tamaño de la pantalla
+                  maxWidth: "30vw",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                   whiteSpace: "nowrap",
@@ -307,7 +327,8 @@ const ConsultaCajaDiaria: React.FC = () => {
           Efectivo:{" "}
           {pagosFiltradosPorUsuario
             .filter(
-              (p) => p.metodoPago?.descripcion?.toUpperCase() === "EFECTIVO"
+              (p) =>
+                p.metodoPago?.descripcion?.toUpperCase() === "EFECTIVO"
             )
             .reduce((sum, p) => sum + p.monto, 0)
             .toLocaleString()}
@@ -316,7 +337,8 @@ const ConsultaCajaDiaria: React.FC = () => {
           Débito:{" "}
           {pagosFiltradosPorUsuario
             .filter(
-              (p) => p.metodoPago?.descripcion?.toUpperCase() === "DEBITO"
+              (p) =>
+                p.metodoPago?.descripcion?.toUpperCase() === "DEBITO"
             )
             .reduce((sum, p) => sum + p.monto, 0)
             .toLocaleString()}
@@ -337,7 +359,9 @@ const ConsultaCajaDiaria: React.FC = () => {
                 type="number"
                 className="border p-2 w-full"
                 value={montoEgreso}
-                onChange={(e) => setMontoEgreso(parseFloat(e.target.value))}
+                onChange={(e) =>
+                  setMontoEgreso(parseFloat(e.target.value))
+                }
               />
             </div>
             <div className="mb-2">
