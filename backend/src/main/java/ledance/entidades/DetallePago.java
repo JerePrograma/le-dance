@@ -56,6 +56,7 @@ public class DetallePago {
 
     @ManyToOne
     @JoinColumn(name = "pago_id", nullable = false)
+    @ToString.Exclude
     private Pago pago;
 
     @ManyToOne(cascade = CascadeType.ALL)

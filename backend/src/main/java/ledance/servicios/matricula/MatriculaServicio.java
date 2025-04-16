@@ -8,6 +8,7 @@ import ledance.repositorios.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -41,121 +42,102 @@ public class MatriculaServicio {
         this.pagoRepositorio = pagoRepositorio;
     }
 
-    @Transactional
+    /**
+     * Procesa la matrícula en su propia transacción para que cualquier fallo
+     * no marque rollback la TX principal de inscripción.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void obtenerOMarcarPendienteAutomatica(Long alumnoId, Pago pagoPendiente) {
         int anio = LocalDate.now().getYear();
-        log.info("[MatriculaAutoService] Procesando matrícula automática para alumno id={}, año={}", alumnoId, anio);
+        log.info("[MatriculaAutoService] Procesando matrícula automática para alumno id={}, año={}",
+                alumnoId, anio);
 
-        // Obtiene o crea la matrícula pendiente para el alumno en el año indicado.
+        // 1) Obtener o crear matrícula
         Matricula matricula = obtenerOMarcarPendienteMatricula(alumnoId, anio);
-        log.info("Matrícula pendiente: id={} para alumnoId={}", matricula.getId(), alumnoId);
+        log.info("  ↳ Matrícula pendiente: id={} para alumnoId={}", matricula.getId(), alumnoId);
 
-        // Buscar si ya existe un DetallePago asociado a la matrícula.
-        Optional<DetallePago> detalleOpt = detallePagoRepositorio.findByMatriculaId(matricula.getId());
-        // Si existe y su estado de pago NO es ANULADO, se asume que ya se realizó el proceso.
-        if (detalleOpt.isPresent() && detalleOpt.get().getEstadoPago() != EstadoPago.ANULADO) {
-            log.info("DetallePago ya existe y no está ANULADO para la matrícula id={}", matricula.getId());
+        // 2) Buscar sólo DETALLES ACTIVOS
+        Optional<DetallePago> detalleOpt = detallePagoRepositorio
+                .findActiveByMatriculaId(matricula.getId());
+        if (detalleOpt.isPresent()) {
+            log.info("  ↳ Ya existe DetallePago ACTIVO (id={}) para matrícula id={}",
+                    detalleOpt.get().getId(), matricula.getId());
             return;
         }
 
-        // Si no existe o existe pero está ANULADO, se continúa con el registro
+        // 3) Registrar nuevo detalle si no había ninguno ACTIVO
         registrarDetallePagoMatriculaAutomatica(matricula, pagoPendiente);
     }
 
-    @Transactional
     public Matricula obtenerOMarcarPendienteMatricula(Long alumnoId, int anio) {
-        // Busca la matrícula pendiente ya registrada para el alumno en el año indicado
-        return matriculaRepositorio.findFirstByAlumnoIdAndAnioOrderByIdDesc(alumnoId, anio).orElseGet(() -> {
-            Alumno alumno = alumnoRepositorio.findById(alumnoId).orElseThrow(() -> new IllegalArgumentException("Alumno no encontrado."));
-            Matricula nuevaMatricula = new Matricula();
-            nuevaMatricula.setAlumno(alumno);
-            nuevaMatricula.setAnio(anio);
-            nuevaMatricula.setPagada(false);
-            nuevaMatricula = matriculaRepositorio.save(nuevaMatricula);
-            matriculaRepositorio.flush(); // Asegura visibilidad en la transacción actual
-            log.info("Nueva matrícula creada: id={} para alumnoId={}", nuevaMatricula.getId(), alumnoId);
-            return nuevaMatricula;
-        });
+        return matriculaRepositorio
+                .findFirstByAlumnoIdAndAnioOrderByIdDesc(alumnoId, anio)
+                .orElseGet(() -> {
+                    Alumno alumno = alumnoRepositorio.findById(alumnoId)
+                            .orElseThrow(() -> new IllegalArgumentException("Alumno no encontrado."));
+                    Matricula nueva = new Matricula();
+                    nueva.setAlumno(alumno);
+                    nueva.setAnio(anio);
+                    nueva.setPagada(false);
+                    nueva = matriculaRepositorio.save(nueva);
+                    log.info("    ↳ Nueva matrícula creada: id={} para alumnoId={}", nueva.getId(), alumnoId);
+                    return nueva;
+                });
     }
 
     @Transactional
     protected void registrarDetallePagoMatriculaAutomatica(Matricula matricula, Pago pagoPendiente) {
-        log.info("[registrarDetallePagoMatricula] Iniciando registro del DetallePago para matrícula id={}", matricula.getId());
+        log.info("[MatriculaAutoService] Creando DetallePago para matrícula id={}", matricula.getId());
 
         Alumno alumno = matricula.getAlumno();
-        // Buscar el último pago pendiente para el alumno
-        pagoPendiente = obtenerUltimoPagoPendienteEntidad(alumno.getId());
-        Pago pagoAsociado;
-        if (pagoPendiente != null) {
-            pagoAsociado = pagoPendiente;
-            log.info("[registrarDetallePagoMatricula] Se encontró un pago pendiente para alumno id={}: Pago id={}", alumno.getId(), pagoAsociado.getId());
-        } else {
-            // No se encontró un pago pendiente: se crea uno nuevo.
-            pagoAsociado = new Pago();
-            pagoAsociado.setAlumno(alumno);
-            pagoAsociado.setFecha(LocalDate.now());
-            // Asigna una fecha de vencimiento (por ejemplo, 30 días después)
-            pagoAsociado.setFechaVencimiento(LocalDate.now().plusDays(30));
-            // Inicializamos importes en 0 (o según tu lógica de negocio)
-            pagoAsociado.setImporteInicial(0.0);
-            pagoAsociado.setMonto(0.0);
-            pagoAsociado.setSaldoRestante(0.0);
-            pagoAsociado.setEstadoPago(EstadoPago.ACTIVO);
-            // Si el pago debe tener otros campos (como observaciones o método de pago), asígnalos acá.
-            pagoRepositorio.save(pagoAsociado);
-            log.info("[registrarDetallePagoMatricula] No se encontró un pago pendiente; se creó un nuevo pago con ID={}", pagoAsociado.getId());
-        }
+        Pago pagoAsociado = Optional
+                .ofNullable(obtenerUltimoPagoPendienteEntidad(alumno.getId()))
+                .orElseGet(() -> {
+                    Pago p = new Pago();
+                    p.setAlumno(alumno);
+                    p.setFecha(LocalDate.now());
+                    p.setFechaVencimiento(LocalDate.now().plusDays(30));
+                    p.setImporteInicial(0.0);
+                    p.setMonto(0.0);
+                    p.setSaldoRestante(0.0);
+                    p.setEstadoPago(EstadoPago.ACTIVO);
+                    pagoRepositorio.save(p);
+                    log.info("    ↳ Pago nuevo creado para alumno id={}: pago id={}", alumno.getId(), p.getId());
+                    return p;
+                });
 
-        // Crear el nuevo DetallePago para la matrícula.
         DetallePago detalle = new DetallePago();
-        // Se asigna la matrícula y el alumno
         detalle.setMatricula(matricula);
         detalle.setAlumno(alumno);
-
-        // Asignar una descripción basada en el año actual
-        int anio = LocalDate.now().getYear();
-        String descripcionConcepto = "MATRICULA " + anio;
-        detalle.setDescripcionConcepto(descripcionConcepto);
-
-        // Tipo de detalle: MATRICULA
+        detalle.setDescripcionConcepto("MATRICULA " + LocalDate.now().getYear());
         detalle.setTipo(TipoDetallePago.MATRICULA);
         detalle.setFechaRegistro(LocalDate.now());
 
-        // Verificar duplicidad (según tu lógica de negocio)
-        if (verificarDetallePagoUnico(detalle)) {
-            return;
-        }
+        if (verificarDetallePagoUnico(detalle)) return;
 
-        // Asignar Concepto y SubConcepto (según tu lógica de negocio)
         asignarConceptoDetallePago(detalle);
-
-        // Suponiendo que el precio del concepto determina el valor base
-        Double valorBase = detalle.getConcepto().getPrecio();
+        double valorBase = detalle.getConcepto().getPrecio();
         detalle.setValorBase(valorBase);
         detalle.setImporteInicial(valorBase);
         detalle.setImportePendiente(valorBase);
         detalle.setACobrar(0.0);
         detalle.setCobrado(false);
-
-        // Asociar el pago al detalle
         detalle.setPago(pagoAsociado);
 
-        // Guardar el DetallePago
         detallePagoRepositorio.save(detalle);
-        log.info("[registrarDetallePagoMatricula] DetallePago para matrícula id={} creado y guardado exitosamente.", matricula.getId());
+        log.info("    ↳ DetallePago matricula id={} creado: detalle id={}", matricula.getId(), detalle.getId());
 
-        // Actualizar el pago: agregar el detalle y sumar el importe
-        if (pagoAsociado.getDetallePagos() == null) {
-            pagoAsociado.setDetallePagos(new ArrayList<>());
-        }
         pagoAsociado.getDetallePagos().add(detalle);
-        double nuevoMonto = (pagoAsociado.getMonto() != null ? pagoAsociado.getMonto() : 0.0);
-        pagoAsociado.setMonto(nuevoMonto);
-        double nuevoSaldo = (pagoAsociado.getSaldoRestante() != null ? pagoAsociado.getSaldoRestante() : 0.0);
-        pagoAsociado.setSaldoRestante(nuevoSaldo);
         pagoRepositorio.save(pagoAsociado);
-        log.info("[registrarDetallePagoMatricula] Pago (ID={}) actualizado: nuevo monto={} y saldo restante={}",
-                pagoAsociado.getId(), nuevoMonto, nuevoSaldo);
+        log.info("    ↳ Pago (id={}) actualizado tras matricula: monto={}, saldo={}",
+                pagoAsociado.getId(), pagoAsociado.getMonto(), pagoAsociado.getSaldoRestante());
+    }
+
+    public Pago obtenerUltimoPagoPendienteEntidad(Long alumnoId) {
+        return pagoRepositorio
+                .findTopByAlumnoIdAndEstadoPagoAndSaldoRestanteGreaterThanOrderByFechaDesc(
+                        alumnoId, EstadoPago.ACTIVO, 0.0)
+                .orElse(null);
     }
 
     /**
@@ -320,14 +302,6 @@ public class MatriculaServicio {
         pagoRepositorio.save(pagoAsociado);
         log.info("[registrarDetallePagoMatricula] Pago (ID={}) actualizado: nuevo monto={} y saldo restante={}",
                 pagoAsociado.getId(), pagoAsociado.getMonto(), pagoAsociado.getSaldoRestante());
-    }
-
-    @Transactional
-    public Pago obtenerUltimoPagoPendienteEntidad(Long alumnoId) {
-        log.info("[obtenerUltimoPagoPendienteEntidad] Buscando el último pago pendiente para alumnoId={}", alumnoId);
-        Pago ultimo = pagoRepositorio.findTopByAlumnoIdAndEstadoPagoAndSaldoRestanteGreaterThanOrderByFechaDesc(alumnoId, EstadoPago.ACTIVO, 0.0).orElse(null);
-        log.info("[obtenerUltimoPagoPendienteEntidad] Resultado para alumno id={}: {}", alumnoId, ultimo);
-        return ultimo;
     }
 
     @Transactional

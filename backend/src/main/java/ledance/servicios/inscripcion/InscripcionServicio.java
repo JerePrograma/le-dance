@@ -135,7 +135,6 @@ public class InscripcionServicio implements IInscripcionServicio {
             matriculaServicio.obtenerOMarcarPendienteAutomatica(alumno.getId(), pagoPendiente);
             log.info("[crearInscripcion] Matrícula verificada o creada automáticamente para alumno id={}", alumno.getId());
         } catch (Exception e) {
-            // Logueamos el error, pero continuamos el proceso de inscripción.
             log.warn("[crearInscripcion] Error al obtener o marcar matrícula pendiente (se ignora para continuar): {}", e.getMessage());
         }
 

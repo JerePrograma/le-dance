@@ -20,9 +20,13 @@ public interface DetallePagoRepositorio extends JpaRepository<DetallePago, Long>
 
     boolean existsByMensualidadId(Long id);
 
-    Optional<DetallePago> findByMatriculaId(Long matriculaId);
-
-    Optional<DetallePago> findByMensualidad(Mensualidad mensualidad);
+    @Query("""
+  SELECT d 
+    FROM DetallePago d 
+   WHERE d.matricula.id = :matriculaId 
+     AND d.estadoPago = 'ACTIVO'
+""")
+    Optional<DetallePago> findActiveByMatriculaId(@Param("matriculaId") Long matriculaId);
 
     boolean existsByAlumnoIdAndDescripcionConceptoIgnoreCaseAndTipo(Long alumnoId, String descripcion, TipoDetallePago tipo);
 
@@ -36,4 +40,12 @@ public interface DetallePagoRepositorio extends JpaRepository<DetallePago, Long>
     boolean existsByAlumnoIdAndDescripcionConceptoIgnoreCaseAndTipoAndEstadoPagoNot(Long alumnoId, String descripcion, TipoDetallePago tipoDetallePago, EstadoPago estadoPago);
 
     Optional<DetallePago> findTopByMensualidadOrderByFechaRegistroDesc(Mensualidad mensualidad);
+
+    Optional<DetallePago> findByMensualidadAndEstadoPago(Mensualidad mensualidad, EstadoPago estadoPago);
+
+    List<DetallePago> findByAlumnoIdAndDescripcionConceptoAndEstadoPago(
+            Long alumnoId,
+            String descripcionConcepto,
+            EstadoPago estadoPago
+    );
 }

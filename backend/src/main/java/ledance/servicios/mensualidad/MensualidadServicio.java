@@ -278,7 +278,7 @@ public class MensualidadServicio implements IMensualidadService {
         log.info("[mensajeAplicarRecargo] Importe de mensualidad id={} recalculado.", mensualidad.getId());
 
         // Se busca el DetallePago asociado a la mensualidad y se le asigna el recargo
-        detallePagoRepositorio.findByMensualidad(mensualidad)
+        detallePagoRepositorio.findByMensualidadAndEstadoPago(mensualidad, EstadoPago.ACTIVO)
                 .ifPresentOrElse(detalle -> {
                     detalle.setRecargo(recargo);
                     detalle.setTieneRecargo(true);
@@ -342,7 +342,7 @@ public class MensualidadServicio implements IMensualidadService {
         // Verificar si ya existe un DetallePago para esta mensualidad para evitar duplicados
         DetallePago detallePago;
         if (detallePagoRepositorio.existsByMensualidadId(mensualidad.getId())) {
-            detallePago = detallePagoRepositorio.findByMensualidad(mensualidad).get();
+            detallePago = detallePagoRepositorio.findByMensualidadAndEstadoPago(mensualidad, EstadoPago.ACTIVO).get();
             log.info("Ya existe DetallePago para Mensualidad id={}", mensualidad.getId());
         } else {
             detallePago = registrarDetallePagoMensualidad(mensualidad, pagoPendiente);
@@ -406,10 +406,14 @@ public class MensualidadServicio implements IMensualidadService {
         } else {
             log.info("Mensualidad id={} ya tiene aplicado el recargo de día {}.",
                     mensualidad.getId(), recargo15.getDiaDelMesAplicacion());
-            // Si ya tiene el recargo, se recalculan los importes en la mensualidad y su DetallePago asociado
-            recargoServicio.recalcularImporteMensualidad(mensualidad);
-            detallePagoRepositorio.findByMensualidad(mensualidad)
-                    .ifPresent(recargoServicio::recalcularImporteDetalle);
+
+            // Si ya tiene recargo, solo lo recalculamos sobre el DETALLE activo
+            detallePagoRepositorio
+                    .findByMensualidadAndEstadoPago(mensualidad, EstadoPago.ACTIVO)
+                    .ifPresent(detalleActivo -> {
+                        recargoServicio.recalcularImporteMensualidad(mensualidad);
+                        recargoServicio.recalcularImporteDetalle(detalleActivo);
+                    });
         }
     }
 
@@ -562,7 +566,7 @@ public class MensualidadServicio implements IMensualidadService {
     public DetallePago registrarDetallePagoMensualidad(Mensualidad mensualidad, Pago pagoPendiente) {
         log.info("[registrarDetallePagoMensualidad] Iniciando registro del DetallePago para Mensualidad id={}", mensualidad.getId());
 
-        Optional<DetallePago> detalleExistenteOpt = detallePagoRepositorio.findByMensualidad(mensualidad);
+        Optional<DetallePago> detalleExistenteOpt = detallePagoRepositorio.findByMensualidadAndEstadoPago(mensualidad, EstadoPago.ACTIVO);
         DetallePago detalle;
         if (detalleExistenteOpt.isPresent()) {
             detalle = detalleExistenteOpt.get();

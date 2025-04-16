@@ -77,41 +77,45 @@ public class PagoServicio {
         log.info("[registrarPago] Iniciando registro de pago. Payload recibido: {}", request);
 
         Alumno alumnoPersistido = alumnoRepositorio.findById(request.alumno().id())
-                .orElseThrow(() -> new IllegalStateException("Alumno no encontrado para ID: " + request.alumno().id()));
+                .orElseThrow(() -> new IllegalStateException(
+                        "Alumno no encontrado para ID: " + request.alumno().id()));
         log.info("[registrarPago] Alumno encontrado: {}", alumnoPersistido);
 
-        // Obtiene el último pago activo pendiente del alumno
+        // 1) Obtener el último pago activo pendiente
         Pago ultimoPagoActivo = paymentProcessor.obtenerUltimoPagoPendienteEntidad(alumnoPersistido.getId());
         log.info("[registrarPago] Último pago activo obtenido: {}", ultimoPagoActivo);
 
         Pago pagoFinal;
         if (ultimoPagoActivo == null) {
-            // No hay pago activo: se crea un pago nuevo.
+            // 2a) No hay pago: crear uno nuevo y actualizarle los campos desde el request
             pagoFinal = crearNuevoPago(alumnoPersistido, request);
             log.info("[registrarPago] No se encontró pago activo. Se creó un nuevo pago: {}", pagoFinal);
+            actualizarDatosPagoDesdeRequest(pagoFinal, request);
+
         } else if (esAbonoParcial(ultimoPagoActivo)) {
-            // Si se cumple la condición para abono parcial, procesarlo.
+            // 2b) Hay pago activo y es abono parcial: procesarlo y actualizar sólo el nuevo
             pagoFinal = paymentProcessor.procesarAbonoParcial(ultimoPagoActivo, request);
             log.info("[registrarPago] Pago procesado por abono parcial: {}", pagoFinal);
+            actualizarDatosPagoDesdeRequest(pagoFinal, request);
+
         } else {
-            // Se reutiliza el pago activo existente.
+            // 2c) Se reutiliza el pago activo: NO le cambiamos observaciones ni fecha
             pagoFinal = ultimoPagoActivo;
             log.info("[registrarPago] Se utiliza el pago activo existente: {}", pagoFinal);
         }
 
-        // Actualiza campos comunes del pago según la solicitud.
-        actualizarDatosPagoDesdeRequest(pagoFinal, request);
-
-        // Asigna el método de pago y persiste el pago final (usando saveAndFlush para garantizar el ID)
+        // 3) Asignar método de pago y persistir
         paymentProcessor.asignarMetodoYPersistir(pagoFinal, request.metodoPagoId());
         log.info("[registrarPago] Método de pago asignado al pago final id={}", pagoFinal.getId());
 
+        // 4) Limpiar asociaciones para la respuesta
         limpiarAsociacionesParaRespuesta(pagoFinal);
         log.info("[registrarPago] Asociaciones limpiadas para respuesta del pago id={}", pagoFinal.getId());
+
         PagoResponse response = pagoMapper.toDTO(pagoFinal);
         log.info("[registrarPago] Pago registrado con éxito. Respuesta final: {}", response);
 
-        // Genera recibo, excepto en caso de método DEBITO
+        // 5) Generar recibo si corresponde
         if (!pagoFinal.getMetodoPago().getDescripcion().equalsIgnoreCase("DEBITO")) {
             reciboStorageService.generarYAlmacenarYEnviarRecibo(pagoFinal);
         }
@@ -119,14 +123,15 @@ public class PagoServicio {
     }
 
     /**
-     * Actualiza datos comunes del pago (observaciones, fechas y usuario) a partir del request.
+     * Actualiza únicamente los campos que vienen en el request (observaciones, fechas, usuario).
+     * NO se invoca cuando se reutiliza el pago activo.
      */
     private void actualizarDatosPagoDesdeRequest(Pago pago, PagoRegistroRequest request) {
         pago.setObservaciones(request.observaciones());
         pago.setFecha(request.fecha());
         pago.setFechaVencimiento(request.fecha());
-        Optional<Usuario> usuarioOpt = usuarioRepositorio.findById(request.usuarioId());
-        Usuario cobrador = usuarioOpt.orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado."));
+        Usuario cobrador = usuarioRepositorio.findById(request.usuarioId())
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado."));
         pago.setUsuario(cobrador);
     }
 

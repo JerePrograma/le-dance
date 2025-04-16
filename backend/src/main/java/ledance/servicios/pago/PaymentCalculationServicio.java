@@ -478,8 +478,7 @@ public class PaymentCalculationServicio {
         // 1. Establecer importeInicial: usar el valor enviado o calcular si es inválido
         Double impInicial = detalle.getImporteInicial();
         if (impInicial == null || impInicial <= 0) {
-            impInicial = calcularImporteInicial(detalle, inscripcion, false);
-            detalle.setImporteInicial(impInicial);
+            impInicial = detalle.getImportePendiente();
             log.info("[calcularMensualidad] ImporteInicial calculado: {} para Detalle id={}", impInicial, detalle.getId());
         } else {
             log.info("[calcularMensualidad] Usando importeInicial proporcionado: {} para Detalle id={}", impInicial, detalle.getId());
