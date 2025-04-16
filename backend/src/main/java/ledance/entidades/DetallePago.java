@@ -3,7 +3,6 @@ package ledance.entidades;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
-
 import java.time.LocalDate;
 
 @Entity
@@ -51,8 +50,9 @@ public class DetallePago {
     private Double importeInicial;
     private Double importePendiente;
 
+    // Renombrado a "aCobrar" siguiendo convención Java
     @Column(name = "a_cobrar")
-    private Double ACobrar;
+    private Double aCobrar;
 
     @ManyToOne
     @JoinColumn(name = "pago_id", nullable = false)
@@ -105,36 +105,32 @@ public class DetallePago {
 
     @PrePersist
     public void prePersist() {
-        // Ajuste fecha de registro
+        normalizeFields();
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        normalizeFields();
+    }
+
+    /**
+     * Centraliza la normalización de la descripción, la asignación de fechaRegistro y la descripción por defecto para matrícula.
+     */
+    private void normalizeFields() {
+        // Ajuste fecha de registro: si está asociado a un Pago con fecha, se usa esa; de lo contrario, se usa la fecha actual.
         if (this.pago != null && this.pago.getFecha() != null) {
             this.fechaRegistro = this.pago.getFecha();
         } else if (this.fechaRegistro == null) {
             this.fechaRegistro = LocalDate.now();
         }
-        // Normalizar la descripción
+        // Normalizar la descripción a mayúsculas.
         if (this.descripcionConcepto != null) {
-            this.descripcionConcepto = this.descripcionConcepto.toUpperCase();
+            this.descripcionConcepto = this.descripcionConcepto.trim().toUpperCase();
         }
-        // Asignar descripción por defecto si es matrícula
-        if (this.matricula != null && (this.descripcionConcepto == null || this.descripcionConcepto.trim().isEmpty())) {
+        // Asignar descripción por defecto para matrícula si es necesario.
+        if (this.matricula != null &&
+                (this.descripcionConcepto == null || this.descripcionConcepto.trim().isEmpty())) {
             this.descripcionConcepto = "MATRICULA " + LocalDate.now().getYear();
         }
     }
-
-    @PreUpdate
-    public void preUpdate() {
-        // Ajuste fecha de registro
-        if (this.pago != null && this.pago.getFecha() != null) {
-            this.fechaRegistro = this.pago.getFecha();
-        }
-        // Normalizar la descripción
-        if (this.descripcionConcepto != null) {
-            this.descripcionConcepto = this.descripcionConcepto.toUpperCase();
-        }
-        // Asignar descripción por defecto si es matrícula
-        if (this.matricula != null && (this.descripcionConcepto == null || this.descripcionConcepto.trim().isEmpty())) {
-            this.descripcionConcepto = "MATRICULA " + LocalDate.now().getYear();
-        }
-    }
-
 }

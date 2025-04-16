@@ -69,6 +69,10 @@ public class PagoServicio {
         this.usuarioRepositorio = usuarioRepositorio;
     }
 
+    /**
+     * Registra un nuevo pago o procesa un abono parcial según el último pago activo del alumno.
+     * Selecciona entre crear un pago nuevo, procesar abono parcial o reutilizar el pago activo.
+     */
     public PagoResponse registrarPago(PagoRegistroRequest request) {
         log.info("[registrarPago] Iniciando registro de pago. Payload recibido: {}", request);
 
@@ -76,32 +80,29 @@ public class PagoServicio {
                 .orElseThrow(() -> new IllegalStateException("Alumno no encontrado para ID: " + request.alumno().id()));
         log.info("[registrarPago] Alumno encontrado: {}", alumnoPersistido);
 
-        // Intentamos obtener el último pago activo pendiente para el alumno.
+        // Obtiene el último pago activo pendiente del alumno
         Pago ultimoPagoActivo = paymentProcessor.obtenerUltimoPagoPendienteEntidad(alumnoPersistido.getId());
         log.info("[registrarPago] Último pago activo obtenido: {}", ultimoPagoActivo);
 
         Pago pagoFinal;
         if (ultimoPagoActivo == null) {
-            // No hay pago activo, se crea un único nuevo pago.
+            // No hay pago activo: se crea un pago nuevo.
             pagoFinal = crearNuevoPago(alumnoPersistido, request);
             log.info("[registrarPago] No se encontró pago activo. Se creó un nuevo pago: {}", pagoFinal);
         } else if (esAbonoParcial(ultimoPagoActivo)) {
-            // Existe un pago activo y se cumple la lógica para abono parcial.
+            // Si se cumple la condición para abono parcial, procesarlo.
             pagoFinal = paymentProcessor.procesarAbonoParcial(ultimoPagoActivo, request);
             log.info("[registrarPago] Pago procesado por abono parcial: {}", pagoFinal);
         } else {
-            // Existe un pago activo y no se cumple la condición de abono parcial, se reutiliza el existente.
+            // Se reutiliza el pago activo existente.
             pagoFinal = ultimoPagoActivo;
             log.info("[registrarPago] Se utiliza el pago activo existente: {}", pagoFinal);
         }
-        pagoFinal.setObservaciones(request.observaciones());
-        pagoFinal.setFecha(request.fecha());
-        pagoFinal.setFechaVencimiento(request.fecha());
-        Optional<Usuario> usuario = usuarioRepositorio.findById(request.usuarioId());
-        Usuario cobrador = usuario.get();
-        pagoFinal.setUsuario(cobrador);
-        // Asignar el método de pago y persistir el pago final.
-        // Se recomienda usar saveAndFlush para asegurarse de que el pago tenga asignado un ID.
+
+        // Actualiza campos comunes del pago según la solicitud.
+        actualizarDatosPagoDesdeRequest(pagoFinal, request);
+
+        // Asigna el método de pago y persiste el pago final (usando saveAndFlush para garantizar el ID)
         paymentProcessor.asignarMetodoYPersistir(pagoFinal, request.metodoPagoId());
         log.info("[registrarPago] Método de pago asignado al pago final id={}", pagoFinal.getId());
 
@@ -109,15 +110,28 @@ public class PagoServicio {
         log.info("[registrarPago] Asociaciones limpiadas para respuesta del pago id={}", pagoFinal.getId());
         PagoResponse response = pagoMapper.toDTO(pagoFinal);
         log.info("[registrarPago] Pago registrado con éxito. Respuesta final: {}", response);
+
+        // Genera recibo, excepto en caso de método DEBITO
         if (!pagoFinal.getMetodoPago().getDescripcion().equalsIgnoreCase("DEBITO")) {
             reciboStorageService.generarYAlmacenarYEnviarRecibo(pagoFinal);
         }
-
         return response;
     }
 
     /**
-     * Limpia asociaciones innecesarias para la respuesta (por ejemplo, las inscripciones del alumno).
+     * Actualiza datos comunes del pago (observaciones, fechas y usuario) a partir del request.
+     */
+    private void actualizarDatosPagoDesdeRequest(Pago pago, PagoRegistroRequest request) {
+        pago.setObservaciones(request.observaciones());
+        pago.setFecha(request.fecha());
+        pago.setFechaVencimiento(request.fecha());
+        Optional<Usuario> usuarioOpt = usuarioRepositorio.findById(request.usuarioId());
+        Usuario cobrador = usuarioOpt.orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado."));
+        pago.setUsuario(cobrador);
+    }
+
+    /**
+     * Limpia asociaciones innecesarias para la respuesta, por ejemplo, las inscripciones del alumno.
      */
     private void limpiarAsociacionesParaRespuesta(Pago pago) {
         log.info("[limpiarAsociacionesParaRespuesta] Limpiando asociaciones del alumno en el Pago id={}", pago.getId());
@@ -128,19 +142,17 @@ public class PagoServicio {
     }
 
     /**
-     * Valida que exista un pago activo con saldo pendiente y que se cumpla la logica de migracion.
+     * Determina si el último pago activo es un abono parcial (saldoRestante > 0).
      */
     private boolean esAbonoParcial(Pago ultimoPagoActivo) {
         log.info("[esAbonoParcial] Evaluando si se trata de un abono parcial para el último pago activo.");
-        boolean parcial = (ultimoPagoActivo != null
-                && ultimoPagoActivo.getSaldoRestante() > 0);
+        boolean parcial = (ultimoPagoActivo != null && ultimoPagoActivo.getSaldoRestante() > 0);
         log.info("[esAbonoParcial] Resultado: {}", parcial);
         return parcial;
     }
 
     /**
-     * Crea un nuevo pago y procesa los detalles enviados en el request.
-     * Se asume que en el registro inicial no se debe verificar duplicados.
+     * Crea un nuevo pago a partir del request y procesa los detalles.
      */
     private Pago crearNuevoPago(Alumno alumno, PagoRegistroRequest request) {
         log.info("[crearNuevoPago] Iniciando creación de nuevo Pago para alumno id={}", alumno.getId());
@@ -153,13 +165,13 @@ public class PagoServicio {
             log.info("[crearNuevoPago] ImporteInicial asignado desde request: {}", request.importeInicial());
         }
         Optional<MetodoPago> metodoPago = metodoPagoRepositorio.findById(request.metodoPagoId());
-        nuevoPago.setMetodoPago(metodoPago.get());
+        nuevoPago.setMetodoPago(metodoPago.orElseThrow(() -> new IllegalArgumentException("Método de pago no encontrado.")));
         nuevoPago.setAlumno(alumno);
         Optional<Usuario> cobrador = usuarioRepositorio.findById(request.usuarioId());
-        nuevoPago.setUsuario(cobrador.get());
+        nuevoPago.setUsuario(cobrador.orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado.")));
         List<DetallePago> detallesFront = detallePagoMapper.toEntity(request.detallePagos());
         log.info("[crearNuevoPago] Se obtuvieron {} detalles del request.", detallesFront.size());
-        // Aquí se llama a processDetallesPago una sola vez para procesar los detalles y persistir el pago.
+        // Procesa los detalles y persiste el pago en una única llamada
         Pago procesado = paymentProcessor.processDetallesPago(nuevoPago, detallesFront, alumno);
         log.info("[crearNuevoPago] Pago procesado con detalles: {}", procesado);
         return procesado;
@@ -229,52 +241,51 @@ public class PagoServicio {
         return response;
     }
 
+    /**
+     * Actualiza los DetallePago del pago basándose en la lista de DetallePagoRegistroRequest.
+     */
     private void actualizarDetallesPago(Pago pago, List<DetallePagoRegistroRequest> detallesDTO) {
         log.info("[actualizarDetallesPago] INICIO - Actualizando detalles para pago id={}", pago.getId());
         log.info("[actualizarDetallesPago] Recibidos {} detalles en la solicitud", detallesDTO.size());
 
-        // Mapear detalles existentes por su ID para acceso rapido.
-        log.info("[actualizarDetallesPago] Mapeando detalles existentes del pago");
+        // Mapea los detalles existentes para actualización
         Map<Long, DetallePago> detallesExistentes = pago.getDetallePagos().stream()
                 .collect(Collectors.toMap(DetallePago::getId, Function.identity()));
-        log.info("[actualizarDetallesPago] Encontrados {} detalles existentes", detallesExistentes.size());
+        log.info("[actualizarDetallesPago] Detalles existentes encontrados: {}", detallesExistentes.size());
 
-        log.info("[actualizarDetallesPago] Procesando lista de detalles DTO");
         List<DetallePago> detallesFinales = detallesDTO.stream()
                 .map(dto -> {
                     log.info("[actualizarDetallesPago] Procesando detalle DTO id={}", dto.id());
                     return obtenerODefinirDetallePago(dto, detallesExistentes, pago);
                 })
                 .toList();
-        log.info("[actualizarDetallesPago] Generados {} detalles finales", detallesFinales.size());
+        log.info("[actualizarDetallesPago] Detalles finales generados: {}", detallesFinales.size());
 
-        log.info("[actualizarDetallesPago] Limpiando lista actual de detalles del pago");
+        // Reemplaza la lista actual de detalles por la actualizada
         pago.getDetallePagos().clear();
-        log.info("[actualizarDetallesPago] Añadiendo {} nuevos detalles al pago", detallesFinales.size());
         pago.getDetallePagos().addAll(detallesFinales);
-        log.info("[actualizarDetallesPago] Detalles actualizados. Total actual: {}", pago.getDetallePagos().size());
+        log.info("[actualizarDetallesPago] Lista actualizada. Total detalles actuales: {}", pago.getDetallePagos().size());
 
-        // Recalcular el importe de cada detalle.
-        log.info("[actualizarDetallesPago] Iniciando recálculo de importes para cada detalle");
+        // Recalcula el importe de cada detalle
         pago.getDetallePagos().forEach(detalle -> {
             log.info("[actualizarDetallesPago] Recalculando importe para detalle id={} (Descripción: {})",
                     detalle.getId(), detalle.getDescripcionConcepto());
             detallePagoServicio.calcularImporte(detalle);
-            log.info("[actualizarDetallesPago] Detalle id={} - Importe recalculado: ACobrar={}, pendiente={}",
+            log.info("[actualizarDetallesPago] Detalle id={} - aCobrar={}, importePendiente={}",
                     detalle.getId(), detalle.getACobrar(), detalle.getImportePendiente());
         });
-
         log.info("[actualizarDetallesPago] FIN - Proceso completado para pago id={}", pago.getId());
     }
 
+    /**
+     * Decide actualizar un DetallePago existente o crear uno nuevo basado en el DTO.
+     */
     private DetallePago obtenerODefinirDetallePago(DetallePagoRegistroRequest dto,
                                                    Map<Long, DetallePago> detallesExistentes,
                                                    Pago pago) {
         if (dto.id() != null && detallesExistentes.containsKey(dto.id())) {
-            // Actualizar detalle existente.
             DetallePago detalle = detallesExistentes.get(dto.id());
             log.info("[obtenerODefinirDetallePago] Actualizando detalle existente id={}", detalle.getId());
-            // Actualiza relaciones utilizando el nuevo campo 'descripcionConcepto' si corresponde.
             detalle.setConcepto(dto.conceptoId() != null
                     ? conceptoRepositorio.findById(dto.conceptoId()).orElse(null)
                     : null);
@@ -284,7 +295,6 @@ public class PagoServicio {
             detalle.setValorBase(dto.valorBase());
             return verificarBonificacion(dto, detalle);
         } else {
-            // Crear un nuevo detalle.
             log.info("[obtenerODefinirDetallePago] Creando nuevo detalle para conceptoId '{}' y subconceptoId '{}'",
                     dto.conceptoId(), dto.subConceptoId());
             DetallePago nuevo = new DetallePago();
@@ -296,56 +306,49 @@ public class PagoServicio {
                     ? subConceptoRepositorio.findById(dto.subConceptoId()).orElse(null)
                     : null);
             nuevo.setValorBase(dto.valorBase());
-            // Asigna el nuevo campo unificado para la descripcion.
             nuevo.setDescripcionConcepto(dto.descripcionConcepto());
-            // Si ACobrar esta definido y es mayor a 0, se utiliza; de lo contrario se usa valorBase.
+            // Se utiliza aCobrar (en lugar de ACobrar) siguiendo la convención
             nuevo.setACobrar((dto.ACobrar() != null && dto.ACobrar() > 0) ? dto.ACobrar() : 0);
             return verificarBonificacion(dto, nuevo);
         }
     }
 
-    private DetallePago verificarBonificacion(DetallePagoRegistroRequest dto, DetallePago nuevo) {
-        nuevo.setBonificacion(dto.bonificacionId() != null
+    /**
+     * Verifica y asigna bonificaciones y recargos al DetallePago según el DTO recibido.
+     */
+    private DetallePago verificarBonificacion(DetallePagoRegistroRequest dto, DetallePago detalle) {
+        detalle.setBonificacion(dto.bonificacionId() != null
                 ? bonificacionRepositorio.findById(dto.bonificacionId()).orElse(null)
                 : null);
         if (dto.recargoId() != null) {
-            nuevo.setRecargo(recargoRepositorio.findById(dto.recargoId()).orElse(null));
-            nuevo.setTieneRecargo(true);
+            detalle.setRecargo(recargoRepositorio.findById(dto.recargoId()).orElse(null));
+            detalle.setTieneRecargo(true);
         }
-        return nuevo;
+        return detalle;
     }
 
+    /**
+     * Genera la cobranza para un alumno a partir de sus pagos activos pendientes.
+     */
     public CobranzaDTO generarCobranzaPorAlumno(Long alumnoId) {
-        // Recuperar al alumno y validar que exista.
         Alumno alumno = alumnoRepositorio.findById(alumnoId)
                 .orElseThrow(() -> new IllegalArgumentException("Alumno no encontrado."));
-
-        // Se obtienen los pagos activos (no anulados) y con saldo pendiente.
         List<Pago> pagosPendientes = pagoRepositorio
                 .findByAlumnoIdAndEstadoPagoOrderByFechaDesc(alumnoId, EstadoPago.ACTIVO)
                 .stream()
                 .filter(p -> p.getSaldoRestante() != null && p.getSaldoRestante() > 0)
                 .toList();
-
         Map<String, Double> conceptosPendientes = new HashMap<>();
         double totalPendiente = 0.0;
-
-        // Para cada pago pendiente, sumar el pendiente de cada detalle.
         for (Pago pago : pagosPendientes) {
             if (pago.getDetallePagos() != null) {
                 for (DetallePago detalle : pago.getDetallePagos()) {
                     detalle.setFechaRegistro(pago.getFecha());
                     detalle.setAlumno(pago.getAlumno());
-                    detalle.setConcepto(detalle.getConcepto());
-                    detalle.setSubConcepto(detalle.getSubConcepto());
-                    // Se calcula el pendiente usando valorBase y aFavor.
                     double pendiente = detalle.getValorBase();
                     if (pendiente > 0) {
-                        // Se obtiene la descripcion del concepto desde la entidad relacionada.
                         String conceptoDescripcion = (detalle.getConcepto() != null && detalle.getConcepto().getDescripcion() != null)
-                                ? detalle.getConcepto().getDescripcion()
-                                : "N/A";
-
+                                ? detalle.getConcepto().getDescripcion() : "N/A";
                         conceptosPendientes.put(conceptoDescripcion,
                                 conceptosPendientes.getOrDefault(conceptoDescripcion, 0.0) + pendiente);
                         totalPendiente += pendiente;
@@ -353,25 +356,24 @@ public class PagoServicio {
                 }
             }
         }
-
         List<DetalleCobranzaDTO> detalles = conceptosPendientes.entrySet().stream()
                 .map(e -> new DetalleCobranzaDTO(e.getKey(), e.getValue()))
                 .collect(Collectors.toList());
-
         log.info("[generarCobranzaPorAlumno] Alumno id={} tiene total pendiente: {} con detalles: {}",
                 alumnoId, totalPendiente, detalles);
-
         return new CobranzaDTO(alumno.getId(),
                 alumno.getNombre() + " " + alumno.getApellido(),
                 totalPendiente,
                 detalles);
     }
 
+    /**
+     * Quita manualmente el recargo de cada DetallePago de un pago y recalcula importes.
+     */
     @Transactional
     public PagoResponse quitarRecargoManual(Long id) {
         Pago pago = pagoRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Pago no encontrado."));
-
         if (pago.getDetallePagos() != null) {
             for (DetallePago detalle : pago.getDetallePagos()) {
                 detalle.setFechaRegistro(pago.getFecha());
@@ -383,142 +385,138 @@ public class PagoServicio {
                 detallePagoServicio.calcularImporte(detalle);
             }
         }
-
-        assert pago.getDetallePagos() != null;
         double nuevoMonto = pago.getDetallePagos().stream()
                 .mapToDouble(DetallePago::getImportePendiente)
                 .sum();
         pago.setMonto(nuevoMonto);
-
         double sumPagosPrevios = 0;
-
         pago.setSaldoRestante(nuevoMonto - sumPagosPrevios);
         paymentProcessor.verificarSaldoRestante(pago);
         Pago actualizado = pagoRepositorio.save(pago);
         return pagoMapper.toDTO(actualizado);
     }
 
+    /**
+     * Procesa el registro de un pago parcial, distribuyendo el abono entre los detalles del pago.
+     */
     @Transactional
     public PagoResponse registrarPagoParcial(Long pagoId, Double montoAbonado,
                                              Map<Long, Double> montosPorDetalle, Long metodoPagoId) {
-
         log.info("[registrarPagoParcial] Iniciando para pagoId={}, montoAbonado={}, metodoPagoId={}",
                 pagoId, montoAbonado, metodoPagoId);
         log.info("[registrarPagoParcial] Montos por detalle: {}", montosPorDetalle);
 
-        log.info("[registrarPagoParcial] Buscando pago con id={}", pagoId);
         Pago pago = pagoRepositorio.findById(pagoId)
                 .orElseThrow(() -> new IllegalArgumentException("Pago no encontrado."));
         log.info("[registrarPagoParcial] Pago obtenido: id={}, monto={}, saldoRestante={}, estado={}",
                 pago.getId(), pago.getMonto(), pago.getSaldoRestante(), pago.getEstadoPago());
 
-        log.info("[registrarPagoParcial] Buscando método de pago con id={}", metodoPagoId);
-        MetodoPago metodo = metodoPagoRepositorio.findById(metodoPagoId)
-                .orElseThrow(() -> new IllegalArgumentException("Metodo de pago no encontrado."));
+        Optional<MetodoPago> metodoOpt = metodoPagoRepositorio.findById(metodoPagoId);
+        MetodoPago metodo = metodoOpt.orElseThrow(() -> new IllegalArgumentException("Método de pago no encontrado."));
         log.info("[registrarPagoParcial] MetodoPago obtenido: id={}, descripcion={}, activo={}",
                 metodo.getId(), metodo.getDescripcion(), metodo.getActivo());
 
-        // Se crea el medio de pago
-        log.info("[registrarPagoParcial] Creando nuevo PagoMedio");
-        PagoMedio pagoMedio = new PagoMedio();
-        log.info("[registrarPagoParcial] Asignando monto al PagoMedio: {}", montoAbonado);
-        pagoMedio.setMonto(montoAbonado);
-        log.info("[registrarPagoParcial] Asignando método de pago al PagoMedio");
-        pagoMedio.setMetodo(metodo);
-        log.info("[registrarPagoParcial] Asignando pago al PagoMedio");
-        pagoMedio.setPago(pago);
-
-        log.info("[registrarPagoParcial] Agregando PagoMedio a la lista de medios de pago");
+        // Crear y asignar el medio de pago
+        PagoMedio pagoMedio = crearPagoMedio(montoAbonado, metodo, pago);
         pago.getPagoMedios().add(pagoMedio);
-        log.info("[registrarPagoParcial] PagoMedio creado y asignado al pago id={}. Total medios de pago: {}",
-                pago.getId(), pago.getPagoMedios().size());
+        log.info("[registrarPagoParcial] PagoMedio creado y asignado. Total medios de pago: {}",
+                pago.getPagoMedios().size());
 
-        // Actualizacion de cada detalle segun el abono asignado
-        log.info("[registrarPagoParcial] Procesando {} detalles de pago", pago.getDetallePagos().size());
-        for (DetallePago detalle : pago.getDetallePagos()) {
-            detalle.setFechaRegistro(pago.getFecha());
-            detalle.setConcepto(detalle.getConcepto());
-            detalle.setSubConcepto(detalle.getSubConcepto());
-            log.info("[registrarPagoParcial] Procesando detalle id={}", detalle.getId());
-            log.info("[registrarPagoParcial] Asignando alumno al detalle: alumnoId={}", pago.getAlumno().getId());
-            detalle.setAlumno(pago.getAlumno());
+        // Aplicar el abono a cada DetallePago usando el mapa de montos
+        aplicarAbonoADetalles(pago, montosPorDetalle);
 
-            if (montosPorDetalle.containsKey(detalle.getId())) {
-                double abono = montosPorDetalle.get(detalle.getId());
-                log.info("[registrarPagoParcial] Detalle id={}. Abono recibido: {}", detalle.getId(), abono);
-
-                if (abono < 0) {
-                    log.error("[registrarPagoParcial] Error: Abono negativo para detalle id={}", detalle.getId());
-                    throw new IllegalArgumentException("No se permite abonar un monto negativo para el detalle id=" + detalle.getId());
-                }
-
-                double pendienteActual = detalle.getImportePendiente();
-                log.info("[registrarPagoParcial] Detalle id={}. Pendiente actual: {}", detalle.getId(), pendienteActual);
-
-                double nuevoPendiente = pendienteActual - abono;
-                log.info("[registrarPagoParcial] Detalle id={}. Nuevo pendiente calculado: {}", detalle.getId(), nuevoPendiente);
-
-                if (nuevoPendiente < 0) {
-                    log.info("[registrarPagoParcial] Ajustando nuevo pendiente a 0 (era negativo)");
-                    nuevoPendiente = 0;
-                }
-
-                log.info("[registrarPagoParcial] Detalle id={} | Pendiente anterior: {} | Nuevo pendiente: {}",
-                        detalle.getId(), pendienteActual, nuevoPendiente);
-                detalle.setImportePendiente(nuevoPendiente);
-
-                // Se marca como cobrado si el pendiente llega a 0
-                if (nuevoPendiente == 0) {
-                    log.info("[registrarPagoParcial] Marcando detalle id={} como cobrado", detalle.getId());
-                    detalle.setCobrado(true);
-                    log.info("[registrarPagoParcial] Detalle id={} marcado como cobrado", detalle.getId());
-                }
-            } else {
-                log.info("[registrarPagoParcial] Detalle id={} sin abono; pendiente se mantiene: {}",
-                        detalle.getId(), detalle.getImportePendiente());
-            }
-        }
-
-        log.info("[registrarPagoParcial] Actualizando importes del pago");
+        // Actualizar totales del pago basándose en los detalles actualizados
         actualizarImportesPagoParcial(pago);
-        log.info("[registrarPagoParcial] Luego de actualizar importes, monto={}, montoPagado={}, saldoRestante={}, estado={}",
+        log.info("[registrarPagoParcial] Tras actualización, monto={}, montoPagado={}, saldoRestante={}, estado={}",
                 pago.getMonto(), pago.getMontoPagado(), pago.getSaldoRestante(), pago.getEstadoPago());
 
-        log.info("[registrarPagoParcial] Verificando saldo restante con paymentProcessor");
         paymentProcessor.verificarSaldoRestante(pago);
-
-        log.info("[registrarPagoParcial] Guardando pago actualizado");
         pagoRepositorio.save(pago);
         log.info("[registrarPagoParcial] Pago actualizado guardado. Nuevo estado: {}", pago.getEstadoPago());
 
-        log.info("[registrarPagoParcial] Generando respuesta DTO");
         PagoResponse response = pagoMapper.toDTO(pago);
         log.info("[registrarPagoParcial] Respuesta generada con éxito. Pago id={}, estado={}",
                 response.id(), response.estadoPago());
-
         return response;
     }
 
-    // 8. Actualizar importes en pago parcial (invoca verificacion de saldo adicional)
+    /**
+     * Crea un objeto PagoMedio con el monto, método y asociación al pago.
+     */
+    private PagoMedio crearPagoMedio(Double montoAbonado, MetodoPago metodo, Pago pago) {
+        log.info("[crearPagoMedio] Creando nuevo PagoMedio para pago id={}", pago.getId());
+        PagoMedio pagoMedio = new PagoMedio();
+        pagoMedio.setMonto(montoAbonado);
+        pagoMedio.setMetodo(metodo);
+        pagoMedio.setPago(pago);
+        log.info("[crearPagoMedio] PagoMedio creado con monto: {}", montoAbonado);
+        return pagoMedio;
+    }
+
+    /**
+     * Aplica el abono a cada detalle del pago basado en el mapa de montos.
+     */
+    private void aplicarAbonoADetalles(Pago pago, Map<Long, Double> montosPorDetalle) {
+        log.info("[aplicarAbonoADetalles] Procesando {} detalles para pago id={}",
+                pago.getDetallePagos().size(), pago.getId());
+        for (DetallePago detalle : pago.getDetallePagos()) {
+            // Actualiza datos básicos para el detalle
+            detalle.setFechaRegistro(pago.getFecha());
+            detalle.setAlumno(pago.getAlumno());
+            log.info("[aplicarAbonoADetalles] Procesando detalle id={}", detalle.getId());
+            if (montosPorDetalle.containsKey(detalle.getId())) {
+                double abono = montosPorDetalle.get(detalle.getId());
+                if (abono < 0) {
+                    log.error("[aplicarAbonoADetalles] Abono negativo para detalle id={}", detalle.getId());
+                    throw new IllegalArgumentException("No se permite abonar un monto negativo para el detalle id=" + detalle.getId());
+                }
+                double pendienteActual = detalle.getImportePendiente() == null ? 0.0 : detalle.getImportePendiente();
+                double nuevoPendiente = pendienteActual - abono;
+                if (nuevoPendiente < 0) {
+                    log.info("[aplicarAbonoADetalles] Ajustando nuevo pendiente a 0 para detalle id={}", detalle.getId());
+                    nuevoPendiente = 0;
+                }
+                log.info("[aplicarAbonoADetalles] Detalle id={} | Pendiente anterior: {} | Nuevo pendiente: {}",
+                        detalle.getId(), pendienteActual, nuevoPendiente);
+                detalle.setImportePendiente(nuevoPendiente);
+                if (nuevoPendiente == 0) {
+                    detalle.setCobrado(true);
+                    log.info("[aplicarAbonoADetalles] Detalle id={} marcado como cobrado", detalle.getId());
+                }
+            } else {
+                log.info("[aplicarAbonoADetalles] Detalle id={} sin abono; pendiente se mantiene: {}",
+                        detalle.getId(), detalle.getImportePendiente());
+            }
+        }
+    }
+
+    /**
+     * Actualiza los importes del pago basándose en la suma de los importes pendientes de sus detalles.
+     */
     private void actualizarImportesPagoParcial(Pago pago) {
-        log.info("[actualizarImportesPagoParcial] Iniciando actualizacion de importes parciales para pago id={}", pago.getId());
+        log.info("[actualizarImportesPagoParcial] Actualizando importes para pago id={}", pago.getId());
         double totalPendiente = pago.getDetallePagos().stream()
                 .mapToDouble(det -> Optional.ofNullable(det.getImportePendiente()).orElse(0.0))
                 .sum();
-        log.info("[actualizarImportesPagoParcial] Suma de importes pendientes de detalles: {}", totalPendiente);
+        log.info("[actualizarImportesPagoParcial] Total pendiente de detalles: {}", totalPendiente);
         pago.setSaldoRestante(totalPendiente);
         paymentProcessor.verificarSaldoRestante(pago);
         log.info("[actualizarImportesPagoParcial] Pago actualizado: saldoRestante={}", pago.getSaldoRestante());
     }
 
+    /**
+     * Obtiene un pago por su ID y genera su DTO.
+     */
     public PagoResponse obtenerPagoPorId(Long id) {
         Pago pago = pagoRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Pago no encontrado."));
         return pagoMapper.toDTO(pago);
     }
 
+    /**
+     * Lista todos los pagos que no estén anulados.
+     */
     public List<PagoResponse> listarPagos() {
-        // Se filtra para devolver unicamente los pagos que NO esten anulados
         return pagoRepositorio.findAll()
                 .stream()
                 .filter(p -> p.getEstadoPago() != EstadoPago.ANULADO)
@@ -526,11 +524,13 @@ public class PagoServicio {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Elimina un pago marcándolo como ANULADO.
+     */
     @Transactional
     public void eliminarPago(Long id) {
         Pago pago = pagoRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Pago no encontrado."));
-        // En lugar de setActivo(false), asignamos EstadoPago.ANULADO
         pago.setEstadoPago(EstadoPago.ANULADO);
         if (pago.getDetallePagos() != null) {
             pago.getDetallePagos().forEach(detalle -> detalle.setPago(pago));
@@ -539,6 +539,9 @@ public class PagoServicio {
         pagoRepositorio.save(pago);
     }
 
+    /**
+     * Lista los pagos de un alumno (excluyendo los anulados) ordenados por fecha descendente.
+     */
     public List<PagoResponse> listarPagosPorAlumno(Long alumnoId) {
         return pagoRepositorio.findByAlumnoIdAndEstadoPagoNotOrderByFechaDesc(alumnoId, EstadoPago.ANULADO)
                 .stream()
@@ -546,6 +549,9 @@ public class PagoServicio {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Lista los pagos vencidos.
+     */
     public List<PagoResponse> listarPagosVencidos() {
         LocalDate hoy = LocalDate.now();
         return pagoRepositorio.findPagosVencidos(hoy, EstadoPago.HISTORICO)
@@ -555,6 +561,9 @@ public class PagoServicio {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Obtiene el último pago pendiente de un alumno.
+     */
     public PagoResponse obtenerUltimoPagoPorAlumno(Long alumnoId) {
         Pago pago = paymentProcessor.obtenerUltimoPagoPendienteEntidad(alumnoId);
         return pago != null ? pagoMapper.toDTO(pago) : null;

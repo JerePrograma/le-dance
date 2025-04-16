@@ -5,19 +5,29 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
+
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
-@Getter
-@Setter
+/**
+ * Representa un Pago realizado por un Alumno.
+ * <p>
+ * Las relaciones entre los campos son las siguientes:
+ * - importeInicial: monto a cobrar originalmente.
+ * - montoPagado: suma de los abonos aplicados en este pago.
+ * - saldoRestante: lo que aún falta por abonar; debe cumplirse que:
+ * montoPagado + saldoRestante = importeInicial.
+ * <p>
+ * El estado del pago (estadoPago) se actualiza a HISTÓRICO cuando el saldoRestante es 0.
+ */
+@Entity
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode(onlyExplicitlyIncluded = true)
-@ToString(exclude = {"detallePagos", "pagoMedios"})
-@Entity
 @Table(name = "pagos")
 public class Pago {
 
@@ -30,9 +40,15 @@ public class Pago {
 
     private LocalDate fechaVencimiento;
 
+    /**
+     * Monto total a cobrar o total abonado (según la implementación).
+     */
     @NotNull
     private Double monto;
 
+    /**
+     * Valor base asociado al pago, en caso de que aplique alguna fórmula o cálculo adicional.
+     */
     private Double valorBase;
 
     @NotNull
@@ -48,6 +64,9 @@ public class Pago {
     @OnDelete(action = OnDeleteAction.SET_NULL)
     private MetodoPago metodoPago;
 
+    /**
+     * Saldo restante por abonar en este pago.
+     */
     @NotNull
     private Double saldoRestante = 0.0;
 
@@ -58,7 +77,7 @@ public class Pago {
 
     private String observaciones;
 
-    @OneToMany(mappedBy = "pago", cascade = { CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE, CascadeType.REFRESH }, orphanRemoval = true)
+    @OneToMany(mappedBy = "pago", cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE, CascadeType.REFRESH}, orphanRemoval = true)
     @JsonIgnore
     private List<DetallePago> detallePagos = new ArrayList<>();
 
@@ -66,6 +85,9 @@ public class Pago {
     @JsonIgnore
     private List<PagoMedio> pagoMedios;
 
+    /**
+     * Monto efectivamente abonado en este pago.
+     */
     @NotNull
     @Column(name = "monto_pagado", nullable = false)
     @Min(value = 0, message = "El monto pagado no puede ser negativo")
