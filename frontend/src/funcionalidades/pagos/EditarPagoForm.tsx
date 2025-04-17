@@ -265,8 +265,14 @@ const DetallePagoList: React.FC<DetallePagoListProps> = ({
           d.estadoPago.toUpperCase() === "ANULADO"
       );
     } else if (filtroCobrado === "GENERADOS") {
-      // Mostrar cualquier DetallePago que tenga importePendiente > 0
-      return detalles.filter((d) => d.importePendiente > 0);
+      return detalles.filter((d) => {
+        const est = d.estadoPago?.toUpperCase() || "";
+        return (
+          (d.ACobrar === 0 && d.importePendiente > 0) ||
+          est === "ACTIVO" ||
+          d.importePendiente > 0
+        );
+      });
     }
     return detalles;
   }, [detalles, filtroCobrado]);
@@ -314,25 +320,35 @@ const DetallePagoList: React.FC<DetallePagoListProps> = ({
 
   // Función para anular un detalle de pago. Se verifica que el estado no sea ya "ANULADO".
   const handleAnularDetalle = async (detalle: DetallePagoResponse) => {
-    // Si ya está anulado, informamos y no continuamos.
-    if (detalle.estadoPago && detalle.estadoPago.toUpperCase() === "ANULADO") {
+    // 1) Si ya está anulado, no hacemos nada
+    if (detalle.estadoPago?.toUpperCase() === "ANULADO") {
       toast.info("El detalle ya se encuentra anulado");
       return;
     }
+    // 2) Validaciones básicas
     if (!detalle.id || Number(detalle.id) === 0 || isSubmitting) return;
+
     setIsSubmitting(true);
     try {
+      // 3) Llamamos al API
       const detalleActualizado = await detallesPagoApi.anularDetallePago(
         detalle.id
       );
-      if (!detalleActualizado) {
-        await fetchDetalles();
-        toast.success("Detalle anulado correctamente");
-        return;
-      }
+
+      // 4) Mostrar toast
       toast.success("Detalle anulado correctamente");
-      setDetalles((prevDetalles) =>
-        prevDetalles.map((d) => (d.id === detalle.id ? detalleActualizado : d))
+
+      // 5) Actualizar el estado local:
+      //    * preservamos el resto de la lista
+      //    * sustituimos solo el detalle cuyo ID coincide
+      setDetalles((prev) =>
+        prev.map((d) =>
+          d.id === detalle.id
+            ? // si el API devuelve el objeto actualizado, lo usamos;
+              // de lo contrario, clonamos el original con estado "ANULADO"
+              detalleActualizado ?? { ...d, estadoPago: "ANULADO" }
+            : d
+        )
       );
     } catch (error) {
       toast.error("Error al anular el detalle");
