@@ -927,39 +927,30 @@ const CobranzasForm: React.FC = () => {
     return new Date(dateString);
   };
 
-  // Función que, dado la fecha de cuota y la base, decide y calcula el recargo a aplicar
-  // Evaluamos primero el recargo del día 15; si no se cumple, se verifica si corresponde el recargo por mes vencido.
+  // ---- REFACTORED: calculo de recargo por fecha ----
+  // Ahora primero aplica 20% si la cuota está vencida (pasó el mes completo),
+  // y 10% sólo si estamos entre el día 15 y fin de mes.
   const calcularRecargoPorFecha = (
     fechaCuota: Date,
     recargoDia15: Recargo,
     recargoMesVencido: Recargo,
-    base: number,
-    hoy: Date
+    baseNeta: number
   ): number => {
-    // Construye la fecha de comparación para el recargo del día 15
-    const fechaComparacion15 = new Date(fechaCuota);
-    fechaComparacion15.setDate(recargoDia15.diaDelMesAplicacion);
+    const hoy = obtenerFechaGMT3();
 
-    if (hoy >= fechaComparacion15) {
-      // Si hoy es igual o posterior a la fecha de comparación para el día 15, se aplica ese recargo.
-      return calcularRecargo(recargoDia15, base);
-    } else {
-      // En otro caso, se verifica la condición para el recargo del mes vencido.
-      // Se define el primer día del mes siguiente a la fecha actual.
-      const primerDiaMesSiguiente = new Date(
-        hoy.getFullYear(),
-        hoy.getMonth() + 1,
-        1
-      );
-      if (hoy >= primerDiaMesSiguiente) {
-        // Se toma la fecha de cuota y se le suma un mes para obtener la fecha límite.
-        const fechaComparacion1 = new Date(fechaCuota);
-        fechaComparacion1.setMonth(fechaComparacion1.getMonth() + 1);
-        if (hoy > fechaComparacion1) {
-          return calcularRecargo(recargoMesVencido, base);
-        }
-      }
+    // Si ya pasó el primer día del mes siguiente, aplico 20%
+    const primerDiaSig = new Date(fechaCuota);
+    primerDiaSig.setMonth(primerDiaSig.getMonth() + 1, 1);
+    if (hoy >= primerDiaSig) {
+      return calcularRecargo(recargoMesVencido, baseNeta);
     }
+    // Else if estamos en el mismo mes y ya pasó el día 15, aplico 10%
+    const dia15 = new Date(fechaCuota);
+    dia15.setDate(recargoDia15.diaDelMesAplicacion);
+    if (hoy >= dia15) {
+      return calcularRecargo(recargoDia15, baseNeta);
+    }
+
     return 0;
   };
 
@@ -977,7 +968,7 @@ const CobranzasForm: React.FC = () => {
       return valorBase;
     }
 
-    // Calcula el descuento (si existe una bonificación en la inscripción)
+    // 1) Calcula el descuento (si existe una bonificación en la inscripción)
     const descuento =
       inscripcion && inscripcion.bonificacion
         ? valorBase * (inscripcion.bonificacion.porcentajeDescuento / 100)
@@ -985,16 +976,15 @@ const CobranzasForm: React.FC = () => {
 
     let recargoCalculado = 0;
     if (aplicarRecargo) {
-      // Definición de los recargos según la especificación:
-      // Recargo para día 15: 10%
-      // Recargo para mes vencido (día 1): 20%
+      // 2) Definición de los recargos según la especificación:
+      //    - día 15: 10%
+      //    - mes vencido: 20%
       const recargoDia15: Recargo = {
         id: "dia15",
         diaDelMesAplicacion: 15,
         porcentaje: 10,
         valorFijo: 0,
       };
-
       const recargoMesVencido: Recargo = {
         id: "mesVencido",
         diaDelMesAplicacion: 1,
@@ -1002,20 +992,16 @@ const CobranzasForm: React.FC = () => {
         valorFijo: 0,
       };
 
-      // Fecha actual en GMT‑3.
-      const hoy = obtenerFechaGMT3();
-
-      // Calcula el recargo a partir de la fecha de cuota, la base y los recargos definidos.
+      // 3) Aplica la lógica combinada: primero mes vencido, luego día 15
       recargoCalculado = calcularRecargoPorFecha(
         fechaCuota,
         recargoDia15,
         recargoMesVencido,
-        valorBase,
-        hoy
+        valorBase - descuento // aplicamos sobre la base neta de descuento
       );
     }
 
-    // Importe final es la base menos descuento, más el recargo (si corresponde).
+    // 4) Importe final = base – descuento + recargo
     return valorBase - descuento + recargoCalculado;
   };
 
