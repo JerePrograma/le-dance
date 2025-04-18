@@ -486,8 +486,8 @@ public class DetallePagoServicio {
                 .sum();
 
         // borro duplicados salvo el principal
-        for (int i = 1; i < activos.size(); i++) {
-            detallePagoRepositorio.delete(activos.get(i));
+        for (int I = 1; I < activos.size(); I++) {
+            detallePagoRepositorio.delete(activos.get(I));
         }
 
         // actualizo el principal

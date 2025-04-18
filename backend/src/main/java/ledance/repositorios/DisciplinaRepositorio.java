@@ -18,7 +18,7 @@ public interface DisciplinaRepositorio extends JpaRepository<Disciplina, Long> {
 
     List<Disciplina> findByActivoTrue();
 
-    @Query("SELECT i.alumno FROM Inscripcion i WHERE i.disciplina.id = :disciplinaId AND i.alumno.activo = true")
+    @Query("SELECT I.alumno FROM Inscripcion I WHERE I.disciplina.id = :disciplinaId AND I.alumno.activo = true")
     List<Alumno> findAlumnosPorDisciplina(@Param("disciplinaId") Long disciplinaId);
 
     @Query("SELECT d.profesor FROM Disciplina d WHERE d.id = :disciplinaId AND d.activo = true")

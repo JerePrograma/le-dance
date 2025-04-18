@@ -14,15 +14,15 @@ import java.util.Optional;
 public interface InscripcionRepositorio extends JpaRepository<Inscripcion, Long> {
 
     @EntityGraph(attributePaths = {"alumno", "disciplina", "bonificacion"})
-    @Query("SELECT i FROM Inscripcion i")
+    @Query("SELECT I FROM Inscripcion I")
     List<Inscripcion> findAllWithDetails();
 
     List<Inscripcion> findByDisciplinaId(Long disciplinaId);
 
-    @Query("SELECT i.disciplina.nombre as disciplina, COUNT(i) as count FROM Inscripcion i GROUP BY i.disciplina.nombre")
+    @Query("SELECT I.disciplina.nombre as disciplina, COUNT(I) as count FROM Inscripcion I GROUP BY I.disciplina.nombre")
     List<Object[]> countByDisciplinaGrouped();
 
-    @Query("SELECT FUNCTION('MONTH', i.fechaInscripcion) as month, COUNT(i) as count FROM Inscripcion i GROUP BY FUNCTION('MONTH', i.fechaInscripcion)")
+    @Query("SELECT FUNCTION('MONTH', I.fechaInscripcion) as month, COUNT(I) as count FROM Inscripcion I GROUP BY FUNCTION('MONTH', I.fechaInscripcion)")
     List<Object[]> countByMonthGrouped();
 
     List<Inscripcion> findAllByDisciplinaIdAndEstado(Long disciplinaId, EstadoInscripcion estado);
@@ -31,10 +31,10 @@ public interface InscripcionRepositorio extends JpaRepository<Inscripcion, Long>
 
     List<Inscripcion> findByEstado(EstadoInscripcion estado);
 
-    @Query("SELECT i.disciplina.nombre, SUM(i.disciplina.valorCuota) " +
-            "FROM Inscripcion i " +
-            "WHERE i.disciplina.id = :disciplinaId " +
-            "GROUP BY i.disciplina.nombre")
+    @Query("SELECT I.disciplina.nombre, SUM(I.disciplina.valorCuota) " +
+            "FROM Inscripcion I " +
+            "WHERE I.disciplina.id = :disciplinaId " +
+            "GROUP BY I.disciplina.nombre")
     List<Object[]> obtenerRecaudacionPorDisciplina(@Param("disciplinaId") Long disciplinaId);
 
     Optional<Inscripcion> findByAlumno_IdAndEstado(Long alumnoId, EstadoInscripcion estado);
