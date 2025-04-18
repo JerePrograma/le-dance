@@ -37,7 +37,7 @@ public class ScheduledTasks {
 
     /**
      * Genera las mensualidades para el mes vigente
-     * Todos los días 1 a medianoche.
+     * Todos los dias 1 a medianoche.
      */
     @Scheduled(cron = "0 0 0 1 * *")
     public void generarMensualidadesMesVigente() {
@@ -45,7 +45,7 @@ public class ScheduledTasks {
     }
 
     /**
-     * Genera las matrículas para el año vigente
+     * Genera las matriculas para el año vigente
      * Cada 1 de enero a medianoche.
      */
     @Scheduled(cron = "0 0 0 1 1 *")
@@ -54,8 +54,8 @@ public class ScheduledTasks {
     }
 
     /**
-     * Aplica recargos automáticos
-     * Todos los días a la 1:00 AM.
+     * Aplica recargos automaticos
+     * Todos los dias a la 1:00AM.
      */
     @Scheduled(cron = "0 0 1 * * *")
     public void aplicarRecargosAutomaticos() {
@@ -64,7 +64,7 @@ public class ScheduledTasks {
 
     /**
      * Crea asistencias detalladas para las inscripciones activas
-     * Todos los días a las 2:00 AM.
+     * Todos los dias a las 2:00AM.
      */
     @Scheduled(cron = "0 0 2 * * *")
     public void crearAsistenciasParaInscripcionesActivas() {
@@ -72,19 +72,19 @@ public class ScheduledTasks {
     }
 
     /**
-     * Genera y envía las notificaciones de cumpleaños del día
-     * Todos los días a las 8:00 AM.
+     * Genera y envia las notificaciones de cumpleaños del dia
+     * Todos los dias a las 8:00AM.
      */
     @Scheduled(cron = "0 0 10 * * *")
     public void enviarNotificacionesCumpleanios() {
         try {
             List<String> mensajes = notificacionService.generarYObtenerCumpleanerosDelDia();
-            // Si quieres loguear qué mensajes se enviaron:
+            // Si quieres loguear que mensajes se enviaron:
             mensajes.forEach(msg ->
-                    System.out.println("[ScheduledTasks] Notificación enviada: " + msg)
+                    System.out.println("[ScheduledTasks] Notificacion enviada: " + msg)
             );
         } catch (IOException | MessagingException e) {
-            // Aquí podrías usar tu logger en lugar de printStackTrace
+            // Aqui podrias usar tu logger en lugar de printStackTrace
             System.err.println("[ScheduledTasks] Error al enviar notificaciones de cumpleaños:");
             e.printStackTrace();
         }

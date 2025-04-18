@@ -19,10 +19,10 @@ public class ObservacionProfesorControlador {
     }
 
     /**
-     * Crea una nueva observación para un profesor.
+     * Crea una nueva observacion para un profesor.
      *
      * @param request contiene profesorId, fecha (en formato ISO) y observacion
-     * @return el DTO de la observación creada
+     * @return el DTO de la observacion creada
      */
     @PostMapping
     public ObservacionProfesorDTO crearObservacion(
@@ -36,9 +36,9 @@ public class ObservacionProfesorControlador {
     }
 
     /**
-     * Elimina una observación.
+     * Elimina una observacion.
      *
-     * @param id el id de la observación a eliminar
+     * @param id el id de la observacion a eliminar
      */
     @DeleteMapping("/{id}")
     public void eliminarObservacion(@PathVariable Long id) {
@@ -46,10 +46,10 @@ public class ObservacionProfesorControlador {
     }
 
     /**
-     * Obtiene una observación por su id.
+     * Obtiene una observacion por su id.
      *
-     * @param id el id de la observación
-     * @return el DTO de la observación encontrada
+     * @param id el id de la observacion
+     * @return el DTO de la observacion encontrada
      */
     @GetMapping("/{id}")
     public ObservacionProfesorDTO obtenerObservacion(@PathVariable Long id) {
@@ -95,7 +95,7 @@ public class ObservacionProfesorControlador {
     }
 
     /**
-     * Lista las observaciones de un profesor en un mes específico.
+     * Lista las observaciones de un profesor en un mes especifico.
      *
      * @param profesorId el id del profesor
      * @param mes        el mes (1-12)

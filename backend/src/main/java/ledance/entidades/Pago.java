@@ -19,10 +19,10 @@ import org.hibernate.annotations.OnDeleteAction;
  * Las relaciones entre los campos son las siguientes:
  * - importeInicial: monto a cobrar originalmente.
  * - montoPagado: suma de los abonos aplicados en este pago.
- * - saldoRestante: lo que aún falta por abonar; debe cumplirse que:
+ * - saldoRestante: lo que aun falta por abonar; debe cumplirse que:
  * montoPagado + saldoRestante = importeInicial.
  * <p>
- * El estado del pago (estadoPago) se actualiza a HISTÓRICO cuando el saldoRestante es 0.
+ * El estado del pago (estadoPago) se actualiza a HISTORICO cuando el saldoRestante es 0.
  */
 @Entity
 @Data
@@ -41,13 +41,13 @@ public class Pago {
     private LocalDate fechaVencimiento;
 
     /**
-     * Monto total a cobrar o total abonado (según la implementación).
+     * Monto total a cobrar o total abonado (segun la implementacion).
      */
     @NotNull
     private Double monto;
 
     /**
-     * Valor base asociado al pago, en caso de que aplique alguna fórmula o cálculo adicional.
+     * Valor base asociado al pago, en caso de que aplique alguna formula o calculo adicional.
      */
     private Double valorBase;
 
@@ -104,7 +104,7 @@ public class Pago {
         }
     }
 
-    // Supongamos que tienes un método en Pago para remover un detalle:
+    // Supongamos que tienes un metodo en Pago para remover un detalle:
     public void removerDetalle(DetallePago detalle) {
         this.detallePagos.remove(detalle);
         detalle.setPago(null);

@@ -50,7 +50,7 @@ public class DetallePago {
     private Double importeInicial;
     private Double importePendiente;
 
-    // Renombrado a "aCobrar" siguiendo convención Java
+    // Renombrado a "aCobrar" siguiendo convencion Java
     @Column(name = "a_cobrar")
     private Double aCobrar;
 
@@ -115,20 +115,20 @@ public class DetallePago {
     }
 
     /**
-     * Centraliza la normalización de la descripción, la asignación de fechaRegistro y la descripción por defecto para matrícula.
+     * Centraliza la normalizacion de la descripcion, la asignacion de fechaRegistro y la descripcion por defecto para matricula.
      */
     private void normalizeFields() {
-        // Ajuste fecha de registro: si está asociado a un Pago con fecha, se usa esa; de lo contrario, se usa la fecha actual.
+        // Ajuste fecha de registro: si esta asociado a un Pago con fecha, se usa esa; de lo contrario, se usa la fecha actual.
         if (this.pago != null && this.pago.getFecha() != null) {
             this.fechaRegistro = this.pago.getFecha();
         } else if (this.fechaRegistro == null) {
             this.fechaRegistro = LocalDate.now();
         }
-        // Normalizar la descripción a mayúsculas.
+        // Normalizar la descripcion a mayusculas.
         if (this.descripcionConcepto != null) {
             this.descripcionConcepto = this.descripcionConcepto.trim().toUpperCase();
         }
-        // Asignar descripción por defecto para matrícula si es necesario.
+        // Asignar descripcion por defecto para matricula si es necesario.
         if (this.matricula != null &&
                 (this.descripcionConcepto == null || this.descripcionConcepto.trim().isEmpty())) {
             this.descripcionConcepto = "MATRICULA " + LocalDate.now().getYear();

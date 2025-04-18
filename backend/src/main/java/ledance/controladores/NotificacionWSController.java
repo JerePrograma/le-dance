@@ -8,13 +8,13 @@ import org.springframework.stereotype.Controller;
 public class NotificacionWSController {
 
     /**
-     * Método para recibir mensajes desde el cliente. Por ejemplo, al marcar una notificación como leída.
+     * Metodo para recibir mensajes desde el cliente. Por ejemplo, al marcar una notificacion como leida.
      */
     @MessageMapping("/notificacion/marcarLeida")
     @SendTo("/topic/notificaciones")
     public String marcarNotificacionLeida(String notificacionId) {
-        // Aquí se implementaría la lógica para actualizar la notificación en la BD.
-        // Luego se podría devolver una confirmación o actualizar el listado.
-        return "Notificación " + notificacionId + " marcada como leída.";
+        // Aqui se implementaria la logica para actualizar la notificacion en la BD.
+        // Luego se podria devolver una confirmacion o actualizar el listado.
+        return "Notificacion " + notificacionId + " marcada como leida.";
     }
 }

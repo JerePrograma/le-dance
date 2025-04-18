@@ -19,16 +19,16 @@ public class ObservacionProfesor {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Relación al profesor: cada observación pertenece a un profesor.
+    // Relacion al profesor: cada observacion pertenece a un profesor.
     @ManyToOne
     @JoinColumn(name = "profesor_id", nullable = false)
     private Profesor profesor;
 
-    // Fecha en que se realiza la observación.
+    // Fecha en que se realiza la observacion.
     @NotNull
     private LocalDate fecha;
 
-    // Texto de la observación.
+    // Texto de la observacion.
     @Column(columnDefinition = "TEXT")
     private String observacion;
 }

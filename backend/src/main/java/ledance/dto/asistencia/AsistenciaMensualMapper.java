@@ -22,7 +22,7 @@ public interface AsistenciaMensualMapper {
     @Mapping(target = "alumnos", source = "asistenciasAlumnoMensual")
     AsistenciaMensualDetalleResponse toDetalleDTO(AsistenciaMensual asistenciaMensual);
 
-    // Método de mapeo para convertir Salon a String (su nombre)
+    // Metodo de mapeo para convertir Salon a String (su nombre)
     default String map(Salon salon) {
         return (salon != null) ? salon.getNombre() : null;
     }
@@ -34,7 +34,7 @@ public interface AsistenciaMensualMapper {
     @Mapping(target = "anio", source = "anio")
     AsistenciaMensualListadoResponse toListadoDTO(AsistenciaMensual asistenciaMensual);
 
-    // Para crear una nueva planilla (se ignora la relación de alumnos, que se establecerá posteriormente)
+    // Para crear una nueva planilla (se ignora la relacion de alumnos, que se establecera posteriormente)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "disciplina", ignore = true)
     @Mapping(target = "asistenciasAlumnoMensual", ignore = true)
@@ -42,7 +42,7 @@ public interface AsistenciaMensualMapper {
 
     /**
      * Actualiza la planilla mensual sin modificar disciplina, mes ni año.
-     * La actualización de los registros de alumno se hace por separado.
+     * La actualizacion de los registros de alumno se hace por separado.
      */
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "disciplina", ignore = true)
@@ -54,7 +54,7 @@ public interface AsistenciaMensualMapper {
 
     List<AsistenciaAlumnoMensualDetalleResponse> toAlumnoDetalleDTOList(List<AsistenciaAlumnoMensual> alumnos);
 
-    // Aquí se corrige el mapeo para que obtenga el alumno desde inscripcion.alumno
+    // Aqui se corrige el mapeo para que obtenga el alumno desde inscripcion.alumno
     @Mapping(target = "inscripcionId", source = "inscripcion.id")
     @Mapping(target = "observacion", source = "observacion")
     @Mapping(target = "asistenciaMensualId", source = "asistenciaMensual.id")

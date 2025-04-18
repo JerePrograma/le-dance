@@ -218,7 +218,7 @@ public class AsistenciaDiariaServicio {
             asistenciaDiariaRepositorio.flush();
         }
 
-        // Eliminar el registro de asistencia mensual y hacer flush para propagar la eliminación
+        // Eliminar el registro de asistencia mensual y hacer flush para propagar la eliminacion
         asistenciaAlumnoMensualRepositorio.delete(asistenciaMensual);
         asistenciaAlumnoMensualRepositorio.flush();
     }

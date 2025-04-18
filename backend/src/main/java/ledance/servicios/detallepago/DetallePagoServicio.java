@@ -56,19 +56,19 @@ public class DetallePagoServicio {
      * importe = totalAjustado - ACobrar (acumulado)
      */
     public void calcularImporte(DetallePago detalle) {
-        // 1. Inicio y validación de concepto
+        // 1. Inicio y validacion de concepto
         String conceptoDesc = (detalle.getDescripcionConcepto() != null) ? detalle.getDescripcionConcepto() : "N/A";
-        log.info("[calcularImporte] INICIO - Cálculo para Detalle ID: {} | Concepto: '{}' | Tipo: {}", detalle.getId(), conceptoDesc, detalle.getTipo());
+        log.info("[calcularImporte] INICIO - Calculo para Detalle ID: {} | Concepto: '{}' | Tipo: {}", detalle.getId(), conceptoDesc, detalle.getTipo());
 
-        // 2. Obtención de valor base
+        // 2. Obtencion de valor base
         double base = Optional.ofNullable(detalle.getValorBase()).orElse(0.0);
         log.info("[calcularImporte] Valor base obtenido: {}", base);
         log.info("[calcularImporte] Cuota/Cantidad: {}", detalle.getCuotaOCantidad());
 
-        // 3. Cálculo de descuentos
+        // 3. Calculo de descuentos
         double descuento;
         if (TipoDetallePago.MENSUALIDAD.equals(detalle.getTipo()) && detalle.getBonificacion() != null) {
-            log.info("[calcularImporte] Procesando descuento para MENSUALIDAD con bonificación");
+            log.info("[calcularImporte] Procesando descuento para MENSUALIDAD con bonificacion");
 
             double descuentoFijo = Optional.ofNullable(detalle.getBonificacion().getValorFijo()).orElse(0.0);
             log.info("[calcularImporte] Descuento fijo: {}", descuentoFijo);
@@ -80,12 +80,12 @@ public class DetallePagoServicio {
             descuento = descuentoFijo + descuentoPorcentaje;
             log.info("[calcularImporte] Descuento TOTAL para mensualidad: {}", descuento);
         } else {
-            log.info("[calcularImporte] Calculando descuento estándar");
+            log.info("[calcularImporte] Calculando descuento estandar");
             descuento = calcularDescuento(detalle, base);
             log.info("[calcularImporte] Descuento calculado: {}", descuento);
         }
 
-        // 4. Cálculo de recargos
+        // 4. Calculo de recargos
         double recargo = 0;
         if (detalle.getTieneRecargo()) {
             log.info("[calcularImporte] Procesando recargo activo");
@@ -95,14 +95,14 @@ public class DetallePagoServicio {
             log.info("[calcularImporte] Sin recargo aplicable");
         }
 
-        // 5. Cálculo de importe inicial
+        // 5. Calculo de importe inicial
         double importeInicial = base - descuento + recargo;
-        log.info("[calcularImporte] Cálculo final: {} (base) - {} (descuento) + {} (recargo) = {}", base, descuento, recargo, importeInicial);
+        log.info("[calcularImporte] Calculo final: {} (base) - {} (descuento) + {} (recargo) = {}", base, descuento, recargo, importeInicial);
 
         log.info("[calcularImporte] Asignando importe inicial: {}", importeInicial);
         detalle.setImporteInicial(importeInicial);
 
-        // 6. Gestión de importe pendiente
+        // 6. Gestion de importe pendiente
         if (detalle.getImportePendiente() == null) {
             log.info("[calcularImporte] Importe pendiente nulo - Asignando valor inicial: {}", importeInicial);
             if (detalle.getACobrar() == null) {
@@ -117,10 +117,10 @@ public class DetallePagoServicio {
     }
 
     public double calcularDescuento(DetallePago detalle, double base) {
-        log.info("[calcularDescuento] INICIO - Cálculo para Detalle ID: {}", detalle.getId());
+        log.info("[calcularDescuento] INICIO - Calculo para Detalle ID: {}", detalle.getId());
 
         if (detalle.getBonificacion() != null) {
-            log.info("[calcularDescuento] Bonificación encontrada: ID {}", detalle.getBonificacion().getId());
+            log.info("[calcularDescuento] Bonificacion encontrada: ID {}", detalle.getBonificacion().getId());
 
             double descuentoFijo = Optional.ofNullable(detalle.getBonificacion().getValorFijo()).orElse(0.0);
             log.info("[calcularDescuento] Componente fijo: {}", descuentoFijo);
@@ -135,7 +135,7 @@ public class DetallePagoServicio {
             return totalDescuento;
         }
 
-        log.info("[calcularDescuento] Sin bonificación aplicable - Descuento: 0");
+        log.info("[calcularDescuento] Sin bonificacion aplicable - Descuento: 0");
         return 0.0;
     }
 
@@ -146,9 +146,9 @@ public class DetallePagoServicio {
         }
         if (recargo != null) {
             int diaActual = LocalDate.now().getDayOfMonth();
-            log.info("[obtenerValorRecargo] Detalle id={} | Día actual={} | Día de aplicación={}", detalle.getId(), diaActual, recargo.getDiaDelMesAplicacion());
+            log.info("[obtenerValorRecargo] Detalle id={} | Dia actual={} | Dia de aplicacion={}", detalle.getId(), diaActual, recargo.getDiaDelMesAplicacion());
             if (diaActual != recargo.getDiaDelMesAplicacion()) {
-                log.info("[obtenerValorRecargo] Día actual no coincide; recargo=0");
+                log.info("[obtenerValorRecargo] Dia actual no coincide; recargo=0");
                 return 0.0;
             }
             double recargoFijo = (recargo.getValorFijo() != null) ? recargo.getValorFijo() : 0.0;
@@ -172,16 +172,16 @@ public class DetallePagoServicio {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("alumno").get("id"), Long.valueOf(alumnoId)));
         }
 
-        // Si se envía categoría, se aplica el filtro correspondiente
+        // Si se envia categoria, se aplica el filtro correspondiente
         if (StringUtils.hasText(categoria)) {
             spec = spec.and(filtrarPorCategoria(categoria, disciplina, tarifa, stock, subConcepto, detalleConcepto));
         }
 
         List<DetallePago> detalles = detallePagoRepositorio.findAll(spec, Sort.by(Sort.Direction.DESC, "id"));
-        log.info("Consulta realizada. Número de registros encontrados: {}", detalles.size());
+        log.info("Consulta realizada. Numero de registros encontrados: {}", detalles.size());
 
         List<DetallePagoResponse> responses = detalles.stream().map(detallePagoMapper::toDTO).collect(Collectors.toList());
-        log.info("Conversión a DetallePagoResponse completada. Regresando respuesta.");
+        log.info("Conversion a DetallePagoResponse completada. Regresando respuesta.");
 
         return responses;
     }
@@ -224,10 +224,10 @@ public class DetallePagoServicio {
                 case "CONCEPTOS":
                     // Se listan todos los detalles con tipo CONCEPTO
                     predicates.add(cb.equal(root.get("tipo"), TipoDetallePago.CONCEPTO));
-                    // Si se envía un subConcepto, aplicar filtro
+                    // Si se envia un subConcepto, aplicar filtro
                     if (StringUtils.hasText(subConcepto)) {
                         if ("MATRICULA".equalsIgnoreCase(subConcepto)) {
-                            // Filtra por descripción que contenga "MATRICULA"
+                            // Filtra por descripcion que contenga "MATRICULA"
                             predicates.add(cb.like(cb.upper(root.get("descripcionConcepto")), "%MATRICULA%"));
                         } else {
                             String pattern = "%" + subConcepto.toUpperCase() + "%";
@@ -254,7 +254,7 @@ public class DetallePagoServicio {
     }
 
     // =====================================================
-    // Métodos CRUD
+    // Metodos CRUD
     // =====================================================
 
     // Crear un nuevo DetallePago
@@ -275,7 +275,7 @@ public class DetallePagoServicio {
     public DetallePagoResponse actualizarDetallePago(Long id, DetallePago detalleActualizado) {
         DetallePago detalleExistente = detallePagoRepositorio.findById(id).orElseThrow(() -> new EntityNotFoundException("DetallePago con id " + id + " no encontrado"));
 
-        // Actualizar campos; dependiendo de tu lógica, puedes actualizar sólo ciertos atributos.
+        // Actualizar campos; dependiendo de tu logica, puedes actualizar solo ciertos atributos.
         detalleExistente.setDescripcionConcepto(detalleActualizado.getDescripcionConcepto());
         detalleExistente.setConcepto(detalleActualizado.getConcepto());
         detalleExistente.setSubConcepto(detalleActualizado.getSubConcepto());
@@ -294,12 +294,12 @@ public class DetallePagoServicio {
 
     @Transactional
     public void eliminarDetallePago(Long id) {
-        log.info("[eliminarDetallePago] Iniciando eliminación de DetallePago con id={}", id);
+        log.info("[eliminarDetallePago] Iniciando eliminacion de DetallePago con id={}", id);
 
         // 1. Buscar el DetallePago
         Optional<DetallePago> optionalDetalle = detallePagoRepositorio.findById(id);
         if (optionalDetalle.isEmpty()) {
-            log.warn("[eliminarDetallePago] DetallePago con id={} no encontrado. No se realizará acción.", id);
+            log.warn("[eliminarDetallePago] DetallePago con id={} no encontrado. No se realizara accion.", id);
             return;
         }
 
@@ -311,9 +311,9 @@ public class DetallePagoServicio {
         if (pago != null) {
             log.info("[eliminarDetallePago] Pago asociado encontrado: id={}", pago.getId());
 
-            // 3. Remover el detalle de la colección del pago (orphanRemoval se encargará de eliminarlo)
+            // 3. Remover el detalle de la coleccion del pago (orphanRemoval se encargara de eliminarlo)
             pago.removerDetalle(detalle);
-            log.info("[eliminarDetallePago] Detalle removido de la colección del pago");
+            log.info("[eliminarDetallePago] Detalle removido de la coleccion del pago");
 
             // 4. Recalcular nuevos montos para el pago
             double valorACobrar = detalle.getACobrar();
@@ -333,10 +333,10 @@ public class DetallePagoServicio {
             pago.setMontoPagado(nuevoMontoPagado);
             log.info("[eliminarDetallePago] Montos actualizados - monto={}, pagado={}", nuevoMonto, nuevoMontoPagado);
 
-            // 5. Guardar el pago (y eliminar el detalle automáticamente)
+            // 5. Guardar el pago (y eliminar el detalle automaticamente)
             pagoRepositorio.save(pago);
         } else {
-            log.warn("[eliminarDetallePago] No se encontró pago asociado al detalle");
+            log.warn("[eliminarDetallePago] No se encontro pago asociado al detalle");
         }
 
         // 6. Eliminar mensualidad asociada si corresponde
@@ -346,24 +346,24 @@ public class DetallePagoServicio {
             log.info("[eliminarDetallePago] Mensualidad eliminada: {}", mensualidad.getId());
         }
 
-        // 7. Eliminar matrícula asociada si corresponde
+        // 7. Eliminar matricula asociada si corresponde
         Matricula matricula = obtenerMatriculaSiExiste(detalle);
         if (matricula != null && matricula.getId() != null) {
             matricula.setPagada(false);
             matricula.setFechaPago(null);
-            log.info("Matrícula eliminada: {}", matricula.getId());
+            log.info("Matricula eliminada: {}", matricula.getId());
         }
 
-        log.info("[eliminarDetallePago] Eliminación finalizada para DetallePago id={}", id);
+        log.info("[eliminarDetallePago] Eliminacion finalizada para DetallePago id={}", id);
     }
 
     /**
      * Anula un DetallePago:
      * 1. Crea Pago si no existe.
-     * 2. Clona el detalle original para histórico.
+     * 2. Clona el detalle original para historico.
      * 3. Anula el original y limpia asociaciones.
      * 4. Actualiza montos del Pago.
-     * 5. Unifica todos los DetallePago activos del alumno+descripción.
+     * 5. Unifica todos los DetallePago activos del alumno+descripcion.
      */
     @Transactional
     public DetallePagoResponse anularDetallePago(Long id) {
@@ -379,7 +379,7 @@ public class DetallePagoServicio {
             pago.setMonto(0.0);
             pago.setMontoPagado(0.0);
             pago.setObservaciones("CREADO_POR_ANULACION");
-            // si Pago tiene relación con Alumno, ajusta según tu modelo
+            // si Pago tiene relacion con Alumno, ajusta segun tu modelo
             pagoRepositorio.save(pago);
             original.setPago(pago);
         }
@@ -388,7 +388,7 @@ public class DetallePagoServicio {
         String descripcion = original.getDescripcionConcepto();
         double montoAnular = original.getACobrar();
 
-        // 2. Creo y guardo clon histórico
+        // 2. Creo y guardo clon historico
         DetallePago historico = crearClonHistorico(original);
         detallePagoRepositorio.save(historico);
 
@@ -399,7 +399,7 @@ public class DetallePagoServicio {
         // 4. Ajusto montos del Pago padre
         actualizarPago(pago, montoAnular);
 
-        // 5. Unifico TODOS los detalles activos de este alumno+descripción
+        // 5. Unifico TODOS los detalles activos de este alumno+descripcion
         unificarDetallesPorAlumno(alumnoId, descripcion);
 
         return detallePagoMapper.toDTO(original);
@@ -500,10 +500,10 @@ public class DetallePagoServicio {
     public Matricula obtenerMatriculaSiExiste(DetallePago detalle) {
         Long alumnoId = detalle.getAlumno().getId();
         String descripcion = detalle.getDescripcionConcepto();
-        log.info("[obtenerMatriculaSiExiste] Verificando existencia de matrícula para alumnoId={} con descripción '{}'", alumnoId, descripcion);
+        log.info("[obtenerMatriculaSiExiste] Verificando existencia de matricula para alumnoId={} con descripcion '{}'", alumnoId, descripcion);
 
         if (descripcion != null && descripcion.toUpperCase().contains("MATRICULA")) {
-            // Obtener todos los detalles de tipo MATRICULA para el alumno y la descripción dada
+            // Obtener todos los detalles de tipo MATRICULA para el alumno y la descripcion dada
             List<DetallePago> detalles = detallePagoRepositorio
                     .findAllByAlumnoIdAndDescripcionConceptoIgnoreCaseAndTipo(alumnoId, descripcion, TipoDetallePago.MATRICULA);
 
@@ -512,30 +512,30 @@ public class DetallePagoServicio {
                 detalles.sort(Comparator.comparing(DetallePago::getId));
                 DetallePago primerDetalle = detalles.get(0);
 
-                // Si el primer detalle no está anulado, se fuerza a ANULADO (o se lanza excepción, según la lógica de negocio)
+                // Si el primer detalle no esta anulado, se fuerza a ANULADO (o se lanza excepcion, segun la logica de negocio)
                 if (primerDetalle.getEstadoPago() != EstadoPago.ANULADO) {
-                    log.error("[obtenerMatriculaSiExiste] Se encontró un DetallePago activo (no anulado) con descripción '{}' para alumnoId={}. Forzando anulación.", descripcion, alumnoId);
+                    log.error("[obtenerMatriculaSiExiste] Se encontro un DetallePago activo (no anulado) con descripcion '{}' para alumnoId={}. Forzando anulacion.", descripcion, alumnoId);
                     primerDetalle.setEstadoPago(EstadoPago.ANULADO);
                     detallePagoRepositorio.save(primerDetalle);
                 }
 
-                // Desligar la matrícula de todos los DetallePago asociados para evitar problemas al eliminar la matrícula
+                // Desligar la matricula de todos los DetallePago asociados para evitar problemas al eliminar la matricula
                 for (DetallePago dp : detalles) {
                     if (dp.getMatricula() != null) {
                         dp.setMatricula(null);
                         detallePagoRepositorio.save(dp);
-                        log.info("[obtenerMatriculaSiExiste] Se desvinculó la matrícula del DetallePago id={}", dp.getId());
+                        log.info("[obtenerMatriculaSiExiste] Se desvinculo la matricula del DetallePago id={}", dp.getId());
                     }
                 }
-                Matricula matricula = primerDetalle.getMatricula(); // Ahora debería quedar la referencia "vieja" en el primer detalle
-                log.info("[obtenerMatriculaSiExiste] Se retorna la matrícula asociada al primer DetallePago (id={}) para alumnoId={}", primerDetalle.getId(), alumnoId);
+                Matricula matricula = primerDetalle.getMatricula(); // Ahora deberia quedar la referencia "vieja" en el primer detalle
+                log.info("[obtenerMatriculaSiExiste] Se retorna la matricula asociada al primer DetallePago (id={}) para alumnoId={}", primerDetalle.getId(), alumnoId);
                 return matricula;
             } else {
-                log.info("[obtenerMatriculaSiExiste] No se encontró ningún DetallePago para alumnoId={} con descripción '{}'.", alumnoId, descripcion);
+                log.info("[obtenerMatriculaSiExiste] No se encontro ningun DetallePago para alumnoId={} con descripcion '{}'.", alumnoId, descripcion);
                 return null;
             }
         } else {
-            log.info("[obtenerMatriculaSiExiste] La descripción '{}' no contiene 'MATRICULA', no se realiza verificación.", descripcion);
+            log.info("[obtenerMatriculaSiExiste] La descripcion '{}' no contiene 'MATRICULA', no se realiza verificacion.", descripcion);
             return null;
         }
     }
@@ -562,28 +562,28 @@ public class DetallePagoServicio {
     public Mensualidad obtenerMensualidadSiExiste(DetallePago detalle) {
         Long alumnoId = detalle.getAlumno().getId();
         String descripcion = detalle.getDescripcionConcepto();
-        log.info("Verificando existencia de mensualidad para alumnoId={} con descripción '{}'", alumnoId, descripcion);
+        log.info("Verificando existencia de mensualidad para alumnoId={} con descripcion '{}'", alumnoId, descripcion);
 
         if (descripcion != null && descripcion.toUpperCase().contains("CUOTA")) {
             Optional<Mensualidad> mensualidadOpt = mensualidadRepositorio
                     .findByInscripcionAlumnoIdAndDescripcionIgnoreCase(alumnoId, descripcion);
             if (mensualidadOpt.isPresent()) {
-                // Verificar si ya existe un detalle duplicado, ya sea activo o histórico.
+                // Verificar si ya existe un detalle duplicado, ya sea activo o historico.
                 boolean existeDetalleDuplicado = detallePagoRepositorio.existsByAlumnoIdAndDescripcionConceptoIgnoreCaseAndTipoAndEstadoPago(
                         alumnoId, descripcion, TipoDetallePago.MENSUALIDAD, EstadoPago.HISTORICO);
                 boolean existeDetalleDuplicado2 = detallePagoRepositorio.existsByAlumnoIdAndDescripcionConceptoIgnoreCaseAndTipoAndEstadoPago(
                         alumnoId, descripcion, TipoDetallePago.MENSUALIDAD, EstadoPago.ACTIVO);
                 if (existeDetalleDuplicado || existeDetalleDuplicado2) {
-                    log.error("Ya existe una mensualidad o detalle de pago con descripción '{}' para alumnoId={}", descripcion, alumnoId);
+                    log.error("Ya existe una mensualidad o detalle de pago con descripcion '{}' para alumnoId={}", descripcion, alumnoId);
                 }
-                log.info("Mensualidad encontrada para alumnoId={} con descripción '{}'", alumnoId, descripcion);
+                log.info("Mensualidad encontrada para alumnoId={} con descripcion '{}'", alumnoId, descripcion);
                 return mensualidadOpt.get();
             } else {
-                log.info("No se encontró mensualidad para alumnoId={} con descripción '{}'", alumnoId, descripcion);
+                log.info("No se encontro mensualidad para alumnoId={} con descripcion '{}'", alumnoId, descripcion);
                 return null;
             }
         } else {
-            log.info("La descripción '{}' no corresponde a una mensualidad", descripcion);
+            log.info("La descripcion '{}' no corresponde a una mensualidad", descripcion);
             return null;
         }
     }
@@ -592,18 +592,18 @@ public class DetallePagoServicio {
     public void verificarMensualidadNoDuplicada(DetallePago detalle) {
         Long alumnoId = detalle.getAlumno().getId();
         String descripcion = detalle.getDescripcionConcepto();
-        log.info("Verificando existencia de mensualidad o detalle de pago para alumnoId={} con descripción '{}'", alumnoId, descripcion);
+        log.info("Verificando existencia de mensualidad o detalle de pago para alumnoId={} con descripcion '{}'", alumnoId, descripcion);
 
-        // Solo se verifica si la descripción contiene "CUOTA"
+        // Solo se verifica si la descripcion contiene "CUOTA"
         if (descripcion != null && descripcion.toUpperCase().contains("CUOTA")) {
             Optional<Mensualidad> mensualidadOpt = mensualidadRepositorio.findByInscripcionAlumnoIdAndDescripcionIgnoreCase(alumnoId, descripcion);
 
             if (mensualidadOpt.isPresent()) {
-                // Si se encontró una mensualidad que contenga "CUOTA", se verifica si ya existe un detalle duplicado
+                // Si se encontro una mensualidad que contenga "CUOTA", se verifica si ya existe un detalle duplicado
                 boolean existeDetalleDuplicado = detallePagoRepositorio.existsByAlumnoIdAndDescripcionConceptoIgnoreCaseAndTipoAndEstadoPago(alumnoId, descripcion, TipoDetallePago.MENSUALIDAD, EstadoPago.HISTORICO);
                 boolean existeDetalleDuplicado2 = detallePagoRepositorio.existsByAlumnoIdAndDescripcionConceptoIgnoreCaseAndTipoAndEstadoPago(alumnoId, descripcion, TipoDetallePago.MENSUALIDAD, EstadoPago.ACTIVO);
                 if (existeDetalleDuplicado || existeDetalleDuplicado2) {
-                    log.error("Ya existe una mensualidad o detalle de pago con descripción '{}' para alumnoId={}", descripcion, alumnoId);
+                    log.error("Ya existe una mensualidad o detalle de pago con descripcion '{}' para alumnoId={}", descripcion, alumnoId);
                     throw new IllegalStateException("MENSUALIDAD YA COBRADA");
                 }
             }

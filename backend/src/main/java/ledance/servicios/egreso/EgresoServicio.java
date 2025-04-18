@@ -37,7 +37,7 @@ public class EgresoServicio {
                 .findByDescripcionContainingIgnoreCase(request.metodoPagoDescripcion());
         if (metodo != null) {
             egreso.setMetodoPago(metodo);
-            // Aseguramos que el egreso esté activo
+            // Aseguramos que el egreso este activo
             egreso.setActivo(true);
             Egreso saved = egresoRepositorio.save(egreso);
             return egresoMapper.toDTO(saved);

@@ -8,7 +8,7 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 /**
- * Servicio de envío de emails.
+ * Servicio de envio de emails.
  */
 @Service
 public class EmailService {
@@ -20,7 +20,7 @@ public class EmailService {
     }
 
     /**
-     * Envía un correo HTML con un recurso inline (p.ej. firma).
+     * Envia un correo HTML con un recurso inline (p.ej. firma).
      *
      * @param from           Remitente.
      * @param to             Destinatario.
@@ -51,7 +51,7 @@ public class EmailService {
     }
 
     /**
-     * (Tu método existente para adjuntos + inline)
+     * (Tu metodo existente para adjuntos + inline)
      */
     public void sendEmailWithAttachmentAndInlineImage(String from,
                                                       String to,

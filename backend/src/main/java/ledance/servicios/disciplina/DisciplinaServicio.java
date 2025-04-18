@@ -132,17 +132,17 @@ public class DisciplinaServicio implements IDisciplinaServicio {
                 .orElseThrow(() -> new TratadorDeErrores.ProfesorNotFoundException(request.profesorId()));
         log.info("Profesor encontrado: {} {}", profesor.getNombre(), profesor.getApellido());
 
-        // Actualiza los campos básicos (excepto el salón, que se maneja manualmente)
+        // Actualiza los campos basicos (excepto el salon, que se maneja manualmente)
         disciplinaMapper.updateEntityFromRequest(request, existente);
         existente.setProfesor(profesor);
 
-        // Recupera el salón administrado usando el id del request y lo asigna
+        // Recupera el salon administrado usando el id del request y lo asigna
         Salon salon = salonRepositorio.findById(request.salonId())
                 .orElseThrow(() -> new TratadorDeErrores.ResourceNotFoundException(request.salonId().toString()));
-        log.info("Salón encontrado: {}", salon.getNombre());
+        log.info("Salon encontrado: {}", salon.getNombre());
         existente.setSalon(salon);
 
-        // Actualiza o elimina la colección de horarios
+        // Actualiza o elimina la coleccion de horarios
         if (request.horarios() == null || request.horarios().isEmpty()) {
             log.info("Eliminando todos los horarios para la disciplina con id: {}", existente.getId());
             existente.getHorarios().clear();
@@ -172,7 +172,7 @@ public class DisciplinaServicio implements IDisciplinaServicio {
             // Se usa una copia para evitar ConcurrentModificationException
             List<Inscripcion> inscripciones = new ArrayList<>(disciplina.getInscripciones());
             for (Inscripcion inscripcion : inscripciones) {
-                // 1.1. Procesar las asistencias de alumno asociadas a la inscripción
+                // 1.1. Procesar las asistencias de alumno asociadas a la inscripcion
                 List<AsistenciaAlumnoMensual> asistenciasAlumno =
                         asistenciaAlumnoMensualRepositorio.findByInscripcionId(inscripcion.getId());
                 if (asistenciasAlumno != null && !asistenciasAlumno.isEmpty()) {
@@ -188,18 +188,18 @@ public class DisciplinaServicio implements IDisciplinaServicio {
                         asistenciaAlumnoMensualRepositorio.delete(asistenciaAlumno);
                     }
                 }
-                // 1.2. Eliminar las mensualidades asociadas a la inscripción
+                // 1.2. Eliminar las mensualidades asociadas a la inscripcion
                 if (inscripcion.getMensualidades() != null && !inscripcion.getMensualidades().isEmpty()) {
                     List<Mensualidad> mensualidades = new ArrayList<>(inscripcion.getMensualidades());
                     for (Mensualidad mensualidad : mensualidades) {
-                        // Removemos la referencia en la colección para evitar que Hibernate intente actualizarla
+                        // Removemos la referencia en la coleccion para evitar que Hibernate intente actualizarla
                         inscripcion.getMensualidades().remove(mensualidad);
                         // Eliminamos directamente la mensualidad
                         mensualidadRepositorio.delete(mensualidad);
                     }
                     mensualidadRepositorio.flush();
                 }
-                // 1.3. Finalmente, eliminar la inscripción
+                // 1.3. Finalmente, eliminar la inscripcion
                 inscripcionRepositorio.delete(inscripcion);
             }
             inscripcionRepositorio.flush();
@@ -217,7 +217,7 @@ public class DisciplinaServicio implements IDisciplinaServicio {
             // Creamos una copia para iterar y remover sin modificar la lista original
             List<DisciplinaHorario> horarios = new ArrayList<>(disciplina.getHorarios());
             for (DisciplinaHorario horario : horarios) {
-                // Removemos el horario de la colección para evitar que se intente actualizar
+                // Removemos el horario de la coleccion para evitar que se intente actualizar
                 disciplina.getHorarios().remove(horario);
                 // Eliminamos el registro directamente
                 disciplinaHorarioRepositorio.delete(horario);

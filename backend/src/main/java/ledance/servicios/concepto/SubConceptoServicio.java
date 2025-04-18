@@ -77,7 +77,7 @@ public class SubConceptoServicio {
 
     public SubConcepto findByDescripcionIgnoreCase(String subConceptoDesc) {
         if (!StringUtils.hasText(subConceptoDesc)) {
-            throw new IllegalArgumentException("La descripción del sub concepto es requerida.");
+            throw new IllegalArgumentException("La descripcion del sub concepto es requerida.");
         }
         return subConceptoRepositorio.findByDescripcionIgnoreCase(subConceptoDesc.trim())
                 .orElse(null);

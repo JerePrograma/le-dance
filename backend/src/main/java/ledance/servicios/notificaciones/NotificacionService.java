@@ -51,8 +51,8 @@ public class NotificacionService {
     }
 
     /**
-     * Genera y retorna los mensajes de cumpleaños del día, persiste notificaciones y envía emails
-     * solo si aún no se ha ejecutado hoy.
+     * Genera y retorna los mensajes de cumpleaños del dia, persiste notificaciones y envia emails
+     * solo si aun no se ha ejecutado hoy.
      */
     public List<String> generarYObtenerCumpleanerosDelDia() throws MessagingException, IOException {
         LocalDateTime ahora = LocalDateTime.now();
@@ -60,10 +60,10 @@ public class NotificacionService {
         LocalDateTime inicioDelDia = hoy.atStartOfDay();
         LocalDateTime inicioDelSiguienteDia = inicioDelDia.plusDays(1);
 
-        // 1) Verificar si ya se ejecutó hoy
+        // 1) Verificar si ya se ejecuto hoy
         Optional<ProcesoEjecutado> procOpt = procesoEjecutadoRepositorio.findByProceso(PROCESO);
         if (procOpt.isPresent() && procOpt.get().getUltimaEjecucion().isEqual(hoy)) {
-            // Ya corrió hoy: recuperamos todas las notificaciones de hoy (cualquier hora)
+            // Ya corrio hoy: recuperamos todas las notificaciones de hoy (cualquier hora)
             return notificacionRepositorio
                     .findByTipoAndFechaCreacionBetween(PROCESO, inicioDelDia, inicioDelSiguienteDia)
                     .stream()
@@ -93,7 +93,7 @@ public class NotificacionService {
                 String texto = "Alumno: " + alumno.getNombre() + " " + alumno.getApellido();
                 mensajes.add(texto);
 
-                // Persistir notificación
+                // Persistir notificacion
                 Notificacion noti = new Notificacion();
                 noti.setUsuarioId(1L);
                 noti.setTipo(PROCESO);
@@ -126,7 +126,7 @@ public class NotificacionService {
             }
         }
 
-        // 4) Procesar profesores (sin envío de email)
+        // 4) Procesar profesores (sin envio de email)
         for (Profesor prof : profesorRepository.findAll()) {
             if (prof.getFechaNacimiento() != null
                     && prof.getFechaNacimiento().getMonthValue() == mes
@@ -145,7 +145,7 @@ public class NotificacionService {
             }
         }
 
-        // 5) Marcar ejecución del proceso
+        // 5) Marcar ejecucion del proceso
         if (procOpt.isPresent()) {
             ProcesoEjecutado ejecutado = procOpt.get();
             ejecutado.setUltimaEjecucion(hoy);

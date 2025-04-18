@@ -200,29 +200,29 @@ public class PagoControlador {
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
             LocalDate fechaRegistroHasta,
 
-            // Filtro para concepto (nombre completo o descripción)
+            // Filtro para concepto (nombre completo o descripcion)
             @RequestParam(required = false) String detalleConcepto,
 
-            // Filtro para stock (se usará el nombre o ID de Stock)
+            // Filtro para stock (se usara el nombre o ID de Stock)
             @RequestParam(required = false) String stock,
 
             // Filtro para sub concepto (SubConcepto.descripcion)
             @RequestParam(required = false) String subConcepto,
 
             // Filtro para disciplinas (se usa el campo descripcionConcepto de Mensualidad)
-            // Si se envía tarifa, se espera el formato: "DISCIPLINA - TARIFA"
+            // Si se envia tarifa, se espera el formato: "DISCIPLINA - TARIFA"
             @RequestParam(required = false) String disciplina,
 
-            // Parámetro adicional para el filtro de tarifa
+            // Parametro adicional para el filtro de tarifa
             @RequestParam(required = false) String tarifa,
 
-            // Parámetro opcional para indicar la categoría directamente
+            // Parametro opcional para indicar la categoria directamente
             @RequestParam(required = false) String categoria
     ) {
-        log.info("Filtrando detalles de pago con parámetros: alumnoId={}, fechaRegistroDesde={}, fechaRegistroHasta={}, detalleConcepto={}, stock={}, subConcepto={}, disciplina={}, tarifa={}, categoria={}",
+        log.info("Filtrando detalles de pago con parametros: alumnoId={}, fechaRegistroDesde={}, fechaRegistroHasta={}, detalleConcepto={}, stock={}, subConcepto={}, disciplina={}, tarifa={}, categoria={}",
                 alumnoId, fechaRegistroDesde, fechaRegistroHasta, detalleConcepto, stock, subConcepto, disciplina, tarifa, categoria);
 
-        // Si no se envía explícitamente la categoría, se la infiere según los parámetros disponibles
+        // Si no se envia explicitamente la categoria, se la infiere segun los parametros disponibles
         if (categoria == null || categoria.trim().isEmpty()) {
             if (stock != null && !stock.trim().isEmpty()) {
                 categoria = "STOCK";
@@ -230,7 +230,7 @@ public class PagoControlador {
                     (detalleConcepto != null && !detalleConcepto.trim().isEmpty())) {
                 categoria = "CONCEPTOS";
             } else if (disciplina != null && !disciplina.trim().isEmpty()) {
-                // Si el parámetro 'disciplina' trae también tarifa en formato "DISCIPLINA - TARIFA"
+                // Si el parametro 'disciplina' trae tambien tarifa en formato "DISCIPLINA - TARIFA"
                 if (disciplina.contains("-")) {
                     String[] parts = disciplina.split("-");
                     disciplina = parts[0].trim();
@@ -240,7 +240,7 @@ public class PagoControlador {
             }
         }
 
-        // Llamada al servicio pasando los parámetros en el orden correcto, incluido el alumnoId
+        // Llamada al servicio pasando los parametros en el orden correcto, incluido el alumnoId
         List<DetallePagoResponse> detalles = detallePagoServicio.filtrarDetalles(
                 fechaRegistroDesde,
                 fechaRegistroHasta,

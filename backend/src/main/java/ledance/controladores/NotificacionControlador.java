@@ -23,7 +23,7 @@ public class NotificacionControlador {
     }
 
     /**
-     * Endpoint para obtener las notificaciones de cumpleaños del día (u otros tipos si se desean).
+     * Endpoint para obtener las notificaciones de cumpleaños del dia (u otros tipos si se desean).
      */
     @GetMapping("/cumpleaneros")
     public ResponseEntity<List<String>> obtenerCumpleanerosDelDia() throws MessagingException, IOException {

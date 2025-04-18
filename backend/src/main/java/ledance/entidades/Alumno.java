@@ -49,7 +49,7 @@ public class Alumno {
     @Column(nullable = false)
     private Boolean activo = true;
 
-    // Nuevo atributo para acumular crédito de CLASE SUELTA
+    // Nuevo atributo para acumular credito de CLASE SUELTA
     @Column(name = "credito_acumulado", nullable = false)
     private Double creditoAcumulado = 0.0;
 

@@ -39,7 +39,7 @@ public class PdfService {
     }
 
     /**
-     * Genera un PDF del recibo de pago en orientación horizontal (landscape)
+     * Genera un PDF del recibo de pago en orientacion horizontal (landscape)
      * utilizando OpenPDF.
      *
      * @param pago Objeto Pago con todos sus detalles.
@@ -79,7 +79,7 @@ public class PdfService {
                     montoFont);
             document.add(recibido);
             document.add(new Paragraph(" "));
-            document.add(new Paragraph("SEGÚN EL SIGUIENTE DETALLE:", montoFont));
+            document.add(new Paragraph("SEGUN EL SIGUIENTE DETALLE:", montoFont));
             document.add(new Paragraph(" "));
 
             PdfPTable table = crearTablaDetalles(pago);
@@ -105,11 +105,11 @@ public class PdfService {
     }
 
     /**
-     * Genera el recibo en PDF y lo envía por email al alumno. El correo incluye
+     * Genera el recibo en PDF y lo envia por email al alumno. El correo incluye
      * el PDF como adjunto y una imagen de firma inline.
      *
-     * @param pago Objeto Pago del cual se generará el recibo.
-     * @throws IOException        En caso de error en la generación del PDF o lectura de archivos.
+     * @param pago Objeto Pago del cual se generara el recibo.
+     * @throws IOException        En caso de error en la generacion del PDF o lectura de archivos.
      * @throws DocumentException  En caso de error al crear el documento PDF.
      * @throws MessagingException En caso de error al enviar el email.
      */
@@ -119,7 +119,7 @@ public class PdfService {
 
         String emailAlumno = pago.getAlumno().getEmail();
         if (emailAlumno == null || emailAlumno.isBlank()) {
-            throw new IllegalArgumentException("Alumno " + pago.getAlumno().getNombre() + " no posee un email válido");
+            throw new IllegalArgumentException("Alumno " + pago.getAlumno().getNombre() + " no posee un email valido");
         }
         String from = "administracion@ledance.com.ar";
         String subject = "Recibo de pago";
@@ -132,7 +132,7 @@ public class PdfService {
                 "<p>En adjunto te enviamos el comprobante de pago correspondiente a:</p>" +
                 "<p>" + detallesCadena + "</p>" +
                 "<p>Muchas gracias.</p>" +
-                "<p>Administración</p>" +
+                "<p>Administracion</p>" +
                 "<img src='cid:signature' alt='Firma' style='max-width:200px;'/>";
 
         // Cargar la imagen de firma del sistema de archivos.
@@ -147,8 +147,8 @@ public class PdfService {
     }
 
     /**
-     * Método auxiliar que recorre los detalles del pago y retorna una cadena con
-     * la descripción de cada detalle, separada por saltos de línea HTML.
+     * Metodo auxiliar que recorre los detalles del pago y retorna una cadena con
+     * la descripcion de cada detalle, separada por saltos de linea HTML.
      *
      * @param pago Objeto Pago del cual se extraen los detalles.
      * @return Cadena con los detalles concatenados.
@@ -290,11 +290,11 @@ public class PdfService {
     }
 
     /**
-     * Genera un PDF con la rendición del mes, es decir, con TODOS los pagos y egresos
-     * obtenidos a partir de un período (start-end). El PDF tendrá dos secciones:
+     * Genera un PDF con la rendicion del mes, es decir, con TODOS los pagos y egresos
+     * obtenidos a partir de un periodo (start-end). El PDF tendra dos secciones:
      * <p>
      * - Una tabla para los pagos con los encabezados:
-     * ["Recibo", "Código", "Alumno", "Observaciones", "Importe"]
+     * ["Recibo", "Codigo", "Alumno", "Observaciones", "Importe"]
      * <p>
      * - Una tabla para los egresos con los encabezados:
      * ["ID", "Observaciones", "Monto"]
@@ -304,33 +304,33 @@ public class PdfService {
      * @throws DocumentException En caso de error al crear el documento PDF.
      */
     public byte[] generarRendicionMensualPdf(CajaDetalleDTO caja) throws DocumentException {
-        // Configuración inicial del documento
+        // Configuracion inicial del documento
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        Document document = new Document(PageSize.A4); // Orientación horizontal para más ancho
-        document.setMargins(15, 15, 15, 15); // Márgenes ajustados
+        Document document = new Document(PageSize.A4); // Orientacion horizontal para mas ancho
+        document.setMargins(15, 15, 15, 15); // Margenes ajustados
         PdfWriter.getInstance(document, bos);
         document.open();
 
-        // Definición de fuentes compactas
+        // Definicion de fuentes compactas
         Font titleFont = new Font(Font.HELVETICA, 14, Font.BOLD);
         Font sectionFont = new Font(Font.HELVETICA, 12, Font.BOLD);
-        Font contentFont = new Font(Font.HELVETICA, 8, Font.NORMAL); // Fuente pequeña para mayor cantidad de información
+        Font contentFont = new Font(Font.HELVETICA, 8, Font.NORMAL); // Fuente pequeña para mayor cantidad de informacion
 
-        // Título principal
-        Paragraph titulo = new Paragraph("RENDICIÓN MENSUAL", titleFont);
+        // Titulo principal
+        Paragraph titulo = new Paragraph("RENDICION MENSUAL", titleFont);
         titulo.setAlignment(Element.ALIGN_CENTER);
         document.add(titulo);
         document.add(new Paragraph(" ", contentFont));
 
         // -------------------------------------------------------------------------
-        // Sección PAGOS DEL MES
+        // Seccion PAGOS DEL MES
         // -------------------------------------------------------------------------
         document.add(new Paragraph("PAGOS DEL MES", sectionFont));
         document.add(new Paragraph(" ", contentFont));
 
         List<PagoResponse> pagos = caja.pagosDelDia();
         if (pagos == null || pagos.isEmpty()) {
-            document.add(new Paragraph("No hay pagos registrados para este período.", contentFont));
+            document.add(new Paragraph("No hay pagos registrados para este periodo.", contentFont));
             document.add(new Paragraph(" ", contentFont));
         } else {
             // Crear tabla de pagos filtrados y ordenados
@@ -340,14 +340,14 @@ public class PdfService {
         }
 
         // -------------------------------------------------------------------------
-        // Sección EGRESOS DEL MES
+        // Seccion EGRESOS DEL MES
         // -------------------------------------------------------------------------
         document.add(new Paragraph("EGRESOS DEL MES", sectionFont));
         document.add(new Paragraph(" ", contentFont));
 
         List<EgresoResponse> egresos = caja.egresosDelDia();
         if (egresos == null || egresos.isEmpty()) {
-            document.add(new Paragraph("No hay egresos registrados para este período.", contentFont));
+            document.add(new Paragraph("No hay egresos registrados para este periodo.", contentFont));
             document.add(new Paragraph(" ", contentFont));
         } else {
             PdfPTable tablaEgresos = getPTable(egresos, contentFont);
@@ -409,7 +409,7 @@ public class PdfService {
             String observaciones = (pago.observaciones() != null) ? pago.observaciones() : "";
             boolean observVacias = observaciones.trim().isEmpty();
 
-            // Evaluar detalles: determinar si ninguno de los detalles está "ANULADO"
+            // Evaluar detalles: determinar si ninguno de los detalles esta "ANULADO"
             boolean ningunDetalleAnulado = true;
             if (pago.detallePagos() != null && !pago.detallePagos().isEmpty()) {
                 for (var detalle : pago.detallePagos()) {
@@ -421,13 +421,13 @@ public class PdfService {
             }
 
             // Si se cumplen todas las condiciones:
-            // monto = 0, importeInicial = 0, saldoRestante = 0, observaciones vacías, y ningún detalle anulado,
+            // monto = 0, importeInicial = 0, saldoRestante = 0, observaciones vacias, y ningun detalle anulado,
             // omitir este pago (no agregarlo a la tabla)
             if (montoPago == 0.0 && impInicial == 0.0 && saldoRestante == 0.0 && observVacias && ningunDetalleAnulado) {
                 continue;
             }
 
-            // Verificar si todos los detalles están "ANULADO" para mostrar el estado "ANULADO"
+            // Verificar si todos los detalles estan "ANULADO" para mostrar el estado "ANULADO"
             boolean todosAnulados = false;
             if (pago.detallePagos() != null && !pago.detallePagos().isEmpty()) {
                 todosAnulados = pago.detallePagos().stream().allMatch(
@@ -436,7 +436,7 @@ public class PdfService {
             }
             String estado = todosAnulados ? "ANULADO" : "";
 
-            // Preparar datos: ID, Código de alumno y nombre
+            // Preparar datos: ID, Codigo de alumno y nombre
             Long pagoId = (pago.id() != null) ? pago.id() : 0L;
             Long codigoAlumno = (pago.alumno() != null && pago.alumno().id() != null)
                     ? pago.alumno().id() : 0L;
@@ -447,7 +447,7 @@ public class PdfService {
                 nombreAlumno = nombre + " " + apellido;
             }
 
-            // Formatear el monto. Si el pago está anulado se muestra la palabra "ANULADO"
+            // Formatear el monto. Si el pago esta anulado se muestra la palabra "ANULADO"
             String montoStr;
             if (estado.equals("ANULADO")) {
                 montoStr = estado;

@@ -37,7 +37,7 @@ public interface DetallePagoMapper {
     @Mapping(target = "estadoPago", ignore = true)
     DetallePago toEntity(DetallePagoRegistroRequest request);
 
-    // Actualización de entidad existente
+    // Actualizacion de entidad existente
     @Mapping(target = "id", expression = "java((request.id() != null && request.id() == 0) ? null : request.id())")
     @Mapping(target = "version", ignore = true)
     @Mapping(target = "alumno", source = "alumno")
@@ -96,7 +96,7 @@ public interface DetallePagoMapper {
     @Mapping(target = "estadoPago", source = "estadoPago")
     DetallePagoResponse toDTO(DetallePago detallePago);
 
-    // Métodos helper para asociaciones
+    // Metodos helper para asociaciones
 
     @Named("mapMensualidad")
     default Mensualidad mapMensualidad(Long id) {

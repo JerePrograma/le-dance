@@ -54,7 +54,7 @@ public class CajaControlador {
             @RequestParam("endDate")
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end
     ) {
-        // Se espera que start y end delimiten el período del mes que se desea consultar.
+        // Se espera que start y end delimiten el periodo del mes que se desea consultar.
         return cajaServicio.obtenerCajaMensual(start, end);
     }
 
@@ -71,7 +71,7 @@ public class CajaControlador {
             @RequestParam("endDate")
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end) throws IOException, DocumentException {
 
-        // Se llama al servicio para generar el PDF; aquí se asume que cajaServicio tiene un método que recibe start y end.
+        // Se llama al servicio para generar el PDF; aqui se asume que cajaServicio tiene un metodo que recibe start y end.
         byte[] pdfBytes = cajaServicio.generarRendicionMensualPdf(start, end);
 
         // Configurar los headers para retornar un PDF descargable.

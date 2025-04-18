@@ -189,7 +189,7 @@ public class AsistenciaMensualServicio {
 
     @Transactional
     public AsistenciasActivasResponse crearAsistenciasParaInscripcionesActivasDetallado() {
-        // Registrar el proceso de generación de asistencias para inscripciones activas
+        // Registrar el proceso de generacion de asistencias para inscripciones activas
         ProcesoEjecutado procesoAsistencias = procesoEjecutadoRepositorio
                 .findByProceso("ASISTENCIAS_INSCRIPCIONES_ACTIVAS_DETALLADO")
                 .orElse(new ProcesoEjecutado("ASISTENCIAS_INSCRIPCIONES_ACTIVAS_DETALLADO", null));
@@ -225,12 +225,12 @@ public class AsistenciaMensualServicio {
                 planillasCreadas++;
             }
 
-            // Obtener los días de clase para la disciplina
+            // Obtener los dias de clase para la disciplina
             List<LocalDate> fechasClase = disciplinaServicio.obtenerDiasClase(disciplina.getId(), mes, anio);
             int asistenciasGeneradasParaDisciplina = 0;
-            // Para cada inscripción de esta disciplina
+            // Para cada inscripcion de esta disciplina
             for (Inscripcion inscripcion : inscripciones) {
-                // Verificar si ya existe un registro de asistencia mensual para esta inscripción
+                // Verificar si ya existe un registro de asistencia mensual para esta inscripcion
                 boolean existe = asistenciaAlumnoMensualRepositorio
                         .existsByInscripcionIdAndAsistenciaMensualId(inscripcion.getId(), planilla.getId());
                 if (!existe) {
@@ -255,7 +255,7 @@ public class AsistenciaMensualServicio {
             totalAsistenciasGeneradas += asistenciasGeneradasParaDisciplina;
         }
 
-        // Actualizar la última ejecución del proceso
+        // Actualizar la ultima ejecucion del proceso
         procesoAsistencias.setUltimaEjecucion(LocalDate.now());
         procesoEjecutadoRepositorio.save(procesoAsistencias);
 

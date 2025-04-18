@@ -62,7 +62,7 @@ public class AutenticacionControlador {
         asistenciaMensualServicio.crearAsistenciasParaInscripcionesActivasDetallado();
         List<String> cumpleaneros = notificacionService.generarYObtenerCumpleanerosDelDia();
 
-        log.info("Cumpleañeros del día: {}", cumpleaneros);
+        log.info("Cumpleañeros del dia: {}", cumpleaneros);
 
         var authToken = new UsernamePasswordAuthenticationToken(datos.nombreUsuario(), datos.contrasena());
         var usuarioAutenticado = authManager.authenticate(authToken);
@@ -98,7 +98,7 @@ public class AutenticacionControlador {
             var usuarioResponse = new UsuarioResponse(
                     usuario.getId(),
                     usuario.getNombreUsuario(),
-                    usuario.getRol().getDescripcion(), // Ajusta esto según tu modelo
+                    usuario.getRol().getDescripcion(), // Ajusta esto segun tu modelo
                     usuario.getActivo()
             );
 

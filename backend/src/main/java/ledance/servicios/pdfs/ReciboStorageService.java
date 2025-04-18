@@ -23,8 +23,8 @@ public class ReciboStorageService {
     }
 
     /**
-     * Genera, almacena y envía el recibo en PDF por email al alumno.
-     * Este método se usará al registrar un pago por primera vez.
+     * Genera, almacena y envia el recibo en PDF por email al alumno.
+     * Este metodo se usara al registrar un pago por primera vez.
      *
      * @param pago Objeto Pago con todos sus detalles.
      */

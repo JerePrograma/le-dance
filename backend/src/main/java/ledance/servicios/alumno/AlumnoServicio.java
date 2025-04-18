@@ -59,12 +59,12 @@ public class AlumnoServicio implements IAlumnoServicio {
     public AlumnoResponse registrarAlumno(AlumnoRegistroRequest requestDTO) {
         log.info("Registrando alumno: {}", requestDTO.nombre());
 
-        // Verificación de duplicados por nombre + apellido
+        // Verificacion de duplicados por nombre + apellido
         if (alumnoRepositorio.existsByNombreIgnoreCaseAndApellidoIgnoreCase(requestDTO.nombre().trim(), requestDTO.apellido().trim())) {
             String msg = String.format("Ya existe un alumno con el nombre '%s' y apellido '%s'",
                     requestDTO.nombre(), requestDTO.apellido());
             log.warn("[registrarAlumno] {}", msg);
-            throw new IllegalStateException(msg); // o podrías usar una excepción custom si preferís
+            throw new IllegalStateException(msg); // o podrias usar una excepcion custom si preferis
         }
 
         Alumno alumno = alumnoMapper.toEntity(requestDTO);
@@ -72,7 +72,7 @@ public class AlumnoServicio implements IAlumnoServicio {
             alumno.setId(null);
         }
 
-        // Calcular edad automáticamente
+        // Calcular edad automaticamente
         if (alumno.getFechaNacimiento() != null) {
             alumno.setEdad(calcularEdad(requestDTO.fechaNacimiento()));
         }
@@ -168,14 +168,14 @@ public class AlumnoServicio implements IAlumnoServicio {
             // Copiamos la lista para evitar ConcurrentModificationException
             List<Inscripcion> inscripciones = new ArrayList<>(alumnoPersistente.getInscripciones());
             for (Inscripcion inscripcion : inscripciones) {
-                // Forzamos que la inscripción refiera al mismo objeto alumnoPersistente
+                // Forzamos que la inscripcion refiera al mismo objeto alumnoPersistente
                 inscripcion.setAlumno(alumnoPersistente);
             }
             inscripcionRepositorio.deleteAll(inscripciones);
             inscripcionRepositorio.flush();
         }
 
-        // 2. Eliminar las matrículas asociadas
+        // 2. Eliminar las matriculas asociadas
         if (alumnoPersistente.getMatriculas() != null && !alumnoPersistente.getMatriculas().isEmpty()) {
             List<Matricula> matriculas = new ArrayList<>(alumnoPersistente.getMatriculas());
             for (Matricula matricula : matriculas) {
@@ -186,10 +186,10 @@ public class AlumnoServicio implements IAlumnoServicio {
         }
 
         // 3. Eliminar los pagos asociados al alumno
-        // Al eliminar cada pago se eliminarán en cascada los detallePagos y pagoMedios (según el mapeo con cascade y orphanRemoval)
+        // Al eliminar cada pago se eliminaran en cascada los detallePagos y pagoMedios (segun el mapeo con cascade y orphanRemoval)
         List<Pago> pagos = pagoRepositorio.findByAlumnoId(alumnoPersistente.getId());
         if (pagos != null && !pagos.isEmpty()) {
-            // Opcionalmente, podrías iterar y forzar que cada pago use la instancia persistente del alumno
+            // Opcionalmente, podrias iterar y forzar que cada pago use la instancia persistente del alumno
             for (Pago pago : pagos) {
                 pago.setAlumno(alumnoPersistente);
             }

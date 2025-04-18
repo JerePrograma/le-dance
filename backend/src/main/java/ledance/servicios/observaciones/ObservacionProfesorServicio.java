@@ -28,12 +28,12 @@ public class ObservacionProfesorServicio {
     }
 
     /**
-     * Crea una nueva observación para un profesor.
+     * Crea una nueva observacion para un profesor.
      *
      * @param profesorId      el id del profesor
-     * @param fecha           la fecha de la observación
-     * @param observacionText el texto de la observación
-     * @return el DTO de la observación creada
+     * @param fecha           la fecha de la observacion
+     * @param observacionText el texto de la observacion
+     * @return el DTO de la observacion creada
      */
     @Transactional
     public ObservacionProfesorDTO crearObservacion(Long profesorId, LocalDate fecha, String observacionText) {
@@ -48,17 +48,17 @@ public class ObservacionProfesorServicio {
     }
 
     /**
-     * Actualiza una observación existente.
+     * Actualiza una observacion existente.
      *
-     * @param observacionId   el id de la observación a actualizar
+     * @param observacionId   el id de la observacion a actualizar
      * @param fecha           la nueva fecha
-     * @param observacionText el nuevo texto de la observación
-     * @return el DTO de la observación actualizada
+     * @param observacionText el nuevo texto de la observacion
+     * @return el DTO de la observacion actualizada
      */
     @Transactional
     public ObservacionProfesorDTO actualizarObservacion(Long observacionId, LocalDate fecha, String observacionText) {
         ObservacionProfesor obs = observacionRepo.findById(observacionId)
-                .orElseThrow(() -> new RuntimeException("Observación no encontrada con id: " + observacionId));
+                .orElseThrow(() -> new RuntimeException("Observacion no encontrada con id: " + observacionId));
         obs.setFecha(fecha);
         obs.setObservacion(observacionText);
         ObservacionProfesor updated = observacionRepo.save(obs);
@@ -66,27 +66,27 @@ public class ObservacionProfesorServicio {
     }
 
     /**
-     * Elimina una observación por su id.
+     * Elimina una observacion por su id.
      *
-     * @param observacionId el id de la observación a eliminar
+     * @param observacionId el id de la observacion a eliminar
      */
     @Transactional
     public void eliminarObservacion(Long observacionId) {
         if (!observacionRepo.existsById(observacionId)) {
-            throw new RuntimeException("Observación no encontrada con id: " + observacionId);
+            throw new RuntimeException("Observacion no encontrada con id: " + observacionId);
         }
         observacionRepo.deleteById(observacionId);
     }
 
     /**
-     * Obtiene una observación por su id.
+     * Obtiene una observacion por su id.
      *
-     * @param observacionId el id de la observación
-     * @return el DTO de la observación encontrada
+     * @param observacionId el id de la observacion
+     * @return el DTO de la observacion encontrada
      */
     public ObservacionProfesorDTO obtenerObservacion(Long observacionId) {
         ObservacionProfesor obs = observacionRepo.findById(observacionId)
-                .orElseThrow(() -> new RuntimeException("Observación no encontrada con id: " + observacionId));
+                .orElseThrow(() -> new RuntimeException("Observacion no encontrada con id: " + observacionId));
         return observacionProfesorMapper.toDTO(obs);
     }
 
@@ -127,7 +127,7 @@ public class ObservacionProfesorServicio {
     }
 
     /**
-     * Lista las observaciones de un profesor en un mes específico.
+     * Lista las observaciones de un profesor en un mes especifico.
      *
      * @param profesorId el id del profesor
      * @param mes        mes (1-12)

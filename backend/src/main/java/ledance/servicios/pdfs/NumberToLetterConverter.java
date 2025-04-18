@@ -5,7 +5,7 @@ public class NumberToLetterConverter {
     private static final String[] UNIDADES = {
             "", "uno", "dos", "tres", "cuatro", "cinco",
             "seis", "siete", "ocho", "nueve", "diez", "once",
-            "doce", "trece", "catorce", "quince", "dieciséis",
+            "doce", "trece", "catorce", "quince", "dieciseis",
             "diecisiete", "dieciocho", "diecinueve", "veinte"
     };
 
@@ -27,7 +27,7 @@ public class NumberToLetterConverter {
 
         if (numero >= 1_000_000) {
             long millones = numero / 1_000_000;
-            resultado.append(convertir(millones)).append(" millón");
+            resultado.append(convertir(millones)).append(" millon");
             if (millones > 1) resultado.append("es");
             numero %= 1_000_000;
             resultado.append(" ");

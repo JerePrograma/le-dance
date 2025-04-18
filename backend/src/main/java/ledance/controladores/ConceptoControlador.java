@@ -67,7 +67,7 @@ public class ConceptoControlador {
         return ResponseEntity.noContent().build();
     }
 
-    // Nuevo endpoint para listar conceptos por descripción de subconcepto.
+    // Nuevo endpoint para listar conceptos por descripcion de subconcepto.
     @GetMapping("/sub-concepto/{subConceptoDesc}")
     public ResponseEntity<List<ConceptoResponse>> listarConceptosPorSubConcepto(
             @PathVariable("subConceptoDesc") String subConceptoDesc) {

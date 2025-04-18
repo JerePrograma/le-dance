@@ -26,7 +26,7 @@ public interface AlumnoMapper {
     @Mapping(target = "activo", constant = "true")
     Alumno toEntity(AlumnoRegistroRequest request);
 
-    // IMPORTANTE: Ignorar la actualización de inscripciones para conservar la colección original.
+    // IMPORTANTE: Ignorar la actualizacion de inscripciones para conservar la coleccion original.
     @Mapping(target = "inscripciones", ignore = true)
     void updateEntityFromRequest(AlumnoRegistroRequest request, @MappingTarget Alumno alumno);
 

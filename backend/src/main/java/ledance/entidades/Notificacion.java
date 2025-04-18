@@ -29,6 +29,6 @@ public class Notificacion {
     @NotNull
     private LocalDateTime fechaCreacion;
 
-    // Indica si ya fue leída (por defecto false)
+    // Indica si ya fue leida (por defecto false)
     private boolean leida = false;
 }

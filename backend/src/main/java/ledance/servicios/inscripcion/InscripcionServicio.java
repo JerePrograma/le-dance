@@ -120,22 +120,22 @@ public class InscripcionServicio implements IInscripcionServicio {
         pagoPendiente = pagoRepositorio.save(pagoPendiente); // Persistir el pago pendiente
         log.info("[crearInscripcion] Pago pendiente persistido con ID: {}", pagoPendiente.getId());
 
-        // 5. Generar cuota automática y gestionar matrícula asociándolos al pago pendiente
+        // 5. Generar cuota automatica y gestionar matricula asociandolos al pago pendiente
         try {
-            // Generar cuota automática para la inscripción
+            // Generar cuota automatica para la inscripcion
             DetallePago mensualidad = mensualidadServicio.generarCuotaAutomatica(inscripcionGuardada, pagoPendiente);
-            log.info("[crearInscripcion] Cuota automática generada para inscripción id={}", inscripcionGuardada.getId());
+            log.info("[crearInscripcion] Cuota automatica generada para inscripcion id={}", inscripcionGuardada.getId());
             pagoPendiente.getDetallePagos().add(mensualidad);
         } catch (Exception e) {
-            log.warn("[crearInscripcion] Error al generar cuota automática: {}", e.getMessage());
+            log.warn("[crearInscripcion] Error al generar cuota automatica: {}", e.getMessage());
         }
 
         try {
-            // Intentar obtener o marcar la matrícula pendiente en una nueva transacción
+            // Intentar obtener o marcar la matricula pendiente en una nueva transaccion
             matriculaServicio.obtenerOMarcarPendienteAutomatica(alumno.getId(), pagoPendiente);
-            log.info("[crearInscripcion] Matrícula verificada o creada automáticamente para alumno id={}", alumno.getId());
+            log.info("[crearInscripcion] Matricula verificada o creada automaticamente para alumno id={}", alumno.getId());
         } catch (Exception e) {
-            log.warn("[crearInscripcion] Error al obtener o marcar matrícula pendiente (se ignora para continuar): {}", e.getMessage());
+            log.warn("[crearInscripcion] Error al obtener o marcar matricula pendiente (se ignora para continuar): {}", e.getMessage());
         }
 
         // 6. Agregar alumno a la planilla de asistencia
@@ -143,9 +143,9 @@ public class InscripcionServicio implements IInscripcionServicio {
         int anioActual = LocalDate.now().getYear();
         log.info("[crearInscripcion] Agregando alumno a planilla de asistencia para mes={}, año={}", mesActual, anioActual);
         asistenciaMensualServicio.agregarAlumnoAPlanilla(inscripcionGuardada.getId(), mesActual, anioActual);
-        log.info("[crearInscripcion] Inscripción finalizada exitosamente para alumno id={}", alumno.getId());
+        log.info("[crearInscripcion] Inscripcion finalizada exitosamente para alumno id={}", alumno.getId());
 
-        // Actualizar totales del pago basándose en los DetallePago obtenidos
+        // Actualizar totales del pago basandose en los DetallePago obtenidos
         paymentProcessor.recalcularTotalesNuevo(pagoPendiente);
         pagoRepositorio.save(pagoPendiente);
         log.info("[crearInscripcion] Totales de Pago actualizados. Pago ID: {}", pagoPendiente.getId());
@@ -237,17 +237,17 @@ public class InscripcionServicio implements IInscripcionServicio {
     }
 
     /**
-     * Elimina la inscripción y todas las entidades relacionadas en el orden correcto.
+     * Elimina la inscripcion y todas las entidades relacionadas en el orden correcto.
      */
     @Transactional
     public void eliminarInscripcion(Long id) {
-        // Recuperar la inscripción o lanzar excepción si no se encuentra
+        // Recuperar la inscripcion o lanzar excepcion si no se encuentra
         Inscripcion inscripcion = inscripcionRepositorio.findById(id)
-                .orElseThrow(() -> new TratadorDeErrores.RecursoNoEncontradoException("Inscripción no encontrada."));
+                .orElseThrow(() -> new TratadorDeErrores.RecursoNoEncontradoException("Inscripcion no encontrada."));
 
         // ---------------------------------------------------------------------
-        // 1. Eliminar las asistencias mensuales asociadas a la inscripción
-        // (que incluyen, en forma manual, la eliminación de las asistencias diarias)
+        // 1. Eliminar las asistencias mensuales asociadas a la inscripcion
+        // (que incluyen, en forma manual, la eliminacion de las asistencias diarias)
         List<AsistenciaAlumnoMensual> asistenciasMensuales = new ArrayList<>(inscripcion.getAsistenciasAlumnoMensual());
         for (AsistenciaAlumnoMensual aam : asistenciasMensuales) {
             eliminarAsistenciaAlumnoMensual(aam.getId());
@@ -262,7 +262,7 @@ public class InscripcionServicio implements IInscripcionServicio {
         }
 
         // ---------------------------------------------------------------------
-        // 3. Remover la inscripción de la lista de inscripciones del alumno
+        // 3. Remover la inscripcion de la lista de inscripciones del alumno
         Alumno alumno = inscripcion.getAlumno();
         if (alumno != null) {
             alumno.getInscripciones().remove(inscripcion);
@@ -270,12 +270,12 @@ public class InscripcionServicio implements IInscripcionServicio {
         }
 
         // ---------------------------------------------------------------------
-        // 4. Eliminar la inscripción y hacer flush para sincronizar con la BD
+        // 4. Eliminar la inscripcion y hacer flush para sincronizar con la BD
         inscripcionRepositorio.delete(inscripcion);
         inscripcionRepositorio.flush();
 
         // ---------------------------------------------------------------------
-        // 5. Marcar al alumno como inactivo si no tiene más inscripciones activas
+        // 5. Marcar al alumno como inactivo si no tiene mas inscripciones activas
         if (alumno != null && alumno.getInscripciones().isEmpty()) {
             alumno.setActivo(false);
             alumnoRepositorio.save(alumno);
