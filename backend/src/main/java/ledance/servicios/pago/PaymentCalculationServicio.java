@@ -3,10 +3,7 @@ package ledance.servicios.pago;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotNull;
 import ledance.entidades.*;
-import ledance.repositorios.ConceptoRepositorio;
 import ledance.repositorios.DetallePagoRepositorio;
 import ledance.repositorios.DisciplinaRepositorio;
 import ledance.servicios.detallepago.DetallePagoServicio;
@@ -17,10 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
 import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /**
  * Refactor del servicio PaymentCalculationServicio.
@@ -43,7 +37,6 @@ public class PaymentCalculationServicio {
     private final MensualidadServicio mensualidadServicio;
     private final StockServicio stockServicio;
     private final DetallePagoServicio detallePagoServicio;
-    private final ConceptoRepositorio conceptoRepositorio;
     private final DisciplinaRepositorio disciplinaRepositorio;
     private final DetallePagoRepositorio detallePagoRepositorio;
 
@@ -51,14 +44,12 @@ public class PaymentCalculationServicio {
                                       MensualidadServicio mensualidadServicio,
                                       StockServicio stockServicio,
                                       DetallePagoServicio detallePagoServicio,
-                                      ConceptoRepositorio conceptoRepositorio,
                                       DisciplinaRepositorio disciplinaRepositorio,
                                       DetallePagoRepositorio detallePagoRepositorio) {
         this.matriculaServicio = matriculaServicio;
         this.mensualidadServicio = mensualidadServicio;
         this.stockServicio = stockServicio;
         this.detallePagoServicio = detallePagoServicio;
-        this.conceptoRepositorio = conceptoRepositorio;
         this.disciplinaRepositorio = disciplinaRepositorio;
         this.detallePagoRepositorio = detallePagoRepositorio;
     }
@@ -145,10 +136,6 @@ public class PaymentCalculationServicio {
         log.info("[procesarAbono] FIN - Detalle id={} procesado. Nuevo pendiente: {}, Cobrado: {}",
                 detalle.getId(), detalle.getImportePendiente(), detalle.getCobrado());
     }
-
-    // ============================================================
-    // METODO CENTRAL UNIFICADO: PROCESAR Y CALCULAR DETALLE
-    // ============================================================
 
     /**
      * Unifica el procesamiento y cálculo de un DetallePago.
@@ -259,7 +246,6 @@ public class PaymentCalculationServicio {
                 ? detalle.getImportePendiente() : importeClasePrueba;
         double nuevoImportePendiente = importePendienteOriginal - valorACobrar;
         if (nuevoImportePendiente <= 0) {
-            nuevoImportePendiente = 0.0;
             detalle.setEstadoPago(EstadoPago.HISTORICO);
             detalle.setCobrado(true);
             detalle.setImportePendiente(0.0);
@@ -283,7 +269,7 @@ public class PaymentCalculationServicio {
         }
     }
 
-    private void aplicarDescuentoCreditoEnMatricula(Pago pago, DetallePago detalle) {
+    void aplicarDescuentoCreditoEnMatricula(Pago pago, DetallePago detalle) {
         Alumno alumno = pago.getAlumno();
         if (alumno == null) {
             throw new IllegalArgumentException("El alumno del pago es requerido");
@@ -383,8 +369,7 @@ public class PaymentCalculationServicio {
         if (conceptoNorm.contains("CUOTA") ||
                 conceptoNorm.contains("CLASE SUELTA") ||
                 conceptoNorm.contains("CLASE DE PRUEBA")) {
-            if (conceptoNorm.contains("CUOTA")) return TipoDetallePago.MENSUALIDAD;
-            else return TipoDetallePago.MENSUALIDAD;
+            return TipoDetallePago.MENSUALIDAD;
         }
         if (existeStockConNombre(conceptoNorm)) {
             return TipoDetallePago.STOCK;

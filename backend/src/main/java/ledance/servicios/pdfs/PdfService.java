@@ -13,6 +13,7 @@ import ledance.entidades.DetallePago;
 import ledance.entidades.Pago;
 import ledance.entidades.Recargo;
 import ledance.servicios.email.EmailService;
+import ledance.util.FilePathResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -21,7 +22,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Objects;
@@ -117,7 +117,7 @@ public class PdfService {
             throws IOException, DocumentException, MessagingException {
         byte[] pdfBytes = generarReciboPdf(pago);
 
-        String emailAlumno = pago.getAlumno().getEmail1();
+        String emailAlumno = pago.getAlumno().getEmail();
         if (emailAlumno == null || emailAlumno.isBlank()) {
             throw new IllegalArgumentException("Alumno " + pago.getAlumno().getNombre() + " no posee un email válido");
         }
@@ -136,7 +136,7 @@ public class PdfService {
                 "<img src='cid:signature' alt='Firma' style='max-width:200px;'/>";
 
         // Cargar la imagen de firma del sistema de archivos.
-        Path signaturePath = Paths.get("/opt/le-dance/imgs/firma_mesa-de-trabajo-1.png");
+        Path signaturePath = FilePathResolver.of("imgs", "firma_mesa-de-trabajo-1.png");
         byte[] signatureBytes = Files.readAllBytes(signaturePath);
 
         // Enviar el email con el PDF adjunto y la imagen inline.

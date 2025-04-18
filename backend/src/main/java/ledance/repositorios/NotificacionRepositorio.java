@@ -1,6 +1,7 @@
 package ledance.repositorios;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 
 import jakarta.validation.constraints.NotNull;
@@ -10,5 +11,6 @@ import ledance.entidades.Notificacion;
 
 @Repository
 public interface NotificacionRepositorio extends JpaRepository<Notificacion, Long> {
-    List<Notificacion> findByTipoAndFechaCreacion(@NotNull String tipo, @NotNull LocalDateTime fechaCreacion);
+    List<Notificacion> findByTipoAndFechaCreacionBetween(
+            String tipo, LocalDateTime desde, LocalDateTime hasta);
 }

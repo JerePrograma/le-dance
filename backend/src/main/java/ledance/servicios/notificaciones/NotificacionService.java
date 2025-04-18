@@ -1,91 +1,163 @@
 package ledance.servicios.notificaciones;
 
+import jakarta.mail.MessagingException;
 import ledance.entidades.Alumno;
 import ledance.entidades.Notificacion;
+import ledance.entidades.ProcesoEjecutado;
 import ledance.entidades.Profesor;
 import ledance.repositorios.AlumnoRepositorio;
 import ledance.repositorios.NotificacionRepositorio;
+import ledance.repositorios.ProcesoEjecutadoRepositorio;
 import ledance.repositorios.ProfesorRepositorio;
+import ledance.servicios.email.EmailService;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class NotificacionService {
 
+    private static final String PROCESO = "CUMPLEANOS";
+
     private final AlumnoRepositorio alumnoRepository;
     private final ProfesorRepositorio profesorRepository;
-    private final SimpMessagingTemplate messagingTemplate;
     private final NotificacionRepositorio notificacionRepositorio;
+    private final ProcesoEjecutadoRepositorio procesoEjecutadoRepositorio;
+    private final EmailService emailService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     public NotificacionService(AlumnoRepositorio alumnoRepository,
                                ProfesorRepositorio profesorRepository,
-                               SimpMessagingTemplate messagingTemplate, NotificacionRepositorio notificacionRepositorio) {
+                               NotificacionRepositorio notificacionRepositorio,
+                               ProcesoEjecutadoRepositorio procesoEjecutadoRepositorio,
+                               EmailService emailService,
+                               SimpMessagingTemplate messagingTemplate) {
         this.alumnoRepository = alumnoRepository;
         this.profesorRepository = profesorRepository;
-        this.messagingTemplate = messagingTemplate;
         this.notificacionRepositorio = notificacionRepositorio;
+        this.procesoEjecutadoRepositorio = procesoEjecutadoRepositorio;
+        this.emailService = emailService;
+        this.messagingTemplate = messagingTemplate;
     }
 
     /**
-     * Obtiene o calcula y almacena los cumpleaños del día.
+     * Genera y retorna los mensajes de cumpleaños del día, persiste notificaciones y envía emails
+     * solo si aún no se ha ejecutado hoy.
      */
-    public List<String> generarYObtenerCumpleanerosDelDia() {
-        LocalDateTime hoy = LocalDateTime.now();
-        // Aquí podrías consultar si ya se han generado notificaciones de cumpleaños
-        // en la tabla de Notificacion para evitar duplicados.
-        List<Notificacion> notificacionesExistentes = notificacionRepositorio.findByTipoAndFechaCreacion("CUMPLEANOS", hoy);
-        if (!notificacionesExistentes.isEmpty()) {
-            // Retornar mensajes ya almacenados (formateados)
-            return notificacionesExistentes.stream()
+    public List<String> generarYObtenerCumpleanerosDelDia() throws MessagingException, IOException {
+        LocalDateTime ahora = LocalDateTime.now();
+        LocalDate hoy = ahora.toLocalDate();
+        LocalDateTime inicioDelDia = hoy.atStartOfDay();
+        LocalDateTime inicioDelSiguienteDia = inicioDelDia.plusDays(1);
+
+        // 1) Verificar si ya se ejecutó hoy
+        Optional<ProcesoEjecutado> procOpt = procesoEjecutadoRepositorio.findByProceso(PROCESO);
+        if (procOpt.isPresent() && procOpt.get().getUltimaEjecucion().isEqual(hoy)) {
+            // Ya corrió hoy: recuperamos todas las notificaciones de hoy (cualquier hora)
+            return notificacionRepositorio
+                    .findByTipoAndFechaCreacionBetween(PROCESO, inicioDelDia, inicioDelSiguienteDia)
+                    .stream()
                     .map(Notificacion::getMensaje)
                     .toList();
         }
 
-        // Si no existen para hoy, calcular y almacenarlas:
+        // 2) Leer firma
+        String baseDir = System.getenv("LEDANCE_HOME");
+        if (baseDir == null || baseDir.isBlank()) {
+            throw new IllegalStateException("Variable de entorno LEDANCE_HOME no definida");
+        }
+        Path firmaPath = Paths.get(baseDir, "imgs", "firma_mesa-de-trabajo-1.png");
+        byte[] firmaBytes = Files.readAllBytes(firmaPath);
+
         List<String> mensajes = new ArrayList<>();
+
         int mes = hoy.getMonthValue();
         int dia = hoy.getDayOfMonth();
 
-        // Buscar alumnos
-        List<Alumno> alumnos = alumnoRepository.findAll();
-        for (Alumno alumno : alumnos) {
-            if (alumno.getFechaNacimiento() != null &&
-                    alumno.getFechaNacimiento().getMonthValue() == mes &&
-                    alumno.getFechaNacimiento().getDayOfMonth() == dia) {
-                mensajes.add("Alumno: " + alumno.getNombre() + " " + alumno.getApellido());
+        // 3) Procesar alumnos
+        for (Alumno alumno : alumnoRepository.findAll()) {
+            if (alumno.getFechaNacimiento() != null
+                    && alumno.getFechaNacimiento().getMonthValue() == mes
+                    && alumno.getFechaNacimiento().getDayOfMonth() == dia) {
+
+                String texto = "Alumno: " + alumno.getNombre() + " " + alumno.getApellido();
+                mensajes.add(texto);
+
+                // Persistir notificación
+                Notificacion noti = new Notificacion();
+                noti.setUsuarioId(1L);
+                noti.setTipo(PROCESO);
+                noti.setMensaje(texto);
+                noti.setFechaCreacion(ahora);
+                noti.setLeida(false);
+                notificacionRepositorio.save(noti);
+
+                // Enviar email con inline image
+                if (StringUtils.hasText(alumno.getEmail())) {
+                    String subject = "¡Feliz Cumpleaños, " + alumno.getNombre() + "!";
+                    String htmlBody =
+                            "<p>FELICIDADES <strong>" + alumno.getNombre() + "</strong></p>"
+                                    + "<p>De parte de todo el Staff de LE DANCE arte escuela, te deseamos un "
+                                    + "<strong>MUY FELIZ CUMPLEAÑOS!</strong></p>"
+                                    + "<p>Katia, Anto y Nati te desean un nuevo año lleno de deseos por cumplir!</p>"
+                                    + "<p>Te adoramos.</p>"
+                                    + "<img src='cid:signature' alt='Firma' style='max-width:200px;'/>";
+
+                    emailService.sendEmailWithInlineImage(
+                            "administracion@ledance.com.ar",
+                            alumno.getEmail(),
+                            subject,
+                            htmlBody,
+                            firmaBytes,
+                            "signature",
+                            "image/png"
+                    );
+                }
             }
         }
 
-        // Buscar profesores
-        List<Profesor> profesores = profesorRepository.findAll();
-        for (Profesor profesor : profesores) {
-            if (profesor.getFechaNacimiento() != null &&
-                    profesor.getFechaNacimiento().getMonthValue() == mes &&
-                    profesor.getFechaNacimiento().getDayOfMonth() == dia) {
-                mensajes.add("Profesor: " + profesor.getNombre() + " " + profesor.getApellido());
+        // 4) Procesar profesores (sin envío de email)
+        for (Profesor prof : profesorRepository.findAll()) {
+            if (prof.getFechaNacimiento() != null
+                    && prof.getFechaNacimiento().getMonthValue() == mes
+                    && prof.getFechaNacimiento().getDayOfMonth() == dia) {
+
+                String texto = "Profesor: " + prof.getNombre() + " " + prof.getApellido();
+                mensajes.add(texto);
+
+                Notificacion noti = new Notificacion();
+                noti.setUsuarioId(1L);
+                noti.setTipo(PROCESO);
+                noti.setMensaje(texto);
+                noti.setFechaCreacion(ahora);
+                noti.setLeida(false);
+                notificacionRepositorio.save(noti);
             }
         }
 
-        mensajes.forEach(mensaje -> {
-            Notificacion noti = new Notificacion();
-            // Asumir que para cumpleaños se envía a todos los usuarios o a un usuario en particular;
-            // en escenarios reales, se tendría que determinar el usuario destinatario.
-            noti.setUsuarioId(1L);
-            noti.setTipo("CUMPLEANOS");
-            noti.setMensaje(mensaje);
-            noti.setFechaCreacion(LocalDateTime.now());
-            noti.setLeida(false);
-            notificacionRepositorio.save(noti);
-        });
+        // 5) Marcar ejecución del proceso
+        if (procOpt.isPresent()) {
+            ProcesoEjecutado ejecutado = procOpt.get();
+            ejecutado.setUltimaEjecucion(hoy);
+            procesoEjecutadoRepositorio.save(ejecutado);
+        } else {
+            ProcesoEjecutado ejecutado = new ProcesoEjecutado(PROCESO, hoy);
+            procesoEjecutadoRepositorio.save(ejecutado);
+        }
 
-        // (Opcional) Enviar vía WebSocket para notificaciones en tiempo real.
+        // 6) Enviar por WebSocket
         messagingTemplate.convertAndSend("/topic/notificaciones", mensajes);
 
         return mensajes;
     }
-
 }

@@ -7,6 +7,9 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
+/**
+ * Servicio de envío de emails.
+ */
 @Service
 public class EmailService {
 
@@ -17,25 +20,51 @@ public class EmailService {
     }
 
     /**
-     * Envía un correo con adjunto y recurso inline utilizando MimeMessage.
+     * Envía un correo HTML con un recurso inline (p.ej. firma).
      *
-     * @param from               Remitente (debe estar configurado o verificado).
-     * @param to                 Destinatario.
-     * @param subject            Asunto del email.
-     * @param htmlText           Cuerpo del mensaje en HTML.
-     * @param attachmentData     Datos del archivo adjunto en arreglo de bytes.
-     * @param attachmentFilename Nombre del archivo adjunto.
-     * @param inlineData         Datos del recurso inline (firma) en arreglo de bytes.
-     * @param contentId          Identificador único para referenciar el recurso inline en el HTML.
-     * @param inlineMimeType     Tipo MIME del recurso inline (por ejemplo, "image/png").
-     * @throws MessagingException En caso de error al preparar o enviar el email.
+     * @param from           Remitente.
+     * @param to             Destinatario.
+     * @param subject        Asunto.
+     * @param htmlText       Cuerpo en HTML (debe referenciar la imagen con cid:contentId).
+     * @param inlineData     Bytes del recurso inline.
+     * @param contentId      Identificador para el cid.
+     * @param inlineMimeType Tipo MIME del recurso (p.ej. "image/png").
+     * @throws MessagingException si hay fallo al armar o enviar el mensaje.
      */
-    public void sendEmailWithAttachmentAndInlineImage(String from, String to, String subject, String htmlText,
-                                                      byte[] attachmentData, String attachmentFilename,
-                                                      byte[] inlineData, String contentId, String inlineMimeType)
+    public void sendEmailWithInlineImage(String from,
+                                         String to,
+                                         String subject,
+                                         String htmlText,
+                                         byte[] inlineData,
+                                         String contentId,
+                                         String inlineMimeType)
             throws MessagingException {
         MimeMessage message = mailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(message, true);
+        // multipart=true para poder incluir inline
+        MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+        helper.setFrom(from);
+        helper.setTo(to);
+        helper.setSubject(subject);
+        helper.setText(htmlText, true);
+        helper.addInline(contentId, new ByteArrayResource(inlineData), inlineMimeType);
+        mailSender.send(message);
+    }
+
+    /**
+     * (Tu método existente para adjuntos + inline)
+     */
+    public void sendEmailWithAttachmentAndInlineImage(String from,
+                                                      String to,
+                                                      String subject,
+                                                      String htmlText,
+                                                      byte[] attachmentData,
+                                                      String attachmentFilename,
+                                                      byte[] inlineData,
+                                                      String contentId,
+                                                      String inlineMimeType)
+            throws MessagingException {
+        MimeMessage message = mailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
         helper.setFrom(from);
         helper.setTo(to);
         helper.setSubject(subject);
@@ -43,17 +72,5 @@ public class EmailService {
         helper.addAttachment(attachmentFilename, new ByteArrayResource(attachmentData));
         helper.addInline(contentId, new ByteArrayResource(inlineData), inlineMimeType);
         mailSender.send(message);
-    }
-
-    /**
-     * Envía un correo de texto simple.
-     *
-     * @param from    Remitente (debe ser el mismo que configuraste o uno verificado).
-     * @param to      Destinatario.
-     * @param subject Asunto del email.
-     * @param text    Cuerpo del mensaje.
-     */
-    public void sendSimpleEmail(String from, String to, String subject, String text) {
-
     }
 }

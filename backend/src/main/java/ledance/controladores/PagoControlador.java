@@ -16,6 +16,7 @@ import ledance.servicios.detallepago.DetallePagoServicio;
 import ledance.servicios.inscripcion.InscripcionServicio;
 import ledance.servicios.matricula.MatriculaServicio;
 import ledance.servicios.pago.PagoServicio;
+import ledance.util.FilePathResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -39,7 +40,6 @@ import java.util.stream.Collectors;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 @RestController
 @RequestMapping("/api/pagos")
@@ -66,7 +66,7 @@ public class PagoControlador {
     @GetMapping("/recibo/{pagoId}")
     public ResponseEntity<Resource> descargarRecibo(@PathVariable Long pagoId) {
         try {
-            Path pdfPath = Paths.get("/opt/le-dance/pdfs/recibo_" + pagoId + ".pdf");
+            Path pdfPath = FilePathResolver.of("pdfs", "recibo_" + pagoId + ".pdf");
 
             if (!Files.exists(pdfPath)) {
                 return ResponseEntity.notFound().build();

@@ -953,7 +953,7 @@ const CobranzasForm: React.FC = () => {
 
     return 0;
   };
-
+  
   // Función que calcula el importe final (base, descuento y recargo) para cuotas.
   // Se aplica solo si no es matrícula.
   const calcularImporteFinal = (

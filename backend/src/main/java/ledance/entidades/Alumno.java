@@ -31,7 +31,7 @@ public class Alumno {
     private String celular2;
 
     @Email
-    private String email1;
+    private String email;
 
     private String documento;
     private String cuit;

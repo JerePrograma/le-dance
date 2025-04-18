@@ -1,6 +1,7 @@
 package ledance.servicios.pdfs;
 
 import ledance.entidades.Pago;
+import ledance.util.FilePathResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -8,7 +9,6 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 @Service
 public class ReciboStorageService {
@@ -35,36 +35,16 @@ public class ReciboStorageService {
 
             // 2. Almacenar el PDF en disco en la ruta configurada.
             String fileName = "recibo_" + pago.getId() + ".pdf";
-            Path outputPath = Paths.get("/opt/le-dance/pdfs", fileName);
+            Path outputPath = FilePathResolver.of("pdfs", fileName);
             Files.createDirectories(outputPath.getParent());
             Files.write(outputPath, pdfBytes);
-            LOGGER.info("Recibo generado y almacenado en: {}", outputPath);
 
             pdfService.generarYEnviarReciboEmail(pago);
-            LOGGER.info("Recibo enviado por email al alumno: {}", pago.getAlumno().getEmail1());
+            LOGGER.info("Recibo enviado por email al alumno: {}", pago.getAlumno().getEmail());
         } catch (IOException e) {
             LOGGER.error("Error al almacenar el recibo: ", e);
         } catch (Exception e) {
             LOGGER.error("Error al generar y enviar el recibo: ", e);
-        }
-    }
-
-    /**
-     * Método para generar y almacenar un recibo a partir de un pago histórico.
-     * (Si se necesita en otro flujo, sin envío de email)
-     *
-     * @param pagoHistorico Objeto Pago histórico.
-     */
-    public void generarYAlmacenarReciboDesdePagoHistorico(Pago pagoHistorico) {
-        try {
-            byte[] pdfBytes = pdfService.generarReciboPdf(pagoHistorico);
-            String fileName = "recibo_" + pagoHistorico.getId() + ".pdf";
-            Path outputPath = Paths.get("/opt/le-dance/pdfs", fileName);
-            Files.createDirectories(outputPath.getParent());
-            Files.write(outputPath, pdfBytes);
-            LOGGER.info("Recibo generado con detalles históricos y almacenado como: {}", outputPath);
-        } catch (IOException e) {
-            LOGGER.error("Error al generar y almacenar el recibo desde histórico: ", e);
         }
     }
 }

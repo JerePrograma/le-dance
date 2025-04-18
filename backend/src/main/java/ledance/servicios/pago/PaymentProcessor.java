@@ -1,5 +1,6 @@
 package ledance.servicios.pago;
 
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 import jakarta.validation.constraints.Min;
@@ -37,6 +38,7 @@ public class PaymentProcessor {
     private final PaymentCalculationServicio paymentCalculationServicio;
     private final UsuarioRepositorio usuarioRepositorio;
     private final PagoRepositorio pagoRepositorio;
+    private final AlumnoRepositorio alumnoRepositorio;
 
     @PersistenceContext
     private jakarta.persistence.EntityManager entityManager;
@@ -48,7 +50,7 @@ public class PaymentProcessor {
                             RecargoRepositorio recargoRepositorio,
                             MetodoPagoRepositorio metodoPagoRepositorio,
                             PaymentCalculationServicio paymentCalculationServicio,
-                            UsuarioRepositorio usuarioRepositorio) {
+                            UsuarioRepositorio usuarioRepositorio, AlumnoRepositorio alumnoRepositorio) {
         this.pagoRepositorio = pagoRepositorio;
         this.detallePagoRepositorio = detallePagoRepositorio;
         this.detallePagoServicio = detallePagoServicio;
@@ -57,6 +59,7 @@ public class PaymentProcessor {
         this.metodoPagoRepositorio = metodoPagoRepositorio;
         this.paymentCalculationServicio = paymentCalculationServicio;
         this.usuarioRepositorio = usuarioRepositorio;
+        this.alumnoRepositorio = alumnoRepositorio;
     }
 
     /**
@@ -66,7 +69,7 @@ public class PaymentProcessor {
     public void recalcularTotalesNuevo(Pago pagoNuevo) {
         log.info("[PaymentProcessor] recalcularTotalesNuevo pago id={}", pagoNuevo.getId());
 
-        // Asegurar método de pago
+        // 1. Asegurar método de pago
         if (pagoNuevo.getMetodoPago() == null) {
             MetodoPago efectivo = metodoPagoRepositorio
                     .findByDescripcionContainingIgnoreCase("EFECTIVO");
@@ -77,43 +80,68 @@ public class PaymentProcessor {
         double totalCobrar = 0.0;
         double totalPendiente = 0.0;
 
+        // 2. Recorrer TODOS los detalles (solo ignorar los removidos)
         for (DetallePago d : pagoNuevo.getDetallePagos()) {
-            // Ignorar anulados, históricos o removidos
-            if (d.getRemovido() || d.getEstadoPago() != EstadoPago.ACTIVO) continue;
+            if (Boolean.TRUE.equals(d.getRemovido())) {
+                continue;
+            }
 
+            // Actualizar fecha de registro al del pago
             d.setFechaRegistro(pagoNuevo.getFecha());
-            double cobrado = Optional.ofNullable(d.getACobrar()).filter(v -> v > 0).orElse(0.0);
+
+            // Sumar lo que realmente se cobró
+            double cobrado = Optional.ofNullable(d.getACobrar())
+                    .filter(v -> v > 0)
+                    .orElse(0.0);
             totalCobrar += cobrado;
+
+            // Acumular el pendiente actual
+            totalPendiente += Optional.ofNullable(d.getImportePendiente())
+                    .orElse(0.0);
+        }
+
+        // 3. Marcar como histórico y liquidar importes solo después de sumar
+        for (DetallePago d : pagoNuevo.getDetallePagos()) {
+            if (Boolean.TRUE.equals(d.getRemovido())) continue;
 
             if (d.getImportePendiente() <= 0) {
                 d.setCobrado(true);
                 d.setImportePendiente(0.0);
                 d.setEstadoPago(EstadoPago.HISTORICO);
+
                 if (d.getTipo() == TipoDetallePago.MATRICULA && d.getMatricula() != null) {
                     d.getMatricula().setPagada(true);
                 }
             }
-
-            totalPendiente += Optional.ofNullable(d.getImportePendiente()).orElse(0.0);
         }
 
-        // Recargo global si al menos un detalle tuvo recargo
+        // 4. Calcular recargo global (si algún detalle lo tuvo)
         double recargo = pagoNuevo.getDetallePagos().stream()
                 .filter(DetallePago::getTieneRecargo)
                 .findFirst()
                 .map(_d -> pagoNuevo.getMetodoPago().getRecargo())
                 .orElse(0.0);
 
+        // 5. Asignar montos finales
         double montoFinal = totalCobrar + recargo;
         pagoNuevo.setMonto(montoFinal);
         pagoNuevo.setMontoPagado(montoFinal);
-        pagoNuevo.setSaldoRestante(totalPendiente);
-        pagoNuevo.setEstadoPago(totalPendiente <= 0 ? EstadoPago.HISTORICO : EstadoPago.ACTIVO);
-        if (totalPendiente <= 0) pagoNuevo.setSaldoRestante(0.0);
 
+        // El saldo restante es el acumulado de pendientes
+        pagoNuevo.setSaldoRestante(totalPendiente <= 0 ? 0.0 : totalPendiente);
+
+        // Estado del pago según pendientes
+        pagoNuevo.setEstadoPago(totalPendiente <= 0
+                ? EstadoPago.HISTORICO
+                : EstadoPago.ACTIVO);
+
+        // 6. Persistir cambios
         pagoRepositorio.save(pagoNuevo);
         log.info("[PaymentProcessor] Pago id={} actualizado: monto={}, saldo={}, estado={}",
-                pagoNuevo.getId(), pagoNuevo.getMonto(), pagoNuevo.getSaldoRestante(), pagoNuevo.getEstadoPago());
+                pagoNuevo.getId(),
+                pagoNuevo.getMonto(),
+                pagoNuevo.getSaldoRestante(),
+                pagoNuevo.getEstadoPago());
     }
 
     /**
@@ -190,7 +218,7 @@ public class PaymentProcessor {
             Optional<DetallePagoRegistroRequest> detalleReqOpt = request.detallePagos().stream()
                     .filter(reqDetalle -> reqDetalle.descripcionConcepto().trim().equalsIgnoreCase(detalle.getDescripcionConcepto().trim()))
                     .findFirst();
-            nuevoDetalle.setACobrar(detalleReqOpt.map(req -> req.ACobrar()).orElse(detalle.getACobrar()));
+            nuevoDetalle.setACobrar(detalleReqOpt.map(DetallePagoRegistroRequest::ACobrar).orElse(detalle.getACobrar()));
             nuevoDetalle.setImporteInicial(detalle.getImporteInicial());
             nuevoDetalle.setImportePendiente(detalle.getImportePendiente());
             nuevoDetalle.setTipo(detalle.getTipo());
@@ -343,42 +371,72 @@ public class PaymentProcessor {
     @Transactional
     public Pago processDetallesPago(Pago pago, List<DetallePago> detallesFront, Alumno alumnoPersistido) {
         pago.setAlumno(alumnoPersistido);
+
+        // 1) Limpiar o inicializar la lista de detalles
         if (pago.getDetallePagos() == null) {
             pago.setDetallePagos(new ArrayList<>());
         } else {
             pago.getDetallePagos().clear();
         }
+
         List<DetallePago> detallesProcesados = new ArrayList<>();
-        for (DetallePago detalleRequest : detallesFront) {
-            detalleRequest.setAlumno(alumnoPersistido);
-            detalleRequest.setPago(pago);
-            detalleRequest.setUsuario(pago.getUsuario());
-            DetallePago detallePersistido = null;
-            if (detalleRequest.getId() != null && detalleRequest.getId() > 0) {
-                detallePersistido = detallePagoRepositorio.findById(detalleRequest.getId()).orElse(null);
-            }
-            if (detallePersistido != null) {
-                detallePersistido.setUsuario(pago.getUsuario());
-                actualizarDetalleDesdeRequest(detallePersistido, detalleRequest);
-                procesarDetalle(pago, detallePersistido, alumnoPersistido);
-                detallesProcesados.add(detallePersistido);
+
+        // 2) Procesar cada request de detalle
+        for (DetallePago detalleReq : detallesFront) {
+            // reatachar alumno/pago/usuario
+            detalleReq.setAlumno(alumnoPersistido);
+            detalleReq.setPago(pago);
+            detalleReq.setUsuario(pago.getUsuario());
+
+            DetallePago detalle;
+            if (detalleReq.getId() != null && detalleReq.getId() > 0) {
+                // rama EXISTENTE
+                detalle = detallePagoRepositorio.findById(detalleReq.getId())
+                        .orElseThrow(() -> new EntityNotFoundException(
+                                "DetallePago no encontrado para ID " + detalleReq.getId()));
+                actualizarDetalleDesdeRequest(detalle, detalleReq);
             } else {
-                DetallePago nuevoDetalle = new DetallePago();
-                copiarAtributosDetalle(nuevoDetalle, detalleRequest);
-                nuevoDetalle.setFechaRegistro(LocalDate.now());
-                TipoDetallePago tipo = paymentCalculationServicio.determinarTipoDetalle(nuevoDetalle.getDescripcionConcepto());
-                nuevoDetalle.setTipo(tipo);
-                procesarDetalle(pago, nuevoDetalle, alumnoPersistido);
-                nuevoDetalle.setUsuario(pago.getUsuario());
-                detallesProcesados.add(nuevoDetalle);
+                // rama NUEVO
+                detalle = new DetallePago();
+                copiarAtributosDetalle(detalle, detalleReq);
+                detalle.setFechaRegistro(LocalDate.now());
+                TipoDetallePago tipo = paymentCalculationServicio
+                        .determinarTipoDetalle(detalle.getDescripcionConcepto());
+                detalle.setTipo(tipo);
             }
+
+            // 3) Persistir pago si es la primera vez
+            if (pago.getId() == null) {
+                entityManager.persist(pago);
+                entityManager.flush();
+            }
+
+            // 4) Reatachar asociaciones JPA y calcular importe
+            paymentCalculationServicio.reatacharAsociaciones(detalle, pago);
+            Inscripcion insc = obtenerInscripcion(detalle);
+            paymentCalculationServicio.procesarYCalcularDetalle(detalle, insc);
+
+            // 5) AHORA: si es matrícula, consumir crédito del alumno
+            if (detalle.getTipo() == TipoDetallePago.MATRICULA) {
+                paymentCalculationServicio.aplicarDescuentoCreditoEnMatricula(pago, detalle);
+                // y guardar el alumno con crédito ya descontado
+                alumnoRepositorio.save(alumnoPersistido);
+            }
+
+            detallesProcesados.add(detalle);
         }
+
+        // 6) Asociar todos los detalles al pago y persistirlo
         pago.getDetallePagos().addAll(detallesProcesados);
-        Pago pagoPersistido = (pago.getId() == null) ? persistAndFlushPago(pago) : mergeAndFlushPago(pago);
+        Pago pagoPersistido = (pago.getId() == null)
+                ? persistAndFlushPago(pago)
+                : mergeAndFlushPago(pago);
+
+        // 7) Recalcular totales teniendo en cuenta el crédito ya aplicado
         recalcularTotalesNuevo(pagoPersistido);
+
         return pagoPersistido;
     }
-
     private Pago persistAndFlushPago(Pago pago) {
         entityManager.persist(pago);
         entityManager.flush();
