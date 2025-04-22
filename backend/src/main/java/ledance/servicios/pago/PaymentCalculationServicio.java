@@ -487,7 +487,13 @@ public class PaymentCalculationServicio {
 
         // 3. Procesar abono: descontar ACobrar si corresponde
         if (detalle.getACobrar() != null && detalle.getACobrar() > 0) {
-            double nuevoPendiente = detalle.getImportePendiente() - detalle.getACobrar();
+            double nuevoPendiente = 0;
+            if (detalle.getImportePendiente() != null) {
+                nuevoPendiente = detalle.getImportePendiente() - detalle.getACobrar();
+
+            } else {
+                nuevoPendiente = detalle.getImporteInicial() - detalle.getACobrar();
+            }
             detalle.setImportePendiente(nuevoPendiente);
             log.info("[calcularMensualidad] Abono procesado: ACobrar={} -> nuevo importePendiente={}",
                     detalle.getACobrar(), nuevoPendiente);
