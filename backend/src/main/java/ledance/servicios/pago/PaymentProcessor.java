@@ -151,38 +151,51 @@ public class PaymentProcessor {
     @Transactional
     public Pago actualizarPagoHistoricoConAbonos(Pago pagoHistorico, PagoRegistroRequest request) {
         log.info("[actualizarPagoHistoricoConAbonos] Iniciando actualizacion del pago historico id={} con abonos", pagoHistorico.getId());
+
         for (DetallePagoRegistroRequest detalleReq : request.detallePagos()) {
             String descripcionNorm = detalleReq.descripcionConcepto().trim().toUpperCase();
+
+            // Si viene marcado como removido, únicamete actualizamos el flag en el histórico y saltamos creación
+            if (Boolean.TRUE.equals(detalleReq.removido())) {
+                pagoHistorico.getDetallePagos().stream()
+                        .filter(d -> d.getDescripcionConcepto() != null
+                                && d.getDescripcionConcepto().trim().equalsIgnoreCase(descripcionNorm))
+                        .findFirst()
+                        .ifPresent(d -> {
+                            d.setRemovido(true);
+                            log.info("[actualizarPagoHistoricoConAbonos] Marcado como removido el detalle id={}", d.getId());
+                        });
+                continue;
+            }
+
+            // Buscamos un detalle pendiente y no cobrado
             Optional<DetallePago> detalleOpt = pagoHistorico.getDetallePagos().stream()
-                    .filter(d -> d.getDescripcionConcepto() != null &&
-                            d.getDescripcionConcepto().trim().equalsIgnoreCase(descripcionNorm) &&
-                            d.getImportePendiente() != null &&
-                            d.getImportePendiente() > 0.0 &&
-                            !d.getCobrado())
+                    .filter(d -> d.getDescripcionConcepto() != null
+                            && d.getDescripcionConcepto().trim().equalsIgnoreCase(descripcionNorm)
+                            && d.getImportePendiente() != null
+                            && d.getImportePendiente() > 0.0
+                            && !d.getCobrado())
                     .findFirst();
+
             if (detalleOpt.isPresent()) {
-                DetallePago detalleExistente = detalleOpt.get();
-                detalleExistente.setTieneRecargo(detalleReq.tieneRecargo());
-                detalleExistente.setRemovido(detalleReq.removido());
-                detalleExistente.setACobrar(detalleReq.ACobrar());
-                detalleExistente.setImporteInicial(detalleReq.importePendiente());
-                detalleExistente.setImportePendiente(detalleReq.importePendiente() - detalleReq.ACobrar());
-                procesarDetalle(pagoHistorico, detalleExistente, pagoHistorico.getAlumno());
-                log.info("[actualizarPagoHistoricoConAbonos] Detalle actualizado id={}", detalleExistente.getId());
+                DetallePago existente = detalleOpt.get();
+                existente.setTieneRecargo(detalleReq.tieneRecargo());
+                existente.setRemovido(false);
+                existente.setACobrar(detalleReq.ACobrar());
+                existente.setImporteInicial(detalleReq.importePendiente());
+                existente.setImportePendiente(detalleReq.importePendiente() - detalleReq.ACobrar());
+                procesarDetalle(pagoHistorico, existente, pagoHistorico.getAlumno());
+                log.info("[actualizarPagoHistoricoConAbonos] Detalle actualizado id={}", existente.getId());
             } else {
-                log.info("[actualizarPagoHistoricoConAbonos] No se encontro detalle para '{}'. Creando nuevo detalle.",
-                        descripcionNorm);
-                DetallePago nuevoDetalle = crearNuevoDetalleFromRequest(detalleReq, pagoHistorico);
-                if (detalleReq.importePendiente() != null && detalleReq.importePendiente() > 0) {
-                    nuevoDetalle.setImportePendiente(detalleReq.importePendiente());
-                    nuevoDetalle.setImporteInicial(detalleReq.importePendiente());
-                }
-                if (nuevoDetalle.getImportePendiente() > 0) {
-                    pagoHistorico.getDetallePagos().add(nuevoDetalle);
-                    procesarDetalle(pagoHistorico, nuevoDetalle, pagoHistorico.getAlumno());
+                log.info("[actualizarPagoHistoricoConAbonos] No se encontro detalle para '{}'. Creando nuevo detalle.", descripcionNorm);
+                DetallePago nuevo = crearNuevoDetalleFromRequest(detalleReq, pagoHistorico);
+                if (nuevo != null && nuevo.getImportePendiente() > 0) {
+                    pagoHistorico.getDetallePagos().add(nuevo);
+                    procesarDetalle(pagoHistorico, nuevo, pagoHistorico.getAlumno());
                 }
             }
         }
+
         log.info("[actualizarPagoHistoricoConAbonos] Pago historico id={} actualizado. Totales: monto={}, saldoRestante={}",
                 pagoHistorico.getId(), pagoHistorico.getMonto(), pagoHistorico.getSaldoRestante());
         return pagoHistorico;
@@ -242,8 +255,16 @@ public class PaymentProcessor {
     /**
      * Crea un DetallePago nuevo a partir de un DetallePagoRegistroRequest.
      */
+    /// Refactorizado para evitar duplicar DetallePago con removido = true
     private DetallePago crearNuevoDetalleFromRequest(DetallePagoRegistroRequest req, Pago pago) {
         log.info("[crearNuevoDetalleFromRequest] INICIO - Creando detalle desde request. Pago ID: {}", pago.getId());
+
+        // Si el request está marcado como removido, no creamos detalle
+        if (Boolean.TRUE.equals(req.removido())) {
+            log.info("[crearNuevoDetalleFromRequest] Detalle marcado como removido, se omite creación");
+            return null;
+        }
+
         DetallePago detalle = new DetallePago();
         // Se ignora el ID si es 0 para forzar la generacion automatica
         if (req.id() == 0) {
@@ -257,10 +278,12 @@ public class PaymentProcessor {
         detalle.setCuotaOCantidad(req.cuotaOCantidad());
         TipoDetallePago tipo = paymentCalculationServicio.determinarTipoDetalle(descripcion);
         detalle.setTipo(tipo);
+
         if (req.bonificacionId() != null) {
             Bonificacion bonificacion = obtenerBonificacionPorId(req.bonificacionId());
             detalle.setBonificacion(bonificacion);
         }
+
         if (req.tieneRecargo()) {
             if (req.recargoId() != null) {
                 Recargo recargo = obtenerRecargoPorId(req.recargoId());
@@ -271,6 +294,7 @@ public class PaymentProcessor {
         } else {
             detalle.setTieneRecargo(false);
         }
+
         detallePagoServicio.calcularImporte(detalle);
         double aCobrar = (req.ACobrar() != null && req.ACobrar() > 0) ? req.ACobrar() : 0;
         detalle.setACobrar(aCobrar);
@@ -278,6 +302,7 @@ public class PaymentProcessor {
             detalle.setImportePendiente(req.importePendiente());
         }
         detalle.setCobrado(detalle.getImportePendiente() <= 0.0);
+
         log.info("[crearNuevoDetalleFromRequest] FIN - Detalle creado exitosamente. Tipo: {}, Cobrado: {}",
                 detalle.getTipo(), detalle.getCobrado());
         return detalle;
