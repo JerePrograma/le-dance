@@ -16,7 +16,6 @@ import stocksApi from "../../api/stocksApi";
 import subConceptosApi from "../../api/subConceptosApi";
 import conceptosApi from "../../api/conceptosApi";
 import type { DetallePagoResponse } from "../../types/types";
-import { useCobranzasData } from "../../hooks/useCobranzasData";
 import ListaConInfiniteScroll from "../../componentes/comunes/ListaConInfiniteScroll";
 
 const tarifaOptions = ["CUOTA", "CLASE DE PRUEBA", "CLASE SUELTA"];
@@ -51,9 +50,6 @@ const DetallePagoList: React.FC = () => {
   // Refs para calcular alturas
   const containerRef = useRef<HTMLDivElement>(null);
   const tableContainerRef = useRef<HTMLDivElement>(null);
-
-  // Hook para bonificaciones y recargos
-  const { bonificaciones, recargos } = useCobranzasData();
 
   // Función para cargar los detalles (aplicando filtros si es necesario)
   const fetchDetalles = useCallback(
@@ -381,32 +377,14 @@ const DetallePagoList: React.FC = () => {
             fillAvailable={true}
           >
             <Tabla
-              headers={[
-                "Código",
-                "Alumno",
-                "Concepto",
-                "Deuda",
-                "Bonificación",
-                "Recargo",
-                "Cobrados",
-              ]}
+              headers={["Código", "Alumno", "Concepto", "Deuda", "Cobrados"]}
               data={sortedItems}
               customRender={(fila) => {
-                const bonificacionNombre =
-                  fila.bonificacionId &&
-                  bonificaciones.find((b) => b.id === fila.bonificacionId)
-                    ?.descripcion;
-                const recargoNombre =
-                  fila.recargoId &&
-                  recargos.find((r) => r.id === Number(fila.recargoId))
-                    ?.descripcion;
                 return [
                   fila.pagoId || fila.id,
                   fila.alumno.nombre + " " + fila.alumno.apellido,
                   fila.descripcionConcepto,
                   fila.importePendiente,
-                  bonificacionNombre || "-",
-                  recargoNombre || "-",
                   fila.cobrado ? "Sí" : "No",
                 ];
               }}
