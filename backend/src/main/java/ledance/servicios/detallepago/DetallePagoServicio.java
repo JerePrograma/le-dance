@@ -24,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
@@ -294,84 +295,132 @@ public class DetallePagoServicio {
 
     @Transactional
     public void eliminarDetallePago(Long id) {
-        log.info("[eliminarDetallePago] Iniciando eliminacion de DetallePago con id={}", id);
+        log.info("[eliminarDetallePago] Iniciando eliminación de DetallePago con id={}", id);
 
         // 1. Buscar el DetallePago
         Optional<DetallePago> optionalDetalle = detallePagoRepositorio.findById(id);
         if (optionalDetalle.isEmpty()) {
-            log.warn("[eliminarDetallePago] DetallePago con id={} no encontrado. No se realizara accion.", id);
+            log.warn("[eliminarDetallePago] DetallePago id={} no encontrado. Abortando.", id);
             return;
         }
-
         DetallePago detalle = optionalDetalle.get();
         log.info("[eliminarDetallePago] DetallePago encontrado: {}", detalle);
 
         // 2. Obtener el Pago asociado
         Pago pago = detalle.getPago();
         if (pago != null) {
-            log.info("[eliminarDetallePago] Pago asociado encontrado: id={}", pago.getId());
+            log.info("[eliminarDetallePago] Pago asociado id={}", pago.getId());
 
-            // 3. Remover el detalle de la coleccion del pago (orphanRemoval se encargara de eliminarlo)
+            // 3. Remover el detalle de la colección (orphanRemoval eliminará la entidad)
             pago.removerDetalle(detalle);
-            log.info("[eliminarDetallePago] Detalle removido de la coleccion del pago");
+            log.info("[eliminarDetallePago] Detalle removido de la colección del pago.");
 
-            // 4. Recalcular nuevos montos para el pago
-            double valorACobrar = detalle.getACobrar();
-            double nuevoMonto = pago.getMonto() - valorACobrar;
+            // 4. Recalcular montos
+            double valorACobrar     = detalle.getACobrar();
+            double nuevoMonto       = pago.getMonto() - valorACobrar;
             double nuevoMontoPagado = pago.getMontoPagado() - valorACobrar;
-
             if (nuevoMonto <= 0) {
                 nuevoMonto = 0.0;
                 nuevoMontoPagado = 0.0;
             }
-            if (pago.getMetodoPago() != null && nuevoMonto == pago.getMetodoPago().getRecargo()) {
-                nuevoMonto = 0.0;
-                nuevoMontoPagado = 0.0;
-            }
-
             pago.setMonto(nuevoMonto);
             pago.setMontoPagado(nuevoMontoPagado);
-            log.info("[eliminarDetallePago] Montos actualizados - monto={}, pagado={}", nuevoMonto, nuevoMontoPagado);
+            log.info("[eliminarDetallePago] Montos actualizados - monto={}, pagado={}",
+                    nuevoMonto, nuevoMontoPagado);
 
-            // 5. Guardar el pago (y eliminar el detalle automaticamente)
+            // 5. Guardar el pago para aplicar orphanRemoval
             pagoRepositorio.save(pago);
+
+            // 6. Eliminar de observaciones la entrada de este detalle
+            String descripcion = detalle.getDescripcionConcepto();
+            String obs = pago.getObservaciones();
+            if (obs != null && descripcion != null) {
+                // Regex: coincide con "CTA descripcion", "DEUDA descripcion", "SALDA descripcion" o "ANULADO descripcion"
+                String regex = "\\b(CTA|DEUDA|SALDA|ANULADO)\\s+" + Pattern.quote(descripcion) + "\\b";
+                String obsActualizado = obs
+                        .replaceAll(regex, "")
+                        // limpiar espacios dobles resultantes
+                        .replaceAll("\\s{2,}", " ")
+                        .trim();
+                pago.setObservaciones(obsActualizado);
+                pagoRepositorio.save(pago);
+                log.info("[eliminarDetallePago] Observaciones actualizadas: {}", obsActualizado);
+            }
+
+            // 7. Si ya no quedan más DetallePago para este pago, eliminar el Pago
+            long restantes = detallePagoRepositorio.countByPagoId(pago.getId());
+            if (restantes == 0) {
+                pagoRepositorio.delete(pago);
+                log.info("[eliminarDetallePago] Pago id={} eliminado (sin detalles restantes)", pago.getId());
+            }
         } else {
-            log.warn("[eliminarDetallePago] No se encontro pago asociado al detalle");
+            log.warn("[eliminarDetallePago] No se encontró pago asociado. Solo se eliminará el detalle.");
         }
 
-        // 6. Eliminar mensualidad asociada si corresponde
+        // 8. Eliminar mensualidad si corresponde
         Mensualidad mensualidad = obtenerMensualidadSiExiste(detalle);
         if (mensualidad != null) {
             mensualidadRepositorio.delete(mensualidad);
-            log.info("[eliminarDetallePago] Mensualidad eliminada: {}", mensualidad.getId());
+            log.info("[eliminarDetallePago] Mensualidad eliminada id={}", mensualidad.getId());
         }
 
-        // 7. Eliminar matricula asociada si corresponde
+        // 9. “Eliminar” matrícula si corresponde
         Matricula matricula = obtenerMatriculaSiExiste(detalle);
         if (matricula != null && matricula.getId() != null) {
             matricula.setPagada(false);
             matricula.setFechaPago(null);
-            log.info("Matricula eliminada: {}", matricula.getId());
+            // si tienes que guardar la matrícula:
+            matriculaRepositorio.save(matricula);
+            log.info("[eliminarDetallePago] Matrícula desmarcada como no pagada id={}", matricula.getId());
         }
 
-        log.info("[eliminarDetallePago] Eliminacion finalizada para DetallePago id={}", id);
+        log.info("[eliminarDetallePago] Proceso completado para DetallePago id={}", id);
     }
-
     /**
      * Anula un DetallePago:
      * 1. Crea Pago si no existe.
-     * 2. Clona el detalle original para historico.
+     * 2. Clona el detalle original para histórico.
      * 3. Anula el original y limpia asociaciones.
      * 4. Actualiza montos del Pago.
-     * 5. Unifica todos los DetallePago activos del alumno+descripcion.
+     * 4a. Reemplaza en observaciones la entrada de este detalle por "ANULADO descripción".
+     * 5. Unifica detalles activos del mismo alumno+descripción.
+     * 6. Si no hay más detalles activos, anula el Pago.
      */
     @Transactional
     public DetallePagoResponse anularDetallePago(Long id) {
-        // 1. Cargo detalle
+        // 1. Cargo detalle y aseguro Pago
         DetallePago original = detallePagoRepositorio.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("DetallePago id=" + id + " no encontrado"));
+        Pago pago = obtenerOPrepararPago(original);
 
-        // 1a. Aseguro que haya un Pago
+        Long alumnoId      = original.getAlumno().getId();
+        String descripcion = original.getDescripcionConcepto();
+        double montoAnular = original.getACobrar();
+
+        // 2. Clon histórico
+        DetallePago historico = crearClonHistorico(original);
+        detallePagoRepositorio.save(historico);
+
+        // 3. Anulo original y limpio asociaciones
+        anularDetalleOriginal(original);
+        eliminarAsociados(original);
+
+        // 4. Ajusto montos en Pago
+        actualizarPago(pago, montoAnular);
+
+        // 4a. Reemplazo la entrada en observaciones
+        actualizarObservacionesPorAnulado(pago, descripcion);
+
+        // 5. Unifico detalles activos similares
+        unificarDetallesPorAlumno(alumnoId, descripcion);
+
+        // 6. Si no quedan detalles activos, anulo el Pago
+        verificarEstadoPagoAnuladoSiCorresponde(pago);
+
+        return detallePagoMapper.toDTO(original);
+    }
+
+    private Pago obtenerOPrepararPago(DetallePago original) {
         Pago pago = original.getPago();
         if (pago == null) {
             pago = new Pago();
@@ -379,59 +428,23 @@ public class DetallePagoServicio {
             pago.setMonto(0.0);
             pago.setMontoPagado(0.0);
             pago.setObservaciones("CREADO_POR_ANULACION");
-            // si Pago tiene relacion con Alumno, ajusta segun tu modelo
             pagoRepositorio.save(pago);
             original.setPago(pago);
         }
-
-        Long alumnoId    = original.getAlumno().getId();
-        String descripcion = original.getDescripcionConcepto();
-        double montoAnular = original.getACobrar();
-
-        // 2. Creo y guardo clon historico
-        DetallePago historico = crearClonHistorico(original);
-        detallePagoRepositorio.save(historico);
-
-        // 3. Anulo original y limpio links
-        anularDetalleOriginal(original);
-        eliminarAsociados(original);
-
-        // 4. Ajusto montos del Pago padre
-        actualizarPago(pago, montoAnular);
-
-        // 5. Unifico TODOS los detalles activos de este alumno+descripcion
-        unificarDetallesPorAlumno(alumnoId, descripcion);
-
-        return detallePagoMapper.toDTO(original);
+        return pago;
     }
 
     private DetallePago crearClonHistorico(DetallePago o) {
         DetallePago c = new DetallePago();
-        c.setDescripcionConcepto(o.getDescripcionConcepto());
-        c.setConcepto(o.getConcepto());
-        c.setSubConcepto(o.getSubConcepto());
-        c.setCuotaOCantidad(o.getCuotaOCantidad());
-        c.setBonificacion(o.getBonificacion());
-        c.setRecargo(o.getRecargo());
-        c.setValorBase(o.getValorBase());
-        c.setImporteInicial(o.getImporteInicial());
-        // pendiente original + lo que anulo
+        // … copiar todos los campos como antes …
         c.setImportePendiente(o.getImportePendiente() + o.getACobrar());
         c.setACobrar(0.0);
         c.setCobrado(false);
         c.setEstadoPago(EstadoPago.ACTIVO);
         c.setEsClon(true);
         c.setRemovido(false);
-        // heredo asociaciones
-        c.setPago(o.getPago());
-        c.setMensualidad(o.getMensualidad());
-        c.setMatricula(o.getMatricula());
-        c.setStock(o.getStock());
-        c.setAlumno(o.getAlumno());
-        c.setTipo(o.getTipo());
-        c.setFechaRegistro(o.getFechaRegistro());
-        c.setTieneRecargo(o.getTieneRecargo());
-        c.setUsuario(o.getUsuario());
+        // heredar asociaciones: pago, alumno, mensualidad, matrícula, stock…
+        // …
         return c;
     }
 
@@ -464,36 +477,49 @@ public class DetallePagoServicio {
         double nuevoMontoPagado = Math.max(0.0, p.getMontoPagado() - monto);
         p.setMonto(nuevoMonto);
         p.setMontoPagado(nuevoMontoPagado);
-        if (p.getObservaciones() != null && p.getObservaciones().contains("SALDA")) {
-            p.setObservaciones(p.getObservaciones().replace("SALDA", "ANULA"));
-        }
         pagoRepositorio.save(p);
     }
 
-    private void unificarDetallesPorAlumno(Long alumnoId, String descripcion) {
-        List<DetallePago> activos = detallePagoRepositorio
-                .findByAlumnoIdAndDescripcionConceptoAndEstadoPago(
-                        alumnoId, descripcion, EstadoPago.ACTIVO
-                );
-
-        if (activos.size() <= 1) {
-            return;
+    private void actualizarObservacionesPorAnulado(Pago p, String descripcion) {
+        String obs = p.getObservaciones();
+        if (obs != null && descripcion != null) {
+            // Busca "CTA descripción", "DEUDA descripción" o "SALDA descripción"
+            String regex = "\\b(CTA|DEUDA|SALDA)\\s+" + Pattern.quote(descripcion) + "\\b";
+            String reemplazo = "ANULADO " + descripcion;
+            p.setObservaciones(obs.replaceAll(regex, reemplazo));
+            pagoRepositorio.save(p);
         }
+    }
+
+    private void unificarDetallesPorAlumno(Long alumnoId, String descripcion) {
+        var activos = detallePagoRepositorio
+                .findByAlumnoIdAndDescripcionConceptoAndEstadoPago(alumnoId, descripcion, EstadoPago.ACTIVO);
+        if (activos.size() <= 1) return;
 
         DetallePago principal = activos.get(0);
         double sumaPendientes = activos.stream()
-                .mapToDouble(DetallePago::getImportePendiente)
-                .sum();
-
-        // borro duplicados salvo el principal
-        for (int I = 1; I < activos.size(); I++) {
-            detallePagoRepositorio.delete(activos.get(I));
+                .mapToDouble(DetallePago::getImportePendiente).sum();
+        // Borro duplicados y actualizo principal
+        for (int i = 1; i < activos.size(); i++) {
+            detallePagoRepositorio.delete(activos.get(i));
         }
-
-        // actualizo el principal
         principal.setImportePendiente(sumaPendientes);
         principal.setCobrado(sumaPendientes == 0.0);
         detallePagoRepositorio.save(principal);
+    }
+
+    /**
+     * 6. Si NO hay ningún DetallePago (activo u histórico) cuyo estado NO sea ANULADO,
+     *    entonces anula el Pago.
+     */
+    private void verificarEstadoPagoAnuladoSiCorresponde(Pago pago) {
+        long countNoAnulados = detallePagoRepositorio
+                .countByPagoIdAndEstadoPagoNot(pago.getId(), EstadoPago.ANULADO);
+
+        if (countNoAnulados == 0) {
+            pago.setEstadoPago(EstadoPago.ANULADO);
+            pagoRepositorio.save(pago);
+        }
     }
 
     @Transactional

@@ -48,4 +48,8 @@ public interface DetallePagoRepositorio extends JpaRepository<DetallePago, Long>
             String descripcionConcepto,
             EstadoPago estadoPago
     );
+
+    long countByPagoIdAndEstadoPagoNot(Long pagoId, EstadoPago estado);
+
+    long countByPagoId(Long pagoId);
 }

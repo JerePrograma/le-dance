@@ -23,11 +23,20 @@ import type {
   DisciplinaDetalleResponse,
   DiaSemana,
 } from "../../types/types";
+import NumberInputWithoutScroll from "../pagos/NumberInputWithoutScroll";
 
 // Usamos solo lunes a sábado para la selección
-const diasDisponibles: string[] = ["LUNES", "MARTES", "MIERCOLES", "JUEVES", "VIERNES", "SABADO"];
+const diasDisponibles: string[] = [
+  "LUNES",
+  "MARTES",
+  "MIERCOLES",
+  "JUEVES",
+  "VIERNES",
+  "SABADO",
+];
 
-const initialDisciplinaValues: DisciplinaRegistroRequest & Partial<DisciplinaModificacionRequest> = {
+const initialDisciplinaValues: DisciplinaRegistroRequest &
+  Partial<DisciplinaModificacionRequest> = {
   nombre: "",
   salonId: 0,
   profesorId: 0,
@@ -48,9 +57,10 @@ const disciplinaSchema = Yup.object().shape({
 });
 
 // Extendemos el type para incluir el campo ID (para edición) y que los horarios se gestionen vía checkboxes
-type FormValues = DisciplinaRegistroRequest & Partial<DisciplinaModificacionRequest> & {
-  id?: number;
-};
+type FormValues = DisciplinaRegistroRequest &
+  Partial<DisciplinaModificacionRequest> & {
+    id?: number;
+  };
 
 const DisciplinasFormulario: React.FC = () => {
   const navigate = useNavigate();
@@ -107,7 +117,9 @@ const DisciplinasFormulario: React.FC = () => {
     }
   }, []);
 
-  const mapDetalleToFormValues = (detalle: DisciplinaDetalleResponse): FormValues => ({
+  const mapDetalleToFormValues = (
+    detalle: DisciplinaDetalleResponse
+  ): FormValues => ({
     nombre: detalle.nombre,
     salonId: detalle.salonId, // Asegúrate de que este campo exista en la respuesta
     profesorId: detalle.profesorId ?? 0,
@@ -118,7 +130,7 @@ const DisciplinasFormulario: React.FC = () => {
     clasePrueba: detalle.clasePrueba,
     activo: detalle.activo,
     // Los horarios se mapearán al formato esperado para el formulario:
-    horarios: detalle.horarios.map(horario => ({
+    horarios: detalle.horarios.map((horario) => ({
       diaSemana: horario.diaSemana as unknown as DiaSemana,
       horarioInicio: horario.horarioInicio,
       duracion: horario.duracion,
@@ -132,7 +144,8 @@ const DisciplinasFormulario: React.FC = () => {
     if (idParam) {
       const fetchDisciplina = async () => {
         try {
-          const detalle: DisciplinaDetalleResponse = await disciplinasApi.obtenerDisciplinaPorId(Number(idParam));
+          const detalle: DisciplinaDetalleResponse =
+            await disciplinasApi.obtenerDisciplinaPorId(Number(idParam));
           const disciplinaForm = mapDetalleToFormValues(detalle);
           setFormValues(disciplinaForm);
           setDisciplinaId(detalle.id);
@@ -153,15 +166,16 @@ const DisciplinasFormulario: React.FC = () => {
   const handleSubmit = useCallback(
     async (values: DisciplinaRegistroRequest) => {
       try {
-        const payload: DisciplinaRegistroRequest & Partial<DisciplinaModificacionRequest> = {
+        const payload: DisciplinaRegistroRequest &
+          Partial<DisciplinaModificacionRequest> = {
           ...values,
           matricula,
         };
         if (disciplinaId) {
-          await disciplinasApi.actualizarDisciplina(
-            disciplinaId,
-            { ...payload, activo: true } as DisciplinaModificacionRequest
-          );
+          await disciplinasApi.actualizarDisciplina(disciplinaId, {
+            ...payload,
+            activo: true,
+          } as DisciplinaModificacionRequest);
           toast.success("Disciplina actualizada correctamente.");
         } else {
           const nuevo = await disciplinasApi.registrarDisciplina(payload);
@@ -198,7 +212,9 @@ const DisciplinasFormulario: React.FC = () => {
             readOnly={disciplinaId !== null}
           />
           <Boton
-            onClick={() => { /* Lógica de búsqueda manual si se requiere */ }}
+            onClick={() => {
+              /* Lógica de búsqueda manual si se requiere */
+            }}
             className="page-button"
           >
             <Search className="w-5 h-5 mr-2" /> Buscar
@@ -207,7 +223,13 @@ const DisciplinasFormulario: React.FC = () => {
       </div>
 
       {mensaje && (
-        <p className={`form-mensaje ${mensaje.includes("Error") ? "form-mensaje-error" : "form-mensaje-success"}`}>
+        <p
+          className={`form-mensaje ${
+            mensaje.includes("Error")
+              ? "form-mensaje-error"
+              : "form-mensaje-success"
+          }`}
+        >
           {mensaje}
         </p>
       )}
@@ -218,7 +240,7 @@ const DisciplinasFormulario: React.FC = () => {
         onSubmit={handleSubmit}
         enableReinitialize
       >
-        {({ isSubmitting, }) => (
+        {({ isSubmitting }) => (
           <Form className="formulario max-w-4xl mx-auto">
             <div className="form-grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Campos básicos */}
@@ -227,7 +249,11 @@ const DisciplinasFormulario: React.FC = () => {
                   Nombre:
                 </label>
                 <Field name="nombre" type="text" className="form-input" />
-                <ErrorMessage name="nombre" component="div" className="auth-error" />
+                <ErrorMessage
+                  name="nombre"
+                  component="div"
+                  className="auth-error"
+                />
               </div>
               <div className="mb-4">
                 <label htmlFor="salonId" className="auth-label">
@@ -241,7 +267,11 @@ const DisciplinasFormulario: React.FC = () => {
                     </option>
                   ))}
                 </Field>
-                <ErrorMessage name="salonId" component="div" className="auth-error" />
+                <ErrorMessage
+                  name="salonId"
+                  component="div"
+                  className="auth-error"
+                />
               </div>
               <div className="mb-4">
                 <label htmlFor="profesorId" className="auth-label">
@@ -255,39 +285,96 @@ const DisciplinasFormulario: React.FC = () => {
                     </option>
                   ))}
                 </Field>
-                <ErrorMessage name="profesorId" component="div" className="auth-error" />
+                <ErrorMessage
+                  name="profesorId"
+                  component="div"
+                  className="auth-error"
+                />
               </div>
+              {/* Valor de Cuota */}
               <div className="mb-4">
                 <label htmlFor="valorCuota" className="auth-label">
                   Valor de Cuota:
                 </label>
-                <Field name="valorCuota" type="number" step="0.01" className="form-input" />
-                <ErrorMessage name="valorCuota" component="div" className="auth-error" />
+                <Field name="valorCuota">
+                  {({ field }: any) => (
+                    <NumberInputWithoutScroll
+                      {...field}
+                      id="valorCuota"
+                      step="0.01"
+                      className="w-full px-2 py-1 border rounded text-center no-spinner"
+                    />
+                  )}
+                </Field>
+                <ErrorMessage
+                  name="valorCuota"
+                  component="div"
+                  className="auth-error"
+                />
               </div>
+
+              {/* Clase Suelta */}
               <div className="mb-4">
                 <label htmlFor="claseSuelta" className="auth-label">
                   Clase Suelta:
                 </label>
-                <Field name="claseSuelta" type="number" step="0.01" className="form-input" />
-                <ErrorMessage name="claseSuelta" component="div" className="auth-error" />
+                <Field name="claseSuelta">
+                  {({ field }: any) => (
+                    <NumberInputWithoutScroll
+                      {...field}
+                      id="claseSuelta"
+                      step="0.01"
+                      className="w-full px-2 py-1 border rounded text-center no-spinner"
+                    />
+                  )}
+                </Field>
+                <ErrorMessage
+                  name="claseSuelta"
+                  component="div"
+                  className="auth-error"
+                />
               </div>
+
+              {/* Clase de Prueba */}
               <div className="mb-4">
                 <label htmlFor="clasePrueba" className="auth-label">
                   Clase de Prueba:
                 </label>
-                <Field name="clasePrueba" type="number" step="0.01" className="form-input" />
-                <ErrorMessage name="clasePrueba" component="div" className="auth-error" />
+                <Field name="clasePrueba">
+                  {({ field }: any) => (
+                    <NumberInputWithoutScroll
+                      {...field}
+                      id="clasePrueba"
+                      step="0.01"
+                      className="w-full px-2 py-1 border rounded text-center no-spinner"
+                    />
+                  )}
+                </Field>
+                <ErrorMessage
+                  name="clasePrueba"
+                  component="div"
+                  className="auth-error"
+                />
               </div>
+
+              {/* Checkbox Activo (sin cambios) */}
               {disciplinaId !== null && (
                 <div className="mb-4">
                   <label className="flex items-center">
-                    <Field type="checkbox" name="activo" className="form-checkbox" />
+                    <Field
+                      type="checkbox"
+                      name="activo"
+                      className="form-checkbox"
+                    />
                     <span className="ml-2">Activo</span>
                   </label>
-                  <ErrorMessage name="activo" component="div" className="auth-error" />
+                  <ErrorMessage
+                    name="activo"
+                    component="div"
+                    className="auth-error"
+                  />
                 </div>
               )}
-
               {/* Sección de Horarios: fila de checkboxes para seleccionar días */}
               <div className="mb-4 col-span-1 sm:col-span-2">
                 <label className="auth-label">Seleccionar Días de Clase:</label>
@@ -300,10 +387,14 @@ const DisciplinasFormulario: React.FC = () => {
                         <div className="flex gap-4">
                           {diasDisponibles.map((dia) => {
                             const isSelected = horarios.some(
-                              (h: DisciplinaHorarioRequest) => h.diaSemana === dia
+                              (h: DisciplinaHorarioRequest) =>
+                                h.diaSemana === dia
                             );
                             return (
-                              <label key={dia} className="flex items-center gap-1">
+                              <label
+                                key={dia}
+                                className="flex items-center gap-1"
+                              >
                                 <input
                                   type="checkbox"
                                   checked={isSelected}
@@ -311,7 +402,8 @@ const DisciplinasFormulario: React.FC = () => {
                                     if (isSelected) {
                                       // Remover el horario correspondiente
                                       const index = horarios.findIndex(
-                                        (h: DisciplinaHorarioRequest) => h.diaSemana === dia
+                                        (h: DisciplinaHorarioRequest) =>
+                                          h.diaSemana === dia
                                       );
                                       if (index >= 0) remove(index);
                                     } else {
@@ -331,21 +423,53 @@ const DisciplinasFormulario: React.FC = () => {
                         </div>
 
                         {/* Mostrar campos para cada horario seleccionado */}
-                        {horarios.map((horario: DisciplinaHorarioRequest, index: number) => (
-                          <div key={index} className="horario-item border p-2 mt-4">
-                            <Field name={`horarios.${index}.diaSemana`} type="hidden" />
-                            <div className="mb-2">
-                              <label>Horario Inicio ({horario.diaSemana}):</label>
-                              <Field name={`horarios.${index}.horarioInicio`} type="time" className="form-input" />
-                              <ErrorMessage name={`horarios.${index}.horarioInicio`} component="div" className="auth-error" />
+                        {horarios.map(
+                          (
+                            horario: DisciplinaHorarioRequest,
+                            index: number
+                          ) => (
+                            <div
+                              key={index}
+                              className="horario-item border p-2 mt-4"
+                            >
+                              <Field
+                                name={`horarios.${index}.diaSemana`}
+                                type="hidden"
+                              />
+                              <div className="mb-2">
+                                <label>
+                                  Horario Inicio ({horario.diaSemana}):
+                                </label>
+                                <Field
+                                  name={`horarios.${index}.horarioInicio`}
+                                  type="time"
+                                  className="form-input"
+                                />
+                                <ErrorMessage
+                                  name={`horarios.${index}.horarioInicio`}
+                                  component="div"
+                                  className="auth-error"
+                                />
+                              </div>
+                              <div className="mb-2">
+                                <label>
+                                  Duración (horas) ({horario.diaSemana}):
+                                </label>
+                                <Field
+                                  name={`horarios.${index}.duracion`}
+                                  type="number"
+                                  step="0.1"
+                                  className="form-input"
+                                />
+                                <ErrorMessage
+                                  name={`horarios.${index}.duracion`}
+                                  component="div"
+                                  className="auth-error"
+                                />
+                              </div>
                             </div>
-                            <div className="mb-2">
-                              <label>Duración (horas) ({horario.diaSemana}):</label>
-                              <Field name={`horarios.${index}.duracion`} type="number" step="0.1" className="form-input" />
-                              <ErrorMessage name={`horarios.${index}.duracion`} component="div" className="auth-error" />
-                            </div>
-                          </div>
-                        ))}
+                          )
+                        )}
                       </>
                     );
                   }}
@@ -354,10 +478,18 @@ const DisciplinasFormulario: React.FC = () => {
             </div>
 
             <div className="form-acciones">
-              <Boton type="submit" className="page-button" disabled={isSubmitting}>
+              <Boton
+                type="submit"
+                className="page-button"
+                disabled={isSubmitting}
+              >
                 {disciplinaId ? "Actualizar" : "Crear"} Disciplina
               </Boton>
-              <Boton type="button" onClick={() => navigate("/disciplinas")} className="page-button-secondary">
+              <Boton
+                type="button"
+                onClick={() => navigate("/disciplinas")}
+                className="page-button-secondary"
+              >
                 Cancelar
               </Boton>
             </div>
