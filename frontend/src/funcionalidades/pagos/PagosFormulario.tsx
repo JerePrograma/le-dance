@@ -971,70 +971,31 @@ const CobranzasForm: React.FC = () => {
       values: CobranzasFormValues,
       setFieldValue: (field: string, value: any) => void
     ) => {
-      console.log("[DEBUG] handleAgregarDetalle iniciado", {
-        disciplina: values.disciplina,
-        periodo: values.periodoMensual,
-        tarifa: values.tarifa,
-      });
       const newDetails = [...values.detallePagos];
       let added = false;
 
       const isDuplicate = (conceptId: number) =>
-        newDetails.some((detalle) => detalle.conceptoId === conceptId);
-
+        newDetails.some((d) => d.conceptoId === conceptId);
       const isDuplicateString = (desc: string) =>
-        newDetails.some(
-          (det) => det.descripcionConcepto.trim() === desc.trim()
-        );
+        newDetails.some((d) => d.descripcionConcepto.trim() === desc.trim());
 
-      // --- Helper: Convierte un período en formato "MARZO DE 2025" en una fecha (día 1 del mes) ---
-      // helper para convertir "MARZO DE 2025" → Date(2025, 2, 1)
-      const obtenerFechaDePeriodo = (periodo: string): Date => {
-        console.log("[DEBUG] obtenerFechaDePeriodo(", periodo, ")");
-        const regex = /^([A-ZÁÉÍÓÚÑ]+)(?:\s+DE)?\s+(\d{4})$/i;
-        const match = periodo.match(regex);
-        if (!match) {
-          console.warn("[WARN] Formato de periodo inválido:", periodo);
-          return new Date();
-        }
-        const meses: Record<string, number> = {
-          ENERO: 0,
-          FEBRERO: 1,
-          MARZO: 2,
-          ABRIL: 3,
-          MAYO: 4,
-          JUNIO: 5,
-          JULIO: 6,
-          AGOSTO: 7,
-          SEPTIEMBRE: 8,
-          OCTUBRE: 9,
-          NOVIEMBRE: 10,
-          DICIEMBRE: 11,
-        };
-        const mes = meses[match[1].toUpperCase()] ?? 0;
-        const anio = parseInt(match[2], 10);
-        const fecha = new Date(anio, mes, 1);
-        console.log("[DEBUG] → Fecha calculada:", fecha.toISOString());
-        return fecha;
-      };
-
-      // Manejo de concepto manual seleccionado
+      // 1) CONCEPTO (incluye MATRÍCULA)
       if (values.conceptoSeleccionado) {
         const selectedConcept = conceptos.find(
           (c) => c.id.toString() === values.conceptoSeleccionado
         );
-
         if (selectedConcept) {
-          const descMayus = selectedConcept.descripcion.toUpperCase();
+          const descMayus = (selectedConcept.descripcion || "").toUpperCase();
 
+          // -- MATRÍCULA --
           if (descMayus.includes("MATRICULA")) {
             const credit = Number(values.alumno?.creditoAcumulado || 0);
             const originalPrice = selectedConcept.precio;
-            const usado = Math.min(originalPrice, credit);
-            const total = originalPrice - usado;
-            const conceptoDetalle = `MATRICULA ${new Date().getFullYear()}`;
+            const used = Math.min(originalPrice, credit);
+            const total = Math.max(0, originalPrice - used);
+            const detalleLabel = `MATRICULA ${new Date().getFullYear()}`;
 
-            if (isDuplicateString(conceptoDetalle)) {
+            if (isDuplicateString(detalleLabel)) {
               toast.error("Concepto ya agregado");
               return;
             }
@@ -1043,20 +1004,19 @@ const CobranzasForm: React.FC = () => {
                 id: 0,
                 version: 0,
                 alumno: values.alumno,
-                descripcionConcepto: conceptoDetalle,
+                descripcionConcepto: detalleLabel,
                 ACobrar: total,
                 cobrado: false,
                 valorBase: total,
               } as unknown as DetallePagoRegistroRequestExt);
 
-              setFieldValue("alumno.creditoAcumulado", credit - usado);
-
+              setFieldValue("alumno.creditoAcumulado", credit - used);
               newDetails.push({
                 id: 0,
-                descripcionConcepto: conceptoDetalle,
+                descripcionConcepto: detalleLabel,
                 conceptoId: selectedConcept.id,
                 subConceptoId: selectedConcept.subConcepto?.id || null,
-                cuotaOCantidad: conceptoDetalle.split(" ")[1] || "1",
+                cuotaOCantidad: detalleLabel.split(" ")[1] || "1",
                 valorBase: total,
                 importeInicial: total,
                 importePendiente: total,
@@ -1079,27 +1039,34 @@ const CobranzasForm: React.FC = () => {
               toast.error("MATRÍCULA YA COBRADA");
               return;
             }
+
+            // -- OTROS CONCEPTOS --
           } else {
             if (isDuplicate(selectedConcept.id)) {
               toast.error("Concepto ya agregado");
               return;
             }
-
             const cantidad = Number(values.cantidad) || 1;
             const { cuota } = splitConceptAndCuota(selectedConcept.descripcion);
+            const tipo = values.tarifa === "CUOTA" ? "MENSUALIDAD" : "normal";
+            const valorBase = selectedConcept.precio;
+            const total = valorBase * cantidad;
+
             newDetails.push({
               id: 0,
               descripcionConcepto: selectedConcept.descripcion,
               conceptoId: selectedConcept.id,
               subConceptoId: selectedConcept.subConcepto?.id || null,
               cuotaOCantidad:
-                values.tarifa === "CUOTA" ? cuota : cantidad.toString(),
-              valorBase: selectedConcept.precio,
-              importeInicial: selectedConcept.precio * cantidad,
-              importePendiente: selectedConcept.precio * cantidad,
+                tipo === "MENSUALIDAD"
+                  ? cuota || cantidad.toString()
+                  : cantidad.toString(),
+              valorBase,
+              importeInicial: total,
+              importePendiente: total,
               bonificacionId: null,
               recargoId: null,
-              ACobrar: selectedConcept.precio * cantidad,
+              ACobrar: total,
               cobrado: false,
               mensualidadId: null,
               matriculaId: null,
@@ -1109,58 +1076,136 @@ const CobranzasForm: React.FC = () => {
               pagoId: null,
               tieneRecargo: false,
               removido: false,
-              tipo: values.tarifa === "CUOTA" ? "MENSUALIDAD" : "normal",
+              tipo,
             } as unknown as DetallePagoRegistroRequestExt);
             added = true;
           }
         }
       }
 
-      // --- Bloque CUOTA (refactor) ---
-      if (values.tarifa === "CUOTA" && values.disciplina) {
-        const disciplina = mappedDisciplinas.find(
+      // 2) CUOTA sobre DISCIPLINA
+      if (
+        !added &&
+        values.disciplina &&
+        ["CUOTA", "CLASE_SUELTA", "CLASE_PRUEBA"].includes(values.tarifa)
+      ) {
+        const disc = mappedDisciplinas.find(
           (d) => d.nombre === values.disciplina
         );
-        if (!disciplina) {
-          console.warn("[WARN] Disciplina no encontrada:", values.disciplina);
-        } else {
+        if (disc) {
+          // determinar precio unitario y etiqueta
+          let precioUnit = 0;
+          let tarifaLabel = "";
+          if (values.tarifa === "CUOTA") {
+            precioUnit = disc.valorCuota;
+            tarifaLabel = "CUOTA";
+          } else if (values.tarifa === "CLASE_SUELTA") {
+            precioUnit = disc.claseSuelta || 0;
+            tarifaLabel = "CLASE SUELTA";
+          } else {
+            // CLASE_PRUEBA
+            precioUnit = disc.clasePrueba || 0;
+            tarifaLabel = "CLASE DE PRUEBA";
+          }
+
           const cantidad = Number(values.cantidad) || 1;
-          const fechaCuota = obtenerFechaDePeriodo(values.periodoMensual);
-          const precioBase = disciplina.valorCuota * cantidad;
-          console.log("[DEBUG] CUOTA → precioBase=", precioBase);
+          const valorBaseTotal = precioUnit * cantidad;
 
-          // bonificación
-          const inscripcion = activeInscripciones.find(
-            (i) => i.disciplina.id === disciplina.id
-          );
-          const descuentoPct =
-            inscripcion?.bonificacion?.porcentajeDescuento || 0;
-          const precioConDesc = precioBase * (1 - descuentoPct / 100);
-          console.log(
-            "[DEBUG] CUOTA → precioConDesc=",
-            precioConDesc,
-            "descuentoPct=",
-            descuentoPct
-          );
+          // para CUOTA: calcular descuento y recargo
+          let bonificacionId: number | null = null;
+          let recargoId: number | null = null;
+          let importeConRecargo = valorBaseTotal;
+          const obtenerFechaDePeriodo = (periodo: string): Date => {
+            const regex = /^([A-ZÁÉÍÓÚÑ]+)(?:\s+DE)?\s+(\d{4})$/i;
+            const match = periodo.match(regex);
+            if (!match) return new Date();
+            const meses: Record<string, number> = {
+              ENERO: 0,
+              FEBRERO: 1,
+              MARZO: 2,
+              ABRIL: 3,
+              MAYO: 4,
+              JUNIO: 5,
+              JULIO: 6,
+              AGOSTO: 7,
+              SEPTIEMBRE: 8,
+              OCTUBRE: 9,
+              NOVIEMBRE: 10,
+              DICIEMBRE: 11,
+            };
+            return new Date(
+              parseInt(match[2], 10),
+              meses[match[1].toUpperCase()],
+              1
+            );
+          };
 
-          // recargo
-          const { recargoAplicado, importeConRecargo } =
-            calcularRecargoPorFecha(fechaCuota, recargos, precioConDesc);
+          if (values.tarifa === "CUOTA") {
+            const fecha = obtenerFechaDePeriodo(values.periodoMensual);
+            const insc = activeInscripciones.find(
+              (i) => i.disciplina.id === disc.id
+            );
+            const descuentoPct = insc?.bonificacion?.porcentajeDescuento || 0;
+            bonificacionId = insc?.bonificacion?.id || null;
 
-          const detalleLabel = `${disciplina.nombre} - CUOTA - ${values.periodoMensual}`;
-          console.log("[DEBUG] CUOTA → detalleLabel=", detalleLabel);
+            const neto = valorBaseTotal * (1 - descuentoPct / 100);
+            const { recargoAplicado, importeConRecargo: icr } =
+              calcularRecargoPorFecha(fecha, recargos, neto);
 
+            recargoId = recargoAplicado?.id || null;
+            importeConRecargo = icr;
+          }
+
+          const label = `${disc.nombre} - ${tarifaLabel} - ${values.periodoMensual}`;
+
+          // duplicados
+          if (isDuplicateString(label)) {
+            toast.error("Concepto ya agregado");
+            return;
+          }
+
+          // — API CALL DE VERIFICACIÓN —
+          try {
+            await pagosApi.verificarMensualidadOMatricula({
+              id: 0,
+              version: 0,
+              alumno: values.alumno,
+              descripcionConcepto: label,
+              cuotaOCantidad: cantidad.toString(),
+              valorBase: valorBaseTotal,
+              bonificacionId,
+              recargoId,
+              aCobrar: importeConRecargo,
+              cobrado: false,
+              conceptoId: disc.id,
+              subConceptoId: null,
+              mensualidadId: null,
+              matriculaId: null,
+              stockId: null,
+              pagoId: null,
+              tieneRecargo: Boolean(recargoId),
+            } as unknown as DetallePagoRegistroRequestExt);
+          } catch {
+            toast.error(
+              values.tarifa === "CUOTA"
+                ? "MENSUALIDAD YA COBRADA"
+                : "CLASE YA COBRADA"
+            );
+            return;
+          }
+
+          // — Agregar al arreglo de detalles —
           newDetails.push({
             id: 0,
-            descripcionConcepto: detalleLabel,
+            descripcionConcepto: label,
             conceptoId: null,
             subConceptoId: null,
-            cuotaOCantidad: `CUOTA - ${values.periodoMensual}`,
-            valorBase: precioBase,
+            cuotaOCantidad: cantidad.toString(),
+            valorBase: valorBaseTotal,
             importeInicial: importeConRecargo,
             importePendiente: importeConRecargo,
-            bonificacionId: inscripcion?.bonificacion?.id || null,
-            recargoId: recargoAplicado?.id || null,
+            bonificacionId,
+            recargoId,
             ACobrar: importeConRecargo,
             cobrado: false,
             mensualidadId: null,
@@ -1168,31 +1213,73 @@ const CobranzasForm: React.FC = () => {
             stockId: null,
             autoGenerated: false,
             pagoId: null,
-            tieneRecargo: Boolean(recargoAplicado),
+            tieneRecargo: Boolean(recargoId),
             removido: false,
-            tipo: "MENSUALIDAD",
+            tipo:
+              values.tarifa === "CUOTA"
+                ? "MENSUALIDAD"
+                : values.tarifa === "CLASE_SUELTA"
+                ? "CLASE_SUELTA"
+                : "CLASE_DE_PRUEBA",
           } as unknown as DetallePagoRegistroRequestExt);
-          console.log(
-            "[DEBUG] CUOTA → detalle agregado con recargoId=",
-            recargoAplicado?.id
-          );
+
           added = true;
         }
       }
 
-      // — aquí seguiría el resto de tu lógica (conceptos manuales, stock, etc) —
-
-      if (added) {
-        console.log(
-          "[DEBUG] handleAgregarDetalle → aplicando cambios en el form"
+      // 3) STOCK
+      if (!added && values.stockSeleccionado) {
+        const stk = stocks.find(
+          (s) => s.id.toString() === values.stockSeleccionado
         );
+        if (stk) {
+          const cantidad = Number(values.cantidad) || 1;
+          const total = stk.precio * cantidad;
+          const label = stk.nombre;
+
+          if (isDuplicateString(label)) {
+            toast.error("Concepto ya agregado");
+            return;
+          }
+          newDetails.push({
+            id: 0,
+            descripcionConcepto: label,
+            conceptoId: null,
+            subConceptoId: null,
+            cuotaOCantidad: cantidad.toString(),
+            valorBase: stk.precio,
+            importeInicial: total,
+            importePendiente: total,
+            bonificacionId: null,
+            recargoId: null,
+            ACobrar: total,
+            cobrado: false,
+            mensualidadId: null,
+            matriculaId: null,
+            stockId: stk.id,
+            version: stk.version || 0,
+            autoGenerated: false,
+            pagoId: null,
+            tieneRecargo: false,
+            removido: false,
+            tipo: "STOCK",
+          } as unknown as DetallePagoRegistroRequestExt);
+          added = true;
+        }
+      }
+
+      // 4) APLICAR O MOSTRAR ERROR
+      if (added) {
         setFieldValue("detallePagos", newDetails);
         setFieldValue("conceptoSeleccionado", "");
         setFieldValue("stockSeleccionado", "");
         setFieldValue("cantidad", 1);
-      } else {
-        console.log("[DEBUG] handleAgregarDetalle → nada agregado");
-        toast.error("Seleccione campos para agregar");
+      } else if (
+        !values.conceptoSeleccionado &&
+        !values.disciplina &&
+        !values.stockSeleccionado
+      ) {
+        toast.error("Seleccione al menos un conjunto de campos para agregar");
       }
     },
     [conceptos, mappedDisciplinas, stocks, activeInscripciones, recargos]
