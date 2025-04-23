@@ -162,7 +162,7 @@ export default function EgresosDebitoPagina() {
     edad: 0,
     celular1: "",
     celular2: "",
-    email1: "",
+    email: "",
     email2: "",
     documento: "",
     fechaDeBaja: null,

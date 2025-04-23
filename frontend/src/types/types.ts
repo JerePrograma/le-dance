@@ -50,7 +50,7 @@ export interface AlumnoResponse {
   edad: number;
   celular1: string;
   celular2: string;
-  email1: string;
+  email: string;
   email2: string;
   documento: string;
   fechaDeBaja: string | null; // puede ser null si no se dio de baja
@@ -74,7 +74,7 @@ export interface AlumnoRegistroRequest {
   edad: number;
   celular1?: string;
   celular2?: string;
-  email1?: string;
+  email?: string;
   email2?: string;
   documento?: string;
   fechaDeBaja?: string | null;
@@ -96,7 +96,7 @@ export interface AlumnoRegistro {
   edad: number;
   celular1?: string;
   celular2?: string;
-  email1?: string;
+  email?: string;
   email2?: string;
   documento?: string;
   fechaDeBaja?: string | null;

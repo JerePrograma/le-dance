@@ -13,6 +13,7 @@ import ledance.entidades.DetallePago;
 import ledance.entidades.Pago;
 import ledance.entidades.Recargo;
 import ledance.servicios.email.EmailService;
+import ledance.servicios.email.IEmailService;
 import ledance.util.FilePathResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,9 +33,10 @@ import static ledance.servicios.mensualidad.MensualidadServicio.validarRecargo;
 public class PdfService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PdfService.class);
-    private final EmailService emailService;
+    private final IEmailService emailService;               // <-- tipo interfaz
 
-    public PdfService(EmailService emailService) {
+    public PdfService(IEmailService emailService              // <--- inyecta la interfaz
+    ) {
         this.emailService = emailService;
     }
 

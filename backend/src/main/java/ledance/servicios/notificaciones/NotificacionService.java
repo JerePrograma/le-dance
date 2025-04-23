@@ -9,7 +9,7 @@ import ledance.repositorios.AlumnoRepositorio;
 import ledance.repositorios.NotificacionRepositorio;
 import ledance.repositorios.ProcesoEjecutadoRepositorio;
 import ledance.repositorios.ProfesorRepositorio;
-import ledance.servicios.email.EmailService;
+import ledance.servicios.email.IEmailService;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -33,14 +33,14 @@ public class NotificacionService {
     private final ProfesorRepositorio profesorRepository;
     private final NotificacionRepositorio notificacionRepositorio;
     private final ProcesoEjecutadoRepositorio procesoEjecutadoRepositorio;
-    private final EmailService emailService;
+    private final IEmailService emailService;               // <-- tipo interfaz
     private final SimpMessagingTemplate messagingTemplate;
 
     public NotificacionService(AlumnoRepositorio alumnoRepository,
                                ProfesorRepositorio profesorRepository,
                                NotificacionRepositorio notificacionRepositorio,
                                ProcesoEjecutadoRepositorio procesoEjecutadoRepositorio,
-                               EmailService emailService,
+                               IEmailService emailService,              // <--- inyecta la interfaz
                                SimpMessagingTemplate messagingTemplate) {
         this.alumnoRepository = alumnoRepository;
         this.profesorRepository = profesorRepository;

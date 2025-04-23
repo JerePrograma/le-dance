@@ -69,75 +69,60 @@ public class PaymentProcessor {
     public void recalcularTotalesNuevo(Pago pagoNuevo) {
         log.info("[PaymentProcessor] recalcularTotalesNuevo pago id={}", pagoNuevo.getId());
 
-        // 1. Asegurar metodo de pago
+        // 1. Asegurar método de pago
         if (pagoNuevo.getMetodoPago() == null) {
             MetodoPago efectivo = metodoPagoRepositorio
                     .findByDescripcionContainingIgnoreCase("EFECTIVO");
             pagoNuevo.setMetodoPago(efectivo);
-            log.info("  ↳ Se asigna metodo EFECTIVO id={}", efectivo.getId());
         }
 
-        double totalCobrar = 0.0;
-        double totalPendiente = 0.0;
+        double totalCobrar    = 0.0;
+        double totalBasePend  = 0.0;
 
-        // 2. Recorrer TODOS los detalles (solo ignorar los removidos)
+        // 2. Recorrer detalles vigentes
         for (DetallePago d : pagoNuevo.getDetallePagos()) {
-            if (Boolean.TRUE.equals(d.getRemovido())) {
-                continue;
-            }
+            if (EstadoPago.ANULADO.equals(d.getEstadoPago())) continue;
 
-            // Actualizar fecha de registro al del pago
             d.setFechaRegistro(pagoNuevo.getFecha());
-
-            // Sumar lo que realmente se cobro
-            double cobrado = Optional.ofNullable(d.getACobrar())
-                    .filter(v -> v > 0)
-                    .orElse(0.0);
-            totalCobrar += cobrado;
-
-            // Acumular el pendiente actual
-            totalPendiente += Optional.ofNullable(d.getImportePendiente())
-                    .orElse(0.0);
+            totalCobrar   += Optional.ofNullable(d.getACobrar()).orElse(0.0);
+            totalBasePend += Optional.ofNullable(d.getImporteInicial()).orElse(0.0);
         }
 
-        // 3. Marcar como historico y liquidar importes solo despues de sumar
+        // 3. Marcar histórico si ya quedó pagado
         for (DetallePago d : pagoNuevo.getDetallePagos()) {
-            if (Boolean.TRUE.equals(d.getRemovido())) continue;
-
-            if (d.getImportePendiente() <= 0) {
+            if (EstadoPago.ANULADO.equals(d.getEstadoPago())) continue;
+            if (d.getImportePendiente() != null && d.getImportePendiente() <= 0) {
                 d.setCobrado(true);
                 d.setImportePendiente(0.0);
                 d.setEstadoPago(EstadoPago.HISTORICO);
-
                 if (d.getTipo() == TipoDetallePago.MATRICULA && d.getMatricula() != null) {
                     d.getMatricula().setPagada(true);
                 }
             }
         }
 
-        // 4. Calcular recargo global (si algun detalle lo tuvo)
+        // 4. Recargo global
         double recargo = pagoNuevo.getDetallePagos().stream()
-                .filter(DetallePago::getTieneRecargo)
-                .findFirst()
-                .map(_d -> pagoNuevo.getMetodoPago().getRecargo())
+                .filter(d -> !EstadoPago.ANULADO.equals(d.getEstadoPago()) && Boolean.TRUE.equals(d.getTieneRecargo()))
+                .findAny()
+                .map(d -> pagoNuevo.getMetodoPago().getRecargo())
                 .orElse(0.0);
 
-        // 5. Asignar montos finales
-        double montoFinal = totalCobrar + recargo;
-        pagoNuevo.setMonto(montoFinal);
-        pagoNuevo.setMontoPagado(montoFinal);
+        // 5. Montos finales
+        pagoNuevo.setMonto(totalCobrar + recargo);
+        pagoNuevo.setMontoPagado(totalCobrar + recargo);
 
-        // El saldo restante es el acumulado de pendientes
-        pagoNuevo.setSaldoRestante(totalPendiente <= 0 ? 0.0 : totalPendiente);
+        // 6. Saldo restante = suma de BASES – lo cobrado
+        double restante = Math.max(0.0, totalBasePend - totalCobrar);
+        pagoNuevo.setSaldoRestante(restante);
 
-        // Estado del pago segun pendientes
-        pagoNuevo.setEstadoPago(totalPendiente <= 0
+        // 7. Estado del pago
+        pagoNuevo.setEstadoPago(restante <= 0
                 ? EstadoPago.HISTORICO
                 : EstadoPago.ACTIVO);
 
-        // 6. Persistir cambios
         pagoRepositorio.save(pagoNuevo);
-        log.info("[PaymentProcessor] Pago id={} actualizado: monto={}, saldo={}, estado={}",
+        log.info("[PaymentProcessor] Pago id={} → monto={}, saldo={}, estado={}",
                 pagoNuevo.getId(),
                 pagoNuevo.getMonto(),
                 pagoNuevo.getSaldoRestante(),
@@ -182,8 +167,11 @@ public class PaymentProcessor {
                 existente.setTieneRecargo(detalleReq.tieneRecargo());
                 existente.setRemovido(false);
                 existente.setACobrar(detalleReq.ACobrar());
+                if (existente.getACobrar() == null) {
+                    existente.setACobrar(0.0);
+                }
                 existente.setImporteInicial(detalleReq.importePendiente());
-                existente.setImportePendiente(detalleReq.importePendiente() - detalleReq.ACobrar());
+                existente.setImportePendiente(detalleReq.importePendiente() - existente.getACobrar());
                 procesarDetalle(pagoHistorico, existente, pagoHistorico.getAlumno());
                 log.info("[actualizarPagoHistoricoConAbonos] Detalle actualizado id={}", existente.getId());
             } else {
@@ -462,6 +450,7 @@ public class PaymentProcessor {
 
         return pagoPersistido;
     }
+
     private Pago persistAndFlushPago(Pago pago) {
         entityManager.persist(pago);
         entityManager.flush();
@@ -480,6 +469,7 @@ public class PaymentProcessor {
         destino.setConcepto(origen.getConcepto());
         destino.setSubConcepto(origen.getSubConcepto());
         destino.setDescripcionConcepto(origen.getDescripcionConcepto());
+        destino.setImportePendiente(origen.getImportePendiente());
         destino.setCuotaOCantidad(origen.getCuotaOCantidad());
         destino.setValorBase(origen.getValorBase());
         destino.setImporteInicial(origen.getImporteInicial());
@@ -498,6 +488,8 @@ public class PaymentProcessor {
         persistido.setImporteInicial(request.getImporteInicial());
         if (request.getImportePendiente() != null) {
             persistido.setImportePendiente(request.getImportePendiente() - persistido.getACobrar());
+        } else {
+            persistido.setImportePendiente(request.getImporteInicial());
         }
         persistido.setValorBase(request.getValorBase());
         persistido.setTipo(request.getTipo());

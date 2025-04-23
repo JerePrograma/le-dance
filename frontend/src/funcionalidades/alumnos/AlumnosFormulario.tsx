@@ -40,7 +40,7 @@ const initialAlumnoValues: AlumnoRegistro = {
   edad: 0,
   celular1: "",
   celular2: "",
-  email1: "",
+  email: "",
   email2: "",
   documento: "",
   deudaPendiente: false,
@@ -885,7 +885,7 @@ const AlumnosFormulario: React.FC = () => {
                 {[
                   { name: "celular1", label: "Celular 1" },
                   { name: "celular2", label: "Celular 2" },
-                  { name: "email1", label: "Email", type: "email" },
+                  { name: "email", label: "Email", type: "email" },
                   { name: "documento", label: "Documento" },
                   { name: "nombrePadres", label: "Nombre de Padres" },
                 ].map(({ name, label, type = "text" }) => (

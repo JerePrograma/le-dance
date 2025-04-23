@@ -2,6 +2,7 @@ package ledance.servicios.email;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
+import org.springframework.context.annotation.Profile;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -11,7 +12,8 @@ import org.springframework.stereotype.Service;
  * Servicio de envio de emails.
  */
 @Service
-public class EmailService {
+@Profile("prod")
+public class EmailService implements IEmailService  {
 
     private final JavaMailSender mailSender;
 
@@ -29,16 +31,15 @@ public class EmailService {
      * @param inlineData     Bytes del recurso inline.
      * @param contentId      Identificador para el cid.
      * @param inlineMimeType Tipo MIME del recurso (p.ej. "image/png").
-     * @throws MessagingException si hay fallo al armar o enviar el mensaje.
      */
+    @Override
     public void sendEmailWithInlineImage(String from,
                                          String to,
                                          String subject,
                                          String htmlText,
                                          byte[] inlineData,
                                          String contentId,
-                                         String inlineMimeType)
-            throws MessagingException {
+                                         String inlineMimeType) throws MessagingException {
         MimeMessage message = mailSender.createMimeMessage();
         // multipart=true para poder incluir inline
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
@@ -53,6 +54,7 @@ public class EmailService {
     /**
      * (Tu metodo existente para adjuntos + inline)
      */
+    @Override
     public void sendEmailWithAttachmentAndInlineImage(String from,
                                                       String to,
                                                       String subject,
@@ -61,8 +63,7 @@ public class EmailService {
                                                       String attachmentFilename,
                                                       byte[] inlineData,
                                                       String contentId,
-                                                      String inlineMimeType)
-            throws MessagingException {
+                                                      String inlineMimeType) throws MessagingException {
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
         helper.setFrom(from);
