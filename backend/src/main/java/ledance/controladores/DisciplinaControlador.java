@@ -1,5 +1,6 @@
 package ledance.controladores;
 
+import com.lowagie.text.DocumentException;
 import ledance.dto.disciplina.request.DisciplinaModificacionRequest;
 import ledance.dto.disciplina.request.DisciplinaRegistroRequest;
 import ledance.dto.alumno.response.AlumnoResponse;
@@ -8,12 +9,14 @@ import ledance.dto.disciplina.response.DisciplinaResponse;
 import ledance.dto.profesor.response.ProfesorResponse;
 import jakarta.validation.Valid;
 import ledance.servicios.disciplina.DisciplinaServicio;
+import ledance.servicios.pdfs.PdfService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.time.LocalTime;
 import java.util.List;
 
@@ -24,9 +27,11 @@ public class DisciplinaControlador {
 
     private static final Logger log = LoggerFactory.getLogger(DisciplinaControlador.class);
     private final DisciplinaServicio disciplinaServicio;
+    private final PdfService pdfService;
 
-    public DisciplinaControlador(DisciplinaServicio disciplinaServicio) {
+    public DisciplinaControlador(DisciplinaServicio disciplinaServicio, PdfService pdfService) {
         this.disciplinaServicio = disciplinaServicio;
+        this.pdfService = pdfService;
     }
 
     /**
@@ -134,4 +139,24 @@ public class DisciplinaControlador {
         return ResponseEntity.ok(disciplinas);
     }
 
+    @GetMapping("/{disciplinaId}/alumnos/pdf")
+    public ResponseEntity<byte[]> descargarAlumnosPorDisciplinaPdf(
+            @PathVariable Long disciplinaId) {
+        try {
+            byte[] pdfBytes = pdfService.generarAlumnosDisciplinaPdf(disciplinaId);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDisposition(
+                    ContentDisposition.builder("attachment")
+                            .filename("alumnos_disciplina_" + disciplinaId + ".pdf")
+                            .build()
+            );
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .body(pdfBytes);
+        } catch (IOException | DocumentException e) {
+            // loguear y devolver 500
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
 }

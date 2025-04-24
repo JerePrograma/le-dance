@@ -42,13 +42,16 @@ const AlumnosPorDisciplina: React.FC = () => {
   const navigate = useNavigate();
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
   const [disciplineFilter, setDisciplineFilter] = useState<string>("");
-  const [, setSelectedDisciplineId] = useState<number | null>(null);
+  const [selectedDisciplineId, setSelectedDisciplineId] = useState<
+    number | null
+  >(null);
   const [alumnos, setAlumnos] = useState<Alumno[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [showSuggestions, setShowSuggestions] = useState<boolean>(false);
   const [activeSuggestionIndex, setActiveSuggestionIndex] =
     useState<number>(-1);
+  const [sortAsc, setSortAsc] = useState<boolean>(true);
   const searchWrapperRef = useRef<HTMLDivElement>(null);
 
   // Carga de disciplinas al montar el componente
@@ -73,7 +76,7 @@ const AlumnosPorDisciplina: React.FC = () => {
     );
   }, [disciplineFilter, disciplinas]);
 
-  // Al seleccionar una disciplina, se guarda el ID y se consulta la lista de alumnos
+  // Al seleccionar disciplina: guarda ID, texto y carga alumnos
   const handleSeleccionarDisciplina = (disciplina: Disciplina) => {
     setSelectedDisciplineId(disciplina.id);
     setDisciplineFilter(disciplina.nombre);
@@ -101,7 +104,33 @@ const AlumnosPorDisciplina: React.FC = () => {
     }
   };
 
-  // Manejo de teclas para navegar en la lista de sugerencias
+  // Función para exportar alumnos a PDF
+  const descargarAlumnosPDF = async (): Promise<void> => {
+    if (!selectedDisciplineId) return;
+    try {
+      const response = await api.get(
+        `/disciplinas/${selectedDisciplineId}/alumnos/pdf`,
+        { responseType: "blob" }
+      );
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute(
+        "download",
+        `alumnos_disciplina_${selectedDisciplineId}.pdf`
+      );
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      toast.success("PDF exportado correctamente");
+    } catch (error) {
+      console.error("Error al exportar alumnos a PDF", error);
+      toast.error("Error al exportar alumnos a PDF");
+    }
+  };
+
+  // Manejo de teclas para la lista de sugerencias
   const handleDisciplineKeyDown = (
     e: React.KeyboardEvent<HTMLInputElement>
   ) => {
@@ -130,6 +159,7 @@ const AlumnosPorDisciplina: React.FC = () => {
     }
   };
 
+  // Limpiar selección de disciplina
   const limpiarDisciplina = () => {
     setDisciplineFilter("");
     setSelectedDisciplineId(null);
@@ -137,6 +167,7 @@ const AlumnosPorDisciplina: React.FC = () => {
     setShowSuggestions(false);
   };
 
+  // Cerrar sugerencias al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (
@@ -149,6 +180,17 @@ const AlumnosPorDisciplina: React.FC = () => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Ordenar alumnos alfabéticamente por nombre y apellido
+  const sortedAlumnos = useMemo(() => {
+    return [...alumnos].sort((a, b) => {
+      const nameA = `${a.nombre.toLowerCase()} ${a.apellido.toLowerCase()}`;
+      const nameB = `${b.nombre.toLowerCase()} ${b.apellido.toLowerCase()}`;
+      if (nameA < nameB) return sortAsc ? -1 : 1;
+      if (nameA > nameB) return sortAsc ? 1 : -1;
+      return 0;
+    });
+  }, [alumnos, sortAsc]);
 
   return (
     <div className="container mx-auto py-6">
@@ -205,24 +247,38 @@ const AlumnosPorDisciplina: React.FC = () => {
             </Button>
           </div>
 
+          {/* Controles: ordenar e exportar PDF */}
+          {alumnos.length > 0 && (
+            <div className="mb-4 flex justify-between">
+              <Button onClick={() => setSortAsc((prev) => !prev)}>
+                {sortAsc ? "Ordenar Descendente" : "Ordenar Ascendente"}
+              </Button>
+              <Button variant="outline" size="sm" onClick={descargarAlumnosPDF}>
+                Exportar PDF
+              </Button>
+            </div>
+          )}
+
           {/* Mensajes de loading o error */}
           {loading && <p className="text-center py-4">Cargando alumnos...</p>}
           {error && <p className="text-center text-red-600 py-4">{error}</p>}
 
           {/* Tabla con la lista de alumnos */}
-          {alumnos.length > 0 && (
+          {sortedAlumnos.length > 0 && (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>ID</TableHead>
+                  <TableHead>#</TableHead>
                   <TableHead>Alumno</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {alumnos.map((alumno) => (
+                {sortedAlumnos.map((alumno, index) => (
                   <TableRow key={alumno.id}>
-                    <TableCell>{alumno.id}</TableCell>
-                    <TableCell>{`${alumno.nombre} ${alumno.apellido}`}</TableCell>
+                    <TableCell>{index + 1}</TableCell>
+                    <TableCell>
+                      {`${alumno.nombre} ${alumno.apellido}`}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

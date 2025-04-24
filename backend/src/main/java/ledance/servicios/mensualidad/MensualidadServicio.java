@@ -841,6 +841,7 @@ public class MensualidadServicio implements IMensualidadService {
         if (nuevoImportePendiente <= 0.0) {
             mensualidad.setEstado(EstadoMensualidad.PAGADO);
             mensualidad.setImportePendiente(0.0);
+            //CORREGIR ACÁ FECHA PAGO
             mensualidad.setFechaPago(LocalDate.now());
             log.info("[actualizarAbonoParcialMensualidad] Mensualidad id={} marcada como PAGADO. Importe pendiente ajustado a 0.0 y fechaPago asignada a {}", mensualidad.getId(), LocalDate.now());
         } else {

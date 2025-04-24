@@ -53,7 +53,7 @@ const DetallePagoList: React.FC = () => {
   const tableContainerRef = useRef<HTMLDivElement>(null);
 
   // Hook para bonificaciones y recargos
-  const { bonificaciones, recargos } = useCobranzasData();
+  useCobranzasData();
 
   // Función para cargar detalles (aplicando filtros si existen)
   const fetchDetalles = useCallback(
@@ -128,7 +128,7 @@ const DetallePagoList: React.FC = () => {
         (detalle.cobrado || detalle.estadoPago === "ANULADO")
     );
   }, [detalles]);
-  
+
   // Ajustar visibleCount según la altura del contenedor principal
   const adjustVisibleCount = useCallback(() => {
     if (containerRef.current) {
@@ -380,33 +380,14 @@ const DetallePagoList: React.FC = () => {
             fillAvailable={true}
           >
             <Tabla
-              headers={[
-                "Código",
-                "Alumno",
-                "Concepto",
-                "Cobrado",
-                "Bonificación",
-                "Recargo",
-                "Cobrados",
-              ]}
+              headers={["Código", "Alumno", "Concepto", "Cobrado"]}
               data={sortedItems}
               customRender={(fila) => {
-                const bonificacionNombre =
-                  fila.bonificacionId &&
-                  bonificaciones.find((b) => b.id === fila.bonificacionId)
-                    ?.descripcion;
-                const recargoNombre =
-                  fila.recargoId &&
-                  recargos.find((r) => r.id === Number(fila.recargoId))
-                    ?.descripcion;
                 return [
                   fila.pagoId || fila.id,
                   fila.alumno.nombre + " " + fila.alumno.apellido,
                   fila.descripcionConcepto,
                   fila.ACobrar,
-                  bonificacionNombre || "-",
-                  recargoNombre || "-",
-                  fila.cobrado ? "Sí" : "No",
                 ];
               }}
               emptyMessage="No hay pagos cobrados"

@@ -5,14 +5,13 @@ import com.lowagie.text.pdf.PdfPCell;
 import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
 import jakarta.mail.MessagingException;
+import ledance.dto.alumno.response.AlumnoResponse;
 import ledance.dto.caja.CajaDetalleDTO;
 import ledance.dto.egreso.response.EgresoResponse;
 import ledance.dto.pago.response.PagoResponse;
-import ledance.entidades.Bonificacion;
-import ledance.entidades.DetallePago;
-import ledance.entidades.Pago;
-import ledance.entidades.Recargo;
-import ledance.servicios.email.EmailService;
+import ledance.entidades.*;
+import ledance.repositorios.DisciplinaRepositorio;
+import ledance.servicios.disciplina.DisciplinaServicio;
 import ledance.servicios.email.IEmailService;
 import ledance.util.FilePathResolver;
 import org.slf4j.Logger;
@@ -24,8 +23,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 import static ledance.servicios.mensualidad.MensualidadServicio.validarRecargo;
 
@@ -34,10 +36,14 @@ public class PdfService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PdfService.class);
     private final IEmailService emailService;               // <-- tipo interfaz
+    private final DisciplinaServicio disciplinaServicio;
+    private final DisciplinaRepositorio disciplinaRepositorio;
 
-    public PdfService(IEmailService emailService              // <--- inyecta la interfaz
-    ) {
+    public PdfService(IEmailService emailService,              // <--- inyecta la interfaz
+                      DisciplinaServicio disciplinaServicio, DisciplinaRepositorio disciplinaRepositorio) {
         this.emailService = emailService;
+        this.disciplinaServicio = disciplinaServicio;
+        this.disciplinaRepositorio = disciplinaRepositorio;
     }
 
     /**
@@ -117,34 +123,50 @@ public class PdfService {
      */
     public void generarYEnviarReciboEmail(Pago pago)
             throws IOException, DocumentException, MessagingException {
+
+        // 0) Validación: solo procesar si monto y montoPagado > 0
+        if (pago.getMonto() == null || pago.getMontoPagado() == null
+                || pago.getMonto() <= 0 || pago.getMontoPagado() <= 0) {
+            return;
+        }
+
+        // 1) Generar PDF
         byte[] pdfBytes = generarReciboPdf(pago);
 
+        // 2) Validar email del alumno
         String emailAlumno = pago.getAlumno().getEmail();
         if (emailAlumno == null || emailAlumno.isBlank()) {
-            throw new IllegalArgumentException("Alumno " + pago.getAlumno().getNombre() + " no posee un email valido");
+            throw new IllegalArgumentException(
+                    "Alumno " + pago.getAlumno().getNombre() + " no posee un email válido");
         }
+
         String from = "administracion@ledance.com.ar";
         String subject = "Recibo de pago";
 
-        // Se obtiene la cadena con la lista de detalles a partir de los detalles del pago.
+        // 3) Construir cuerpo del mensaje
         String detallesCadena = obtenerCadenaDetalles(pago);
+        String body = "<p>¡Hola " + pago.getAlumno().getNombre() + "!</p>"
+                + "<p>En adjunto te enviamos el comprobante de pago correspondiente a:</p>"
+                + "<p>" + detallesCadena + "</p>"
+                + "<p>Muchas gracias.</p>"
+                + "<p>Administración</p>"
+                + "<img src='cid:signature' alt='Firma' style='max-width:200px;'/>";
 
-        // Construir cuerpo HTML con firma inline y se inserta la cadena de detalles.
-        String body = "<p>¡Hola " + pago.getAlumno().getNombre() + "!</p>" +
-                "<p>En adjunto te enviamos el comprobante de pago correspondiente a:</p>" +
-                "<p>" + detallesCadena + "</p>" +
-                "<p>Muchas gracias.</p>" +
-                "<p>Administracion</p>" +
-                "<img src='cid:signature' alt='Firma' style='max-width:200px;'/>";
-
-        // Cargar la imagen de firma del sistema de archivos.
+        // 4) Cargar imagen de firma
         Path signaturePath = FilePathResolver.of("imgs", "firma_mesa-de-trabajo-1.png");
         byte[] signatureBytes = Files.readAllBytes(signaturePath);
 
-        // Enviar el email con el PDF adjunto y la imagen inline.
+        // 5) Enviar email con adjunto e imagen inline
         emailService.sendEmailWithAttachmentAndInlineImage(
-                from, emailAlumno, subject, body, pdfBytes,
-                "recibo_" + pago.getId() + ".pdf", signatureBytes, "signature", "image/png"
+                from,
+                emailAlumno,
+                subject,
+                body,
+                pdfBytes,
+                "recibo_" + pago.getId() + ".pdf",
+                signatureBytes,
+                "signature",
+                "image/png"
         );
     }
 
@@ -454,7 +476,7 @@ public class PdfService {
             if (estado.equals("ANULADO")) {
                 montoStr = estado;
             } else {
-                Double monto = (pago.monto() != null) ? pago.monto() : 0.0;
+                Double monto = montoPago;
                 montoStr = String.format("%,.2f", monto);
             }
 
@@ -489,4 +511,74 @@ public class PdfService {
         return tablaPagos;
     }
 
+    /**
+     * Genera un PDF con el listado de alumnos de una disciplina,
+     * numerados y en orden alfabético.
+     */
+    public byte[] generarAlumnosDisciplinaPdf(Long disciplinaId)
+            throws IOException, DocumentException {
+        // 1) Obtener lista de alumnos y ordenar por "Apellido Nombre"
+        List<AlumnoResponse> alumnos = disciplinaServicio
+                .obtenerAlumnosDeDisciplina(disciplinaId)
+                .stream()
+                .sorted(Comparator
+                        .comparing(a -> (a.apellido() + " " + a.nombre()).toLowerCase()))
+                .toList();
+
+        // 2) Crear documento PDF
+        try (ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
+            Document document = new Document(PageSize.A4);
+            PdfWriter.getInstance(document, bos);
+            document.open();
+
+            Disciplina disciplina = disciplinaRepositorio.findById(disciplinaId)
+                    .orElseThrow(() -> new NoSuchElementException(
+                            "Disciplina no encontrada para id=" + disciplinaId));
+
+            // Título
+            Font titleFont = new Font(Font.HELVETICA, 16, Font.BOLD);
+            Paragraph titulo = new Paragraph(
+                    "Listado de Alumnos - Disciplina " + disciplina.getNombre(),
+                    titleFont);
+            titulo.setAlignment(Element.ALIGN_CENTER);
+            document.add(titulo);
+            document.add(new Paragraph("\n"));
+
+            // Tabla con 2 columnas: #, Nombre completo
+            PdfPTable table = new PdfPTable(new float[]{1, 10});
+            table.setWidthPercentage(100);
+
+            // Encabezados
+            Font headerFont = new Font(Font.HELVETICA, 12, Font.BOLD);
+            Stream.of("#", "Nombre y Apellido")
+                    .forEach(header -> {
+                        PdfPCell cell = new PdfPCell(new Phrase(header, headerFont));
+                        cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                        cell.setPadding(4);
+                        table.addCell(cell);
+                    });
+
+            // Filas
+            Font cellFont = new Font(Font.HELVETICA, 10, Font.NORMAL);
+            for (int i = 0; i < alumnos.size(); i++) {
+                AlumnoResponse a = alumnos.get(i);
+                // Columna índice
+                PdfPCell idxCell = new PdfPCell(new Phrase(String.valueOf(i + 1), cellFont));
+                idxCell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                idxCell.setPadding(4);
+                table.addCell(idxCell);
+
+                // Columna nombre completo
+                String nombreCompleto = a.nombre() + " " + a.apellido();
+                PdfPCell nameCell = new PdfPCell(new Phrase(nombreCompleto, cellFont));
+                nameCell.setPadding(4);
+                table.addCell(nameCell);
+            }
+
+            document.add(table);
+            document.close();
+
+            return bos.toByteArray();
+        }
+    }
 }

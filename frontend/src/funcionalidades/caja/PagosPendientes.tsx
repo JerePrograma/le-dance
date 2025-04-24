@@ -377,7 +377,7 @@ const DetallePagoList: React.FC = () => {
             fillAvailable={true}
           >
             <Tabla
-              headers={["Código", "Alumno", "Concepto", "Deuda", "Cobrados"]}
+              headers={["Código", "Alumno", "Concepto", "Deuda"]}
               data={sortedItems}
               customRender={(fila) => {
                 return [
@@ -385,7 +385,6 @@ const DetallePagoList: React.FC = () => {
                   fila.alumno.nombre + " " + fila.alumno.apellido,
                   fila.descripcionConcepto,
                   fila.importePendiente,
-                  fila.cobrado ? "Sí" : "No",
                 ];
               }}
               emptyMessage="No hay pagos pendientes"
