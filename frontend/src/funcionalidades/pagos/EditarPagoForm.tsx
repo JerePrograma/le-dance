@@ -625,6 +625,7 @@ const DetallePagoList: React.FC<DetallePagoListProps> = ({
             <Tabla
               headers={[
                 "N° Recibo",
+                "N° Item",
                 "Alumno",
                 "Concepto",
                 "Cobrado",
@@ -638,6 +639,7 @@ const DetallePagoList: React.FC<DetallePagoListProps> = ({
                     : fila.ACobrar;
                 return [
                   fila.pagoId,
+                  fila.id,
                   fila.alumno.nombre + " " + fila.alumno.apellido,
                   fila.descripcionConcepto,
                   cobradoValue,
