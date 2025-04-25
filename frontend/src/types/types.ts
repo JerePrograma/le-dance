@@ -770,6 +770,7 @@ export interface DetallePagoRegistroRequest {
   version: number;
   descripcionConcepto: string;
   cuotaOCantidad?: string;
+  alumno?: AlumnoRegistro;
   valorBase: number;
   ACobrar: number;
   bonificacionId?: number | null;
@@ -785,6 +786,7 @@ export interface DetallePagoRegistroRequest {
   pagoId?: number | null; // <-- Nuevo atributo
   tieneRecargo: boolean;
   estadoPago: string;
+  tipo: string;
 }
 
 export type DetallePagoRegistroRequestExt = DetallePagoRegistroRequest & {
