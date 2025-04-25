@@ -90,7 +90,6 @@ public class PagoControlador {
 
     @PostMapping
     public ResponseEntity<PagoResponse> registrarPago(@RequestBody @Validated PagoRegistroRequest request) {
-        log.info("[PagoControlador] Iniciando registro de pago. Payload recibido: {}", request);
         PagoResponse response = pagoServicio.registrarPago(request);
         log.info("[PagoControlador] Registro de pago finalizado. Respuesta enviada: {}", response);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -101,14 +100,6 @@ public class PagoControlador {
                                                        @RequestBody @Validated PagoRegistroRequest request) {
         log.info("Actualizando pago con id: {}", id);
         PagoResponse response = pagoServicio.actualizarPago(id, request);
-        return ResponseEntity.ok(response);
-    }
-
-    @PutMapping("/{id}/parcial")
-    public ResponseEntity<PagoResponse> actualizarPagoParcial(
-            @PathVariable Long id,
-            @RequestBody @Validated PagoMedioRegistroRequest request) {
-        PagoResponse response = pagoServicio.registrarPagoParcial(id, request.montoAbonado(), request.montosPorDetalle(), request.metodoPagoId());
         return ResponseEntity.ok(response);
     }
 

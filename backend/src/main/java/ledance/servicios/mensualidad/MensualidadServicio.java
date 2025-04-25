@@ -44,7 +44,6 @@ public class MensualidadServicio implements IMensualidadService {
     private final RecargoServicio recargoServicio;
     private final DisciplinaRepositorio disciplinaRepositorio;
     private final PagoRepositorio pagoRepositorio;
-    private final UsuarioRepositorio usuarioRepositorio;
     private final AlumnoMapper alumnoMapper;
     private final AlumnoRepositorio alumnoRepositorio;
 
@@ -54,7 +53,8 @@ public class MensualidadServicio implements IMensualidadService {
                                RecargoRepositorio recargoRepositorio,
                                BonificacionRepositorio bonificacionRepositorio,
                                ProcesoEjecutadoRepositorio procesoEjecutadoRepositorio, RecargoServicio recargoServicio, DisciplinaRepositorio disciplinaRepositorio,
-                               PagoRepositorio pagoRepositorio, UsuarioRepositorio usuarioRepositorio, AlumnoMapper alumnoMapper, AlumnoRepositorio alumnoRepositorio) {
+                               PagoRepositorio pagoRepositorio,
+                               AlumnoMapper alumnoMapper, AlumnoRepositorio alumnoRepositorio) {
         this.detallePagoRepositorio = detallePagoRepositorio;
         this.mensualidadRepositorio = mensualidadRepositorio;
         this.inscripcionRepositorio = inscripcionRepositorio;
@@ -65,7 +65,6 @@ public class MensualidadServicio implements IMensualidadService {
         this.recargoServicio = recargoServicio;
         this.disciplinaRepositorio = disciplinaRepositorio;
         this.pagoRepositorio = pagoRepositorio;
-        this.usuarioRepositorio = usuarioRepositorio;
         this.alumnoMapper = alumnoMapper;
         this.alumnoRepositorio = alumnoRepositorio;
     }
@@ -212,7 +211,7 @@ public class MensualidadServicio implements IMensualidadService {
         List<Inscripcion> inscripcionesActivas = inscripcionRepositorio.findByEstado(EstadoInscripcion.ACTIVA)
                 .stream()
                 .filter(ins -> ins.getAlumno() != null && Boolean.TRUE.equals(ins.getAlumno().getActivo()))
-                .collect(Collectors.toList());
+                .toList();
         log.info("Total de inscripciones activas encontradas: {}", inscripcionesActivas.size());
 
         List<MensualidadResponse> respuestas = new ArrayList<>();

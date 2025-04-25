@@ -13,7 +13,6 @@ import ledance.repositorios.DetallePagoRepositorio;
 import ledance.repositorios.MatriculaRepositorio;
 import ledance.repositorios.MensualidadRepositorio;
 import ledance.repositorios.PagoRepositorio;
-import ledance.servicios.mensualidad.MensualidadServicio;
 import org.flywaydb.core.internal.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,7 +29,6 @@ import java.util.stream.Collectors;
 @Service
 public class DetallePagoServicio {
 
-    private final MensualidadServicio mensualidadServicio;
     @PersistenceContext
     private EntityManager entityManager;
 
@@ -42,13 +40,12 @@ public class DetallePagoServicio {
     private final MatriculaRepositorio matriculaRepositorio;
 
     public DetallePagoServicio(DetallePagoRepositorio detallePagoRepositorio, DetallePagoMapper detallePagoMapper, MensualidadRepositorio mensualidadRepositorio, PagoRepositorio pagoRepositorio,
-                               MatriculaRepositorio matriculaRepositorio, MensualidadServicio mensualidadServicio) {
+                               MatriculaRepositorio matriculaRepositorio) {
         this.detallePagoRepositorio = detallePagoRepositorio;
         this.detallePagoMapper = detallePagoMapper;
         this.mensualidadRepositorio = mensualidadRepositorio;
         this.pagoRepositorio = pagoRepositorio;
         this.matriculaRepositorio = matriculaRepositorio;
-        this.mensualidadServicio = mensualidadServicio;
     }
 
     /**

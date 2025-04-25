@@ -64,10 +64,8 @@ public class NotificacionService {
         LocalDateTime inicioDelDia = hoy.atStartOfDay();
         LocalDateTime inicioDelSiguienteDia = inicioDelDia.plusDays(1);
 
-        // 1) Verificar si ya se ejecuto hoy
         Optional<ProcesoEjecutado> procOpt = procesoEjecutadoRepositorio.findByProceso(PROCESO);
         if (procOpt.isPresent() && procOpt.get().getUltimaEjecucion().isEqual(hoy)) {
-            // Ya corrio hoy: recuperamos todas las notificaciones de hoy (cualquier hora)
             return notificacionRepositorio
                     .findByTipoAndFechaCreacionBetween(PROCESO, inicioDelDia, inicioDelSiguienteDia)
                     .stream()
@@ -76,22 +74,18 @@ public class NotificacionService {
         }
 
         List<String> mensajes = new ArrayList<>();
-
         int mes = hoy.getMonthValue();
         int dia = hoy.getDayOfMonth();
-
-        // ¿Estamos corriendo en prod?
+        boolean isBisiesto = hoy.isLeapYear();
         boolean isProd = env.acceptsProfiles(Profiles.of("prod"));
-        // 3) Procesar alumnos
+
         for (Alumno alumno : alumnoRepository.findAll()) {
-            if (alumno.getFechaNacimiento() != null
-                    && alumno.getFechaNacimiento().getMonthValue() == mes
-                    && alumno.getFechaNacimiento().getDayOfMonth() == dia) {
+            LocalDate nacimiento = alumno.getFechaNacimiento();
+            if (nacimiento != null && cumpleHoy(nacimiento, hoy, isBisiesto)) {
 
                 String texto = "Alumno: " + alumno.getNombre() + " " + alumno.getApellido();
                 mensajes.add(texto);
 
-                // Persistir notificacion
                 Notificacion noti = new Notificacion();
                 noti.setUsuarioId(1L);
                 noti.setTipo(PROCESO);
@@ -100,47 +94,38 @@ public class NotificacionService {
                 noti.setLeida(false);
                 notificacionRepositorio.save(noti);
 
-                // Enviar email con inline image
-
-                // envío e-mail **solo** si estoy en prod y el alumno tiene e-mail
                 if (isProd && StringUtils.hasText(alumno.getEmail())) {
-                    // 2) Leer firma
                     String baseDir = System.getenv("LEDANCE_HOME");
                     if (baseDir == null || baseDir.isBlank()) {
                         throw new IllegalStateException("Variable de entorno LEDANCE_HOME no definida");
                     }
                     Path firmaPath = Paths.get(baseDir, "imgs", "firma_mesa-de-trabajo-1.png");
                     byte[] firmaBytes = Files.readAllBytes(firmaPath);
-                    if (StringUtils.hasText(alumno.getEmail())) {
-                        String subject = "¡Feliz Cumpleaños, " + alumno.getNombre() + "!";
-                        String htmlBody =
-                                "<p>FELICIDADES <strong>" + alumno.getNombre() + "</strong></p>"
-                                        + "<p>De parte de todo el Staff de LE DANCE arte escuela, te deseamos un "
-                                        + "<strong>MUY FELIZ CUMPLEAÑOS!</strong></p>"
-                                        + "<p>Katia, Anto y Nati te desean un nuevo año lleno de deseos por cumplir!</p>"
-                                        + "<p>Te adoramos.</p>"
-                                        + "<img src='cid:signature' alt='Firma' style='max-width:200px;'/>";
 
-                        emailService.sendEmailWithInlineImage(
-                                "administracion@ledance.com.ar",
-                                alumno.getEmail(),
-                                subject,
-                                htmlBody,
-                                firmaBytes,
-                                "signature",
-                                "image/png"
-                        );
-                    }
+                    String subject = "¡Feliz Cumpleaños, " + alumno.getNombre() + "!";
+                    String htmlBody = "<p>FELICIDADES <strong>" + alumno.getNombre() + "</strong></p>"
+                            + "<p>De parte de todo el Staff de LE DANCE arte escuela, te deseamos un "
+                            + "<strong>MUY FELIZ CUMPLEAÑOS!</strong></p>"
+                            + "<p>Katia, Anto y Nati te desean un nuevo año lleno de deseos por cumplir!</p>"
+                            + "<p>Te adoramos.</p>"
+                            + "<img src='cid:signature' alt='Firma' style='max-width:200px;'/>";
+
+                    emailService.sendEmailWithInlineImage(
+                            "administracion@ledance.com.ar",
+                            alumno.getEmail(),
+                            subject,
+                            htmlBody,
+                            firmaBytes,
+                            "signature",
+                            "image/png"
+                    );
                 }
             }
         }
 
-        // 4) Procesar profesores (sin envio de email)
         for (Profesor prof : profesorRepository.findAll()) {
-            if (prof.getFechaNacimiento() != null
-                    && prof.getFechaNacimiento().getMonthValue() == mes
-                    && prof.getFechaNacimiento().getDayOfMonth() == dia) {
-
+            LocalDate nacimiento = prof.getFechaNacimiento();
+            if (nacimiento != null && cumpleHoy(nacimiento, hoy, isBisiesto)) {
                 String texto = "Profesor: " + prof.getNombre() + " " + prof.getApellido();
                 mensajes.add(texto);
 
@@ -154,7 +139,6 @@ public class NotificacionService {
             }
         }
 
-        // 5) Marcar ejecucion del proceso
         if (procOpt.isPresent()) {
             ProcesoEjecutado ejecutado = procOpt.get();
             ejecutado.setUltimaEjecucion(hoy);
@@ -164,9 +148,16 @@ public class NotificacionService {
             procesoEjecutadoRepositorio.save(ejecutado);
         }
 
-        // 6) Enviar por WebSocket
         messagingTemplate.convertAndSend("/topic/notificaciones", mensajes);
-
         return mensajes;
     }
+
+    private boolean cumpleHoy(LocalDate fechaNacimiento, LocalDate hoy, boolean isBisiesto) {
+        int mesNac = fechaNacimiento.getMonthValue();
+        int diaNac = fechaNacimiento.getDayOfMonth();
+
+        return (mesNac == hoy.getMonthValue() && diaNac == hoy.getDayOfMonth()) ||
+                (!isBisiesto && mesNac == 2 && diaNac == 29 && hoy.getMonthValue() == 2 && hoy.getDayOfMonth() == 28);
+    }
+
 }

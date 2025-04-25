@@ -136,42 +136,45 @@ public class PaymentCalculationServicio {
      * Se normaliza la descripcion, se determina el tipo, se reatachan asociaciones
      * y se invoca la logica especifica segun el tipo.
      */
+    // --------------------------------------------------
+    // 4) Orquesta todo el proceso para cada detalle
     @Transactional
     public void procesarYCalcularDetalle(DetallePago detalle, Inscripcion inscripcion) {
-        log.info("[procesarYCalcularDetalle] INICIO para DetallePago id={}", detalle.getId());
-        // 1. Normalización de la descripción
-        String descripcion = Optional.ofNullable(detalle.getDescripcionConcepto())
-                .orElse("")
-                .trim()
-                .toUpperCase();
-        detalle.setDescripcionConcepto(descripcion);
+        log.info("[procesarYCalcularDetalle] INICIO id={}", detalle.getId());
 
-        // 2. Determinar tipo
+        // Normalización de descripción
+        String desc = Optional.ofNullable(detalle.getDescripcionConcepto())
+                .orElse("").trim().toUpperCase();
+        detalle.setDescripcionConcepto(desc);
+
+        // Tipo si falta
         if (detalle.getTipo() == null) {
-            detalle.setTipo(determinarTipoDetalle(descripcion));
+            detalle.setTipo(determinarTipoDetalle(desc));
         }
 
-        // 3. Reatach entity‐graph de Concepto/SubConcepto
+        // Reatach de Concepto/SubConcepto
         if (detalle.getConcepto() != null && detalle.getConcepto().getId() != null) {
-            Concepto managed = entityManager.find(Concepto.class, detalle.getConcepto().getId());
-            if (managed == null)
-                throw new EntityNotFoundException("Concepto id=" + detalle.getConcepto().getId() + " no encontrado");
-            detalle.setConcepto(managed);
-            if (detalle.getSubConcepto() == null && managed.getSubConcepto() != null) {
-                detalle.setSubConcepto(managed.getSubConcepto());
+            Concepto c = entityManager.find(Concepto.class, detalle.getConcepto().getId());
+            if (c == null) throw new EntityNotFoundException("Concepto id=" + detalle.getConcepto().getId());
+            detalle.setConcepto(c);
+            if (detalle.getSubConcepto() == null && c.getSubConcepto() != null) {
+                detalle.setSubConcepto(c.getSubConcepto());
             }
         }
 
-        // 4. Flag de recargo
+        // Flag recargo
         detalle.setTieneRecargo(Boolean.TRUE.equals(detalle.getTieneRecargo()));
 
-        // 5. Calcular según tipo
+        // Llamada al cálculo según tipo
         switch (detalle.getTipo()) {
             case MENSUALIDAD:
-                calcularMensualidad(detalle, inscripcion);
-                if (descripcion.contains("CUOTA")) {
+                double pendienteReq = detalle.getImportePendiente();
+                double aCobrarReq  = detalle.getACobrar();
+                calcularMensualidad(detalle, inscripcion, pendienteReq, aCobrarReq);
+
+                if (desc.contains("CUOTA")) {
                     Mensualidad m = mensualidadServicio.obtenerOMarcarPendienteMensualidad(
-                            detalle.getAlumno().getId(), descripcion);
+                            detalle.getAlumno().getId(), desc);
                     mensualidadServicio.procesarAbonoMensualidad(m, detalle);
                 }
                 break;
@@ -187,43 +190,27 @@ public class PaymentCalculationServicio {
             default:
                 detalle.setTipo(TipoDetallePago.CONCEPTO);
                 calcularConceptoGeneral(detalle);
-                if (descripcion.contains("CLASE SUELTA")) {
-                    double credito = Optional.ofNullable(detalle.getAlumno().getCreditoAcumulado()).orElse(0.0)
+                if (desc.contains("CLASE SUELTA")) {
+                    double nuevoCredito = Optional.ofNullable(detalle.getAlumno().getCreditoAcumulado()).orElse(0.0)
                             + Optional.ofNullable(detalle.getACobrar()).orElse(0.0);
-                    detalle.getAlumno().setCreditoAcumulado(credito);
+                    detalle.getAlumno().setCreditoAcumulado(nuevoCredito);
                 }
                 break;
         }
 
-        // 6. Consistencia final
-        detalle.setImporteInicial(
-                Optional.ofNullable(detalle.getImporteInicial())
-                        .filter(v -> v > 0)
-                        .orElse(Optional.ofNullable(detalle.getValorBase()).orElse(0.0))
-        );
+        // Consistencia final
+        detalle.setImporteInicial(Optional.ofNullable(detalle.getImporteInicial())
+                .filter(v -> v > 0).orElse(Optional.ofNullable(detalle.getValorBase()).orElse(0.0)));
         detalle.setACobrar(Optional.ofNullable(detalle.getACobrar()).filter(v -> v > 0).orElse(0.0));
-        // El importe pendiente **YA** lo puso la rutina de cálculo (sin restar aCobrar acá).
-        boolean cobrado = Optional.ofNullable(detalle.getImportePendiente()).orElse(0.0) <= 0;
-        detalle.setCobrado(cobrado);
-        if (cobrado) {
+        boolean finalCobrado = Optional.ofNullable(detalle.getImportePendiente()).orElse(0.0) <= 0;
+        detalle.setCobrado(finalCobrado);
+        if (finalCobrado) {
             detalle.setEstadoPago(EstadoPago.HISTORICO);
             detalle.setImportePendiente(0.0);
         }
 
         detallePagoRepositorio.save(detalle);
-        log.info("[procesarYCalcularDetalle] FIN - {}", detalle);
-    }
-
-    void aplicarDescuentoCreditoEnMatricula(Pago pago, DetallePago detalle) {
-        Alumno alumno = pago.getAlumno();
-        if (alumno == null) {
-            throw new IllegalArgumentException("El alumno del pago es requerido");
-        }
-        double creditoAlumno = alumno.getCreditoAcumulado() != null ? alumno.getCreditoAcumulado() : 0.0;
-        double nuevoValorBase = detalle.getImportePendiente() - creditoAlumno;
-        detalle.setImporteInicial(nuevoValorBase);
-        detalle.setImportePendiente(nuevoValorBase);
-        alumno.setCreditoAcumulado(0.0);
+        log.info("[procesarYCalcularDetalle] FIN id={}", detalle.getId());
     }
 
     @Transactional
@@ -376,64 +363,46 @@ public class PaymentCalculationServicio {
      * Calcula el importe inicial de una mensualidad para un DetallePago, usando la inscripcion (si esta disponible)
      * para aplicar descuentos y recargos.
      */
+    // --------------------------------------------------
+// 3) Cálculo de mensualidad usando SIEMPRE los valores del frontend
     @Transactional
-    public void calcularMensualidad(DetallePago detalle, Inscripcion inscripcion) {
-        log.info("[calcularMensualidad] INICIO calculo para DetallePago id={}", detalle.getId());
-        log.info("[calcularMensualidad] Iniciando calculo DetallePago: {}", detalle);
+    public void calcularMensualidad(
+            DetallePago detalle,
+            Inscripcion inscripcion,
+            double pendienteInicialRequest,
+            double aCobrarRequest
+    ) {
+        log.info("[calcularMensualidad] START id={} pendienteRequest={} aCobrarRequest={} recargoFlag={}",
+                detalle.getId(),
+                pendienteInicialRequest,
+                aCobrarRequest,
+                detalle.getTieneRecargo());
 
-        // 1. Establecer importeInicial: usar el valor enviado o calcular si es invalido
-        Double impInicial = detalle.getImporteInicial();
-        if (impInicial == null || impInicial <= 0) {
-            impInicial = detalle.getImportePendiente();
-            log.info("[calcularMensualidad] ImporteInicial calculado: {} para Detalle id={}", impInicial, detalle.getId());
-        } else {
-            log.info("[calcularMensualidad] Usando importeInicial proporcionado: {} para Detalle id={}", impInicial, detalle.getId());
-        }
-        // 2. Forzar la recalculacion del importe pendiente segun la intencion del cliente:
-        // Si tieneRecargo es false, se ignora cualquier recargo y se fuerza que
-        // el importePendiente sea igual al importeInicial.
-        if (!detalle.getTieneRecargo()) {
-            detalle.setTieneRecargo(false);
-            log.info("[calcularMensualidad] Sin recargo para Detalle id={}. ImportePendiente forzado a importeInicial: {}",
-                    detalle.getId(), impInicial);
-        } else {
-            // Si tieneRecargo es true, se calcula el recargo y se suma al importeInicial
-            double recargo = MensualidadServicio.validarRecargo(impInicial, detalle.getRecargo());
-            double nuevoImportePendiente = impInicial + recargo;
-            detalle.setImportePendiente(nuevoImportePendiente);
-            log.info("[calcularMensualidad] Recargo aplicado: {}. Nuevo importePendiente: {} para Detalle id={}",
-                    recargo, nuevoImportePendiente, detalle.getId());
+        // 1) Base: valor puro del frontend
+        double base = pendienteInicialRequest;
+
+        // 2) Recargo (si corresponde)
+        double recargo = 0.0;
+        if (Boolean.TRUE.equals(detalle.getTieneRecargo()) && detalle.getRecargo() != null) {
+            recargo = MensualidadServicio.validarRecargo(base, detalle.getRecargo());
+            log.debug("[calcularMensualidad] recargo calculado={}", recargo);
         }
 
-        // 3. Procesar abono: descontar ACobrar si corresponde
-        if (detalle.getACobrar() != null && detalle.getACobrar() > 0) {
-            double nuevoPendiente;
-            if (detalle.getImportePendiente() != null) {
-                nuevoPendiente = detalle.getImportePendiente() - detalle.getACobrar();
+        // 3) Pago recibido (del frontend)
 
-            } else {
-                nuevoPendiente = detalle.getImporteInicial() - detalle.getACobrar();
-            }
-            detalle.setImportePendiente(nuevoPendiente);
-            log.info("[calcularMensualidad] Abono procesado: ACobrar={} -> nuevo importePendiente={}",
-                    detalle.getACobrar(), nuevoPendiente);
-        }
+        // 4) Nuevo pendiente = base + recargo – pago
+        double pendienteNuevo = Math.max(0.0, base + recargo - aCobrarRequest);
 
-        // 4. Actualizar estado de cobro segun el importe pendiente
-        if (detalle.getImportePendiente() != null && detalle.getImportePendiente() <= 0.0) {
+        // 5) Actualizar entidad
+        detalle.setImportePendiente(pendienteNuevo);
+        boolean cobrado = pendienteNuevo <= 0.0;
+        detalle.setCobrado(cobrado);
+        if (cobrado) {
             detalle.setEstadoPago(EstadoPago.HISTORICO);
-            detalle.setCobrado(true);
-            detalle.setImportePendiente(0.0);
-            log.info("[calcularMensualidad] Detalle id={} marcado como cobrado", detalle.getId());
-        } else {
-            log.info("[calcularMensualidad] Detalle id={} NO cobrado (importe pendiente > 0)", detalle.getId());
         }
-        log.info("[calcularMensualidad] Finalizando calculo DetallePago: {}", detalle);
 
-        // 5. Persistir cambios
-        detallePagoRepositorio.save(detalle);
-        log.info("[calcularMensualidad] FIN calculo. Detalle id={} persistido con importeInicial={} e importePendiente={}",
-                detalle.getId(), detalle.getImporteInicial(), detalle.getImportePendiente());
+        log.info("[calcularMensualidad] END id={} nuevoPendiente={} cobrado={}",
+                detalle.getId(), pendienteNuevo, cobrado);
     }
 
     private void procesarStockInterno(DetallePago detalle) {

@@ -628,14 +628,14 @@ const DetallePagoList: React.FC<DetallePagoListProps> = ({
                 "N° Item",
                 "Alumno",
                 "Concepto",
-                "Cobrado",
+                filtroCobrado === "GENERADOS" ? `Deuda` : `Cobrado`,
                 "Fecha pago",
               ]}
               data={sortedItems}
               customRender={(fila: DetallePagoResponse) => {
                 const cobradoValue =
                   filtroCobrado === "GENERADOS"
-                    ? `Deuda: ${fila.importePendiente}`
+                    ? fila.importePendiente
                     : fila.ACobrar;
                 return [
                   fila.pagoId,
