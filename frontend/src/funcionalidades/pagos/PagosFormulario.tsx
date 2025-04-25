@@ -1202,7 +1202,7 @@ const CobranzasForm: React.FC = () => {
             subConceptoId: null,
             cuotaOCantidad: cantidad.toString(),
             valorBase: valorBaseTotal,
-            importeInicial: importeConRecargo,
+            importeInicial: valorBaseTotal,
             importePendiente: importeConRecargo,
             bonificacionId,
             recargoId,

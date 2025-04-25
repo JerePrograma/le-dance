@@ -566,9 +566,13 @@ public class DetallePagoServicio {
     }
 
     private void verificarEstadoPagoAnuladoSiCorresponde(Pago pago) {
-        long countNoAnulados = detallePagoRepositorio
-                .countByPagoIdAndEstadoPagoNot(pago.getId(), EstadoPago.ANULADO);
-        if (countNoAnulados == 0) {
+        boolean todosAnuladosOCero = pago.getDetallePagos().stream()
+                .allMatch(d ->
+                        d.getEstadoPago() == EstadoPago.ANULADO
+                                || Double.valueOf(0.0).equals(d.getACobrar())
+                );
+
+        if (todosAnuladosOCero) {
             pago.setEstadoPago(EstadoPago.ANULADO);
             pagoRepositorio.save(pago);
         }

@@ -10,6 +10,8 @@ import ledance.repositorios.NotificacionRepositorio;
 import ledance.repositorios.ProcesoEjecutadoRepositorio;
 import ledance.repositorios.ProfesorRepositorio;
 import ledance.servicios.email.IEmailService;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -35,19 +37,21 @@ public class NotificacionService {
     private final ProcesoEjecutadoRepositorio procesoEjecutadoRepositorio;
     private final IEmailService emailService;               // <-- tipo interfaz
     private final SimpMessagingTemplate messagingTemplate;
+    private final Environment env;
 
     public NotificacionService(AlumnoRepositorio alumnoRepository,
                                ProfesorRepositorio profesorRepository,
                                NotificacionRepositorio notificacionRepositorio,
                                ProcesoEjecutadoRepositorio procesoEjecutadoRepositorio,
                                IEmailService emailService,              // <--- inyecta la interfaz
-                               SimpMessagingTemplate messagingTemplate) {
+                               SimpMessagingTemplate messagingTemplate, Environment env) {
         this.alumnoRepository = alumnoRepository;
         this.profesorRepository = profesorRepository;
         this.notificacionRepositorio = notificacionRepositorio;
         this.procesoEjecutadoRepositorio = procesoEjecutadoRepositorio;
         this.emailService = emailService;
         this.messagingTemplate = messagingTemplate;
+        this.env = env;
     }
 
     /**
@@ -71,19 +75,13 @@ public class NotificacionService {
                     .toList();
         }
 
-        // 2) Leer firma
-        String baseDir = System.getenv("LEDANCE_HOME");
-        if (baseDir == null || baseDir.isBlank()) {
-            throw new IllegalStateException("Variable de entorno LEDANCE_HOME no definida");
-        }
-        Path firmaPath = Paths.get(baseDir, "imgs", "firma_mesa-de-trabajo-1.png");
-        byte[] firmaBytes = Files.readAllBytes(firmaPath);
-
         List<String> mensajes = new ArrayList<>();
 
         int mes = hoy.getMonthValue();
         int dia = hoy.getDayOfMonth();
 
+        // ¿Estamos corriendo en prod?
+        boolean isProd = env.acceptsProfiles(Profiles.of("prod"));
         // 3) Procesar alumnos
         for (Alumno alumno : alumnoRepository.findAll()) {
             if (alumno.getFechaNacimiento() != null
@@ -103,25 +101,36 @@ public class NotificacionService {
                 notificacionRepositorio.save(noti);
 
                 // Enviar email con inline image
-                if (StringUtils.hasText(alumno.getEmail())) {
-                    String subject = "¡Feliz Cumpleaños, " + alumno.getNombre() + "!";
-                    String htmlBody =
-                            "<p>FELICIDADES <strong>" + alumno.getNombre() + "</strong></p>"
-                                    + "<p>De parte de todo el Staff de LE DANCE arte escuela, te deseamos un "
-                                    + "<strong>MUY FELIZ CUMPLEAÑOS!</strong></p>"
-                                    + "<p>Katia, Anto y Nati te desean un nuevo año lleno de deseos por cumplir!</p>"
-                                    + "<p>Te adoramos.</p>"
-                                    + "<img src='cid:signature' alt='Firma' style='max-width:200px;'/>";
 
-                    emailService.sendEmailWithInlineImage(
-                            "administracion@ledance.com.ar",
-                            alumno.getEmail(),
-                            subject,
-                            htmlBody,
-                            firmaBytes,
-                            "signature",
-                            "image/png"
-                    );
+                // envío e-mail **solo** si estoy en prod y el alumno tiene e-mail
+                if (isProd && StringUtils.hasText(alumno.getEmail())) {
+                    // 2) Leer firma
+                    String baseDir = System.getenv("LEDANCE_HOME");
+                    if (baseDir == null || baseDir.isBlank()) {
+                        throw new IllegalStateException("Variable de entorno LEDANCE_HOME no definida");
+                    }
+                    Path firmaPath = Paths.get(baseDir, "imgs", "firma_mesa-de-trabajo-1.png");
+                    byte[] firmaBytes = Files.readAllBytes(firmaPath);
+                    if (StringUtils.hasText(alumno.getEmail())) {
+                        String subject = "¡Feliz Cumpleaños, " + alumno.getNombre() + "!";
+                        String htmlBody =
+                                "<p>FELICIDADES <strong>" + alumno.getNombre() + "</strong></p>"
+                                        + "<p>De parte de todo el Staff de LE DANCE arte escuela, te deseamos un "
+                                        + "<strong>MUY FELIZ CUMPLEAÑOS!</strong></p>"
+                                        + "<p>Katia, Anto y Nati te desean un nuevo año lleno de deseos por cumplir!</p>"
+                                        + "<p>Te adoramos.</p>"
+                                        + "<img src='cid:signature' alt='Firma' style='max-width:200px;'/>";
+
+                        emailService.sendEmailWithInlineImage(
+                                "administracion@ledance.com.ar",
+                                alumno.getEmail(),
+                                subject,
+                                htmlBody,
+                                firmaBytes,
+                                "signature",
+                                "image/png"
+                        );
+                    }
                 }
             }
         }
