@@ -1427,8 +1427,8 @@ const CobranzasForm: React.FC = () => {
               if (detalle.tieneRecargo) {
                 return {
                   ...detalle,
-                  importePendiente: detalle.valorBase,
-                  ACobrar: detalle.valorBase,
+                  importePendiente: detalle.importeInicial,
+                  ACobrar: detalle.importeInicial,
                   tieneRecargo: false,
                   recargoId: null,
                   // opcionalmente limpieza de recargoNombre si lo guardas ahí
