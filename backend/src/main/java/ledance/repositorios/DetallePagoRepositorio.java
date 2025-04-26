@@ -3,6 +3,7 @@ package ledance.repositorios;
 import ledance.entidades.*;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -52,4 +53,8 @@ public interface DetallePagoRepositorio extends JpaRepository<DetallePago, Long>
     long countByPagoIdAndEstadoPagoNot(Long pagoId, EstadoPago estado);
 
     long countByPagoId(Long pagoId);
+
+    @Modifying
+    @Query("UPDATE DetallePago d SET d.usuario = null WHERE d.usuario.id = :uid")
+    void clearUsuarioFromDetallePagos(@Param("uid") Long usuarioId);
 }

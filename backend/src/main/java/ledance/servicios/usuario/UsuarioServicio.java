@@ -6,6 +6,8 @@ import ledance.dto.usuario.response.UsuarioResponse;
 import ledance.dto.usuario.UsuarioMapper;
 import ledance.entidades.Usuario;
 import ledance.entidades.Rol;
+import ledance.repositorios.DetallePagoRepositorio;
+import ledance.repositorios.PagoRepositorio;
 import ledance.repositorios.UsuarioRepositorio;
 import ledance.repositorios.RolRepositorio;
 import jakarta.transaction.Transactional;
@@ -25,15 +27,19 @@ public class UsuarioServicio implements IUsuarioServicio {
     private final PasswordEncoder passwordEncoder;
     private final RolRepositorio rolRepositorio;
     private final UsuarioMapper usuarioMapper;
+    private final DetallePagoRepositorio detallePagoRepositorio;
+    private final PagoRepositorio pagoRepositorio;
 
     public UsuarioServicio(UsuarioRepositorio usuarioRepositorio,
                            PasswordEncoder passwordEncoder,
                            RolRepositorio rolRepositorio,
-                           UsuarioMapper usuarioMapper) {
+                           UsuarioMapper usuarioMapper, DetallePagoRepositorio detallePagoRepositorio, PagoRepositorio pagoRepositorio) {
         this.usuarioRepositorio = usuarioRepositorio;
         this.passwordEncoder = passwordEncoder;
         this.rolRepositorio = rolRepositorio;
         this.usuarioMapper = usuarioMapper;
+        this.detallePagoRepositorio = detallePagoRepositorio;
+        this.pagoRepositorio = pagoRepositorio;
     }
 
     @Override
@@ -108,8 +114,11 @@ public class UsuarioServicio implements IUsuarioServicio {
 
     @Transactional
     public void eliminarUsuario(Long idUsuario) {
-        Usuario usuario = usuarioRepositorio.findById(idUsuario)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
-        usuarioRepositorio.delete(usuario);
+        // 1) Poner a null las FKs en DetallePago y Pago
+        detallePagoRepositorio.clearUsuarioFromDetallePagos(idUsuario);
+        pagoRepositorio.clearUsuarioFromPagos(idUsuario);
+
+        // 2) Ahora sí, eliminar el usuario sin conflictos
+        usuarioRepositorio.deleteById(idUsuario);
     }
 }

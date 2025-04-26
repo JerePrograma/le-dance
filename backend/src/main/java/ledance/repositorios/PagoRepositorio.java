@@ -3,6 +3,7 @@ package ledance.repositorios;
 import ledance.entidades.EstadoPago;
 import ledance.entidades.Pago;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -42,4 +43,8 @@ public interface PagoRepositorio extends JpaRepository<Pago, Long> {
     List<Pago> findByAlumnoId(Long id);
 
     List<Pago> findByFechaBetween(LocalDate start, LocalDate end);
+
+    @Modifying
+    @Query("UPDATE Pago p SET p.usuario = null WHERE p.usuario.id = :uid")
+    void clearUsuarioFromPagos(@Param("uid") Long usuarioId);
 }
