@@ -7,11 +7,11 @@ import ledance.dto.pago.request.DetallePagoRegistroRequest;
 import ledance.dto.pago.request.PagoRegistroRequest;
 import ledance.entidades.*;
 import ledance.repositorios.*;
+import ledance.servicios.detallepago.DetallePagoServicio;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
 import java.util.*;
 
 /**
@@ -32,6 +32,9 @@ public class PaymentProcessor {
     private final PaymentCalculationServicio paymentCalculationServicio;
     private final UsuarioRepositorio usuarioRepositorio;
     private final PagoRepositorio pagoRepositorio;
+    private final DetallePagoServicio detallePagoServicio;
+    private final BonificacionRepositorio bonificacionRepositorio;
+    private final RecargoRepositorio recargoRepositorio;
 
     @PersistenceContext
     private jakarta.persistence.EntityManager entityManager;
@@ -40,12 +43,15 @@ public class PaymentProcessor {
                             DetallePagoRepositorio detallePagoRepositorio,
                             MetodoPagoRepositorio metodoPagoRepositorio,
                             PaymentCalculationServicio paymentCalculationServicio,
-                            UsuarioRepositorio usuarioRepositorio) {
+                            UsuarioRepositorio usuarioRepositorio, DetallePagoServicio detallePagoServicio, BonificacionRepositorio bonificacionRepositorio, RecargoRepositorio recargoRepositorio) {
         this.pagoRepositorio = pagoRepositorio;
         this.detallePagoRepositorio = detallePagoRepositorio;
         this.metodoPagoRepositorio = metodoPagoRepositorio;
         this.paymentCalculationServicio = paymentCalculationServicio;
         this.usuarioRepositorio = usuarioRepositorio;
+        this.detallePagoServicio = detallePagoServicio;
+        this.bonificacionRepositorio = bonificacionRepositorio;
+        this.recargoRepositorio = recargoRepositorio;
     }
 
     /**
@@ -85,6 +91,7 @@ public class PaymentProcessor {
                     d.getMatricula().setPagada(true);
                 }
             }
+            paymentCalculationServicio.procesarDetalle(d);
         }
 
         // 4. Recargo global
@@ -116,94 +123,73 @@ public class PaymentProcessor {
     }
 
     /**
-     * Procesa los detalles de pago recibidos (del frontend) y los asocia al pago.
+     * Crea un DetallePago nuevo a partir de un DetallePagoRegistroRequest.
      */
-    // --------------------------------------------------
-    // 5) Procesa todos los detalles de un Pago antes de persistir
-    @Transactional
-    public Pago processDetallesPago(Pago pago, List<DetallePago> detallesFront, Alumno alumno) {
-        pago.setAlumno(alumno);
-        pago.setDetallePagos(new ArrayList<>());
+    /// Refactorizado para evitar duplicar DetallePago con removido = true
+    private DetallePago crearNuevoDetalleFromRequest(DetallePago req, Pago pago) {
+        log.info("[crearNuevoDetalleFromRequest] INICIO - Creando detalle desde request. Pago ID: {}", pago.getId());
 
-        List<DetallePago> procesados = new ArrayList<>();
-        for (DetallePago req : detallesFront) {
-            // 🔥 Crear nuevo detalle
-            DetallePago entidad = new DetallePago();
-            copiarAtributosDetalle(entidad, req);
-
-            // 🔥 Seteos básicos
-            entidad.setAlumno(alumno);
-            entidad.setPago(pago);
-            entidad.setUsuario(pago.getUsuario());
-            entidad.setFechaRegistro(LocalDate.now());
-            entidad.setTipo(paymentCalculationServicio.determinarTipoDetalle(entidad.getDescripcionConcepto()));
-
-            // 🔥 Persistir Pago si es nuevo
-            if (pago.getId() == null) {
-                entityManager.persist(pago);
-                entityManager.flush();
-            }
-
-            // 🔥 Asociaciones y cálculos
-            paymentCalculationServicio.reatacharAsociaciones(entidad, pago);
-            Inscripcion insc = obtenerInscripcion(entidad);
-            paymentCalculationServicio.procesarYCalcularDetalle(entidad, insc);
-
-            // ✅ 🔥 MARCAR el Detalle original como HISTORICO
-            if (req.getId() != null) {
-                DetallePago original = detallePagoRepositorio.findById(req.getId())
-                        .orElseThrow(() -> new EntityNotFoundException("DetallePago original no encontrado id=" + req.getId()));
-                actualizarDetalleOriginal(original);
-            }
-            procesados.add(entidad);
+        // Si el request está marcado como removido, no creamos detalle
+        if (Boolean.TRUE.equals(req.getRemovido())) {
+            log.info("[crearNuevoDetalleFromRequest] Detalle marcado como removido, se omite creación");
+            return null;
         }
 
-        pago.getDetallePagos().addAll(procesados);
-        Pago finalPago = (pago.getId() == null) ? persistAndFlushPago(pago) : mergeAndFlushPago(pago);
+        DetallePago detalle = new DetallePago();
+        // Se ignora el ID si es 0 para forzar la generacion automatica
+        if (req.getId() != null && req.getId() == 0) {
+            detalle.setId(null);
+        }
+        detalle.setAlumno(pago.getAlumno());
+        detalle.setPago(pago);
+        String descripcion = req.getDescripcionConcepto().trim().toUpperCase();
+        detalle.setDescripcionConcepto(descripcion);
+        detalle.setValorBase(req.getValorBase());
+        detalle.setCuotaOCantidad(req.getCuotaOCantidad());
+        TipoDetallePago tipo = paymentCalculationServicio.determinarTipoDetalle(descripcion);
+        detalle.setTipo(tipo);
 
-        recalcularTotalesNuevo(finalPago);
-        return finalPago;
+        if (req.getBonificacion() != null) {
+            Bonificacion bonificacion = obtenerBonificacionPorId(req.getBonificacion().getId());
+            detalle.setBonificacion(bonificacion);
+        }
+
+        if (req.getTieneRecargo()) {
+            if (req.getRecargo() != null) {
+                Recargo recargo = obtenerRecargoPorId(req.getRecargo().getId());
+                detalle.setRecargo(recargo);
+            } else {
+                log.warn("[crearNuevoDetalleFromRequest] tieneRecargo es true pero no se proporciono recargoId");
+            }
+        } else {
+            detalle.setTieneRecargo(false);
+        }
+
+        detallePagoServicio.calcularImporte(detalle);
+        double aCobrar = (req.getACobrar() != null && req.getACobrar() > 0) ? req.getACobrar() : 0;
+        detalle.setACobrar(aCobrar);
+        if (req.getImportePendiente() != null) {
+            detalle.setImportePendiente(req.getImportePendiente() - aCobrar);
+        }
+        detalle.setCobrado(detalle.getImportePendiente() <= 0.0);
+
+        log.info("[crearNuevoDetalleFromRequest] FIN - Detalle creado exitosamente. Tipo: {}, Cobrado: {}",
+                detalle.getTipo(), detalle.getCobrado());
+        return detalle;
+    }
+
+    private Bonificacion obtenerBonificacionPorId(Long id) {
+        return bonificacionRepositorio.findById(id).orElse(null);
+    }
+
+    private Recargo obtenerRecargoPorId(Long id) {
+        return recargoRepositorio.findById(id).orElse(null);
     }
 
     private void actualizarDetalleOriginal(DetallePago original) {
         original.setImportePendiente(0.0);
         original.setEstadoPago(EstadoPago.HISTORICO); // Opcional, pero recomendable si querés marcarlo "cerrado"
         detallePagoRepositorio.save(original);
-    }
-
-    private Pago persistAndFlushPago(Pago pago) {
-        entityManager.persist(pago);
-        entityManager.flush();
-        return pago;
-    }
-
-    private Pago mergeAndFlushPago(Pago pago) {
-        Pago pagoMerge = entityManager.merge(pago);
-        entityManager.flush();
-        return pagoMerge;
-    }
-
-    // --------------------------------------------------
-    // 1) Copia estricta de todos los campos editables del DTO
-    void copiarAtributosDetalle(DetallePago destino, DetallePago origen) {
-        // Asociaciones básicas
-        destino.setAlumno(origen.getAlumno());
-        destino.setPago(origen.getPago());
-        destino.setUsuario(origen.getUsuario());
-        // Campos que vienen del frontend
-        destino.setConcepto(origen.getConcepto());
-        destino.setSubConcepto(origen.getSubConcepto());
-        destino.setDescripcionConcepto(origen.getDescripcionConcepto());
-        destino.setCuotaOCantidad(origen.getCuotaOCantidad());
-        destino.setValorBase(origen.getValorBase());
-        destino.setImporteInicial(origen.getImporteInicial());
-        destino.setImportePendiente(origen.getImportePendiente());
-        destino.setACobrar(origen.getACobrar());
-        destino.setTieneRecargo(origen.getTieneRecargo());
-        destino.setRecargo(origen.getRecargo());
-        destino.setBonificacion(origen.getBonificacion());
-        destino.setTipo(origen.getTipo());
-        destino.setStock(origen.getStock());
     }
 
     /**
@@ -265,8 +251,9 @@ public class PaymentProcessor {
         nuevoPago.setAlumno(pagoActivo.getAlumno());
         nuevoPago.setFecha(request.fecha());
         nuevoPago.setFechaVencimiento(request.fechaVencimiento());
-        nuevoPago.setUsuario(usuarioRepositorio.findById(request.usuarioId())
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado")));
+        Usuario usuario = usuarioRepositorio.findById(request.usuarioId())
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
+        nuevoPago.setUsuario(usuario);
         nuevoPago.setMetodoPago(metodoPagoRepositorio.findById(request.metodoPagoId())
                 .orElseThrow(() -> new IllegalArgumentException("Método de pago no encontrado")));
         nuevoPago.setImporteInicial(sumaAbonos);
@@ -297,6 +284,8 @@ public class PaymentProcessor {
             abono.setCobrado(true);
             abono.setEstadoPago(EstadoPago.HISTORICO);
             // guarda y añade a la lista de nuevos detalles
+            abono.setUsuario(usuario);
+            paymentCalculationServicio.procesarDetalle(abono);
             detallePagoRepositorio.save(abono);
             nuevoPago.getDetallePagos().add(abono);
 
@@ -322,21 +311,6 @@ public class PaymentProcessor {
         return nuevoPago;
     }
 
-    /**
-     * Obtiene la inscripcion asociada al detalle, si aplica.
-     *
-     * @param detalle el objeto DetallePago.
-     * @return la Inscripcion asociada o null.
-     */
-    public Inscripcion obtenerInscripcion(DetallePago detalle) {
-        log.info("[obtenerInscripcion] Buscando inscripcion para DetallePago id={}", detalle.getId());
-        if (detalle.getDescripcionConcepto().contains("CUOTA") && detalle.getMensualidad() != null &&
-                detalle.getMensualidad().getInscripcion() != null) {
-            return detalle.getMensualidad().getInscripcion();
-        }
-        return null;
-    }
-
     // 1. Obtener el ultimo pago pendiente (se mantiene similar, verificando saldo > 0)
     @Transactional
     public Pago obtenerUltimoPagoPendienteEntidad(Long alumnoId) {
@@ -357,6 +331,51 @@ public class PaymentProcessor {
         } else {
             log.info("[verificarSaldoRestante] Saldo restante para el pago id={} es correcto: {}", pago.getId(), pago.getSaldoRestante());
         }
+    }
+
+    @Transactional
+    public Pago processDetallesPago(Pago pago,
+                                    List<DetallePago> detallesFront,
+                                    Alumno alumno) {
+        // 0) limpiar la colección sin reemplazar la instancia
+        if (pago.getDetallePagos() == null) {
+            pago.setDetallePagos(new ArrayList<>());
+        } else {
+            pago.getDetallePagos().clear();
+        }
+
+        // 1) asignar el alumno al pago
+        pago.setAlumno(alumno);
+
+        // 2) persistir el pago sin hijos
+        if (pago.getId() == null) {
+            entityManager.persist(pago);
+            entityManager.flush();
+        }
+
+        // 3) crear y persistir los detalles nuevos
+        for (DetallePago req : detallesFront) {
+            if (req.getId() != null && req.getId() > 0) {
+                DetallePago original = detallePagoRepositorio.findById(req.getId())
+                        .orElseThrow(() -> new EntityNotFoundException("DetallePago no encontrado id=" + req.getId()));
+                actualizarDetalleOriginal(original);
+            }
+
+            DetallePago detalle = crearNuevoDetalleFromRequest(req, pago);
+            if (detalle == null) continue;
+
+            entityManager.persist(detalle);
+            // añadilo a la colección existente
+            pago.getDetallePagos().add(detalle);
+        }
+
+        // 4) merge + flush para actualizar las referencias
+        Pago pagoFinal = entityManager.merge(pago);
+        entityManager.flush();
+
+        // 5) recalcular totales
+        recalcularTotalesNuevo(pagoFinal);
+        return pagoFinal;
     }
 
 }

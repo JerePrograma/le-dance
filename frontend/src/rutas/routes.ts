@@ -110,6 +110,9 @@ const PagosCobrados = lazy(
 const EgresoDebitoPagina = lazy(
   () => import("../funcionalidades/caja/EgresoDebitoPagina")
 );
+const EgresosPagina = lazy(
+  () => import("../funcionalidades/caja/EgresosPagina")
+);
 const CajaFormulario = lazy(
   () => import("../funcionalidades/caja/CajaFormulario")
 );
@@ -195,6 +198,7 @@ export const otherProtectedRoutes = [
   { path: "/pagos-pendientes", Component: PagosPendientes },
   { path: "/pagos-cobrados", Component: PagosCobrados },
   { path: "/debitos", Component: EgresoDebitoPagina },
+  { path: "/egresos", Component: EgresosPagina },
   { path: "/caja/formulario", Component: CajaFormulario },
   { path: "/cobranza/:alumnoId", Component: CobranzaPagina },
   { path: "/pagos/alumno/:alumnoId", Component: PagosAlumnoPagina },

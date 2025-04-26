@@ -260,7 +260,7 @@ const DetallePagoList: React.FC<DetallePagoListProps> = ({
     if (filtroCobrado === "COBRADOS") {
       return detalles.filter(
         (d) =>
-          d.ACobrar > 0 ||
+          d.ACobrar > 0 &&
           d.importePendiente === 0 ||
           d.estadoPago.toUpperCase() === "ANULADO"
       );

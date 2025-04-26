@@ -79,6 +79,12 @@ export const navigationItems: NavigationItem[] = [
         icon: Wallet,
       },
       {
+        id: "egresos",
+        label: "Egresos",
+        href: "/egresos",
+        icon: Wallet,
+      },
+      {
         id: "pagos-pendientes",
         label: "Pagos pendientes",
         href: "/pagos-pendientes",
