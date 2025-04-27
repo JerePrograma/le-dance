@@ -1,0 +1,2 @@
+ALTER TABLE detalle_pagos
+    ADD COLUMN cobrado BOOLEAN NOT NULL DEFAULT FALSE

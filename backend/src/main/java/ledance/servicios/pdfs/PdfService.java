@@ -253,10 +253,10 @@ public class PdfService {
         Font cellFont = new Font(Font.HELVETICA, 8, Font.NORMAL);
 
         for (DetallePago det : pago.getDetallePagos()) {
-            if (!det.getRemovido()) {
+            if (!det.getRemovido() && det.getACobrar() > 0) {
                 addCell(table, det.getId().toString(), cellFont);
                 addCell(table, det.getDescripcionConcepto(), cellFont);
-                addCell(table, det.getCuotaOCantidad() != null ? det.getCuotaOCantidad() : "MATRICULA", cellFont);
+                addCell(table, det.getCuotaOCantidad(), cellFont);
                 addCell(table, "$ " + String.format("%,.2f", det.getValorBase() != null ? det.getValorBase() : 0.0), cellFont);
                 addCell(table, "$ " + String.format("%,.2f", det.getBonificacion() != null ?
                         calcularDescuento(det.getValorBase(), det.getBonificacion()) : 0.0), cellFont);

@@ -1,0 +1,2 @@
+ALTER TABLE mensualidades
+    ADD COLUMN fecha_generacion DATE DEFAULT CURRENT_DATE NOT NULL;

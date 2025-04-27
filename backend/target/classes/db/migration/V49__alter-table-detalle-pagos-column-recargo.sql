@@ -1,0 +1,2 @@
+ALTER TABLE detalle_pagos
+    ADD COLUMN tiene_recargo BOOLEAN NOT NULL DEFAULT FALSE;
