@@ -83,7 +83,7 @@ public class PaymentCalculationServicio {
                     Mensualidad m = mensualidadServicio.obtenerOMarcarPendienteMensualidad(detalle.getAlumno().getId(), desc);
                     mensualidadServicio.procesarAbonoMensualidad(m, detalle);
                 }
-                if (desc.contains("CLASE SUELTA")) {
+                if (desc.contains("CLASE DE PRUEBA")) {
                     double nuevoCredito = Optional.ofNullable(detalle.getAlumno().getCreditoAcumulado()).orElse(0.0) + Optional.ofNullable(detalle.getACobrar()).orElse(0.0);
                     detalle.getAlumno().setCreditoAcumulado(nuevoCredito);
                 }
