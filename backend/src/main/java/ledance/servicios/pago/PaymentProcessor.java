@@ -83,13 +83,11 @@ public class PaymentProcessor {
         // 3. Marcar histórico si ya quedó pagado
         for (DetallePago d : pagoNuevo.getDetallePagos()) {
             if (EstadoPago.ANULADO.equals(d.getEstadoPago())) continue;
+            d.setTipo(paymentCalculationServicio.determinarTipoDetalle(d.getDescripcionConcepto()));
             if (d.getImportePendiente() != null && d.getImportePendiente() <= 0) {
                 d.setCobrado(true);
                 d.setImportePendiente(0.0);
                 d.setEstadoPago(EstadoPago.HISTORICO);
-                if (d.getTipo() == TipoDetallePago.MATRICULA && d.getMatricula() != null) {
-                    d.getMatricula().setPagada(true);
-                }
             }
             paymentCalculationServicio.procesarDetalle(d);
         }
@@ -129,51 +127,58 @@ public class PaymentProcessor {
     private DetallePago crearNuevoDetalleFromRequest(DetallePago req, Pago pago) {
         log.info("[crearNuevoDetalleFromRequest] INICIO - Creando detalle desde request. Pago ID: {}", pago.getId());
 
-        // Si el request está marcado como removido, no creamos detalle
-        if (Boolean.TRUE.equals(req.getRemovido())) {
-            log.info("[crearNuevoDetalleFromRequest] Detalle marcado como removido, se omite creación");
-            return null;
-        }
-
         DetallePago detalle = new DetallePago();
-        // Se ignora el ID si es 0 para forzar la generacion automatica
+        // Forzar generación automática si id == 0
         if (req.getId() != null && req.getId() == 0) {
             detalle.setId(null);
         }
         detalle.setAlumno(pago.getAlumno());
         detalle.setPago(pago);
+
+        // Normalizar descripción
         String descripcion = req.getDescripcionConcepto().trim().toUpperCase();
         detalle.setDescripcionConcepto(descripcion);
         detalle.setValorBase(req.getValorBase());
         detalle.setCuotaOCantidad(req.getCuotaOCantidad());
-        TipoDetallePago tipo = paymentCalculationServicio.determinarTipoDetalle(descripcion);
-        detalle.setTipo(tipo);
+        detalle.setTipo(paymentCalculationServicio.determinarTipoDetalle(descripcion));
 
+        // Bonificación
         if (req.getBonificacion() != null) {
             Bonificacion bonificacion = obtenerBonificacionPorId(req.getBonificacion().getId());
             detalle.setBonificacion(bonificacion);
         }
-
-        if (req.getTieneRecargo()) {
+        // Recargo
+        if (Boolean.TRUE.equals(req.getTieneRecargo())) {
             if (req.getRecargo() != null) {
                 Recargo recargo = obtenerRecargoPorId(req.getRecargo().getId());
                 detalle.setRecargo(recargo);
             } else {
-                log.warn("[crearNuevoDetalleFromRequest] tieneRecargo es true pero no se proporciono recargoId");
+                log.warn("[crearNuevoDetalleFromRequest] tieneRecargo es true pero no se proporcionó recargoId");
             }
         } else {
             detalle.setTieneRecargo(false);
         }
 
+        // Si está marcado como removido, copiar valores del request sin cálculos adicionales
+        if (Boolean.TRUE.equals(req.getRemovido())) {
+            detalle.setImporteInicial(req.getImporteInicial());
+            detalle.setACobrar(Optional.ofNullable(req.getACobrar()).orElse(0.0));
+            detalle.setImportePendiente(Optional.ofNullable(req.getImportePendiente()).orElse(0.0));
+            detalle.setCobrado(detalle.getImportePendiente() <= 0.0);
+            log.info("[crearNuevoDetalleFromRequest] Removido: copia datos sin cálculo. Cobrado: {}", detalle.getCobrado());
+            return detalle;
+        }
+
+        // Cálculos estándar
         detallePagoServicio.calcularImporte(detalle);
-        double aCobrar = (req.getACobrar() != null && req.getACobrar() > 0) ? req.getACobrar() : 0;
+        double aCobrar = Optional.ofNullable(req.getACobrar()).orElse(0.0);
         detalle.setACobrar(aCobrar);
         if (req.getImportePendiente() != null) {
             detalle.setImportePendiente(req.getImportePendiente() - aCobrar);
         }
         detalle.setCobrado(detalle.getImportePendiente() <= 0.0);
 
-        log.info("[crearNuevoDetalleFromRequest] FIN - Detalle creado exitosamente. Tipo: {}, Cobrado: {}",
+        log.info("[crearNuevoDetalleFromRequest] FIN - Detalle creado. Tipo: {}, Cobrado: {}",
                 detalle.getTipo(), detalle.getCobrado());
         return detalle;
     }
@@ -189,6 +194,7 @@ public class PaymentProcessor {
     private void actualizarDetalleOriginal(DetallePago original) {
         original.setImportePendiente(0.0);
         original.setEstadoPago(EstadoPago.HISTORICO); // Opcional, pero recomendable si querés marcarlo "cerrado"
+        original.setTipo(paymentCalculationServicio.determinarTipoDetalle(original.getDescripcionConcepto()));
         detallePagoRepositorio.save(original);
     }
 
@@ -242,7 +248,7 @@ public class PaymentProcessor {
     public Pago procesarAbonoParcial(Pago pagoActivo, PagoRegistroRequest request) {
         log.info("[procesarAbonoParcial] INICIO - Pago ID: {}", pagoActivo.getId());
 
-        // 1) CABECERA DEL NUEVO PAGO: inicializo con la suma de todos los aCobrar del request
+        // 1) Cabecera del nuevo pago
         double sumaAbonos = request.detallePagos().stream()
                 .mapToDouble(d -> Optional.ofNullable(d.ACobrar()).orElse(0.0))
                 .sum();
@@ -258,56 +264,77 @@ public class PaymentProcessor {
                 .orElseThrow(() -> new IllegalArgumentException("Método de pago no encontrado")));
         nuevoPago.setImporteInicial(sumaAbonos);
         nuevoPago.setMonto(sumaAbonos);
-        // arranco la lista de detalles vacía
+        // lista vacía de detalles
         nuevoPago.setDetallePagos(new ArrayList<>());
 
-        // persisto la cabecera para obtener ID
+        // persisto la cabecera
         nuevoPago = pagoRepositorio.save(nuevoPago);
 
-        // 2) DETALLES DE ABONO: por cada línea de abono del request...
+        // 2) Para cada línea de abono del request
         for (DetallePagoRegistroRequest req : request.detallePagos()) {
-            DetallePago original = detallePagoRepositorio.findById(req.id())
-                    .orElseThrow(() -> new EntityNotFoundException("DetallePago no encontrado: " + req.id()));
+            // 2a) Si viene de un detalle existente, archivarlo
+            if (req.id() != null && req.id() > 0) {
+                DetallePago original = detallePagoRepositorio.findById(req.id())
+                        .orElseThrow(() -> new EntityNotFoundException(
+                                "DetallePago no encontrado: " + req.id()));
 
-            double pagoAbono = Optional.ofNullable(req.ACobrar()).orElse(0.0);
-
-            // — creo el detalle de abono
-            DetallePago abono = new DetallePago();
-            abono.setPago(nuevoPago);
-            abono.setAlumno(pagoActivo.getAlumno());
-            abono.setDescripcionConcepto(original.getDescripcionConcepto());
-            abono.setTipo(original.getTipo());
-            abono.setValorBase(original.getValorBase());
-            abono.setImporteInicial(pagoAbono);
-            abono.setACobrar(pagoAbono);
-            abono.setImportePendiente(0.0);
-            abono.setCobrado(true);
-            abono.setEstadoPago(EstadoPago.HISTORICO);
-            // guarda y añade a la lista de nuevos detalles
-            abono.setUsuario(usuario);
-            paymentCalculationServicio.procesarDetalle(abono);
-            detallePagoRepositorio.save(abono);
-            nuevoPago.getDetallePagos().add(abono);
-
-            // — ajusto el saldo del original
-            double restante = original.getImportePendiente() - pagoAbono;
-            original.setImportePendiente(Math.max(0.0, restante));
-            if (original.getImportePendiente() <= 0) {
+                // Lo dejamos histórico y sin remanente
+                original.setImportePendiente(0.0);
                 original.setCobrado(true);
                 original.setEstadoPago(EstadoPago.HISTORICO);
+                TipoDetallePago tipo = paymentCalculationServicio.determinarTipoDetalle(original.getDescripcionConcepto());
+                original.setTipo(tipo);
+                detallePagoRepositorio.save(original);
             }
-            detallePagoRepositorio.save(original);
+
+            // 2b) Ahora **creo siempre un nuevo DetallePago** para el abono
+            DetallePago abono = new DetallePago();
+            abono.setPago(nuevoPago);
+            abono.setAlumno(nuevoPago.getAlumno());
+
+            // Copio descripción, base y tipo del request (no del original)
+            String desc = req.descripcionConcepto().trim().toUpperCase();
+            abono.setDescripcionConcepto(desc);
+            abono.setValorBase(req.valorBase());
+            abono.setCuotaOCantidad(req.cuotaOCantidad());
+            TipoDetallePago tipo = paymentCalculationServicio.determinarTipoDetalle(desc);
+            abono.setTipo(tipo);
+
+            // importes
+            double aCobrar = Optional.ofNullable(req.ACobrar()).orElse(0.0);
+            abono.setImporteInicial(aCobrar);
+            abono.setACobrar(aCobrar);
+
+            // calculamos pendiente (solo si viene en el request)
+            double pendienteReq = Optional.ofNullable(req.importePendiente())
+                    .orElse(0.0);
+            double nuevoPendiente = pendienteReq - aCobrar;
+            abono.setImportePendiente(Math.max(0.0, nuevoPendiente));
+
+            boolean yaCobrado = nuevoPendiente <= 0.0;
+            abono.setCobrado(yaCobrado);
+            abono.setEstadoPago(yaCobrado
+                    ? EstadoPago.HISTORICO
+                    : EstadoPago.ACTIVO);
+
+            abono.setUsuario(usuario);
+
+            // persistimos el abono
+            detallePagoRepositorio.save(abono);
+            nuevoPago.getDetallePagos().add(abono);
         }
 
-        // 3) SI todos los detalles del pago original ahora están cobrado, lo cierro
-        boolean todos = pagoActivo.getDetallePagos().stream().allMatch(DetallePago::getCobrado);
-        if (todos) cerrarPagoHistorico(pagoActivo);
+        // 3) Si el pagoActivo original quedan todos sus detalles cobrados, ciérralo
+        boolean todos = pagoActivo.getDetallePagos().stream()
+                .allMatch(DetallePago::getCobrado);
+        if (todos) {
+            cerrarPagoHistorico(pagoActivo);
+        }
 
-        // 4) RECALCULAR TOTALES DEL NUEVO PAGO — ahora sí encuentra los abonos en detallePagos
+        // 4) recalcular totales del nuevo pago
         recalcularTotalesNuevo(nuevoPago);
 
-        log.info("[procesarAbonoParcial] FIN - Nuevo Pago ID: {}, monto={}, importeInicial={}",
-                nuevoPago.getId(), nuevoPago.getMonto(), nuevoPago.getImporteInicial());
+        log.info("[procesarAbonoParcial] FIN - Nuevo Pago ID: {}", nuevoPago.getId());
         return nuevoPago;
     }
 
