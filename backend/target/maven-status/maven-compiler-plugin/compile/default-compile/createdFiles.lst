@@ -179,6 +179,7 @@ ledance\entidades\Matricula.class
 ledance\servicios\rol\RolServicio.class
 ledance\servicios\pdfs\ReciboStorageService.class
 ledance\dto\pago\PagoMedioMapper.class
+ledance\servicios\pago\PaymentCalculationServicio$MesAnio.class
 ledance\validaciones\usuarios\ValidadorUsuarioDuplicado.class
 ledance\repositorios\BonificacionRepositorio.class
 ledance\dto\response\EstadisticasInscripcionResponse.class

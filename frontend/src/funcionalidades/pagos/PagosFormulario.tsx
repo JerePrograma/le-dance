@@ -1007,8 +1007,14 @@ const CobranzasForm: React.FC = () => {
     return new Date(año, meses[mesKey] ?? 0, 1);
   };
 
-  const calcularDescuento = (base: number, porcentaje: number): number =>
-    base * (porcentaje / 100);
+  const calcularDescuento = (
+    base: number,
+    bonificacion?: { porcentajeDescuento: number; valorFijo?: number | null }
+  ): number =>
+    !bonificacion
+      ? 0
+      : (bonificacion.valorFijo ?? 0) +
+        base * ((bonificacion.porcentajeDescuento ?? 0) / 100);
 
   // ----- handleAgregarDetalle completo -----
 
@@ -1175,11 +1181,13 @@ const CobranzasForm: React.FC = () => {
         }
 
         if (tarifaKey === "CUOTA") {
-          // --- lógica original de CUOTA (descuento, recargo, payload, verify API) ---
-          const pct =
-            activeInscripciones.find((i) => i.disciplina.id === disc.id)
-              ?.bonificacion?.porcentajeDescuento ?? 0;
-          const importeInicial = valorBase - calcularDescuento(valorBase, pct);
+          // --- lógica refactorizada de CUOTA (descuento fijo + porcentaje, recargo, payload, verify API) ---
+          const inscripcion = activeInscripciones.find(
+            (i) => i.disciplina.id === disc.id
+          );
+          const bonificacion = inscripcion?.bonificacion;
+          const importeDescuento = calcularDescuento(valorBase, bonificacion);
+          const importeInicial = valorBase - importeDescuento;
           const fecha = obtenerFechaDePeriodo(values.periodoMensual);
           const { recargoAplicado, importeConRecargo } =
             calcularRecargoPorFecha(fecha, recargos, importeInicial);
@@ -1193,9 +1201,7 @@ const CobranzasForm: React.FC = () => {
             cuotaOCantidad: cantidad.toString(),
             valorBase,
             importeInicial,
-            bonificacionId:
-              activeInscripciones.find((i) => i.disciplina.id === disc.id)
-                ?.bonificacion?.id ?? null,
+            bonificacionId: bonificacion?.id ?? null,
             recargoId,
             importePendiente: importeConRecargo,
             ACobrar: importeConRecargo,
