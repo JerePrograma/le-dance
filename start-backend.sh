@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 source /etc/default/ledance-backend
 exec /usr/bin/java \
   -Dspring.config.additional-location=classpath:/application.properties \
