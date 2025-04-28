@@ -28,14 +28,6 @@ public class MensualidadControlador {
         return ResponseEntity.ok(response);
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<MensualidadResponse> actualizarMensualidad(
-            @PathVariable Long id,
-            @Valid @RequestBody MensualidadRegistroRequest request) {
-        MensualidadResponse response = mensualidadServicio.actualizarMensualidad(id, request);
-        return ResponseEntity.ok(response);
-    }
-
     @GetMapping("/{id}")
     public ResponseEntity<MensualidadResponse> obtenerMensualidad(@PathVariable Long id) {
         MensualidadResponse response = mensualidadServicio.obtenerMensualidad(id);
