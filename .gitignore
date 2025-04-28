@@ -1,7 +1,6 @@
 # Maven
-target/
 !.mvn/wrapper/maven-wrapper.jar
-backend/target/
+/backend/target/
 
 # Gradle
 .gradle/
@@ -12,9 +11,7 @@ pdfs/
 
 # Node.js / Vite
 node_modules/
-frontend/dist/
-frontend/src/paginas/Login.tsx
-frontend/src/api/axiosConfig.ts
+/frontend/dist/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -55,7 +52,6 @@ $RECYCLE.BIN/
 *.swo
 
 # Logs
-*.log
 logs/
 *.log.*
 *.out
