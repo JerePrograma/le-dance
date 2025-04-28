@@ -4,13 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e68b5449-8c65-49d0-ba83-553b8febe7fe" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/MensualidadControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/MensualidadControlador.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/mensualidad/IMensualidadService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/mensualidad/IMensualidadService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/mensualidad/MensualidadServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/mensualidad/MensualidadServicio.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/recargo/RecargoServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/recargo/RecargoServicio.java" afterDir="false" />
-    </list>
+    <list default="true" id="e68b5449-8c65-49d0-ba83-553b8febe7fe" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -141,7 +135,7 @@
       <workItem from="1745612163479" duration="9044000" />
       <workItem from="1745678771786" duration="25389000" />
       <workItem from="1745759253121" duration="7150000" />
-      <workItem from="1745842560309" duration="5029000" />
+      <workItem from="1745842560309" duration="5681000" />
     </task>
     <servers />
   </component>

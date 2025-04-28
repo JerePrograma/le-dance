@@ -7,6 +7,7 @@ import Tabla from "../../componentes/comunes/Tabla";
 import Boton from "../../componentes/comunes/Boton";
 import { toast } from "react-toastify";
 import { useAuth } from "../../hooks/context/authContext";
+import { EgresoResponse } from "../../types/types";
 
 // Interfaces (pueden moverse a un archivo .d.ts o adaptarse)
 interface MetodoPago {
@@ -36,17 +37,9 @@ interface PagoDelDia {
   usuarioId: number; // Identificador del usuario que realizó el pago
   detallePagos?: DetallePago[];
 }
-
-interface EgresoDelDia {
-  id: number;
-  fecha: string;
-  monto: number;
-  observaciones?: string;
-}
-
 export interface CajaDetalleDTO {
   pagosDelDia: PagoDelDia[];
-  egresosDelDia: EgresoDelDia[];
+  egresosDelDia: EgresoResponse[];
 }
 
 export interface EgresoRegistroRequest {
@@ -62,26 +55,19 @@ const ConsultaCajaDiaria: React.FC = () => {
   const { user } = useAuth();
   const currentUserId = user?.id || 0;
 
-  // Obtener la fecha actual en formato "YYYY-MM-DD" en GMT-3 (zona de Buenos Aires)
   const fechaAuto = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Argentina/Buenos_Aires",
   }).format(new Date());
   const [fecha, setFecha] = useState<string>(fechaAuto);
-
   const [data, setData] = useState<CajaDetalleDTO | null>(null);
   const [loading, setLoading] = useState(false);
-
-  // Estado para el filtro de pagos: "mis" o "todos"
   const [filtroPago, setFiltroPago] = useState<"mis" | "todos">("mis");
 
-  // Estados del Modal de Egreso
+  // Modal de Egreso
   const [showModalEgreso, setShowModalEgreso] = useState(false);
   const [montoEgreso, setMontoEgreso] = useState<number>(0);
   const [obsEgreso, setObsEgreso] = useState<string>("");
 
-  // --------------------------------------------------------------------------
-  // Cargar la caja diaria
-  // --------------------------------------------------------------------------
   const handleVer = async () => {
     try {
       setLoading(true);
@@ -105,9 +91,6 @@ const ConsultaCajaDiaria: React.FC = () => {
     }
   };
 
-  // --------------------------------------------------------------------------
-  // Eliminar un egreso
-  // --------------------------------------------------------------------------
   const handleEliminarEgreso = async (id: number) => {
     try {
       await egresoApi.eliminarEgreso(id);
@@ -118,66 +101,39 @@ const ConsultaCajaDiaria: React.FC = () => {
     }
   };
 
-  // --------------------------------------------------------------------------
-  // Filtrado de pagos:
-  // - monto === 0  → excluido
-  // - arreglo detallePagos no vacío y todos ACobrar===0 → excluido
-  // --------------------------------------------------------------------------
+  // Pagos
   const pagos: PagoDelDia[] = data?.pagosDelDia || [];
-
   const pagosFiltrados = pagos.filter((p) => {
-    // 1) Excluir pagos con monto 0
-    if (p.monto === 0) {
-      return false;
-    }
-    // 2) Si hay detalles, y cada detalle tiene ACobrar===0 → excluir
-    if (p.detallePagos && p.detallePagos.length > 0) {
-      const todosAnulados = p.detallePagos.every((d) => d.ACobrar === 0);
-      if (todosAnulados) {
-        return false;
-      }
-    }
-    // 3) Aquí podrías añadir más reglas de auditoría...
+    if (p.monto === 0) return false;
+    if (p.detallePagos?.every((d) => d.ACobrar === 0)) return false;
     return true;
   });
-
-  // Ordenar los pagos (más recientes primero)
   const sortedPagos = [...pagosFiltrados].sort((a, b) => b.id - a.id);
-
-  // Filtrar por usuario o mostrar todos
   const pagosFiltradosPorUsuario =
     filtroPago === "mis"
       ? sortedPagos.filter((p) => p.usuarioId === currentUserId)
       : sortedPagos;
 
-  // --------------------------------------------------------------------------
-  // Cálculo de totales
-  // --------------------------------------------------------------------------
   const totalEfectivo = pagosFiltradosPorUsuario
     .filter((p) => p.metodoPago?.descripcion.toUpperCase() === "EFECTIVO")
     .reduce((sum, p) => sum + p.monto, 0);
-
   const totalDebito = pagosFiltradosPorUsuario
     .filter((p) => p.metodoPago?.descripcion.toUpperCase() === "DEBITO")
     .reduce((sum, p) => sum + p.monto, 0);
-
   const totalCobrado = totalEfectivo + totalDebito;
 
-  // Egresos
-  const egresos: EgresoDelDia[] = data?.egresosDelDia || [];
-  const sortedEgresos = [...egresos].sort((a, b) => b.id - a.id);
-  const totalEgresos = egresos.reduce((sum, e) => sum + e.monto, 0);
+  // Egresos — solo EFECTIVO
+  const egresos: EgresoResponse[] = data?.egresosDelDia || [];
+  const egresosEnEfectivo = egresos.filter(
+    (e) => e.metodoPago?.descripcion.toUpperCase() === "EFECTIVO"
+  );
+  const sortedEgresos = [...egresosEnEfectivo].sort((a, b) => b.id - a.id);
+  const totalEgresos = sortedEgresos.reduce((sum, e) => sum + e.monto, 0);
 
-  // --------------------------------------------------------------------------
-  // Acciones extra
-  // --------------------------------------------------------------------------
   const handleImprimir = () => {
     toast.info("Funcionalidad de imprimir no implementada");
   };
 
-  // --------------------------------------------------------------------------
-  // Modal de Egreso
-  // --------------------------------------------------------------------------
   const handleAbrirModalEgreso = () => {
     setMontoEgreso(0);
     setObsEgreso("");
@@ -190,14 +146,13 @@ const ConsultaCajaDiaria: React.FC = () => {
       return;
     }
     try {
-      const req: EgresoRegistroRequest = {
+      await egresoApi.registrarEgreso({
         fecha,
         monto: montoEgreso,
         observaciones: obsEgreso,
         metodoPagoDescripcion: "EFECTIVO",
         metodoPagoId: 0,
-      };
-      await egresoApi.registrarEgreso(req);
+      });
       toast.success("Egreso agregado correctamente.");
       setShowModalEgreso(false);
       handleVer();
@@ -276,14 +231,13 @@ const ConsultaCajaDiaria: React.FC = () => {
         )}
       </div>
 
-      {/* Tabla de Egresos */}
-      {egresos.length > 0 && (
+      {sortedEgresos.length > 0 && (
         <div className="border p-2 mt-4">
-          <h2 className="font-semibold mb-2">Egresos del día</h2>
+          <h2 className="font-semibold mb-2">Egresos en efectivo del día</h2>
           <Tabla
             headers={["ID", "Observaciones", "Monto", "Acciones"]}
             data={sortedEgresos}
-            customRender={(e: EgresoDelDia) => [
+            customRender={(e) => [
               e.id,
               e.observaciones,
               e.monto.toLocaleString(),
@@ -294,7 +248,7 @@ const ConsultaCajaDiaria: React.FC = () => {
                 Eliminar
               </Boton>,
             ]}
-            emptyMessage="No hay egresos para el día"
+            emptyMessage="No hay egresos en efectivo para el día"
           />
         </div>
       )}
@@ -319,7 +273,7 @@ const ConsultaCajaDiaria: React.FC = () => {
       <div className="text-right mt-2">
         <p>Efectivo: {totalEfectivo.toLocaleString()}</p>
         <p>Débito: {totalDebito.toLocaleString()}</p>
-        <p>Total cobrado: {(totalCobrado).toLocaleString()}</p>
+        <p>Total cobrado: {totalCobrado.toLocaleString()}</p>
         <p>Egresos en efectivo: {totalEgresos.toLocaleString()}</p>
         <p>Total efectivo: {(totalEfectivo - totalEgresos).toLocaleString()}</p>
         <p>Total neto: {(totalCobrado - totalEgresos).toLocaleString()}</p>
