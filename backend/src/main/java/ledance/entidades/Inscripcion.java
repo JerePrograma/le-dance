@@ -55,8 +55,8 @@ public class Inscripcion {
     @EqualsAndHashCode.Exclude
     private List<Mensualidad> mensualidades;
 
-    // Relacion añadida para manejar la eliminacion en cascada de asistencias_alumno_mensual
-    @OneToMany(mappedBy = "inscripcion", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonIgnore
+    @OneToMany(mappedBy="inscripcion",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true)
     private List<AsistenciaAlumnoMensual> asistenciasAlumnoMensual = new ArrayList<>();
 }

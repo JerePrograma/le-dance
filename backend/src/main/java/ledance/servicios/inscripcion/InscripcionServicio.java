@@ -237,49 +237,19 @@ public class InscripcionServicio implements IInscripcionServicio {
     }
 
     /**
-     * Elimina la inscripcion y todas las entidades relacionadas en el orden correcto.
+     * Elimina físicamente SOLO las asistencias mensuales (y por cascade sus diarias).
+     * NO marca la inscripción ni actualiza su estado.
      */
     @Transactional
     public void eliminarInscripcion(Long id) {
-        // Recuperar la inscripcion o lanzar excepcion si no se encuentra
-        Inscripcion inscripcion = inscripcionRepositorio.findById(id)
-                .orElseThrow(() -> new TratadorDeErrores.RecursoNoEncontradoException("Inscripcion no encontrada."));
+        Inscripcion ins = inscripcionRepositorio.findById(id)
+                .orElseThrow(() -> new TratadorDeErrores.RecursoNoEncontradoException("Inscripción no encontrada"));
 
-        // ---------------------------------------------------------------------
-        // 1. Eliminar las asistencias mensuales asociadas a la inscripcion
-        // (que incluyen, en forma manual, la eliminacion de las asistencias diarias)
-        List<AsistenciaAlumnoMensual> asistenciasMensuales = new ArrayList<>(inscripcion.getAsistenciasAlumnoMensual());
-        for (AsistenciaAlumnoMensual aam : asistenciasMensuales) {
-            eliminarAsistenciaAlumnoMensual(aam.getId());
-        }
-
-        // ---------------------------------------------------------------------
-        // 2. Eliminar las mensualidades asociadas (si se tienen)
-        if (inscripcion.getMensualidades() != null && !inscripcion.getMensualidades().isEmpty()) {
-            List<Mensualidad> mensualidades = new ArrayList<>(inscripcion.getMensualidades());
-            mensualidadRepositorio.deleteAll(mensualidades);
-            mensualidadRepositorio.flush();
-        }
-
-        // ---------------------------------------------------------------------
-        // 3. Remover la inscripcion de la lista de inscripciones del alumno
-        Alumno alumno = inscripcion.getAlumno();
-        if (alumno != null) {
-            alumno.getInscripciones().remove(inscripcion);
-            alumnoRepositorio.save(alumno);
-        }
-
-        // ---------------------------------------------------------------------
-        // 4. Eliminar la inscripcion y hacer flush para sincronizar con la BD
-        inscripcionRepositorio.delete(inscripcion);
-        inscripcionRepositorio.flush();
-
-        // ---------------------------------------------------------------------
-        // 5. Marcar al alumno como inactivo si no tiene mas inscripciones activas
-        if (alumno != null && alumno.getInscripciones().isEmpty()) {
-            alumno.setActivo(false);
-            alumnoRepositorio.save(alumno);
-        }
+        ins.setEstado(EstadoInscripcion.BAJA);
+        // 1) Borramos TODAS las asistencias mensuales (orphanRemoval + cascade a diarias)
+        ins.getAsistenciasAlumnoMensual().clear();
+        inscripcionRepositorio.save(ins);
+        // ¡Listo! No tocamos fechaBaja ni estado, así el CHECK no se queja.
     }
 
     /**

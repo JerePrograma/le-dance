@@ -16,8 +16,8 @@ public class ValidadorAlumnoDuplicado implements Validador<AlumnoRegistroRequest
 
     @Override
     public void validar(AlumnoRegistroRequest datos) {
-        if (alumnoRepositorio.existsByNombreAndDocumento(datos.nombre(), datos.documento())) {
-            throw new RuntimeException("El alumno ya esta registrado con el documento: "
+        if (alumnoRepositorio.existsByNombreIgnoreCaseAndApellidoIgnoreCase(datos.nombre(), datos.documento())) {
+            throw new RuntimeException("Alumno ya existe con ese nombre y apellido : "
                     + datos.documento());
         }
     }

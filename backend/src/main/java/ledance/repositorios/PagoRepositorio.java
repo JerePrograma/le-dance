@@ -42,7 +42,16 @@ public interface PagoRepositorio extends JpaRepository<Pago, Long> {
 
     List<Pago> findByAlumnoId(Long id);
 
-    List<Pago> findByFechaBetween(LocalDate start, LocalDate end);
+    @Query("""
+      SELECT p
+        FROM Pago p
+        JOIN FETCH p.alumno a
+       WHERE p.fecha BETWEEN :start AND :end
+      """)
+    List<Pago> findPagosConAlumnoPorFecha(
+            @Param("start") LocalDate start,
+            @Param("end")   LocalDate end
+    );
 
     @Modifying
     @Query("UPDATE Pago p SET p.usuario = null WHERE p.usuario.id = :uid")

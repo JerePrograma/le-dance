@@ -53,12 +53,15 @@ public class Alumno {
     @Column(name = "credito_acumulado", nullable = false)
     private Double creditoAcumulado = 0.0;
 
-    @EqualsAndHashCode.Exclude
-    @OneToMany(mappedBy = "alumno", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "alumno",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true)      // ← para que clear() elimine las inscripciones
     @JsonIgnore
     private List<Inscripcion> inscripciones = new ArrayList<>();
 
-    @OneToMany(mappedBy = "alumno", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "alumno",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true)      // ← agregamos orphanRemoval
     @JsonIgnore
     private List<Matricula> matriculas = new ArrayList<>();
 }

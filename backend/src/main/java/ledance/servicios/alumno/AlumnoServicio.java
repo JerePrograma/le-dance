@@ -11,21 +11,17 @@ import ledance.dto.disciplina.response.DisciplinaResponse;
 import ledance.dto.pago.DetallePagoMapper;
 import ledance.dto.pago.response.DetallePagoResponse;
 import ledance.entidades.*;
-import ledance.infra.errores.TratadorDeErrores;
 import ledance.repositorios.*;
 import jakarta.transaction.Transactional;
 import ledance.servicios.inscripcion.InscripcionServicio;
-import ledance.servicios.pago.PagoServicio;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.Period;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -38,20 +34,19 @@ public class AlumnoServicio implements IAlumnoServicio {
     private final DisciplinaMapper disciplinaMapper;
     private final DetallePagoRepositorio detallePagoRepositorio;
     private final DetallePagoMapper detallePagoMapper;
-    private final InscripcionRepositorio inscripcionRepositorio;
-    private final MatriculaRepositorio matriculaRepositorio;
-    private final PagoRepositorio pagoRepositorio;
+    private final InscripcionServicio inscripcionServicio;
 
-    public AlumnoServicio(AlumnoRepositorio alumnoRepositorio, AlumnoMapper alumnoMapper, DisciplinaMapper disciplinaMapper,
-                          DetallePagoRepositorio detallePagoRepositorio, DetallePagoMapper detallePagoMapper, MensualidadRepositorio mensualidadRepositorio, InscripcionRepositorio inscripcionRepositorio, MatriculaRepositorio matriculaRepositorio, PagoRepositorio pagoRepositorio) {
+    public AlumnoServicio(AlumnoRepositorio alumnoRepositorio, AlumnoMapper alumnoMapper,
+                          DisciplinaMapper disciplinaMapper,
+                          DetallePagoRepositorio detallePagoRepositorio,
+                          DetallePagoMapper detallePagoMapper,
+                          InscripcionServicio inscripcionServicio) {
         this.alumnoRepositorio = alumnoRepositorio;
         this.alumnoMapper = alumnoMapper;
         this.disciplinaMapper = disciplinaMapper;
         this.detallePagoRepositorio = detallePagoRepositorio;
         this.detallePagoMapper = detallePagoMapper;
-        this.inscripcionRepositorio = inscripcionRepositorio;
-        this.matriculaRepositorio = matriculaRepositorio;
-        this.pagoRepositorio = pagoRepositorio;
+        this.inscripcionServicio = inscripcionServicio;
     }
 
     @Override
@@ -84,45 +79,41 @@ public class AlumnoServicio implements IAlumnoServicio {
 
     @Override
     public AlumnoResponse obtenerAlumnoPorId(Long id) {
-        Alumno alumno = alumnoRepositorio.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Alumno no encontrado."));
+        Alumno alumno = alumnoRepositorio
+                .findByIdAndActivoTrue(id)
+                .orElseThrow(() -> new EntityNotFoundException("Alumno no encontrado."));
         return alumnoMapper.toResponse(alumno);
     }
 
     @Override
     public List<AlumnoResponse> listarAlumnos() {
-        return alumnoRepositorio.findAll().stream()
+        return alumnoRepositorio.findByActivoTrue().stream()
                 .map(alumnoMapper::toResponse)
                 .collect(Collectors.toList());
     }
 
+
     @Override
     @Transactional
-    public AlumnoResponse actualizarAlumno(Long id, AlumnoRegistroRequest requestDTO) {
-        log.info("Actualizando alumno con id: {}", id);
-        Alumno alumno = alumnoRepositorio.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Alumno no encontrado."));
-
-        alumnoMapper.updateEntityFromRequest(requestDTO, alumno);
-
-        // Recalcular edad si cambia la fecha de nacimiento
+    public AlumnoResponse actualizarAlumno(Long id, AlumnoRegistroRequest dto) {
+        Alumno alumno = alumnoRepositorio
+                .findByIdAndActivoTrue(id)
+                .orElseThrow(() -> new EntityNotFoundException("Alumno no encontrado."));
+        alumnoMapper.updateEntityFromRequest(dto, alumno);
         if (alumno.getFechaNacimiento() != null) {
-            alumno.setEdad(calcularEdad(requestDTO.fechaNacimiento()));
+            alumno.setEdad(calcularEdad(dto.fechaNacimiento()));
         }
-
-        Alumno alumnoActualizado = alumnoRepositorio.save(alumno);
-        return alumnoMapper.toResponse(alumnoActualizado);
+        return alumnoMapper.toResponse(alumnoRepositorio.save(alumno));
     }
 
     @Override
     @Transactional
     public void darBajaAlumno(Long id) {
-        log.info("Dando de baja (baja logica) al alumno con id: {}", id);
-        Alumno alumno = alumnoRepositorio.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Alumno no encontrado."));
-
+        Alumno alumno = alumnoRepositorio
+                .findByIdAndActivoTrue(id)
+                .orElseThrow(() -> new EntityNotFoundException("Alumno no encontrado."));
         alumno.setActivo(false);
-        alumno.setFechaDeBaja(LocalDate.now());  // Guardar la fecha de baja
+        alumno.setFechaDeBaja(LocalDate.now());
         alumnoRepositorio.save(alumno);
     }
 
@@ -142,10 +133,11 @@ public class AlumnoServicio implements IAlumnoServicio {
 
     @Override
     public List<DisciplinaResponse> obtenerDisciplinasDeAlumno(Long alumnoId) {
-        Alumno alumno = alumnoRepositorio.findById(alumnoId)
-                .orElseThrow(() -> new IllegalArgumentException("Alumno no encontrado."));
+        Alumno alumno = alumnoRepositorio
+                .findByIdAndActivoTrue(alumnoId)
+                .orElseThrow(() -> new EntityNotFoundException("Alumno no encontrado."));
         return alumno.getInscripciones().stream()
-                .map(inscripcion -> disciplinaMapper.toResponse(inscripcion.getDisciplina())) // ✅ Uso correcto del mapper
+                .map(ins -> disciplinaMapper.toResponse(ins.getDisciplina()))
                 .collect(Collectors.toList());
     }
 
@@ -156,71 +148,51 @@ public class AlumnoServicio implements IAlumnoServicio {
         return 0;
     }
 
+
+    /**
+     * Baja lógica del alumno:
+     * 1) Para cada inscripción, elimina sus asistencias (no su estado).
+     * 2) Limpia la lista de inscripciones (orphanRemoval si lo tienes configurado).
+     * 3) Limpia las matrículas si querés ocultarlas.
+     * 4) Marca al alumno inactivo.
+     */
     @Transactional
     public void eliminarAlumno(Long id) {
-        log.info("Eliminando al alumno con id: {}", id);
-        // Recuperamos la instancia persistente del alumno
-        Alumno alumnoPersistente = alumnoRepositorio.findById(id)
+        Alumno alumno = alumnoRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Alumno no encontrado."));
 
-        // 1. Eliminar las inscripciones asociadas
-        if (alumnoPersistente.getInscripciones() != null && !alumnoPersistente.getInscripciones().isEmpty()) {
-            // Copiamos la lista para evitar ConcurrentModificationException
-            List<Inscripcion> inscripciones = new ArrayList<>(alumnoPersistente.getInscripciones());
-            for (Inscripcion inscripcion : inscripciones) {
-                // Forzamos que la inscripcion refiera al mismo objeto alumnoPersistente
-                inscripcion.setAlumno(alumnoPersistente);
-            }
-            inscripcionRepositorio.deleteAll(inscripciones);
-            inscripcionRepositorio.flush();
+        // 1) Baja lógica del alumno
+        alumno.setActivo(false);
+        alumno.setFechaDeBaja(LocalDate.now());
+
+        // 2) Para cada inscripción:
+        for (Inscripcion ins : alumno.getInscripciones()) {
+            // 2.a) Eliminar todas las asistencias mensuales (orphanRemoval)
+            ins.getAsistenciasAlumnoMensual().clear();
+
+            // 2.b) Marcar la inscripción como de BAJA
+            ins.setEstado(EstadoInscripcion.BAJA);
+            ins.setFechaBaja(LocalDate.now());
         }
 
-        // 2. Eliminar las matriculas asociadas
-        if (alumnoPersistente.getMatriculas() != null && !alumnoPersistente.getMatriculas().isEmpty()) {
-            List<Matricula> matriculas = new ArrayList<>(alumnoPersistente.getMatriculas());
-            for (Matricula matricula : matriculas) {
-                matricula.setAlumno(alumnoPersistente);
-            }
-            matriculaRepositorio.deleteAll(matriculas);
-            matriculaRepositorio.flush();
-        }
+        // 3) (Opcional) Marcar las matrículas como inactivas
+        // alumno.getMatriculas().forEach(m -> m.setPagada(false));
 
-        // 3. Eliminar los pagos asociados al alumno
-        // Al eliminar cada pago se eliminaran en cascada los detallePagos y pagoMedios (segun el mapeo con cascade y orphanRemoval)
-        List<Pago> pagos = pagoRepositorio.findByAlumnoId(alumnoPersistente.getId());
-        if (pagos != null && !pagos.isEmpty()) {
-            // Opcionalmente, podrias iterar y forzar que cada pago use la instancia persistente del alumno
-            for (Pago pago : pagos) {
-                pago.setAlumno(alumnoPersistente);
-            }
-            pagoRepositorio.deleteAll(pagos);
-            pagoRepositorio.flush();
-        }
-
-        // 4. Finalmente, eliminar el alumno
-        alumnoRepositorio.delete(alumnoPersistente);
+        // 4) Guardar cambios en cascada
+        alumnoRepositorio.save(alumno);
     }
 
     @Transactional
     public AlumnoDataResponse obtenerAlumnoData(Long alumnoId) {
-        // 1. Obtener el alumno (con su informacion basica)
-        Alumno alumno = alumnoRepositorio.findById(alumnoId)
-                .orElseThrow(() -> new EntityNotFoundException("Alumno no encontrado"));
-
-        // 2. Obtener todos los DetallePago con importe pendiente mayor a 0
-        List<DetallePago> detallesPendientes = detallePagoRepositorio
+        Alumno alumno = alumnoRepositorio
+                .findByIdAndActivoTrue(alumnoId)
+                .orElseThrow(() -> new EntityNotFoundException("Alumno no encontrado."));
+        List<DetallePago> pendientes = detallePagoRepositorio
                 .findByAlumnoIdAndImportePendienteGreaterThan(alumnoId, 0.0);
-
-        // 3. Mapear cada DetallePago a su DTO, utilizando el mapper centralizado
-        List<DetallePagoResponse> detallePagosDTO = detallesPendientes.stream()
+        List<DetallePagoResponse> dtos = pendientes.stream()
                 .map(detallePagoMapper::toDTO)
-                .collect(Collectors.toList());
-
-        // 4. Mapear el alumno a AlumnoListadoResponse usando el nuevo mapper
-        AlumnoListadoResponse alumnoListadoResponse = alumnoMapper.toAlumnoListadoResponse(alumno);
-
-        // 5. Retornar la respuesta unificada
-        return new AlumnoDataResponse(alumnoListadoResponse, detallePagosDTO);
+                .toList();
+        AlumnoListadoResponse listado = alumnoMapper.toAlumnoListadoResponse(alumno);
+        return new AlumnoDataResponse(listado, dtos);
     }
-
 }

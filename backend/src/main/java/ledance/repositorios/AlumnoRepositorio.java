@@ -7,16 +7,26 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface AlumnoRepositorio extends JpaRepository<Alumno, Long> {
 
-    boolean existsByNombreAndDocumento(String nombre, String documento);
+    boolean existsByNombreIgnoreCaseAndApellidoIgnoreCase(String nombre, String apellido);
 
+    // Nuevo método para buscar solo por ID si está activo
+    Optional<Alumno> findByIdAndActivoTrue(Long id);
+
+    // Listar todos los activos
     List<Alumno> findByActivoTrue();
 
-    @Query("SELECT a FROM Alumno a WHERE LOWER(CONCAT(a.nombre, ' ', a.apellido)) LIKE LOWER(CONCAT('%', :nombre, '%'))")
+    // Buscar por nombre completo **solo** activos
+    @Query("""
+      SELECT a
+        FROM Alumno a
+       WHERE a.activo = true
+         AND LOWER(CONCAT(a.nombre, ' ', a.apellido)) 
+             LIKE LOWER(CONCAT('%', :nombre, '%'))
+      """)
     List<Alumno> buscarPorNombreCompleto(@Param("nombre") String nombre);
-
-    boolean existsByNombreIgnoreCaseAndApellidoIgnoreCase(String nombre, String apellido);
 }

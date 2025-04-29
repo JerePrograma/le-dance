@@ -35,8 +35,9 @@ public class AsistenciaAlumnoMensual {
     @OnDelete(action = OnDeleteAction.CASCADE)
     private AsistenciaMensual asistenciaMensual;
 
-    // Lista de asistencias diarias de este alumno en el mes
-    @OneToMany(mappedBy = "asistenciaAlumnoMensual", cascade = CascadeType.ALL, orphanRemoval = true)
-    @OnDelete(action = OnDeleteAction.CASCADE)
+    @OneToMany(mappedBy = "asistenciaAlumnoMensual",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true)
     private List<AsistenciaDiaria> asistenciasDiarias = new ArrayList<>();
+
 }

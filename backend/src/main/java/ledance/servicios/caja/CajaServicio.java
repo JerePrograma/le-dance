@@ -73,7 +73,7 @@ public class CajaServicio {
     // -------------------------------------------------------------------------
     public List<CajaDiariaDTO> obtenerPlanillaGeneral(LocalDate start, LocalDate end) {
         // a) Obtener pagos activos (o HISTORICOS segun convenga) en el rango
-        List<Pago> pagos = pagoRepositorio.findByFechaBetween(start, end);
+        List<Pago> pagos = pagoRepositorio.findPagosConAlumnoPorFecha(start, end);
         // b) Obtener egresos en el rango
         List<Egreso> egresos = egresoRepositorio.findByFechaBetween(start, end);
 
@@ -137,7 +137,7 @@ public class CajaServicio {
     }
 
     public CajaDetalleDTO obtenerCajaDiaria(LocalDate fecha) {
-        List<Pago> pagosDia = pagoRepositorio.findByFechaBetween(fecha, fecha);
+        List<Pago> pagosDia = pagoRepositorio.findPagosConAlumnoPorFecha(fecha, fecha);
         List<Egreso> egresosDia = egresoRepositorio.findByFecha(fecha);
 
         // Se pueden mapear a DTOs si se requiere
@@ -169,7 +169,7 @@ public class CajaServicio {
     }
 
     public CajaDetalleDTO obtenerCajaMensual(LocalDate start, LocalDate end) {
-        List<Pago> pagosMes = pagoRepositorio.findByFechaBetween(start, end);
+        List<Pago> pagosMes = pagoRepositorio.findPagosConAlumnoPorFecha(start, end);
         List<Egreso> egresosMes = egresoRepositorio.findByFechaBetween(start, end);
 
         // Se mapean las entidades a DTOs (si tienes mappers)

@@ -58,49 +58,60 @@ public class PaymentProcessor {
      * Recalcula totales para un pago, ignorando detalles no ACTIVO o removidos.
      */
     @Transactional
-    public void recalcularTotalesNuevo(Pago pagoNuevo) {
-        // … lógica previa de método de pago …
+    public void recalcularTotalesNuevo(Pago pago) {
+        log.info("[PaymentProcessor] recalcularTotalesNuevo pago id={}", pago.getId());
 
-        // 1) Procesar cada detalle para que importePendiente y ACobrar queden correctos
-        for (DetallePago d : pagoNuevo.getDetallePagos()) {
-            if (EstadoPago.ANULADO.equals(d.getEstadoPago())) continue;
-            d.setFechaRegistro(pagoNuevo.getFecha());
-            d.setTipo(paymentCalculationServicio.determinarTipoDetalle(d.getDescripcionConcepto()));
-            paymentCalculationServicio.procesarDetalle(d);
+        // 1) Asegurar método de pago
+        if (pago.getMetodoPago() == null) {
+            MetodoPago efectivo = metodoPagoRepositorio
+                    .findByDescripcionContainingIgnoreCase("EFECTIVO");
+            pago.setMetodoPago(efectivo);
+        }
 
-            // si ya pagó todo
-            if (d.getImportePendiente() != null && d.getImportePendiente() <= 0) {
-                d.setCobrado(true);
-                d.setImportePendiente(0.0);
-                d.setEstadoPago(EstadoPago.HISTORICO);
+        double totalDeuda   = 0.0; // suma de importeInicial de los detalles activos
+        double totalCobrado = 0.0; // suma de aCobrar de todos los detalles (excepto ANULADOS)
+
+        for (DetallePago d : pago.getDetallePagos()) {
+            if (Boolean.TRUE.equals(d.getRemovido()) ||
+                    EstadoPago.ANULADO.equals(d.getEstadoPago())) {
+                continue;
             }
+            d.setFechaRegistro(pago.getFecha());
+
+            // sólo los ACTIVO suman a la deuda total
+            if (EstadoPago.ACTIVO.equals(d.getEstadoPago())) {
+                totalDeuda += Optional.ofNullable(d.getImporteInicial()).orElse(0.0);
+            }
+            // cualquier detalle (ACTIVO o HISTÓRICO) aporta a lo cobrado
+            totalCobrado += Optional.ofNullable(d.getACobrar()).orElse(0.0);
         }
 
-        // 2) Ahora sí, acumular montos sobre los valores actualizados
-        double totalCobrar    = 0.0;
-        double totalPendiente = 0.0;
-        for (DetallePago d : pagoNuevo.getDetallePagos()) {
-            if (EstadoPago.ANULADO.equals(d.getEstadoPago())) continue;
-            totalCobrar    += Optional.ofNullable(d.getACobrar()).orElse(0.0);
-            totalPendiente += Optional.ofNullable(d.getImportePendiente()).orElse(0.0);
-        }
-
-        // 3) Recargo global (igual que antes)
-        double recargo = pagoNuevo.getDetallePagos().stream()
-                .filter(d -> !EstadoPago.ANULADO.equals(d.getEstadoPago()) && Boolean.TRUE.equals(d.getTieneRecargo()))
+        // 4) recargo global (igual que antes)
+        double recargo = pago.getDetallePagos().stream()
+                .filter(d -> !EstadoPago.ANULADO.equals(d.getEstadoPago())
+                        && Boolean.TRUE.equals(d.getTieneRecargo()))
+                .map(d -> pago.getMetodoPago().getRecargo())
                 .findAny()
-                .map(d -> pagoNuevo.getMetodoPago().getRecargo())
                 .orElse(0.0);
 
-        // 4) Montos finales
-        pagoNuevo.setMonto      (totalCobrar + recargo);
-        pagoNuevo.setMontoPagado(totalCobrar + recargo);
-        pagoNuevo.setSaldoRestante(Math.max(0.0, totalPendiente));
-        pagoNuevo.setEstadoPago   (pagoNuevo.getSaldoRestante() <= 0
+        // 5) Asignar montos correctamente
+        pago.setMontoPagado(totalCobrado + recargo);
+        pago.setMonto(totalCobrado   + recargo);
+        pago.setSaldoRestante(Math.max(0.0, totalDeuda - totalCobrado));
+
+        // 6) Estado final
+        pago.setEstadoPago(pago.getSaldoRestante() <= 0
                 ? EstadoPago.HISTORICO
                 : EstadoPago.ACTIVO);
 
-        pagoRepositorio.save(pagoNuevo);
+        pagoRepositorio.save(pago);
+
+        log.info("[PaymentProcessor] Pago id={} → monto={}, pagado={}, saldo={}, estado={}",
+                pago.getId(),
+                pago.getMonto(),
+                pago.getMontoPagado(),
+                pago.getSaldoRestante(),
+                pago.getEstadoPago());
     }
 
     /**
@@ -246,8 +257,6 @@ public class PaymentProcessor {
         nuevoPago.setMetodoPago(metodoPagoRepositorio.findById(request.metodoPagoId())
                 .orElseThrow(() -> new IllegalArgumentException("Método de pago no encontrado")));
         nuevoPago.setImporteInicial(sumaAbonos);
-        nuevoPago.setMonto(sumaAbonos);
-        // lista vacía de detalles
         nuevoPago.setDetallePagos(new ArrayList<>());
 
         // persisto la cabecera
