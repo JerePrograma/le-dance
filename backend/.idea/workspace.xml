@@ -4,13 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-<<<<<<< HEAD
-    <list default="true" id="e68b5449-8c65-49d0-ba83-553b8febe7fe" name="Changes" comment="" />
-=======
     <list default="true" id="e68b5449-8c65-49d0-ba83-553b8febe7fe" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/pago/PaymentProcessor.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/pago/PaymentProcessor.java" afterDir="false" />
     </list>
->>>>>>> 48c3928ef71e253faa03971077e348310891bc87
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />

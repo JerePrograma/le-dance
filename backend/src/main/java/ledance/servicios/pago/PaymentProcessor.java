@@ -59,65 +59,48 @@ public class PaymentProcessor {
      */
     @Transactional
     public void recalcularTotalesNuevo(Pago pagoNuevo) {
-        log.info("[PaymentProcessor] recalcularTotalesNuevo pago id={}", pagoNuevo.getId());
+        // … lógica previa de método de pago …
 
-        // 1. Asegurar método de pago
-        if (pagoNuevo.getMetodoPago() == null) {
-            MetodoPago efectivo = metodoPagoRepositorio
-                    .findByDescripcionContainingIgnoreCase("EFECTIVO");
-            pagoNuevo.setMetodoPago(efectivo);
-        }
-
-        double totalCobrar = 0.0;
-        double totalBasePend = 0.0;
-
-        // 2. Recorrer detalles vigentes
+        // 1) Procesar cada detalle para que importePendiente y ACobrar queden correctos
         for (DetallePago d : pagoNuevo.getDetallePagos()) {
             if (EstadoPago.ANULADO.equals(d.getEstadoPago())) continue;
-
             d.setFechaRegistro(pagoNuevo.getFecha());
-            totalCobrar += Optional.ofNullable(d.getACobrar()).orElse(0.0);
-            totalBasePend += Optional.ofNullable(d.getImporteInicial()).orElse(0.0);
-        }
-
-        // 3. Marcar histórico si ya quedó pagado
-        for (DetallePago d : pagoNuevo.getDetallePagos()) {
-            if (EstadoPago.ANULADO.equals(d.getEstadoPago())) continue;
             d.setTipo(paymentCalculationServicio.determinarTipoDetalle(d.getDescripcionConcepto()));
+            paymentCalculationServicio.procesarDetalle(d);
+
+            // si ya pagó todo
             if (d.getImportePendiente() != null && d.getImportePendiente() <= 0) {
                 d.setCobrado(true);
                 d.setImportePendiente(0.0);
                 d.setEstadoPago(EstadoPago.HISTORICO);
             }
-            paymentCalculationServicio.procesarDetalle(d);
         }
 
-        // 4. Recargo global
+        // 2) Ahora sí, acumular montos sobre los valores actualizados
+        double totalCobrar    = 0.0;
+        double totalPendiente = 0.0;
+        for (DetallePago d : pagoNuevo.getDetallePagos()) {
+            if (EstadoPago.ANULADO.equals(d.getEstadoPago())) continue;
+            totalCobrar    += Optional.ofNullable(d.getACobrar()).orElse(0.0);
+            totalPendiente += Optional.ofNullable(d.getImportePendiente()).orElse(0.0);
+        }
+
+        // 3) Recargo global (igual que antes)
         double recargo = pagoNuevo.getDetallePagos().stream()
                 .filter(d -> !EstadoPago.ANULADO.equals(d.getEstadoPago()) && Boolean.TRUE.equals(d.getTieneRecargo()))
                 .findAny()
                 .map(d -> pagoNuevo.getMetodoPago().getRecargo())
                 .orElse(0.0);
 
-        // 5. Montos finales
-        pagoNuevo.setMonto(totalCobrar + recargo);
+        // 4) Montos finales
+        pagoNuevo.setMonto      (totalCobrar + recargo);
         pagoNuevo.setMontoPagado(totalCobrar + recargo);
-
-        // 6. Saldo restante = suma de BASES – lo cobrado
-        double restante = Math.max(0.0, totalBasePend - totalCobrar);
-        pagoNuevo.setSaldoRestante(restante);
-
-        // 7. Estado del pago
-        pagoNuevo.setEstadoPago(restante <= 0
+        pagoNuevo.setSaldoRestante(Math.max(0.0, totalPendiente));
+        pagoNuevo.setEstadoPago   (pagoNuevo.getSaldoRestante() <= 0
                 ? EstadoPago.HISTORICO
                 : EstadoPago.ACTIVO);
 
         pagoRepositorio.save(pagoNuevo);
-        log.info("[PaymentProcessor] Pago id={} → monto={}, saldo={}, estado={}",
-                pagoNuevo.getId(),
-                pagoNuevo.getMonto(),
-                pagoNuevo.getSaldoRestante(),
-                pagoNuevo.getEstadoPago());
     }
 
     /**
@@ -389,7 +372,6 @@ public class PaymentProcessor {
             }
 
             DetallePago detalle = crearNuevoDetalleFromRequest(req, pago);
-            if (detalle == null) continue;
 
             entityManager.persist(detalle);
             // añadilo a la colección existente
