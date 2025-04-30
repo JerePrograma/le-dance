@@ -68,7 +68,7 @@ public class PaymentProcessor {
             pago.setMetodoPago(efectivo);
         }
 
-        double totalDeuda   = 0.0; // suma de importeInicial de los detalles activos
+        double totalDeuda = 0.0; // suma de importeInicial de los detalles activos
         double totalCobrado = 0.0; // suma de aCobrar de todos los detalles (excepto ANULADOS)
 
         for (DetallePago d : pago.getDetallePagos()) {
@@ -96,7 +96,7 @@ public class PaymentProcessor {
 
         // 5) Asignar montos correctamente
         pago.setMontoPagado(totalCobrado + recargo);
-        pago.setMonto(totalCobrado   + recargo);
+        pago.setMonto(totalCobrado + recargo);
         pago.setSaldoRestante(Math.max(0.0, totalDeuda - totalCobrado));
 
         // 6) Estado final
@@ -257,6 +257,7 @@ public class PaymentProcessor {
         nuevoPago.setMetodoPago(metodoPagoRepositorio.findById(request.metodoPagoId())
                 .orElseThrow(() -> new IllegalArgumentException("Método de pago no encontrado")));
         nuevoPago.setImporteInicial(sumaAbonos);
+        nuevoPago.setMonto(sumaAbonos);
         nuevoPago.setDetallePagos(new ArrayList<>());
 
         // persisto la cabecera
