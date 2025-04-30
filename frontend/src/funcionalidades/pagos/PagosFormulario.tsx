@@ -1454,27 +1454,30 @@ const CobranzasForm: React.FC = () => {
             setFieldValue("aplicarRecargo", false);
 
             const updatedDetalles = values.detallePagos.map((detalle: any) => {
-              // Ignorar los que ya están marcados como eliminados
-              if (detalle.removido || detalle.autoRemoved) {
+              // ignorar eliminados y los que no tienen recargo individual
+              if (
+                detalle.removido ||
+                detalle.autoRemoved ||
+                !detalle.tieneRecargo
+              ) {
                 return detalle;
               }
-              // Sólo quitar recargo de los que realmente lo tienen
-              if (detalle.tieneRecargo) {
-                return {
-                  ...detalle,
-                  importePendiente: detalle.importeInicial,
-                  ACobrar: detalle.importeInicial,
-                  tieneRecargo: false,
-                  recargoId: null,
-                  // opcionalmente limpieza de recargoNombre si lo guardas ahí
-                  recargoNombre: "",
-                };
-              }
-              return detalle;
+              return {
+                ...detalle,
+                importePendiente: detalle.importeInicial,
+                ACobrar: detalle.importeInicial,
+                tieneRecargo: false,
+                recargoId: null,
+                recargoNombre: "",
+              };
             });
 
             setFieldValue("detallePagos", updatedDetalles);
           }, [values.detallePagos, setFieldValue]);
+
+          const handleQuitarRecargoDebito = useCallback(() => {
+            setFieldValue("aplicarRecargo", false);
+          }, [setFieldValue]);
 
           return (
             <Form className="w-full">
@@ -1589,6 +1592,15 @@ const CobranzasForm: React.FC = () => {
                 >
                   Quitar Recargo
                 </button>
+                {selectedMetodoPago?.descripcion.toUpperCase() === "DEBITO" && (
+                  <button
+                    type="button"
+                    className="bg-yellow-500 p-2 rounded text-white"
+                    onClick={handleQuitarRecargoDebito}
+                  >
+                    Quitar Recargo Débito
+                  </button>
+                )}
                 <button
                   type="submit"
                   className="bg-green-500 p-2 rounded text-white"
