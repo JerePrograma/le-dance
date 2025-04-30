@@ -231,7 +231,8 @@ const InscripcionesFormulario: React.FC = () => {
   // Guardar (crear o actualizar) inscripción
   const handleGuardarInscripcion = async (
     values: InscripcionFormData,
-    _resetForm: () => void
+    _resetForm: () => void,
+    _index?: number
   ) => {
     if (
       !values.alumno?.id ||
@@ -381,23 +382,17 @@ const InscripcionesFormulario: React.FC = () => {
       {/* Sección de formularios para agregar/editar inscripciones */}
       {inscripcionesList.map((inscripcion, index) => (
         <div
-          key={inscripcion.id || index}
+          key={inscripcion.id ?? index}
           className="border border-border rounded-lg p-6 mb-6 bg-card"
         >
           <Formik
-            key={inscripcion.id || index}
+            key={inscripcion.id ?? index}
             initialValues={inscripcion}
+            enableReinitialize
             validationSchema={inscripcionEsquema}
             onSubmit={async (values, actions) => {
-              try {
-                await handleGuardarInscripcion(values, actions.resetForm);
-                eliminarInscripcionRow(index);
-              } catch (error) {
-              } finally {
-                () => {
-                  actions.setSubmitting(false);
-                };
-              }
+              await handleGuardarInscripcion(values, actions.resetForm, index);
+              actions.setSubmitting(false);
             }}
           >
             {({ isSubmitting, values, setFieldValue, errors }) => {
@@ -442,7 +437,6 @@ const InscripcionesFormulario: React.FC = () => {
                           const found = disciplinas.find(
                             (d) => d.id === selectedId
                           );
-                          // Ignoramos horarios asignando arreglo vacío
                           if (found) {
                             setFieldValue("disciplina", {
                               id: found.id,
@@ -596,7 +590,6 @@ const InscripcionesFormulario: React.FC = () => {
           </Formik>
         </div>
       ))}
-
       <div className="flex gap-4">
         <Boton
           onClick={agregarInscripcion}

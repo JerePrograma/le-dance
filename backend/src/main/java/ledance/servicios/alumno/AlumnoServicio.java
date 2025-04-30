@@ -171,7 +171,7 @@ public class AlumnoServicio implements IAlumnoServicio {
             ins.getAsistenciasAlumnoMensual().clear();
 
             // 2.b) Marcar la inscripción como de BAJA
-            ins.setEstado(EstadoInscripcion.BAJA);
+            ins.setEstado(EstadoInscripcion.INACTIVA);
             ins.setFechaBaja(LocalDate.now());
         }
 

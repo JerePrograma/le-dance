@@ -207,7 +207,7 @@ public class InscripcionServicio implements IInscripcionServicio {
         inscripcion = inscripcionMapper.updateEntityFromRequest(request, inscripcion);
         if (request.fechaBaja() != null) {
             inscripcion.setFechaBaja(request.fechaBaja());
-            inscripcion.setEstado(EstadoInscripcion.BAJA);
+            inscripcion.setEstado(EstadoInscripcion.INACTIVA);
         }
         Inscripcion actualizada = inscripcionRepositorio.save(inscripcion);
 
@@ -245,11 +245,15 @@ public class InscripcionServicio implements IInscripcionServicio {
         Inscripcion ins = inscripcionRepositorio.findById(id)
                 .orElseThrow(() -> new TratadorDeErrores.RecursoNoEncontradoException("Inscripción no encontrada"));
 
-        ins.setEstado(EstadoInscripcion.BAJA);
-        // 1) Borramos TODAS las asistencias mensuales (orphanRemoval + cascade a diarias)
+        // 1) marcar el alta como "dada de baja"…
+        ins.setEstado(EstadoInscripcion.INACTIVA);
+        ins.setFechaBaja(LocalDate.now());           // <— aquí
+
+        // 2) borrar físicamente las asistencias mensuales (cascade + orphanRemoval)
         ins.getAsistenciasAlumnoMensual().clear();
+
+        // 3) persistir
         inscripcionRepositorio.save(ins);
-        // ¡Listo! No tocamos fechaBaja ni estado, así el CHECK no se queja.
     }
 
     /**

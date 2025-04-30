@@ -44,11 +44,15 @@ public interface InscripcionMapper {
     Inscripcion toEntity(InscripcionRegistroRequest request);
 
     // Para actualizar una inscripcion a partir del DTO de modificacion
+    @Mapping(target = "id", ignore = true)                  // <— aquí
     @Mapping(target = "alumno", ignore = true)
-    @Mapping(target = "disciplina", expression = "java(mapDisciplina(request.disciplina().id()))")
-    @Mapping(target = "bonificacion", expression = "java(request.bonificacionId() != null ? mapBonificacion(request.bonificacionId()) : null)")
+    @Mapping(target = "disciplina",
+            expression = "java(mapDisciplina(request.disciplina().id()))")
+    @Mapping(target = "bonificacion",
+            expression = "java(request.bonificacionId() != null ? mapBonificacion(request.bonificacionId()) : null)")
     @Mapping(target = "fechaBaja", source = "fechaBaja")
-    Inscripcion updateEntityFromRequest(InscripcionRegistroRequest request, @MappingTarget Inscripcion inscripcion);
+    Inscripcion updateEntityFromRequest(InscripcionRegistroRequest request,
+                                        @MappingTarget Inscripcion inscripcion);
 
     // Metodos auxiliares para crear instancias minimas de Disciplina y Bonificacion a partir del id
     default Disciplina mapDisciplina(Long disciplinaId) {
