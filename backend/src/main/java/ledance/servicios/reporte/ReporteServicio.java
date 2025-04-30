@@ -1,6 +1,7 @@
 package ledance.servicios.reporte;
 
 import ledance.dto.reporte.ReporteMapper;
+import ledance.dto.reporte.request.ReporteLiquidacionRequest;
 import ledance.dto.reporte.request.ReporteRegistroRequest;
 import ledance.dto.reporte.response.ReporteResponse;
 import ledance.entidades.Reporte;
@@ -9,6 +10,7 @@ import ledance.repositorios.InscripcionRepositorio;
 import ledance.repositorios.ReporteRepositorio;
 import ledance.repositorios.UsuarioRepositorio;
 import jakarta.transaction.Transactional;
+import ledance.servicios.pdfs.PdfService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -32,15 +34,17 @@ public class ReporteServicio implements IReporteServicio {
     private final InscripcionRepositorio inscripcionRepositorio;
     private final UsuarioRepositorio usuarioRepositorio;
     private final ReporteMapper reporteMapper;
+    private final PdfService pdfService;
 
     public ReporteServicio(ReporteRepositorio reporteRepositorio,
                            InscripcionRepositorio inscripcionRepositorio,
                            UsuarioRepositorio usuarioRepositorio,
-                           ReporteMapper reporteMapper) {
+                           ReporteMapper reporteMapper, PdfService pdfService) {
         this.reporteRepositorio = reporteRepositorio;
         this.inscripcionRepositorio = inscripcionRepositorio;
         this.usuarioRepositorio = usuarioRepositorio;
         this.reporteMapper = reporteMapper;
+        this.pdfService = pdfService;
     }
 
     /**
@@ -202,6 +206,16 @@ public class ReporteServicio implements IReporteServicio {
         }
         Page<Reporte> reportes = reporteRepositorio.findAll(spec, pageable);
         return reportes.map(reporteMapper::toDTO);
+    }
+
+    // en ReporteServicio.java
+    public byte[] exportarLiquidacionProfesor(ReporteLiquidacionRequest req) {
+        return pdfService.generarLiquidacionProfesorPdf(
+                req.profesor(),
+                req.disciplina(),
+                req.detalles(),
+                req.porcentaje()
+        );
     }
 
 //    public ByteArrayInputStream exportarReporteAExcel(List<ReporteResponse> reportes) {

@@ -60,7 +60,7 @@ const ReporteDetallePago: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        // Función que transforma "YYYY-MM" a fechas completas (primer y último día)
+        // 1) Transformar "YYYY-MM" a fechas completas
         const transformarMesAFechas = (
           mesStr: string
         ): { inicio: string; fin: string } => {
@@ -81,23 +81,35 @@ const ReporteDetallePago: React.FC = () => {
           values.fechaInicio
         );
         const { fin: finFecha } = transformarMesAFechas(values.fechaFin);
+
+        // 2) Preparar parámetros y llamar al backend
         const params = {
           fechaInicio: inicioFecha,
           fechaFin: finFecha,
           disciplinaNombre: values.disciplinaNombre || undefined,
           profesorNombre: values.profesorNombre || undefined,
         };
-
         console.log(
           "Llamando a /api/reportes/mensualidades/buscar con parámetros:",
           params
         );
         const response: DetallePagoResponse[] =
           await reporteMensualidadApi.listarReporte(params);
-        console.log("Respuesta recibida:", response);
-        setResultados(response);
+        console.log("Respuesta recibida (antes de ordenar):", response);
+
+        // 3) Ordenar alfabéticamente por descripcionConcepto
+        const ordenado = [...response].sort((a, b) =>
+          a.descripcionConcepto.localeCompare(
+            b.descripcionConcepto,
+            undefined,
+            { sensitivity: "base" }
+          )
+        );
+        console.log("Resultados ordenados:", ordenado);
+
+        setResultados(ordenado);
       } catch (err: any) {
-        toast.error("Error al obtener el reporte:" + err);
+        toast.error("Error al obtener el reporte: " + err);
         setError("Error al cargar los datos del reporte");
       } finally {
         setLoading(false);
@@ -194,6 +206,54 @@ const ReporteDetallePago: React.FC = () => {
   );
   const montoPorcentaje = totalACobrar * (porcentaje / 100);
 
+  // --- NUEVO: Función para exportar PDF ---
+  const handleExport = async () => {
+    try {
+      setLoading(true);
+      const payload = {
+        fechaInicio: formik.values.fechaInicio,
+        fechaFin: formik.values.fechaFin,
+        disciplina: formik.values.disciplinaNombre,
+        profesor: formik.values.profesorNombre, // ahora sí llega
+        porcentaje, // ¡lo agregamos!
+        detalles: resultados,
+      };
+      const blob: Blob = await reporteMensualidadApi.exportarLiquidacion(
+        payload
+      );
+      // Creamos URL temporal y forzamos descarga
+      const url = window.URL.createObjectURL(
+        new Blob([blob], { type: "application/pdf" })
+      );
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute(
+        "download",
+        `liquidacion_${formik.values.profesorNombre || "profesor"}_${
+          formik.values.disciplinaNombre || "disciplina"
+        }.pdf`
+      );
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      toast.error("Error al exportar PDF: " + err?.message || err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resultadosOrdenados = React.useMemo(
+    () =>
+      [...resultados].sort((a, b) =>
+        a.descripcionConcepto.localeCompare(b.descripcionConcepto, undefined, {
+          sensitivity: "base",
+        })
+      ),
+    [resultados]
+  );
+
   return (
     <div className="p-4">
       <h1 className="text-2xl font-bold mb-4">Liquidación Profesores</h1>
@@ -246,16 +306,23 @@ const ReporteDetallePago: React.FC = () => {
           />
           {sugerenciasDisciplinas.length > 0 && (
             <ul className="absolute w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 mt-1 z-10 rounded-md shadow-lg">
-              {sugerenciasDisciplinas.map((disciplina: any) => (
+              {/* En la sección de sugerencias de disciplinas, cambiá esto: */}
+              {sugerenciasDisciplinas.map((disc: any) => (
                 <li
-                  key={disciplina.id}
+                  key={disc.id}
                   onClick={() => {
-                    formik.setFieldValue("disciplinaNombre", disciplina.nombre);
+                    // 1) Seteás la disciplina
+                    formik.setFieldValue("disciplinaNombre", disc.nombre);
+                    // 2) Ahora seteás el profesor basado en las props recibidas
+                    const profFullName = `${disc.profesorNombre} ${disc.profesorApellido}`;
+                    formik.setFieldValue("profesorNombre", profFullName);
+                    // 3) Limpiás las sugerencias
                     setSugerenciasDisciplinas([]);
                   }}
                   className="bg-slate-200 dark:bg-slate-600 hover:bg-gray-200 dark:hover:bg-gray-700 p-1"
                 >
-                  {disciplina.nombre}
+                  {disc.nombre} — Prof. {disc.profesorNombre}{" "}
+                  {disc.profesorApellido}
                 </li>
               ))}
             </ul>
@@ -330,9 +397,8 @@ const ReporteDetallePago: React.FC = () => {
               "Valor Base",
               "Bonificación",
               "Monto Cobrado",
-              "Estado",
             ]}
-            data={resultados}
+            data={resultadosOrdenados}
             customRender={(item: DetallePagoResponse) => {
               const index = item.descripcionConcepto.indexOf("-");
               const descripcion =
@@ -418,8 +484,6 @@ const ReporteDetallePago: React.FC = () => {
                   }
                   className="border p-1 w-auto text-center"
                 />,
-                // Estado (calculado)
-                item.importePendiente === 0 ? "saldado" : "pendiente",
               ];
             }}
           />
@@ -432,6 +496,13 @@ const ReporteDetallePago: React.FC = () => {
           Liquidación neta ({porcentaje}%): $ {montoPorcentaje.toLocaleString()}
         </p>
       </div>
+      <button
+        onClick={handleExport}
+        className="bg-green-600 text-white px-4 py-2 rounded"
+        disabled={loading || resultados.length === 0}
+      >
+        {loading ? "Generando PDF..." : "Exportar PDF"}
+      </button>
     </div>
   );
 };

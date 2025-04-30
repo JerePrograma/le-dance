@@ -5,9 +5,11 @@ import com.lowagie.text.pdf.PdfPCell;
 import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
 import jakarta.mail.MessagingException;
+import jakarta.validation.constraints.NotNull;
 import ledance.dto.alumno.response.AlumnoResponse;
 import ledance.dto.caja.CajaDetalleDTO;
 import ledance.dto.egreso.response.EgresoResponse;
+import ledance.dto.pago.response.DetallePagoResponse;
 import ledance.dto.pago.response.PagoResponse;
 import ledance.entidades.*;
 import ledance.repositorios.DisciplinaRepositorio;
@@ -581,4 +583,89 @@ public class PdfService {
             return bos.toByteArray();
         }
     }
+
+    // en PdfService.java
+    public byte[] generarLiquidacionProfesorPdf(
+            String profesorNombre,
+            String disciplinaNombre,
+            List<DetallePagoResponse> detalles,
+            Double porcentaje
+    ) throws DocumentException {
+        Document doc = new Document(PageSize.A4.rotate());
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        PdfWriter.getInstance(doc, bos);
+        doc.open();
+
+        // Títulos
+        Font titleFont = new Font(Font.HELVETICA, 16, Font.BOLD);
+        doc.add(new Paragraph("Liquidación Profesor", titleFont));
+        doc.add(new Paragraph("Profesor: "   + profesorNombre));
+        doc.add(new Paragraph("Disciplina: " + disciplinaNombre));
+        doc.add(new Paragraph(String.format("Porcentaje aplicado: %.2f%%", porcentaje)));
+        doc.add(Chunk.NEWLINE);
+
+        // Tabla (idéntica a la anterior)
+        float[] columnWidths = {3f,1.5f,3f,1.5f,1.5f,1.5f,1.5f};
+        PdfPTable table = new PdfPTable(columnWidths);
+        table.setWidthPercentage(100);
+        Font hf = new Font(Font.HELVETICA, 10, Font.BOLD);
+        for (String h : List.of("Descripción","Tarifa","Alumno","Valor Base","Bonificación","Monto Cobrado","Estado")) {
+            PdfPCell c = new PdfPCell(new Phrase(h, hf));
+            c.setHorizontalAlignment(Element.ALIGN_CENTER);
+            c.setPadding(4);
+            table.addCell(c);
+        }
+        Font cf = new Font(Font.HELVETICA, 9, Font.NORMAL);
+        for (DetallePagoResponse det : detalles) {
+            String desc, tarifa;
+            int idx = det.descripcionConcepto().indexOf("-");
+            if (idx >= 0) {
+                desc   = det.descripcionConcepto().substring(0, idx).trim();
+                tarifa = det.descripcionConcepto().substring(idx+1).trim();
+            } else {
+                desc   = det.descripcionConcepto();
+                tarifa = "";
+            }
+            String estado = (det.importePendiente() != null && det.importePendiente() == 0)
+                    ? "saldado" : "pendiente";
+
+            table.addCell(new PdfPCell(new Phrase(desc, cf)));
+            table.addCell(new PdfPCell(new Phrase(tarifa, cf)));
+            table.addCell(new PdfPCell(new Phrase(
+                    det.alumno().nombre() + " " + det.alumno().apellido(), cf)));
+            table.addCell(new PdfPCell(new Phrase(
+                    String.format("%,.2f", det.valorBase()), cf)));
+            table.addCell(new PdfPCell(new Phrase(
+                    det.bonificacionNombre()!=null? det.bonificacionNombre() : "-", cf)));
+            table.addCell(new PdfPCell(new Phrase(
+                    String.format("%,.2f", det.ACobrar()), cf)));
+            table.addCell(new PdfPCell(new Phrase(estado, cf)));
+        }
+        doc.add(table);
+
+        // Totales
+        double totalBruto = detalles.stream()
+                .mapToDouble(d -> d.ACobrar()!=null? d.ACobrar() : 0.0)
+                .sum();
+        double totalNeto = totalBruto * (porcentaje/100.0);
+
+        Paragraph pBruto = new Paragraph(
+                "TOTAL BRUTO: $ " + String.format("%,.2f", totalBruto),
+                new Font(Font.HELVETICA, 12, Font.BOLD)
+        );
+        pBruto.setAlignment(Element.ALIGN_RIGHT);
+        doc.add(Chunk.NEWLINE);
+        doc.add(pBruto);
+
+        Paragraph pNeto = new Paragraph(
+                "LIQUIDACIÓN NETA: $ " + String.format("%,.2f", totalNeto),
+                new Font(Font.HELVETICA, 12, Font.BOLD)
+        );
+        pNeto.setAlignment(Element.ALIGN_RIGHT);
+        doc.add(pNeto);
+
+        doc.close();
+        return bos.toByteArray();
+    }
+
 }

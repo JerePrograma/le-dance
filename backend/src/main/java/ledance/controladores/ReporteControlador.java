@@ -1,14 +1,20 @@
 package ledance.controladores;
 
+import ledance.dto.pago.response.DetallePagoResponse;
+import ledance.dto.reporte.ReporteMensualidadDTO;
+import ledance.dto.reporte.request.ReporteLiquidacionRequest;
 import ledance.dto.reporte.request.ReporteRegistroRequest;
 import ledance.dto.reporte.response.ReporteResponse;
+import ledance.servicios.mensualidad.MensualidadServicio;
 import ledance.servicios.reporte.ReporteServicio;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -23,9 +29,11 @@ public class ReporteControlador {
 
     private static final Logger log = LoggerFactory.getLogger(ReporteControlador.class);
     private final ReporteServicio reporteServicio;
+    private final MensualidadServicio mensualidadServicio;
 
-    public ReporteControlador(ReporteServicio reporteServicio) {
+    public ReporteControlador(ReporteServicio reporteServicio, MensualidadServicio mensualidadServicio) {
         this.reporteServicio = reporteServicio;
+        this.mensualidadServicio = mensualidadServicio;
     }
 
     // Endpoint generico de generacion (si fuera necesario)
@@ -155,6 +163,61 @@ public class ReporteControlador {
             Pageable pageable) {
         Page<ReporteResponse> reportes = reporteServicio.generarReportePaginado(usuarioId, tipo, fechaInicio, fechaFin, pageable);
         return ResponseEntity.ok(reportes);
+    }
+
+    // en ReporteControlador.java
+    @PostMapping("/mensualidades/exportar")
+    public ResponseEntity<byte[]> exportarLiquidacionProfesor(
+            @RequestBody @Validated ReporteLiquidacionRequest req
+    ) {
+        log.info("Exportando liquidación de '{}' ({}) al {}% sobre disciplina {}",
+                req.profesor(), req.fechaInicio() + "→" + req.fechaFin(),
+                req.porcentaje(), req.disciplina());
+        try {
+            byte[] pdf = reporteServicio.exportarLiquidacionProfesor(req);
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION,
+                            "attachment; filename=\"liquidacion_"
+                                    + req.profesor().replace(" ", "_") + ".pdf\"")
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .body(pdf);
+        } catch (Exception e) {
+            log.error("Error exportando liquidación:", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+
+
+    /**
+     * Endpoint para buscar mensualidades con filtros.
+     * Parametros:
+     * - fechaInicio (obligatorio, formato yyyy-MM-dd)
+     * - fechaFin (obligatorio, formato yyyy-MM-dd)
+     * - disciplinaId (opcional)
+     * - profesorId (opcional)
+     *
+     * Se utiliza Pageable para paginacion.
+     */
+    @GetMapping("/mensualidades/buscar")
+    public ResponseEntity<List<DetallePagoResponse>> buscarMensualidades(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaInicio,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaFin,
+            @RequestParam(required = false) String disciplinaNombre,
+            @RequestParam(required = false) String profesorNombre
+    ) {
+        List<DetallePagoResponse> resultados = mensualidadServicio.buscarMensualidades(fechaInicio, fechaFin, disciplinaNombre, profesorNombre);
+        return ResponseEntity.ok(resultados);
+    }
+
+    @GetMapping("/mensualidades/buscar-mensualidades-alumno-por-mes")
+    public ResponseEntity<List<ReporteMensualidadDTO>> buscarMensualidadesAlumnoPorMes(
+            @RequestParam(name = "fechaInicio") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaMes,
+            @RequestParam String alumnoNombre
+    ) {
+        List<ReporteMensualidadDTO> resultados = mensualidadServicio
+                .buscarMensualidadesAlumnoPorMes(fechaMes, alumnoNombre);
+        return ResponseEntity.ok(resultados);
     }
 
 }

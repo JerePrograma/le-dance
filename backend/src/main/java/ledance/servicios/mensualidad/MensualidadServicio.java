@@ -12,6 +12,7 @@ import ledance.dto.reporte.ReporteMensualidadDTO;
 import ledance.entidades.*;
 import ledance.repositorios.*;
 import ledance.servicios.recargo.RecargoServicio;
+import org.flywaydb.core.internal.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.jpa.domain.Specification;
@@ -694,52 +695,129 @@ public class MensualidadServicio {
         );
     }
 
-    public List<DetallePagoResponse> buscarMensualidades(LocalDate fechaInicio, LocalDate fechaFin, String disciplinaNombre, String profesorNombre) {
-        log.info("Buscando mensualidades entre {} y {} con disciplina '{}' y profesor '{}'", fechaInicio, fechaFin, disciplinaNombre, profesorNombre);
+    public List<DetallePagoResponse> buscarMensualidades(
+            LocalDate fechaInicio,
+            LocalDate fechaFin,
+            String disciplinaNombre,
+            String profesorNombre
+    ) {
+        log.info("Buscando mensualidades entre {} y {} con disciplina '{}' y profesor '{}'",
+                fechaInicio, fechaFin, disciplinaNombre, profesorNombre);
 
+        // 1) Construcción dinámica de la Specification
         Specification<Mensualidad> spec = (root, query, cb) ->
                 cb.between(root.get("fechaCuota"), fechaInicio, fechaFin);
 
-        if (disciplinaNombre != null && !disciplinaNombre.isEmpty()) {
+        if (StringUtils.hasText(disciplinaNombre)) {
             spec = spec.and((root, query, cb) -> {
-                Join<Mensualidad, Inscripcion> inscripcion = root.join("inscripcion");
-                Join<Inscripcion, Disciplina> disciplina = inscripcion.join("disciplina");
-                return cb.like(cb.lower(disciplina.get("nombre")), "%" + disciplinaNombre.toLowerCase() + "%");
+                Join<Mensualidad, Inscripcion> ins = root.join("inscripcion");
+                Join<Inscripcion, Disciplina> dis = ins.join("disciplina");
+                return cb.like(cb.lower(dis.get("nombre")),
+                        "%" + disciplinaNombre.toLowerCase() + "%");
             });
         }
-        if (profesorNombre != null && !profesorNombre.isEmpty()) {
+        if (StringUtils.hasText(profesorNombre)) {
             spec = spec.and((root, query, cb) -> {
-                Join<Mensualidad, Inscripcion> inscripcion = root.join("inscripcion");
-                Join<Inscripcion, Disciplina> disciplina = inscripcion.join("disciplina");
-                Join<Disciplina, Profesor> profesor = disciplina.join("profesor");
-                return cb.like(cb.lower(profesor.get("nombre")), "%" + profesorNombre.toLowerCase() + "%");
+                // 1) Evitar duplicados al hacer joins
+                query.distinct(true);
+
+                Join<Mensualidad, Inscripcion> ins = root.join("inscripcion");
+                Join<Inscripcion, Disciplina> dis = ins.join("disciplina");
+                Join<Disciplina, Profesor> prof = dis.join("profesor");
+
+                String pattern = "%" + profesorNombre.toLowerCase() + "%";
+
+                // 2) Buscar en nombre, en apellido o en la concatenación
+                return cb.or(
+                        cb.like(cb.lower(prof.get("nombre")), pattern),
+                        cb.like(cb.lower(prof.get("apellido")), pattern),
+                        // opcional: nombre + ' ' + apellido
+                        cb.like(cb.lower(
+                                cb.concat(
+                                        cb.concat(prof.get("nombre"), cb.literal(" ")),
+                                        prof.get("apellido")
+                                )
+                        ), pattern)
+                );
             });
         }
 
+        // 2) Obtener las mensualidades
         List<Mensualidad> mensualidades = mensualidadRepositorio.findAll(spec);
         log.info("Total de mensualidades encontradas: {}", mensualidades.size());
 
-        List<DetallePagoResponse> detallePagoResponses = new ArrayList<>();
-        // Para cada mensualidad, evaluamos la condicion y mapeamos sus detalles de pago de tipo MENSUALIDAD
-        for (Mensualidad m : mensualidades) {
-            boolean procesar = m.getEstado() == EstadoMensualidad.PAGADO ||
-                    (m.getImportePendiente() != null && m.getImporteInicial() != null &&
-                            m.getImportePendiente() < m.getImporteInicial());
-            if (procesar && m.getDetallePagos() != null) {
-                List<DetallePago> detalles = m.getDetallePagos().stream()
-                        .filter(detalle -> detalle.getTipo() == TipoDetallePago.MENSUALIDAD)
-                        .toList();
-                for (DetallePago d : detalles) {
-                    d.setConcepto(d.getConcepto());
-                    d.setSubConcepto(d.getSubConcepto());
-                    DetallePagoResponse response = mapearDetallePagoResponse(d);
-                    if (response != null) {
-                        detallePagoResponses.add(response);
-                    }
-                }
+        // 3) Mapear a DetallePagoResponse
+        List<DetallePagoResponse> respuestas = mensualidades.stream()
+                .filter(m -> m.getEstado() == EstadoMensualidad.PAGADO ||
+                        (m.getImportePendiente() != null &&
+                                m.getImporteInicial()  != null &&
+                                m.getImportePendiente() < m.getImporteInicial()))
+                .flatMap(m -> Optional.ofNullable(m.getDetallePagos()).orElse(List.of()).stream()
+                        .filter(d -> d.getTipo() == TipoDetallePago.MENSUALIDAD)
+                        .map(d -> {
+                            d.setConcepto(d.getConcepto());
+                            d.setSubConcepto(d.getSubConcepto());
+                            return mapearDetallePagoResponse(d);
+                        })
+                        .filter(Objects::nonNull)
+                )
+                .toList();
+
+        // 4) Agrupar por (descripcionConcepto, alumnoId), sumando sólo aCobrar y descartando ceros
+        Map<Map.Entry<String, Long>, Double> sumACobrar    = new LinkedHashMap<>();
+        Map<Map.Entry<String, Long>, DetallePagoResponse> primeraRespuesta = new LinkedHashMap<>();
+
+        for (DetallePagoResponse r : respuestas) {
+            Double aCobrar = r.ACobrar();
+            if (aCobrar == null || aCobrar == 0.0) {
+                continue;
             }
+            String desc = r.descripcionConcepto();
+            Long   alumnoId = r.alumno().id();  // obtenemos el ID del alumno del response
+            Map.Entry<String, Long> key = Map.entry(desc, alumnoId);
+
+            sumACobrar.merge(key, aCobrar, Double::sum);
+            primeraRespuesta.putIfAbsent(key, r);
         }
-        return detallePagoResponses;
+
+        // 5) Reconstruir la lista final con un único DetallePagoResponse por clave
+        List<DetallePagoResponse> resultado = new ArrayList<>(sumACobrar.size());
+        for (var entry : sumACobrar.entrySet()) {
+            var key   = entry.getKey();
+            var total = entry.getValue();
+            DetallePagoResponse base = primeraRespuesta.get(key);
+
+            // Creamos un nuevo record cambiando sólo el campo aCobrar
+            DetallePagoResponse agregada = new DetallePagoResponse(
+                    base.id(),
+                    base.version(),
+                    base.descripcionConcepto(),
+                    base.cuotaOCantidad(),
+                    base.valorBase(),
+                    base.bonificacionId(),
+                    base.bonificacionNombre(),
+                    base.recargoId(),
+                    total,
+                    base.cobrado(),
+                    base.conceptoId(),
+                    base.subConceptoId(),
+                    base.mensualidadId(),
+                    base.matriculaId(),
+                    base.stockId(),
+                    base.importeInicial(),
+                    base.importePendiente(),
+                    base.tipo(),
+                    base.fechaRegistro(),
+                    base.pagoId(),
+                    base.alumno(),
+                    base.tieneRecargo(),
+                    base.usuarioId(),
+                    base.estadoPago()
+            );
+            resultado.add(agregada);
+        }
+
+        return resultado;
     }
 
     public DetallePagoResponse mapearDetallePagoResponse(DetallePago detalle) {
@@ -766,7 +844,7 @@ public class MensualidadServicio {
                 detalle.getPago() != null ? detalle.getPago().getId() : null,
                 alumnoMapper.toAlumnoListadoResponse(detalle.getAlumno()),
                 detalle.getTieneRecargo(),
-                detalle.getUsuario().getId(),
+                detalle.getUsuario() != null ? detalle.getUsuario().getId() : null,
                 detalle.getEstadoPago().toString()
         );
     }
