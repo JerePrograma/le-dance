@@ -9,6 +9,7 @@ build/
 !**/src/test/**/build/
 pdfs/
 /backend/.idea/
+/backend/.idea/workspace.xml
 
 # Node.js / Vite
 node_modules/

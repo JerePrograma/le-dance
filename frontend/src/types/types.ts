@@ -715,6 +715,7 @@ export interface PagoRegistroRequest {
   pagoMedios?: PagoMedioRegistroRequest[];
   activo: boolean;
   usuarioId: number;
+  aplicarRecargoMetodoPago?: boolean;
 }
 
 export interface PagoResponse {

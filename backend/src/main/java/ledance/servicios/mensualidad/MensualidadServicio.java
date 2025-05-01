@@ -568,12 +568,7 @@ public class MensualidadServicio {
         log.info("[registrarDetallePagoMensualidad] Asociaciones establecidas: Mensualidad id={}, Pago id={}",
                 mensualidad.getId(), pagoPendiente.getId());
 
-        // Aplicar recargo si corresponde
-        if (detalle.getRecargo() != null && !detalle.getTieneRecargo()) {
-            log.info("[registrarDetallePagoMensualidad] El detalle indica NO aplicar recargo (tieneRecargo=false).");
-            detalle.setTieneRecargo(false);
-            detalle.setImportePendiente(importeInicial - ACobrar);
-        } else if (mensualidad.getRecargo() != null) {
+        if (mensualidad.getRecargo() != null) {
             Recargo recargo = mensualidad.getRecargo();
             detalle.setRecargo(recargo);
             detalle.setTieneRecargo(true);
@@ -583,8 +578,6 @@ public class MensualidadServicio {
             detalle.setImportePendiente(nuevoPendiente);
             log.info("[registrarDetallePagoMensualidad] Se aplica recargo: {}. Nuevo total: {}. Nuevo pendiente: {}",
                     recargoValue, nuevoTotal, nuevoPendiente);
-        } else {
-            log.info("[registrarDetallePagoMensualidad] No se aplica recargo, ya que la mensualidad no tiene recargo asignado.");
         }
 
         // Persistir inmediatamente el detalle para asignarle un id
@@ -750,7 +743,7 @@ public class MensualidadServicio {
         List<DetallePagoResponse> respuestas = mensualidades.stream()
                 .filter(m -> m.getEstado() == EstadoMensualidad.PAGADO ||
                         (m.getImportePendiente() != null &&
-                                m.getImporteInicial()  != null &&
+                                m.getImporteInicial() != null &&
                                 m.getImportePendiente() < m.getImporteInicial()))
                 .flatMap(m -> Optional.ofNullable(m.getDetallePagos()).orElse(List.of()).stream()
                         .filter(d -> d.getTipo() == TipoDetallePago.MENSUALIDAD)
@@ -764,7 +757,7 @@ public class MensualidadServicio {
                 .toList();
 
         // 4) Agrupar por (descripcionConcepto, alumnoId), sumando sólo aCobrar y descartando ceros
-        Map<Map.Entry<String, Long>, Double> sumACobrar    = new LinkedHashMap<>();
+        Map<Map.Entry<String, Long>, Double> sumACobrar = new LinkedHashMap<>();
         Map<Map.Entry<String, Long>, DetallePagoResponse> primeraRespuesta = new LinkedHashMap<>();
 
         for (DetallePagoResponse r : respuestas) {
@@ -773,7 +766,7 @@ public class MensualidadServicio {
                 continue;
             }
             String desc = r.descripcionConcepto();
-            Long   alumnoId = r.alumno().id();  // obtenemos el ID del alumno del response
+            Long alumnoId = r.alumno().id();  // obtenemos el ID del alumno del response
             Map.Entry<String, Long> key = Map.entry(desc, alumnoId);
 
             sumACobrar.merge(key, aCobrar, Double::sum);
@@ -783,7 +776,7 @@ public class MensualidadServicio {
         // 5) Reconstruir la lista final con un único DetallePagoResponse por clave
         List<DetallePagoResponse> resultado = new ArrayList<>(sumACobrar.size());
         for (var entry : sumACobrar.entrySet()) {
-            var key   = entry.getKey();
+            var key = entry.getKey();
             var total = entry.getValue();
             DetallePagoResponse base = primeraRespuesta.get(key);
 

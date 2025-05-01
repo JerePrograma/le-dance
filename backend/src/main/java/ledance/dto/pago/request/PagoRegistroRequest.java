@@ -20,5 +20,6 @@ public record PagoRegistroRequest(
         List<PagoMedioRegistroRequest> pagoMedios,
         Boolean activo,
         Long usuarioId,
-        String estadoPago
+        String estadoPago,
+         Boolean recargoMetodoPagoAplicado
 ) { }

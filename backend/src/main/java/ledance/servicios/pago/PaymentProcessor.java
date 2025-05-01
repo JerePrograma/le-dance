@@ -57,61 +57,52 @@ public class PaymentProcessor {
     /**
      * Recalcula totales para un pago, ignorando detalles no ACTIVO o removidos.
      */
-    @Transactional
     public void recalcularTotalesNuevo(Pago pago) {
-        log.info("[PaymentProcessor] recalcularTotalesNuevo pago id={}", pago.getId());
+        log.info("[recalcularTotalesNuevo] Pago id={}", pago.getId());
 
-        // 1) Asegurar método de pago
         if (pago.getMetodoPago() == null) {
-            MetodoPago efectivo = metodoPagoRepositorio
-                    .findByDescripcionContainingIgnoreCase("EFECTIVO");
+            MetodoPago efectivo = metodoPagoRepositorio.findByDescripcionContainingIgnoreCase("EFECTIVO");
             pago.setMetodoPago(efectivo);
         }
 
-        double totalDeuda = 0.0; // suma de importeInicial de los detalles activos
-        double totalCobrado = 0.0; // suma de aCobrar de todos los detalles (excepto ANULADOS)
+        double totalDetalles = 0.0;
+        double totalCobrado = 0.0;
+        boolean tieneRecargoEnDetalles = false;
 
         for (DetallePago d : pago.getDetallePagos()) {
-            if (Boolean.TRUE.equals(d.getRemovido()) ||
-                    EstadoPago.ANULADO.equals(d.getEstadoPago())) {
-                continue;
-            }
+            if (Boolean.TRUE.equals(d.getRemovido()) || EstadoPago.ANULADO.equals(d.getEstadoPago())) continue;
+
             d.setFechaRegistro(pago.getFecha());
 
-            // sólo los ACTIVO suman a la deuda total
-            if (EstadoPago.ACTIVO.equals(d.getEstadoPago())) {
-                totalDeuda += Optional.ofNullable(d.getImporteInicial()).orElse(0.0);
-            }
-            // cualquier detalle (ACTIVO o HISTÓRICO) aporta a lo cobrado
+            totalDetalles += Optional.ofNullable(d.getImporteInicial()).orElse(0.0);
             totalCobrado += Optional.ofNullable(d.getACobrar()).orElse(0.0);
+
+            if (Boolean.TRUE.equals(d.getTieneRecargo())) {
+                tieneRecargoEnDetalles = true;
+            }
         }
 
-        // 4) recargo global (igual que antes)
-        double recargo = pago.getDetallePagos().stream()
-                .filter(d -> !EstadoPago.ANULADO.equals(d.getEstadoPago())
-                        && Boolean.TRUE.equals(d.getTieneRecargo()))
-                .map(d -> pago.getMetodoPago().getRecargo())
-                .findAny()
-                .orElse(0.0);
+        // Obtener flag desde una extensión (ver punto 4)
+        boolean incluirRecargoMetodo = Optional.ofNullable(pago.getObservaciones())
+                .map(obs -> obs.contains("DEBITO"))
+                .orElse(false);
 
-        // 5) Asignar montos correctamente
-        pago.setMontoPagado(totalCobrado + recargo);
-        pago.setMonto(totalCobrado + recargo);
-        pago.setSaldoRestante(Math.max(0.0, totalDeuda - totalCobrado));
+        double recargoMetodo = 0.0;
+        if (incluirRecargoMetodo && pago.getMetodoPago().getRecargo() != null) {
+            recargoMetodo = pago.getMetodoPago().getRecargo();
+        }
 
-        // 6) Estado final
-        pago.setEstadoPago(pago.getSaldoRestante() <= 0
-                ? EstadoPago.HISTORICO
-                : EstadoPago.ACTIVO);
+        double montoFinal = totalCobrado + recargoMetodo;
+
+        pago.setMontoPagado(montoFinal);
+        pago.setMonto(montoFinal);
+        pago.setSaldoRestante(Math.max(0.0, totalDetalles - totalCobrado));
+        pago.setEstadoPago(pago.getSaldoRestante() <= 0 ? EstadoPago.HISTORICO : EstadoPago.ACTIVO);
 
         pagoRepositorio.save(pago);
 
-        log.info("[PaymentProcessor] Pago id={} → monto={}, pagado={}, saldo={}, estado={}",
-                pago.getId(),
-                pago.getMonto(),
-                pago.getMontoPagado(),
-                pago.getSaldoRestante(),
-                pago.getEstadoPago());
+        log.info("[recalcularTotalesNuevo] totalDetalles={}, totalCobrado={}, recargoMetodo={}, montoFinal={}, estado={}",
+                totalDetalles, totalCobrado, recargoMetodo, montoFinal, pago.getEstadoPago());
     }
 
     /**
@@ -142,13 +133,9 @@ public class PaymentProcessor {
             detalle.setBonificacion(bonificacion);
         }
         // Recargo
-        if (Boolean.TRUE.equals(req.getTieneRecargo())) {
-            if (req.getRecargo() != null) {
-                Recargo recargo = obtenerRecargoPorId(req.getRecargo().getId());
-                detalle.setRecargo(recargo);
-            } else {
-                log.warn("[crearNuevoDetalleFromRequest] tieneRecargo es true pero no se proporcionó recargoId");
-            }
+        if (req.getRecargo() != null) {
+            Recargo recargo = obtenerRecargoPorId(req.getRecargo().getId());
+            detalle.setRecargo(recargo);
         } else {
             detalle.setTieneRecargo(false);
         }
@@ -323,7 +310,9 @@ public class PaymentProcessor {
         if (todos) {
             cerrarPagoHistorico(pagoActivo);
         }
-
+        if (Boolean.TRUE.equals(request.recargoMetodoPagoAplicado())) {
+            nuevoPago.setObservaciones((nuevoPago.getObservaciones() != null ? nuevoPago.getObservaciones() + "\n" : "") + "DEBITO");
+        }
         // 4) recalcular totales del nuevo pago
         recalcularTotalesNuevo(nuevoPago);
 
@@ -335,9 +324,7 @@ public class PaymentProcessor {
     @Transactional
     public Pago obtenerUltimoPagoPendienteEntidad(Long alumnoId) {
         log.info("[obtenerUltimoPagoPendienteEntidad] Buscando el ultimo pago pendiente para alumnoId={}", alumnoId);
-        Pago ultimo = pagoRepositorio.findTopByAlumnoIdAndEstadoPagoAndSaldoRestanteGreaterThanOrderByFechaDesc(alumnoId, EstadoPago.ACTIVO, 0.0).orElse(null);
-        log.info("[obtenerUltimoPagoPendienteEntidad] Resultado para alumno id={}: {}", alumnoId, ultimo);
-        return ultimo;
+        return pagoRepositorio.findTopByAlumnoIdAndEstadoPagoAndSaldoRestanteGreaterThanOrderByFechaDesc(alumnoId, EstadoPago.ACTIVO, 0.0).orElse(null);
     }
 
     /**

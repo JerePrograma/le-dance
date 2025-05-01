@@ -132,6 +132,9 @@ public class PagoServicio {
         Usuario cobrador = usuarioRepositorio.findById(request.usuarioId())
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado."));
         pago.setUsuario(cobrador);
+        pago.setImporteInicial(request.importeInicial());
+        pago.setMonto(request.importeInicial());
+        pago.setMontoPagado(request.importeInicial());
     }
 
     /**
@@ -178,7 +181,9 @@ public class PagoServicio {
 
         // 🔥 SIN COPIAR ACÁ
         List<DetallePago> detallesFront = detallePagoMapper.toEntity(request.detallePagos());
-
+        if (Boolean.TRUE.equals(request.recargoMetodoPagoAplicado())) {
+            nuevoPago.setObservaciones((nuevoPago.getObservaciones() != null ? nuevoPago.getObservaciones() + "\n" : "") + "DEBITO");
+        }
         Pago procesado = paymentProcessor.processDetallesPago(nuevoPago, detallesFront, alumno);
 
         log.info("[crearNuevoPago] Pago procesado con detalles: {}", procesado);
