@@ -132,9 +132,6 @@ public class PagoServicio {
         Usuario cobrador = usuarioRepositorio.findById(request.usuarioId())
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado."));
         pago.setUsuario(cobrador);
-        pago.setImporteInicial(request.importeInicial());
-        pago.setMonto(request.importeInicial());
-        pago.setMontoPagado(request.importeInicial());
     }
 
     /**
