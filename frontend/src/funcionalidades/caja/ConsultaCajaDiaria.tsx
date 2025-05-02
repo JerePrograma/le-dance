@@ -78,9 +78,10 @@ const ConsultaCajaDiaria: React.FC = () => {
           ...p,
           alumno: p.alumno ?? { id: 0, nombre: "", apellido: "" },
         })),
-        egresosDelDia: detalle.egresosDelDia.map((e: any) => ({
+        egresosDelDia: detalle.egresosDelDia.map((e) => ({
           ...e,
           observaciones: e.observaciones ?? "",
+          // ¡no tocamos `metodoPago`, viene ya con id/descripcion/activo/recargo!
         })),
       };
       setData(mapped);
@@ -102,12 +103,10 @@ const ConsultaCajaDiaria: React.FC = () => {
   };
 
   // Pagos
-  const pagos: PagoDelDia[] = data?.pagosDelDia || [];
-  const pagosFiltrados = pagos.filter((p) => {
-    if (p.monto === 0) return false;
-    if (p.detallePagos?.every((d) => d.ACobrar === 0)) return false;
-    return true;
-  });
+  const pagos = data?.pagosDelDia || [];
+  const pagosFiltrados = pagos
+    .filter((p) => p.monto !== 0)
+    .filter((p) => p.detallePagos?.some((d) => d.ACobrar > 0) ?? true);
   const sortedPagos = [...pagosFiltrados].sort((a, b) => b.id - a.id);
   const pagosFiltradosPorUsuario =
     filtroPago === "mis"
@@ -123,17 +122,30 @@ const ConsultaCajaDiaria: React.FC = () => {
   const totalCobrado = totalEfectivo + totalDebito;
 
   // Egresos — solo EFECTIVO
-  const egresos: EgresoResponse[] = data?.egresosDelDia || [];
+  const egresos = data?.egresosDelDia || [];
   const egresosEnEfectivo = egresos.filter(
     (e) => e.metodoPago?.descripcion.toUpperCase() === "EFECTIVO"
   );
-  const sortedEgresos = [...egresosEnEfectivo].sort((a, b) => b.id - a.id);
-  const totalEgresos = sortedEgresos.reduce((sum, e) => sum + e.monto, 0);
+  const sortedEgresosEfectivo = [...egresosEnEfectivo].sort(
+    (a, b) => b.id - a.id
+  );
+  const totalEgresosEfectivo = sortedEgresosEfectivo.reduce(
+    (sum, e) => sum + e.monto,
+    0
+  );
 
-  const handleImprimir = () => {
+  // Egresos — solo DÉBITO
+  const egresosDebito = egresos.filter(
+    (e) => e.metodoPago?.descripcion.toUpperCase() === "DEBITO"
+  );
+  const sortedEgresosDebito = [...egresosDebito].sort((a, b) => b.id - a.id);
+  const totalEgresosDebito = sortedEgresosDebito.reduce(
+    (sum, e) => sum + e.monto,
+    0
+  );
+
+  const handleImprimir = () =>
     toast.info("Funcionalidad de imprimir no implementada");
-  };
-
   const handleAbrirModalEgreso = () => {
     setMontoEgreso(0);
     setObsEgreso("");
@@ -231,12 +243,13 @@ const ConsultaCajaDiaria: React.FC = () => {
         )}
       </div>
 
-      {sortedEgresos.length > 0 && (
+      {/* Egresos en EFECTIVO */}
+      {sortedEgresosEfectivo.length > 0 && (
         <div className="border p-2 mt-4">
           <h2 className="font-semibold mb-2">Egresos en efectivo del día</h2>
           <Tabla
             headers={["ID", "Observaciones", "Monto", "Acciones"]}
-            data={sortedEgresos}
+            data={sortedEgresosEfectivo}
             customRender={(e) => [
               e.id,
               e.observaciones,
@@ -249,6 +262,29 @@ const ConsultaCajaDiaria: React.FC = () => {
               </Boton>,
             ]}
             emptyMessage="No hay egresos en efectivo para el día"
+          />
+        </div>
+      )}
+
+      {/* Egresos en DÉBITO */}
+      {sortedEgresosDebito.length > 0 && (
+        <div className="border p-2 mt-4">
+          <h2 className="font-semibold mb-2">Egresos en débito del día</h2>
+          <Tabla
+            headers={["ID", "Observaciones", "Monto", "Acciones"]}
+            data={sortedEgresosDebito}
+            customRender={(e) => [
+              e.id,
+              e.observaciones,
+              e.monto.toLocaleString(),
+              <Boton
+                onClick={() => handleEliminarEgreso(e.id)}
+                className="bg-red-500 text-white p-1 text-sm"
+              >
+                Eliminar
+              </Boton>,
+            ]}
+            emptyMessage="No hay egresos en débito para el día"
           />
         </div>
       )}
@@ -274,9 +310,19 @@ const ConsultaCajaDiaria: React.FC = () => {
         <p>Efectivo: {totalEfectivo.toLocaleString()}</p>
         <p>Débito: {totalDebito.toLocaleString()}</p>
         <p>Total cobrado: {totalCobrado.toLocaleString()}</p>
-        <p>Egresos en efectivo: {totalEgresos.toLocaleString()}</p>
-        <p>Total efectivo: {(totalEfectivo - totalEgresos).toLocaleString()}</p>
-        <p>Total neto: {(totalCobrado - totalEgresos).toLocaleString()}</p>
+        <p>Egresos en efectivo: {totalEgresosEfectivo.toLocaleString()}</p>
+        <p>Egresos en débito: {totalEgresosDebito.toLocaleString()}</p>
+        <p>
+          Total efectivo:{" "}
+          {(totalEfectivo - totalEgresosEfectivo).toLocaleString()}
+        </p>
+        <p>
+          Total neto:{" "}
+          {(
+            totalCobrado -
+            (totalEgresosEfectivo + totalEgresosDebito)
+          ).toLocaleString()}
+        </p>
       </div>
 
       {/* Modal Agregar Egreso */}

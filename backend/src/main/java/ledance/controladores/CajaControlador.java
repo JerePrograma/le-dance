@@ -3,7 +3,6 @@ package ledance.controladores;
 import com.lowagie.text.DocumentException;
 import ledance.dto.caja.CajaDetalleDTO;
 import ledance.dto.caja.CajaDiariaDTO;
-import ledance.dto.caja.RendicionDTO;
 import ledance.dto.caja.response.CobranzasDataResponse;
 import ledance.servicios.caja.CajaServicio;
 import org.springframework.format.annotation.DateTimeFormat;

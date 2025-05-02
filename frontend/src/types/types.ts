@@ -900,13 +900,12 @@ export interface EgresoRegistroRequest {
 
 export interface EgresoResponse {
   id: number;
-  fecha: string;
+  fecha: string; // ISO date
   monto: number;
   observaciones?: string;
-  metodoPago?: MetodoPagoResponse;
+  metodoPago: MetodoPagoResponse;
   activo: boolean;
 }
-
 export interface CobranzaDetalleDTO {
   id?: number;
   tipo: "INSCRIPCION" | "MENSUALIDAD" | "STOCK" | "CONCEPTO";
