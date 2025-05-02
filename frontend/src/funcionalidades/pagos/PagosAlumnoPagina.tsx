@@ -68,7 +68,7 @@ const DetallePagoListByAlumno: React.FC = () => {
 
   return (
     <div className="page-container">
-      <h1 className="page-title">DetallePagos del Alumno {alumnoId}</h1>
+      <h1 className="page-title">Detalle de Pagos del Alumno {alumnoId}</h1>
       <div className="page-button-group flex justify-end mb-4">
         <Boton
           type="button"
@@ -100,18 +100,25 @@ const DetallePagoListByAlumno: React.FC = () => {
               fila.ACobrar,
               formatDateArgentino(fila.fechaRegistro),
               <button
-              type="button"
-              onClick={() => pagosApi.verRecibo(fila.pagoId)}
-              className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-sm"
-            >
-              Ver Factura
-            </button>,
+                type="button"
+                onClick={() => pagosApi.verRecibo(fila.pagoId)}
+                className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-sm"
+              >
+                Ver Factura
+              </button>,
               <button
                 type="button"
                 onClick={() => pagosApi.descargarRecibo(fila.pagoId)}
                 className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-sm"
               >
                 Descargar Factura
+              </button>,
+              <button
+                type="button"
+                onClick={() => pagosApi.descargarFactura(fila.pagoId)}
+                className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-sm"
+              >
+                Generar Factura
               </button>,
             ]}
           />

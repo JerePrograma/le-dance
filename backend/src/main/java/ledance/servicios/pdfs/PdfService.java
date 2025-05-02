@@ -315,6 +315,81 @@ public class PdfService {
                 .sum();
     }
 
+    // --- Métodos para Factura basados en Pago ---
+    public byte[] generarFacturaPdf(Pago pago) throws IOException, DocumentException {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        try (Document document = new Document(PageSize.A4)) {
+            PdfWriter.getInstance(document, bos);
+            document.open();
+            document.setMargins(36, 36, 36, 36);
+
+            // Header factura: similar a recibo pero con título FACTURA
+            PdfPTable header = crearHeaderTable();
+            document.add(header);
+            document.add(new Paragraph(" "));
+
+            // Título FACTURA y número
+            PdfPTable title = new PdfPTable(2);
+            title.setWidthPercentage(100);
+            Font titleFont = new Font(Font.HELVETICA, 14, Font.BOLD);
+            PdfPCell cell1 = new PdfPCell(new Paragraph("*** FACTURA ***", titleFont));
+            cell1.setBorder(Rectangle.NO_BORDER);
+            cell1.setHorizontalAlignment(Element.ALIGN_CENTER);
+            title.addCell(cell1);
+            PdfPCell cell2 = new PdfPCell(new Paragraph("Nº " + pago.getId(), new Font(Font.HELVETICA, 12, Font.NORMAL)));
+            cell2.setBorder(Rectangle.NO_BORDER);
+            cell2.setHorizontalAlignment(Element.ALIGN_RIGHT);
+            title.addCell(cell2);
+            document.add(title);
+
+            // Datos de factura: fecha y alumno
+            document.add(new Paragraph("Fecha: " + pago.getFecha().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))));
+            document.add(new Paragraph("Cliente: " + pago.getAlumno().getApellido() + " " + pago.getAlumno().getNombre()));
+            document.add(new Paragraph("_________________________________________________________________________________"));
+            document.add(new Paragraph(" "));
+
+            // Detalle de ítems (mismos detalles de pago)
+            PdfPTable detalles = new PdfPTable(6);
+            detalles.setWidthPercentage(100);
+            detalles.setWidths(new float[]{2, 6, 2, 3, 3, 4});
+            Font hf = new Font(Font.HELVETICA, 8, Font.BOLD);
+            for (String h : new String[]{"Cod.", "Concepto", "Cant.", "Precio", "IVA", "Subtotal"}) {
+                PdfPCell hcell = new PdfPCell(new Phrase(h, hf));
+                hcell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                hcell.setPadding(3);
+                detalles.addCell(hcell);
+            }
+            Font cf = new Font(Font.HELVETICA, 8, Font.NORMAL);
+            for (var det : pago.getDetallePagos()) {
+                if (Boolean.TRUE.equals(det.getRemovido()) || det.getACobrar() <= 0) continue;
+                detalles.addCell(new PdfPCell(new Phrase(String.valueOf(det.getId()), cf)));
+                detalles.addCell(new PdfPCell(new Phrase(det.getDescripcionConcepto(), cf)));
+                detalles.addCell(new PdfPCell(new Phrase(det.getCuotaOCantidad(), cf)));
+                detalles.addCell(new PdfPCell(new Phrase(String.format("%,.2f", det.getValorBase()), cf)));
+                detalles.addCell(new PdfPCell(new Phrase(String.format("%,.2f", det.getRecargo()), cf)));
+                double subtotal = det.getACobrar() != null ? det.getACobrar() : 0.0;
+                detalles.addCell(new PdfPCell(new Phrase(String.format("%,.2f", subtotal), cf)));
+            }
+            document.add(detalles);
+            document.add(new Paragraph(" "));
+
+            // Total factura
+            Paragraph total = new Paragraph(
+                    "TOTAL FACTURA: $ " + String.format("%,.2f", pago.getDetallePagos().stream()
+                            .filter(d -> !Boolean.TRUE.equals(d.getRemovido()))
+                            .mapToDouble(d -> d.getACobrar() != null ? d.getACobrar() : 0.0)
+                            .sum()),
+                    new Font(Font.HELVETICA, 12, Font.BOLD)
+            );
+            total.setAlignment(Element.ALIGN_RIGHT);
+            document.add(total);
+        } catch (DocumentException e) {
+            LOGGER.error("Error generando el PDF de la factura", e);
+            throw e;
+        }
+        return bos.toByteArray();
+    }
+
     /**
      * Genera un PDF con la rendicion del mes, es decir, con TODOS los pagos y egresos
      * obtenidos a partir de un periodo (start-end). El PDF tendra dos secciones:
@@ -599,17 +674,17 @@ public class PdfService {
         // Títulos
         Font titleFont = new Font(Font.HELVETICA, 16, Font.BOLD);
         doc.add(new Paragraph("Liquidación Profesor", titleFont));
-        doc.add(new Paragraph("Profesor: "   + profesorNombre));
+        doc.add(new Paragraph("Profesor: " + profesorNombre));
         doc.add(new Paragraph("Disciplina: " + disciplinaNombre));
         doc.add(new Paragraph(String.format("Porcentaje aplicado: %.2f%%", porcentaje)));
         doc.add(Chunk.NEWLINE);
 
         // Tabla (idéntica a la anterior)
-        float[] columnWidths = {3f,1.5f,3f,1.5f,1.5f,1.5f,1.5f};
+        float[] columnWidths = {3f, 1.5f, 3f, 1.5f, 1.5f, 1.5f, 1.5f};
         PdfPTable table = new PdfPTable(columnWidths);
         table.setWidthPercentage(100);
         Font hf = new Font(Font.HELVETICA, 10, Font.BOLD);
-        for (String h : List.of("Descripción","Tarifa","Alumno","Valor Base","Bonificación","Monto Cobrado","Estado")) {
+        for (String h : List.of("Descripción", "Tarifa", "Alumno", "Valor Base", "Bonificación", "Monto Cobrado", "Estado")) {
             PdfPCell c = new PdfPCell(new Phrase(h, hf));
             c.setHorizontalAlignment(Element.ALIGN_CENTER);
             c.setPadding(4);
@@ -620,10 +695,10 @@ public class PdfService {
             String desc, tarifa;
             int idx = det.descripcionConcepto().indexOf("-");
             if (idx >= 0) {
-                desc   = det.descripcionConcepto().substring(0, idx).trim();
-                tarifa = det.descripcionConcepto().substring(idx+1).trim();
+                desc = det.descripcionConcepto().substring(0, idx).trim();
+                tarifa = det.descripcionConcepto().substring(idx + 1).trim();
             } else {
-                desc   = det.descripcionConcepto();
+                desc = det.descripcionConcepto();
                 tarifa = "";
             }
             String estado = (det.importePendiente() != null && det.importePendiente() == 0)
@@ -636,7 +711,7 @@ public class PdfService {
             table.addCell(new PdfPCell(new Phrase(
                     String.format("%,.2f", det.valorBase()), cf)));
             table.addCell(new PdfPCell(new Phrase(
-                    det.bonificacionNombre()!=null? det.bonificacionNombre() : "-", cf)));
+                    det.bonificacionNombre() != null ? det.bonificacionNombre() : "-", cf)));
             table.addCell(new PdfPCell(new Phrase(
                     String.format("%,.2f", det.ACobrar()), cf)));
             table.addCell(new PdfPCell(new Phrase(estado, cf)));
@@ -645,9 +720,9 @@ public class PdfService {
 
         // Totales
         double totalBruto = detalles.stream()
-                .mapToDouble(d -> d.ACobrar()!=null? d.ACobrar() : 0.0)
+                .mapToDouble(d -> d.ACobrar() != null ? d.ACobrar() : 0.0)
                 .sum();
-        double totalNeto = totalBruto * (porcentaje/100.0);
+        double totalNeto = totalBruto * (porcentaje / 100.0);
 
         Paragraph pBruto = new Paragraph(
                 "TOTAL BRUTO: $ " + String.format("%,.2f", totalBruto),

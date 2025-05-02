@@ -38,6 +38,28 @@ const descargarRecibo = async (pagoId: number): Promise<void> => {
   }
 };
 
+const descargarFactura = async (pagoId: number): Promise<void> => {
+  try {
+    const response = await fetch(`/pagos/factura/${pagoId}`, {
+      method: "GET",
+    });
+    if (!response.ok) {
+      throw new Error(`Error HTTP ${response.status}`);
+    }
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `factura_${pagoId}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Error al descargar la factura", error);
+  }
+};
+
 const verRecibo = async (pagoId: number): Promise<void> => {
   try {
     window.open(`/api/pagos/recibo/${pagoId}`, "_blank");
@@ -199,17 +221,21 @@ const filtrarDetalles = async (params: {
   return data;
 };
 
-const obtenerDatosUnificadosAlumno = async (alumnoId: number): Promise<DatosUnificadosAlumnoResponse> => {
-  const { data } = await api.get<DatosUnificadosAlumnoResponse>(`/pagos/datos-unificados/${alumnoId}`);
+const obtenerDatosUnificadosAlumno = async (
+  alumnoId: number
+): Promise<DatosUnificadosAlumnoResponse> => {
+  const { data } = await api.get<DatosUnificadosAlumnoResponse>(
+    `/pagos/datos-unificados/${alumnoId}`
+  );
   return data;
 };
-
 
 const pagosApi = {
   registrarPago,
   obtenerPagoPorId,
   listarPagos,
   actualizarPago,
+  descargarFactura,
   verRecibo,
   descargarRecibo,
   actualizarPagoParcial,

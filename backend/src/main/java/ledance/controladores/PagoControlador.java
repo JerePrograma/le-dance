@@ -263,5 +263,28 @@ public class PagoControlador {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/factura/{facturaId}")
+    public ResponseEntity<Resource> descargarFactura(@PathVariable Long facturaId) {
+        try {
+            Path pdfPath = FilePathResolver.of("pdfs", "factura_" + facturaId + ".pdf");
 
+            if (!Files.exists(pdfPath)) {
+                return ResponseEntity.notFound().build();
+            }
+
+            ByteArrayResource resource = new ByteArrayResource(Files.readAllBytes(pdfPath));
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDisposition(
+                    ContentDisposition.inline()
+                            .filename("factura_" + facturaId + ".pdf")
+                            .build()
+            );
+
+            return new ResponseEntity<>(resource, headers, HttpStatus.OK);
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
 }
