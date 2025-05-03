@@ -106,7 +106,6 @@ const ConsultaCajaDiaria: React.FC = () => {
   const pagos = data?.pagosDelDia || [];
   const pagosFiltrados = pagos
     .filter((p) => p.monto !== 0)
-    .filter((p) => p.detallePagos?.some((d) => d.ACobrar > 0) ?? true);
   const sortedPagos = [...pagosFiltrados].sort((a, b) => b.id - a.id);
   const pagosFiltradosPorUsuario =
     filtroPago === "mis"
