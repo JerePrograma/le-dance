@@ -332,16 +332,25 @@ public class DetallePagoServicio {
             String descripcion = detalle.getDescripcionConcepto();
             String obs = pago.getObservaciones();
             if (obs != null && descripcion != null) {
-                // Regex: coincide con "CTA descripcion", "DEUDA descripcion", "SALDA descripcion" o "ANULADO descripcion"
-                String regex = "\\b(CTA|DEUDA|SALDA|ANULADO)\\s+" + Pattern.quote(descripcion) + "\\b";
-                String obsActualizado = obs
+                // Regex case-insensitive para cualquier etiqueta anterior sobre esta descripción
+                String regex = "(?i)\\b(?:CTA|DEUDA|SALDA|ANULADO)\\s+"
+                        + Pattern.quote(descripcion) + "\\b";
+
+                // 1) Quitar todas las ocurrencias previas
+                String limpio = obs
                         .replaceAll(regex, "")
-                        // limpiar espacios dobles resultantes
-                        .replaceAll("\\s{2,}", " ")
+                        .replaceAll("\\s{2,}", " ") // colapsar espacios dobles
                         .trim();
-                pago.setObservaciones(obsActualizado);
+
+                // 2) Construir la nueva observación
+                String nuevaObs = ("ANULADO " + descripcion
+                        + (limpio.isEmpty() ? "" : " " + limpio))
+                        .trim();
+
+                // 3) Guardar cambios
+                pago.setObservaciones(nuevaObs);
                 pagoRepositorio.save(pago);
-                log.info("[eliminarDetallePago] Observaciones actualizadas: {}", obsActualizado);
+                log.info("[eliminarDetallePago] Observaciones actualizadas: {}", nuevaObs);
             }
 
             // 7. Si ya no quedan más DetallePago para este pago, eliminar el Pago
@@ -403,7 +412,7 @@ public class DetallePagoServicio {
         anularDetalleOriginal(original);
         eliminarAsociados(original);
 
-        // 4. Ajusto los montos en el Pago
+        // 4. Ajusto los montos en el Pago, incluyendo el saldoRestante
         actualizarPago(pago, montoAnular);
 
         // 5. Marco en las observaciones que este detalle fue anulado
@@ -413,7 +422,7 @@ public class DetallePagoServicio {
         unificarDetallesPorAlumno(alumnoId, descripcion);
 
         // 7. Si no queda ningún detalle activo, anulo todo el Pago
-        verificarEstadoPagoAnuladoSiCorresponde(pago);
+        verificarYAnularPagoSiCorresponda(pago);
 
         return detallePagoMapper.toDTO(original);
     }
@@ -499,12 +508,23 @@ public class DetallePagoServicio {
         }
     }
 
-    private void actualizarPago(Pago p, double monto) {
-        double nuevoMonto = Math.max(0.0, p.getMonto() - monto);
-        double nuevoMontoPagado = Math.max(0.0, p.getMontoPagado() - monto);
-        p.setMonto(nuevoMonto);
-        p.setMontoPagado(nuevoMontoPagado);
-        pagoRepositorio.save(p);
+    private void actualizarPago(Pago pago, double montoAnular) {
+        // 1) Nuevo monto total y monto pagado
+        double nuevoMonto = Math.max(0.0, pago.getMonto() - montoAnular);
+        double nuevoMontoPagado = Math.max(0.0, pago.getMontoPagado() - montoAnular);
+
+        // 2) Nuevo saldoRestante: lo podemos recalcular de dos formas
+        // Opción A) Sumar el anulado al saldo que quedaba:
+        double nuevoSaldo = pago.getImporteInicial() - (pago.getMontoPagado() - montoAnular);
+
+        // Opción B) Recalcularlo desde importeInicial:
+        // double nuevoSaldo = pago.getImporteInicial() - nuevoMontoPagado;
+
+        // 3) Asignar y guardar
+        pago.setMonto(nuevoMonto);
+        pago.setMontoPagado(nuevoMontoPagado);
+        pago.setSaldoRestante(nuevoSaldo);
+        pagoRepositorio.save(pago);
     }
 
     private void actualizarObservacionesPorAnulado(Pago p, String descripcion) {
@@ -559,19 +579,6 @@ public class DetallePagoServicio {
                     ? EstadoMensualidad.PAGADO
                     : EstadoMensualidad.PENDIENTE);
             mensualidadRepositorio.save(m);
-        }
-    }
-
-    private void verificarEstadoPagoAnuladoSiCorresponde(Pago pago) {
-        boolean todosAnuladosOCero = pago.getDetallePagos().stream()
-                .allMatch(d ->
-                        d.getEstadoPago() == EstadoPago.ANULADO
-                                || Double.valueOf(0.0).equals(d.getACobrar())
-                );
-
-        if (todosAnuladosOCero) {
-            pago.setEstadoPago(EstadoPago.ANULADO);
-            pagoRepositorio.save(pago);
         }
     }
 
@@ -686,6 +693,26 @@ public class DetallePagoServicio {
                     throw new IllegalStateException("MENSUALIDAD YA COBRADA");
                 }
             }
+        }
+    }
+
+    /**
+     * Si el pago solo tiene un DetallePago, o todos sus DetallePago están
+     * anulados o aCobrar == 0, anula por completo el Pago.
+     */
+    private void verificarYAnularPagoSiCorresponda(Pago pago) {
+        boolean todosInactivos = pago.getDetallePagos().stream()
+                .allMatch(d ->
+                        d.getEstadoPago() == EstadoPago.ANULADO
+                                || Double.valueOf(0.0).equals(d.getACobrar())
+                );
+
+        if (todosInactivos) {
+            pago.setMonto(0.0);
+            pago.setMontoPagado(0.0);
+            pago.setSaldoRestante(0.0);
+            pago.setEstadoPago(EstadoPago.ANULADO);
+            pagoRepositorio.save(pago);
         }
     }
 }
