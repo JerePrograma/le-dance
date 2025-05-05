@@ -165,20 +165,23 @@ public class ReporteControlador {
         return ResponseEntity.ok(reportes);
     }
 
-    // en ReporteControlador.java
+    // --- 1) CONTROLADOR ---
     @PostMapping("/mensualidades/exportar")
     public ResponseEntity<byte[]> exportarLiquidacionProfesor(
             @RequestBody @Validated ReporteLiquidacionRequest req
     ) {
-        log.info("Exportando liquidación de '{}' ({}) al {}% sobre disciplina {}",
-                req.profesor(), req.fechaInicio() + "→" + req.fechaFin(),
-                req.porcentaje(), req.disciplina());
+        log.info("Exportando liquidación de '{}' ({}→{}) al {}% sobre disciplina '{}', detalles recibidos={}",
+                req.profesor(),
+                req.fechaInicio(), req.fechaFin(),
+                req.porcentaje(),
+                req.disciplina(),
+                req.detalles().size()
+        );
         try {
             byte[] pdf = reporteServicio.exportarLiquidacionProfesor(req);
+            String filename = "liquidacion_" + req.profesor().replace(" ", "_") + ".pdf";
             return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_DISPOSITION,
-                            "attachment; filename=\"liquidacion_"
-                                    + req.profesor().replace(" ", "_") + ".pdf\"")
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
                     .contentType(MediaType.APPLICATION_PDF)
                     .body(pdf);
         } catch (Exception e) {
@@ -187,8 +190,6 @@ public class ReporteControlador {
         }
     }
 
-
-
     /**
      * Endpoint para buscar mensualidades con filtros.
      * Parametros:
@@ -196,7 +197,7 @@ public class ReporteControlador {
      * - fechaFin (obligatorio, formato yyyy-MM-dd)
      * - disciplinaId (opcional)
      * - profesorId (opcional)
-     *
+     * <p>
      * Se utiliza Pageable para paginacion.
      */
     @GetMapping("/mensualidades/buscar")
@@ -206,7 +207,7 @@ public class ReporteControlador {
             @RequestParam(required = false) String disciplinaNombre,
             @RequestParam(required = false) String profesorNombre
     ) {
-        List<DetallePagoResponse> resultados = mensualidadServicio.buscarMensualidades(fechaInicio, fechaFin, disciplinaNombre, profesorNombre);
+        List<DetallePagoResponse> resultados = mensualidadServicio.buscarDetallePagosPorDisciplina(disciplinaNombre, fechaInicio, fechaFin, profesorNombre);
         return ResponseEntity.ok(resultados);
     }
 

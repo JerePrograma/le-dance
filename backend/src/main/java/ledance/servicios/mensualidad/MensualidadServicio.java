@@ -2,6 +2,7 @@ package ledance.servicios.mensualidad;
 
 import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import ledance.dto.alumno.AlumnoMapper;
 import ledance.dto.mensualidad.MensualidadMapper;
@@ -48,6 +49,9 @@ public class MensualidadServicio {
     private final AlumnoMapper alumnoMapper;
     private final AlumnoRepositorio alumnoRepositorio;
 
+    private static final Locale ESPANOL = new Locale("es");
+    private final ProfesorRepositorio profesorRepositorio;
+
     public MensualidadServicio(DetallePagoRepositorio detallePagoRepositorio, MensualidadRepositorio mensualidadRepositorio,
                                InscripcionRepositorio inscripcionRepositorio,
                                MensualidadMapper mensualidadMapper,
@@ -55,7 +59,7 @@ public class MensualidadServicio {
                                BonificacionRepositorio bonificacionRepositorio,
                                ProcesoEjecutadoRepositorio procesoEjecutadoRepositorio, RecargoServicio recargoServicio, DisciplinaRepositorio disciplinaRepositorio,
                                PagoRepositorio pagoRepositorio,
-                               AlumnoMapper alumnoMapper, AlumnoRepositorio alumnoRepositorio) {
+                               AlumnoMapper alumnoMapper, AlumnoRepositorio alumnoRepositorio, ProfesorRepositorio profesorRepositorio) {
         this.detallePagoRepositorio = detallePagoRepositorio;
         this.mensualidadRepositorio = mensualidadRepositorio;
         this.inscripcionRepositorio = inscripcionRepositorio;
@@ -68,6 +72,7 @@ public class MensualidadServicio {
         this.pagoRepositorio = pagoRepositorio;
         this.alumnoMapper = alumnoMapper;
         this.alumnoRepositorio = alumnoRepositorio;
+        this.profesorRepositorio = profesorRepositorio;
     }
 
     public MensualidadResponse crearMensualidad(MensualidadRegistroRequest request) {
@@ -688,157 +693,253 @@ public class MensualidadServicio {
         );
     }
 
-    public List<DetallePagoResponse> buscarMensualidades(
+    /**
+
+     /**
+     * 1) Busca y consolida todos los DetallePago PARA UNA DISCIPLINA POR NOMBRE
+     *    y rango de fechas, incluyendo:
+     *    • los pagos existentes (sumando aCobrar)
+     *    • los alumnos sin pago, asignándoles descripción y tarifa por defecto.
+     */
+    public List<DetallePagoResponse> buscarDetallePagosPorDisciplina(
+            String disciplinaNombre,
             LocalDate fechaInicio,
             LocalDate fechaFin,
+            String profesorNombre   // opcional
+    ) {
+        log.info("INICIO buscarDetallePagosPorDisciplina(disciplina='{}', fechas {}→{}, profesor='{}')",
+                disciplinaNombre, fechaInicio, fechaFin, profesorNombre);
+
+        // ——— Caso “solo profesor” ———
+        if (!StringUtils.hasText(disciplinaNombre)
+                && StringUtils.hasText(profesorNombre)) {
+
+            log.info("Sólo viene profesor='{}', recupero todas sus disciplinas…", profesorNombre);
+            // uso tu @Query que concatena nombre+apellido
+            List<Profesor> profes = profesorRepositorio.buscarPorNombreCompleto(profesorNombre);
+            List<DetallePagoResponse> resultado = new ArrayList<>();
+
+            for (Profesor p : profes) {
+                log.info(" → Profesor[id={}] → {} {}, disciplinas={}",
+                        p.getId(), p.getNombre(), p.getApellido(), p.getDisciplinas().size());
+                // si prefieres usar la query de DisciplinaRepositorio:
+                List<Disciplina> disciplinas = disciplinaRepositorio.findDisciplinasPorProfesor(p.getId());
+                for (Disciplina d : disciplinas) {
+                    log.info("   → Generando sub-reporte para disciplina='{}'", d.getNombre());
+                    resultado.addAll(
+                            buscarDetallePagosPorDisciplina(
+                                    d.getNombre(),
+                                    fechaInicio,
+                                    fechaFin,
+                                    profesorNombre
+                            )
+                    );
+                }
+            }
+            log.info("FINAL (solo profesor) devuelve {} entradas", resultado.size());
+            return resultado;
+        }
+
+        // ——— Normal: ya viene disciplinaNombre ———
+        return procesarReporte(disciplinaNombre, fechaInicio, fechaFin, profesorNombre);
+    }
+
+    /**
+     * Extraído: construye spec, agrupa y añade dummies SIN-PAGO.
+     */
+    private List<DetallePagoResponse> procesarReporte(
             String disciplinaNombre,
+            LocalDate fechaInicio,
+            LocalDate fechaFin,
             String profesorNombre
     ) {
-        log.info("Buscando mensualidades entre {} y {} con disciplina '{}' y profesor '{}'",
-                fechaInicio, fechaFin, disciplinaNombre, profesorNombre);
+        log.info("→ procesarReporte para disciplina='{}'", disciplinaNombre);
 
-        // 1) Construcción dinámica de la Specification
-        Specification<Mensualidad> spec = (root, query, cb) ->
-                cb.between(root.get("fechaCuota"), fechaInicio, fechaFin);
+        // a) Spec base: rango de fechas
+        Specification<DetallePago> spec = (root, query, cb) -> {
+            query.distinct(true);
+            return cb.between(root.get("fechaRegistro"), fechaInicio, fechaFin);
+        };
 
-        if (StringUtils.hasText(disciplinaNombre)) {
+        // b) Filtrar por mes(es)
+        List<String> meses = new ArrayList<>();
+        for (LocalDate m = fechaInicio.withDayOfMonth(1);
+             !m.isAfter(fechaFin.withDayOfMonth(1));
+             m = m.plusMonths(1)) {
+            meses.add(
+                    m.getMonth().getDisplayName(TextStyle.FULL, ESPANOL)
+                            .toUpperCase()
+            );
+        }
+        log.info(" Meses a filtrar: {}", meses);
+        if (!meses.isEmpty()) {
             spec = spec.and((root, query, cb) -> {
-                Join<Mensualidad, Inscripcion> ins = root.join("inscripcion");
-                Join<Inscripcion, Disciplina> dis = ins.join("disciplina");
-                return cb.like(cb.lower(dis.get("nombre")),
-                        "%" + disciplinaNombre.toLowerCase() + "%");
+                Expression<String> desc = cb.upper(root.get("descripcionConcepto"));
+                Predicate[] p = meses.stream()
+                        .map(mon -> cb.like(desc, "%" + mon + "%"))
+                        .toArray(Predicate[]::new);
+                return cb.or(p);
             });
         }
+
+        // c) Filtro por profesorNombre (opcional)
         if (StringUtils.hasText(profesorNombre)) {
             spec = spec.and((root, query, cb) -> {
-                // 1) Evitar duplicados al hacer joins
                 query.distinct(true);
-
-                Join<Mensualidad, Inscripcion> ins = root.join("inscripcion");
-                Join<Inscripcion, Disciplina> dis = ins.join("disciplina");
-                Join<Disciplina, Profesor> prof = dis.join("profesor");
-
-                String pattern = "%" + profesorNombre.toLowerCase() + "%";
-
-                // 2) Buscar en nombre, en apellido o en la concatenación
-                return cb.or(
-                        cb.like(cb.lower(prof.get("nombre")), pattern),
-                        cb.like(cb.lower(prof.get("apellido")), pattern),
-                        // opcional: nombre + ' ' + apellido
-                        cb.like(cb.lower(
-                                cb.concat(
-                                        cb.concat(prof.get("nombre"), cb.literal(" ")),
-                                        prof.get("apellido")
-                                )
-                        ), pattern)
+                Join<DetallePago, Mensualidad> men = root.join("mensualidad", JoinType.LEFT);
+                Join<Mensualidad, Inscripcion> ins = men.join("inscripcion", JoinType.LEFT);
+                Join<Inscripcion, Disciplina> dis = ins.join("disciplina", JoinType.LEFT);
+                Join<Disciplina, Profesor> prof = dis.join("profesor", JoinType.LEFT);
+                String patt = "%" + profesorNombre.toLowerCase() + "%";
+                Predicate pNom  = cb.like(cb.lower(prof.get("nombre")), patt);
+                Predicate pApe  = cb.like(cb.lower(prof.get("apellido")), patt);
+                Predicate pFull = cb.like(
+                        cb.lower(cb.concat(
+                                cb.concat(prof.get("nombre"), cb.literal(" ")),
+                                prof.get("apellido")
+                        )),
+                        patt
                 );
+                return cb.or(cb.isNull(root.get("mensualidad")), pNom, pApe, pFull);
             });
+            log.info(" Spec ampliada con filtro de profesor='{}'", profesorNombre);
         }
 
-        // 2) Obtener las mensualidades
-        List<Mensualidad> mensualidades = mensualidadRepositorio.findAll(spec);
-        log.info("Total de mensualidades encontradas: {}", mensualidades.size());
+        // d) Filtro por disciplinaNombre (en descripción)
+        spec = spec.and((root, query, cb) -> {
+            Expression<String> desc = cb.upper(root.get("descripcionConcepto"));
+            return cb.like(desc, "%" + disciplinaNombre.toUpperCase() + "%");
+        });
+        log.info(" Spec ampliada con filtro de disciplina en descripción");
 
-        // 3) Mapear a DetallePagoResponse
-        List<DetallePagoResponse> respuestas = mensualidades.stream()
-                .filter(m -> m.getEstado() == EstadoMensualidad.PAGADO ||
-                        (m.getImportePendiente() != null &&
-                                m.getImporteInicial() != null &&
-                                m.getImportePendiente() < m.getImporteInicial()))
-                .flatMap(m -> Optional.ofNullable(m.getDetallePagos()).orElse(List.of()).stream()
-                        .filter(d -> d.getTipo() == TipoDetallePago.MENSUALIDAD)
-                        .map(d -> {
-                            d.setConcepto(d.getConcepto());
-                            d.setSubConcepto(d.getSubConcepto());
-                            return mapearDetallePagoResponse(d);
-                        })
-                        .filter(Objects::nonNull)
-                )
-                .toList();
+        // e) Recupero de BD
+        List<DetallePago> detalles = detallePagoRepositorio.findAll(spec);
+        log.info(" Recuperados {} DetallePago", detalles.size());
+        detalles.forEach(d ->
+                log.info("  [DB] id={} desc='{}' aCobrar={} alumId={}",
+                        d.getId(), d.getDescripcionConcepto(),
+                        d.getACobrar(), d.getAlumno().getId())
+        );
 
-        // 4) Agrupar por (descripcionConcepto, alumnoId), sumando sólo aCobrar y descartando ceros
-        Map<Map.Entry<String, Long>, Double> sumACobrar = new LinkedHashMap<>();
-        Map<Map.Entry<String, Long>, DetallePagoResponse> primeraRespuesta = new LinkedHashMap<>();
+        // f) Determino tarifa por defecto
+        Disciplina disc = disciplinaRepositorio
+                .findByNombreContainingIgnoreCase(disciplinaNombre);
+        Double tarifaDefault = Optional.ofNullable(disc)
+                .map(Disciplina::getValorCuota)
+                .orElse(0.0);
 
-        for (DetallePagoResponse r : respuestas) {
-            Double aCobrar = r.ACobrar();
-            if (aCobrar == null || aCobrar == 0.0) {
-                continue;
+        // g) Agrupo y sumo
+        List<DetallePagoResponse> agrupados = agruparYSumar(detalles, tarifaDefault);
+        log.info(" Tras agruparYSumar: {} entradas", agrupados.size());
+
+        // h) Alumnos SIN pago
+        List<Alumno> inscritos = disciplinaRepositorio
+                .findAlumnosPorDisciplina(disc.getId());
+        Set<Long> conPago = agrupados.stream()
+                .map(r -> r.alumno().id())
+                .collect(Collectors.toSet());
+
+        String etiquetaMeses = String.join("/", meses);
+        String descripcionDefecto = String.format(
+                "%s - CUOTA - %s DE %d",
+                disciplinaNombre.toUpperCase(), etiquetaMeses, fechaInicio.getYear()
+        );
+
+        log.info(" Añadiendo alumnos SIN-PAGO con tarifa por defecto...");
+        for (Alumno a : inscritos) {
+            if (!conPago.contains(a.getId())) {
+                log.info("  [SIN-PAGO] alumnoId={} desc='{}' tarifa={}",
+                        a.getId(), descripcionDefecto, tarifaDefault);
+                DetallePago dummy = new DetallePago();
+                dummy.setDescripcionConcepto(descripcionDefecto);
+                dummy.setValorBase(tarifaDefault);
+                dummy.setACobrar(0.0);
+                dummy.setCobrado(false);
+                dummy.setAlumno(a);
+                dummy.setTieneRecargo(false);
+                dummy.setEstadoPago(EstadoPago.ACTIVO);
+
+                agrupados.add(mapearDetallePagoResponse(dummy, tarifaDefault));
             }
-            String desc = r.descripcionConcepto();
-            Long alumnoId = r.alumno().id();  // obtenemos el ID del alumno del response
-            Map.Entry<String, Long> key = Map.entry(desc, alumnoId);
-
-            sumACobrar.merge(key, aCobrar, Double::sum);
-            primeraRespuesta.putIfAbsent(key, r);
         }
 
-        // 5) Reconstruir la lista final con un único DetallePagoResponse por clave
-        List<DetallePagoResponse> resultado = new ArrayList<>(sumACobrar.size());
-        for (var entry : sumACobrar.entrySet()) {
-            var key = entry.getKey();
-            var total = entry.getValue();
-            DetallePagoResponse base = primeraRespuesta.get(key);
+        log.info("FINAL procesa {} DetallePagoResponse", agrupados.size());
+        return agrupados;
+    }
 
-            // Creamos un nuevo record cambiando sólo el campo aCobrar
-            DetallePagoResponse agregada = new DetallePagoResponse(
-                    base.id(),
-                    base.version(),
-                    base.descripcionConcepto(),
-                    base.cuotaOCantidad(),
-                    base.valorBase(),
-                    base.bonificacionId(),
-                    base.bonificacionNombre(),
-                    base.recargoId(),
-                    total,
-                    base.cobrado(),
-                    base.conceptoId(),
-                    base.subConceptoId(),
-                    base.mensualidadId(),
-                    base.matriculaId(),
-                    base.stockId(),
-                    base.importeInicial(),
-                    base.importePendiente(),
-                    base.tipo(),
-                    base.fechaRegistro(),
-                    base.pagoId(),
-                    base.alumno(),
-                    base.tieneRecargo(),
-                    base.usuarioId(),
+    /**
+     * 2) Agrupa y suma todos los aCobrar de la lista de DetallePago
+     *    por clave (descripcionConcepto, alumnoId).
+     */
+    private List<DetallePagoResponse> agruparYSumar(List<DetallePago> detalles, Double valorCuota) {
+        log.trace("→ agruparYSumar con {} items", detalles.size());
+        Map<Map.Entry<String, Long>, Double> suma    = new LinkedHashMap<>();
+        Map<Map.Entry<String, Long>, DetallePagoResponse> primera = new LinkedHashMap<>();
+
+        for (DetallePago d : detalles) {
+            DetallePagoResponse resp = mapearDetallePagoResponse(d, valorCuota);
+            var key = Map.entry(resp.descripcionConcepto(), resp.alumno().id());
+            suma.merge(key, resp.ACobrar() != null ? resp.ACobrar() : 0.0, Double::sum);
+            primera.putIfAbsent(key, resp);
+        }
+
+        List<DetallePagoResponse> resultado = new ArrayList<>(suma.size());
+        suma.forEach((key, total) -> {
+            var base = primera.get(key);
+            resultado.add(new DetallePagoResponse(
+                    base.id(), base.version(), base.descripcionConcepto(),
+                    base.cuotaOCantidad(), base.valorBase(), base.bonificacionId(),
+                    base.bonificacionNombre(), base.recargoId(), total,
+                    base.cobrado(), base.conceptoId(), base.subConceptoId(),
+                    base.mensualidadId(), base.matriculaId(), base.stockId(),
+                    base.importeInicial(), base.importePendiente(),
+                    base.tipo(), base.fechaRegistro(), base.pagoId(),
+                    base.alumno(), base.tieneRecargo(), base.usuarioId(),
                     base.estadoPago()
-            );
-            resultado.add(agregada);
-        }
-
+            ));
+        });
         return resultado;
     }
 
-    public DetallePagoResponse mapearDetallePagoResponse(DetallePago detalle) {
+    /**
+     * 3) Convierte un DetallePago en DetallePagoResponse usando alumnoMapper,
+     *    aplicando lógica de ACobrar = min(d.getACobrar(), d.getValorBase())
+     *    y protegiendo contra nulls.
+     */
+    public DetallePagoResponse mapearDetallePagoResponse(DetallePago d, Double valorCuota) {
+        log.trace("→ mapearDetallePagoResponse id={}", d.getId());
+
+        Double rawValorBase = d.getValorBase() != null ? d.getValorBase() : valorCuota;
+        Double rawACobrar   = d.getACobrar()    != null ? d.getACobrar()    : 0.0;
+        Double finalACobrar = Math.min(rawACobrar, rawValorBase);
+
+        log.info("[MAP] id={} → rawValorBase={} rawACobrar={} finalACobrar={}",
+                d.getId(), rawValorBase, rawACobrar, finalACobrar);
+
         return new DetallePagoResponse(
-                detalle.getId(),
-                detalle.getVersion(),
-                detalle.getDescripcionConcepto(),
-                detalle.getCuotaOCantidad(),
-                detalle.getValorBase(),
-                detalle.getBonificacion() != null ? detalle.getBonificacion().getId() : null,
-                detalle.getBonificacion() != null ? detalle.getBonificacion().getDescripcion() : null,
-                detalle.getRecargo() != null ? detalle.getRecargo().getId() : null,
-                detalle.getACobrar(),
-                detalle.getCobrado(),
-                detalle.getConcepto() != null ? detalle.getConcepto().getId() : null,
-                detalle.getSubConcepto() != null ? detalle.getSubConcepto().getId() : null,
-                detalle.getDescripcionConcepto().contains("CUOTA") ? detalle.getMensualidad().getId() : null,
-                detalle.getMatricula() != null ? detalle.getMatricula().getId() : null,
-                detalle.getStock() != null ? detalle.getStock().getId() : null,
-                detalle.getImporteInicial(),
-                detalle.getImportePendiente(),
-                detalle.getTipo(),
-                detalle.getFechaRegistro(),
-                detalle.getPago() != null ? detalle.getPago().getId() : null,
-                alumnoMapper.toAlumnoListadoResponse(detalle.getAlumno()),
-                detalle.getTieneRecargo(),
-                detalle.getUsuario() != null ? detalle.getUsuario().getId() : null,
-                detalle.getEstadoPago().toString()
+                d.getId(), d.getVersion(), d.getDescripcionConcepto(),
+                d.getCuotaOCantidad(), rawValorBase,
+                d.getBonificacion() != null ? d.getBonificacion().getId() : null,
+                d.getBonificacion() != null ? d.getBonificacion().getDescripcion() : null,
+                d.getRecargo() != null ? d.getRecargo().getId() : null,
+                finalACobrar,
+                d.getCobrado(),
+                d.getConcepto()    != null ? d.getConcepto().getId()    : null,
+                d.getSubConcepto() != null ? d.getSubConcepto().getId() : null,
+                d.getDescripcionConcepto().contains("CUOTA")
+                        ? Optional.ofNullable(d.getMensualidad()).map(Mensualidad::getId).orElse(null)
+                        : null,
+                d.getMatricula()   != null ? d.getMatricula().getId()   : null,
+                d.getStock()       != null ? d.getStock().getId()       : null,
+                rawValorBase,
+                d.getImportePendiente(),
+                d.getTipo(),
+                d.getFechaRegistro(),
+                d.getPago()        != null ? d.getPago().getId()        : null,
+                alumnoMapper.toAlumnoListadoResponse(d.getAlumno()),
+                d.getTieneRecargo(),
+                d.getUsuario()     != null ? d.getUsuario().getId()     : null,
+                d.getEstadoPago().toString()
         );
     }
 

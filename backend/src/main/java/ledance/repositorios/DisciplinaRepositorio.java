@@ -28,4 +28,7 @@ public interface DisciplinaRepositorio extends JpaRepository<Disciplina, Long> {
     List<Disciplina> buscarPorNombre(@Param("nombre") String nombre);
 
     Disciplina findByNombreContainingIgnoreCase(String nombre);
+
+    @Query("SELECT d FROM Disciplina d WHERE d.profesor.id = :profesorId")
+    List<Disciplina> findDisciplinasPorProfesor(@Param("profesorId") Long profesorId);
 }

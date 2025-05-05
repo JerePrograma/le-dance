@@ -1,15 +1,30 @@
 // src/main/java/ledance/dto/reporte/request/ReporteLiquidacionRequest.java
 package ledance.dto.reporte.request;
 
-import ledance.dto.pago.response.DetallePagoResponse;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import ledance.dto.pago.response.DetallePagoResponse;
+
+import java.time.LocalDate;
 import java.util.List;
 
 public record ReporteLiquidacionRequest(
-        @NotNull String fechaInicio,
-        @NotNull String fechaFin,
+        @NotNull
+        @JsonFormat(pattern = "yyyy-MM-dd")
+        LocalDate fechaInicio,
+
+        @NotNull
+        @JsonFormat(pattern = "yyyy-MM-dd")
+        LocalDate fechaFin,
+
         String disciplina,
+
         String profesor,
-        @NotNull Double porcentaje,                    // nuevo campo
-        @NotNull List<DetallePagoResponse> detalles
+
+        @NotNull
+        Double porcentaje,
+
+        @NotEmpty
+        List<DetallePagoResponse> detalles
 ) {}

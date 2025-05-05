@@ -208,8 +208,9 @@ public class ReporteServicio implements IReporteServicio {
         return reportes.map(reporteMapper::toDTO);
     }
 
-    // en ReporteServicio.java
+    // --- 2) SERVICIO ---
     public byte[] exportarLiquidacionProfesor(ReporteLiquidacionRequest req) {
+        // simplemente delega el PDF, con la lista de DetallePagoResponse ya viniendo del frontend
         return pdfService.generarLiquidacionProfesorPdf(
                 req.profesor(),
                 req.disciplina(),

@@ -164,39 +164,14 @@ const ReporteDetallePago: React.FC = () => {
     buscarSugerenciasProfesores();
   }, [debouncedProfesorBusqueda]);
 
-  // Función para actualizar "descripcionConcepto" combinando descripción y tarifa.
-  const handleCampoChange = (
+  // Función para actualizar campos dinámicos de cada fila
+  const actualizarCampo = (
     id: number,
-    campo: "descripcion" | "tarifa",
+    campo: keyof DetallePagoResponse,
     valor: any
   ) => {
-    setResultados((prevResultados) =>
-      prevResultados.map((item) => {
-        if (item.id === id) {
-          const index = item.descripcionConcepto.indexOf("-");
-          const currentDesc =
-            index === -1
-              ? item.descripcionConcepto.trim()
-              : item.descripcionConcepto.substring(0, index).trim();
-          const currentTarifa =
-            index === -1
-              ? ""
-              : item.descripcionConcepto.substring(index + 1).trim();
-          let nuevaDescripcion = currentDesc;
-          let nuevaTarifa = currentTarifa;
-          if (campo === "descripcion") {
-            nuevaDescripcion = valor;
-          } else {
-            nuevaTarifa = valor;
-          }
-          const nuevaCadena =
-            nuevaTarifa !== ""
-              ? `${nuevaDescripcion} - ${nuevaTarifa}`
-              : nuevaDescripcion;
-          return { ...item, descripcionConcepto: nuevaCadena };
-        }
-        return item;
-      })
+    setResultados((prev) =>
+      prev.map((it) => (it.id === id ? { ...it, [campo]: valor } : it))
     );
   };
 
@@ -206,22 +181,47 @@ const ReporteDetallePago: React.FC = () => {
   );
   const montoPorcentaje = totalACobrar * (porcentaje / 100);
 
-  // --- NUEVO: Función para exportar PDF ---
+  // --- Función para exportar PDF con fechas completas ---
   const handleExport = async () => {
     try {
       setLoading(true);
+
+      // 1) Transformar "YYYY-MM" a fechas completas "YYYY-MM-DD"
+      const transformarMesAFechas = (
+        mesStr: string
+      ): { inicio: string; fin: string } => {
+        const [year, month] = mesStr.split("-").map(Number);
+        const inicio = new Date(year, month - 1, 1);
+        const fin = new Date(year, month, 0);
+        const formatear = (d: Date) =>
+          new Intl.DateTimeFormat("en-CA", {
+            timeZone: "America/Argentina/Buenos_Aires",
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+          }).format(d);
+        return { inicio: formatear(inicio), fin: formatear(fin) };
+      };
+
+      const { inicio: inicioFecha } = transformarMesAFechas(
+        formik.values.fechaInicio
+      );
+      const { fin: finFecha } = transformarMesAFechas(formik.values.fechaFin);
+
+      // 2) Armar payload con fechas completas
       const payload = {
-        fechaInicio: formik.values.fechaInicio,
-        fechaFin: formik.values.fechaFin,
+        fechaInicio: inicioFecha, // ej. "2025-04-01"
+        fechaFin: finFecha, // ej. "2025-04-30"
         disciplina: formik.values.disciplinaNombre,
-        profesor: formik.values.profesorNombre, // ahora sí llega
-        porcentaje, // ¡lo agregamos!
+        profesor: formik.values.profesorNombre,
+        porcentaje,
         detalles: resultados,
       };
+
+      // 3) Llamada al backend y forzar descarga
       const blob: Blob = await reporteMensualidadApi.exportarLiquidacion(
         payload
       );
-      // Creamos URL temporal y forzamos descarga
       const url = window.URL.createObjectURL(
         new Blob([blob], { type: "application/pdf" })
       );
@@ -238,12 +238,12 @@ const ReporteDetallePago: React.FC = () => {
       link.remove();
       window.URL.revokeObjectURL(url);
     } catch (err: any) {
-      toast.error("Error al exportar PDF: " + err?.message || err);
+      toast.error("Error al exportar PDF: " + (err?.message || err));
     } finally {
       setLoading(false);
     }
   };
-
+  
   const resultadosOrdenados = React.useMemo(
     () =>
       [...resultados].sort((a, b) =>
@@ -253,6 +253,46 @@ const ReporteDetallePago: React.FC = () => {
       ),
     [resultados]
   );
+
+  /**
+   * Actualiza dinámicamente la descripción o tarifa dentro de resultados.
+   * @param id        El id del DetallePagoResponse a actualizar.
+   * @param campo     "descripcion" o "tarifa".
+   * @param valor     El nuevo valor para ese campo.
+   */
+  const handleCampoChange = (
+    id: number,
+    campo: "descripcion" | "tarifa",
+    valor: string
+  ) => {
+    setResultados((prev) =>
+      prev.map((item) => {
+        if (item.id !== id) return item;
+
+        // Separa la cadena actual en descripción y tarifa
+        const idx = item.descripcionConcepto.indexOf(" - ");
+        const currentDesc =
+          idx >= 0
+            ? item.descripcionConcepto.substring(0, idx).trim()
+            : item.descripcionConcepto.trim();
+        const currentTarifa =
+          idx >= 0 ? item.descripcionConcepto.substring(idx + 3).trim() : "";
+
+        // Sustituye el campo que corresponde
+        const nuevaDesc = campo === "descripcion" ? valor : currentDesc;
+        const nuevaTar = campo === "tarifa" ? valor : currentTarifa;
+
+        // Reconstruye la cadena
+        const nuevaCadena =
+          nuevaTar !== "" ? `${nuevaDesc} - ${nuevaTar}` : nuevaDesc;
+
+        return {
+          ...item,
+          descripcionConcepto: nuevaCadena,
+        };
+      })
+    );
+  };
 
   return (
     <div className="p-4">
@@ -306,17 +346,13 @@ const ReporteDetallePago: React.FC = () => {
           />
           {sugerenciasDisciplinas.length > 0 && (
             <ul className="absolute w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 mt-1 z-10 rounded-md shadow-lg">
-              {/* En la sección de sugerencias de disciplinas, cambiá esto: */}
               {sugerenciasDisciplinas.map((disc: any) => (
                 <li
                   key={disc.id}
                   onClick={() => {
-                    // 1) Seteás la disciplina
                     formik.setFieldValue("disciplinaNombre", disc.nombre);
-                    // 2) Ahora seteás el profesor basado en las props recibidas
                     const profFullName = `${disc.profesorNombre} ${disc.profesorApellido}`;
                     formik.setFieldValue("profesorNombre", profFullName);
-                    // 3) Limpiás las sugerencias
                     setSugerenciasDisciplinas([]);
                   }}
                   className="bg-slate-200 dark:bg-slate-600 hover:bg-gray-200 dark:hover:bg-gray-700 p-1"
@@ -391,12 +427,13 @@ const ReporteDetallePago: React.FC = () => {
         ) : (
           <Tabla
             headers={[
-              "Descripción",
-              "Tarifa",
               "Alumno",
+              "Tarifa",
+              "Descripción",
               "Valor Base",
               "Bonificación",
               "Monto Cobrado",
+              "Cobrado",
             ]}
             data={resultadosOrdenados}
             customRender={(item: DetallePagoResponse) => {
@@ -410,24 +447,6 @@ const ReporteDetallePago: React.FC = () => {
                   ? ""
                   : item.descripcionConcepto.substring(index + 1).trim();
               return [
-                // Descripción
-                <input
-                  type="text"
-                  value={descripcion}
-                  onChange={(e) =>
-                    handleCampoChange(item.id, "descripcion", e.target.value)
-                  }
-                  className="border p-1 w-auto text-center"
-                />,
-                // Tarifa
-                <input
-                  type="text"
-                  value={tarifa}
-                  onChange={(e) =>
-                    handleCampoChange(item.id, "tarifa", e.target.value)
-                  }
-                  className="border p-1 w-auto text-center"
-                />,
                 <input
                   type="text"
                   value={item.alumno.nombre + " " + item.alumno.apellido}
@@ -442,6 +461,25 @@ const ReporteDetallePago: React.FC = () => {
                   }
                   className="border p-1 w-auto text-center"
                 />,
+                // Tarifa
+                <input
+                  type="text"
+                  value={tarifa}
+                  onChange={(e) =>
+                    handleCampoChange(item.id, "tarifa", e.target.value)
+                  }
+                  className="border p-1 w-auto text-center"
+                />,
+                // Descripción
+                <input
+                  type="text"
+                  value={descripcion}
+                  onChange={(e) =>
+                    handleCampoChange(item.id, "descripcion", e.target.value)
+                  }
+                  className="border p-1 w-auto text-center"
+                />,
+                // Valor Base (importeInicial)
                 <input
                   type="number"
                   value={item.importeInicial}
@@ -456,6 +494,7 @@ const ReporteDetallePago: React.FC = () => {
                   }
                   className="border p-1 w-auto text-center"
                 />,
+                // Bonificación
                 <input
                   type="text"
                   value={item.bonificacionNombre}
@@ -470,6 +509,7 @@ const ReporteDetallePago: React.FC = () => {
                   }
                   className="border p-1 w-auto text-center"
                 />,
+                // Monto Cobrado (A Cobrar)
                 <input
                   type="number"
                   value={item.ACobrar}
@@ -481,6 +521,15 @@ const ReporteDetallePago: React.FC = () => {
                           : it
                       )
                     )
+                  }
+                  className="border p-1 w-auto text-center"
+                />,
+                // Cobrado (checkbox)
+                <input
+                  type="checkbox"
+                  checked={item.cobrado || false}
+                  onChange={(e) =>
+                    actualizarCampo(item.id, "cobrado", e.target.checked)
                   }
                   className="border p-1 w-auto text-center"
                 />,

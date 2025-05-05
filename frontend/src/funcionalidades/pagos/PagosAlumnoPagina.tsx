@@ -112,14 +112,7 @@ const DetallePagoListByAlumno: React.FC = () => {
                 className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-sm"
               >
                 Descargar Factura
-              </button>,
-              <button
-                type="button"
-                onClick={() => pagosApi.descargarFactura(fila.pagoId)}
-                className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-sm"
-              >
-                Generar Factura
-              </button>,
+              </button>
             ]}
           />
         )}
