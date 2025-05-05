@@ -297,7 +297,7 @@ public class MatriculaServicio {
             pagoAsociado.setDetallePagos(new ArrayList<>());
         }
         pagoAsociado.getDetallePagos().add(detalle);
-        pagoAsociado.setMonto((pagoAsociado.getMonto() == null ? 0.0 : pagoAsociado.getMonto()) + valorBase);
+        pagoAsociado.setMonto(0.0);
         pagoAsociado.setSaldoRestante((pagoAsociado.getSaldoRestante() == null ? 0.0 : pagoAsociado.getSaldoRestante()) + valorBase);
         pagoRepositorio.save(pagoAsociado);
         log.info("[registrarDetallePagoMatricula] Pago (ID={}) actualizado: nuevo monto={} y saldo restante={}",

@@ -9,17 +9,15 @@ import { toast } from "react-toastify";
 import { useAuth } from "../../hooks/context/authContext";
 import { EgresoResponse } from "../../types/types";
 
-// Interfaces (pueden moverse a un archivo .d.ts o adaptarse)
 interface MetodoPago {
   id: number;
-  descripcion: string; // "EFECTIVO", "DEBITO", etc.
+  descripcion: string;
 }
 
 interface DetallePago {
   id: number;
   ACobrar: number;
-  // si quieres filtrar por estado, podrías agregar:
-  // estadoPago?: "ACTIVO" | "ANULADO" | "HISTORICO";
+  estadoPago?: "ACTIVO" | "ANULADO" | "HISTORICO";
 }
 
 interface PagoDelDia {
@@ -36,6 +34,7 @@ interface PagoDelDia {
   metodoPago?: MetodoPago | null;
   usuarioId: number; // Identificador del usuario que realizó el pago
   detallePagos?: DetallePago[];
+  estadoPago?: "ACTIVO" | "ANULADO" | "HISTORICO";
 }
 export interface CajaDetalleDTO {
   pagosDelDia: PagoDelDia[];
@@ -106,6 +105,7 @@ const ConsultaCajaDiaria: React.FC = () => {
   const pagos = data?.pagosDelDia || [];
   const pagosFiltrados = pagos
     .filter((p) => p.monto !== 0)
+    .filter((p) => p.estadoPago !== "ANULADO");
   const sortedPagos = [...pagosFiltrados].sort((a, b) => b.id - a.id);
   const pagosFiltradosPorUsuario =
     filtroPago === "mis"

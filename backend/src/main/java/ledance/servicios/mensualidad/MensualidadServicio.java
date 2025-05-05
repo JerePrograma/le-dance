@@ -484,7 +484,7 @@ public class MensualidadServicio {
             pagoAsociado.setDetallePagos(new ArrayList<>());
         }
         pagoAsociado.getDetallePagos().add(detalle);
-        pagoAsociado.setMonto((pagoAsociado.getMonto() == null ? 0.0 : pagoAsociado.getMonto()) + importeInicial);
+        pagoAsociado.setMonto(0.0);
         pagoAsociado.setSaldoRestante((pagoAsociado.getSaldoRestante() == null ? 0.0 : pagoAsociado.getSaldoRestante()) + importeInicial);
         pagoRepositorio.save(pagoAsociado);
         log.info("[registrarDetallePagoMensualidad] Pago (ID={}) actualizado: nuevo monto={} y saldo restante={}",
