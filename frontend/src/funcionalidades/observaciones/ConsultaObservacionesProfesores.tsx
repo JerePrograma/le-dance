@@ -46,7 +46,7 @@ const ConsultaObservacionesProfesores: React.FC = () => {
   useEffect(() => {
     const cargarProfesores = async () => {
       try {
-        const data = await profesoresApi.listarProfesores();
+        const data = await profesoresApi.listarProfesoresActivos();
         setProfesores(data);
       } catch (error) {
         toast.error("Error al cargar profesores.");

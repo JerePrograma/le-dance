@@ -39,7 +39,7 @@ const profesoresApi = {
    * Lista todos los profesores
    * @param activos si true filtra sólo activos, de lo contrario todos
    */
-  async listarProfesores(activos = false): Promise<ProfesorListadoResponse[]> {
+  async listarProfesoresActivos(activos = false): Promise<ProfesorListadoResponse[]> {
     const endpoint = activos ? "/profesores/activos" : "/profesores";
     const { data } = await api.get<ProfesorListadoResponse[]>(endpoint);
     return data;

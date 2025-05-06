@@ -26,7 +26,7 @@ const Profesores = () => {
     try {
       setLoading(true)
       setError(null)
-      const response = await profesoresApi.listarProfesores()
+      const response = await profesoresApi.listarProfesoresActivos()
       setProfesores(response)
     } catch (error) {
       toast.error("Error al cargar profesores:")
