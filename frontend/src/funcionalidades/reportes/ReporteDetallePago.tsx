@@ -4,12 +4,13 @@ import * as Yup from "yup";
 import useDebounce from "../../hooks/useDebounce";
 import disciplinasApi from "../../api/disciplinasApi";
 import profesoresApi from "../../api/profesoresApi";
-import type { DetallePagoResponse } from "../../types/types";
+import type { AlumnoResponse, DetallePagoResponse } from "../../types/types";
 import reporteMensualidadApi, {
   ExportLiquidacionPayload,
 } from "../../api/reporteMensualidadApi";
 import Tabla from "../../componentes/comunes/Tabla";
 import { toast } from "react-toastify";
+import alumnosApi from "../../api/alumnosApi";
 
 // Utilidades de fecha
 const getCurrentMonth = () => {
@@ -204,14 +205,34 @@ const ReporteDetallePago: React.FC = () => {
   const handleExport = async () => {
     setLoading(true);
     try {
+      // 1) Calculamos fechas de inicio y fin
       const { inicio } = transformMonthToDates(formik.values.fechaInicio);
       const { fin } = transformMonthToDates(formik.values.fechaFin);
-      // 1) Mapea resultados (RowItem[]) a DetallePagoResponse[]
-      const detallesExport: DetallePagoResponse[] = resultados.map(
-        ({ alumno, isNew, ...rest }) => rest as DetallePagoResponse
+
+      // 2) Construimos el array de DetallePagoResponse, rellenando alumno completo si es fila nueva
+      const detallesExport: DetallePagoResponse[] = await Promise.all(
+        resultados.map(async (item) => {
+          const { alumno, isNew, ...rest } = item;
+          let alumnoCompleto:
+            | AlumnoResponse
+            | { id: number | null; nombre: string; apellido: string };
+
+          if (isNew && alumno.id !== null) {
+            // Si la fila es nueva y tiene id, lo traemos completo
+            alumnoCompleto = await alumnosApi.obtenerPorId(alumno.id);
+          } else {
+            // Si no es nueva, usamos el alumno que vino del reporte
+            alumnoCompleto = alumno as AlumnoResponse;
+          }
+
+          return {
+            ...rest,
+            alumno: alumnoCompleto as AlumnoResponse,
+          } as DetallePagoResponse;
+        })
       );
 
-      // 2) Usa detallesExport en lugar de resultados en el payload
+      // 3) Armamos el payload
       const payload: ExportLiquidacionPayload = {
         fechaInicio: inicio,
         fechaFin: fin,
@@ -221,6 +242,7 @@ const ReporteDetallePago: React.FC = () => {
         detalles: detallesExport,
       };
 
+      // 4) Llamamos al API y forzamos descarga
       const blob: Blob = await reporteMensualidadApi.exportarLiquidacion(
         payload
       );
