@@ -829,20 +829,6 @@ public class MensualidadServicio {
                 disciplinaNombre.toUpperCase(), etiquetaMeses, fechaInicio.getYear()
         );
 
-        for (Alumno a : inscritos) {
-            if (!conPago.contains(a.getId())) {
-                DetallePago dummy = new DetallePago();
-                dummy.setDescripcionConcepto(descripcionDefecto);
-                dummy.setValorBase(tarifaDefault);
-                dummy.setACobrar(0.0);
-                dummy.setCobrado(false);
-                dummy.setAlumno(a);
-                dummy.setTieneRecargo(false);
-                dummy.setEstadoPago(EstadoPago.ACTIVO);
-                agrupados.add(mapearDetallePagoResponse(dummy, tarifaDefault));
-            }
-        }
-
         log.info("FINAL procesa {} DetallePagoResponse antes de ajustes", agrupados.size());
 
         // Ajustar 'cobrado' si ACobrar == valorBase y ordenar por nombre de alumno
