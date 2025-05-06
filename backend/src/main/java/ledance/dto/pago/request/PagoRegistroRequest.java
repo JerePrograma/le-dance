@@ -1,8 +1,10 @@
 package ledance.dto.pago.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import ledance.dto.alumno.request.AlumnoRegistroRequest;
+
 import java.time.LocalDate;
 import java.util.List;
 
@@ -21,5 +23,7 @@ public record PagoRegistroRequest(
         Boolean activo,
         Long usuarioId,
         String estadoPago,
-         Boolean recargoMetodoPagoAplicado
-) { }
+        @JsonProperty("aplicarRecargoMetodoPago")
+        Boolean recargoMetodoPagoAplicado
+) {
+}

@@ -97,6 +97,9 @@ public class Pago {
     @JoinColumn(name = "usuario_id", nullable = true)
     private Usuario usuario;
 
+    @Column(name = "recargo_aplicado")
+    private Boolean recargoMetodoPagoAplicado = false;
+
     @PrePersist
     public void prePersist() {
         if (this.saldoRestante == null) {

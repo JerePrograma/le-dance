@@ -82,20 +82,14 @@ public class PaymentProcessor {
             }
         }
 
-        // Obtener flag desde una extensión (ver punto 4)
-        boolean incluirRecargoMetodo = Optional.ofNullable(pago.getObservaciones())
-                .map(obs -> obs.contains("DEBITO"))
-                .orElse(false);
-
-        double recargoMetodo = 0.0;
-        if (incluirRecargoMetodo && pago.getMetodoPago().getRecargo() != null) {
-            recargoMetodo = pago.getMetodoPago().getRecargo();
-        }
-
+        boolean incluirRecargoMetodo = Boolean.TRUE.equals(pago.getRecargoMetodoPagoAplicado());
+        double recargoMetodo = incluirRecargoMetodo
+                ? Optional.ofNullable(pago.getMetodoPago().getRecargo()).orElse(0.0)
+                : 0.0;
         double montoFinal = totalCobrado + recargoMetodo;
-
-        pago.setMontoPagado(montoFinal);
         pago.setMonto(montoFinal);
+        pago.setMontoPagado(montoFinal);
+
         pago.setSaldoRestante(Math.max(0.0, totalDetalles - totalCobrado));
         pago.setEstadoPago(pago.getSaldoRestante() <= 0 ? EstadoPago.HISTORICO : EstadoPago.ACTIVO);
 
@@ -203,19 +197,21 @@ public class PaymentProcessor {
      * Asigna el metodo de pago al pago, recalcula totales y actualiza el pago.
      */
     @Transactional
-    protected void asignarMetodoYPersistir(Pago pago, Long metodoPagoId) {
-        if (pago == null) {
-            throw new IllegalArgumentException("El pago no puede ser nulo");
-        }
-        MetodoPago metodoPago = metodoPagoRepositorio.findById(metodoPagoId)
+    protected void asignarMetodoYPersistir(Pago pago, Long metodoPagoId, Boolean aplicarRecargo) {
+        MetodoPago mp = metodoPagoRepositorio.findById(metodoPagoId)
                 .orElseGet(() -> metodoPagoRepositorio.findByDescripcionContainingIgnoreCase("EFECTIVO"));
-        pago.setMetodoPago(metodoPago);
-        pagoRepositorio.saveAndFlush(pago);
-        if (pago.getDetallePagos().stream().anyMatch(DetallePago::getTieneRecargo)) {
-            double recargo = metodoPago.getRecargo() != null ? metodoPago.getRecargo() : 0;
-            log.info("[asignarMetodoYPersistir] Se aplico recargo de {}.", recargo);
+
+        pago.setMetodoPago(mp);
+        pago.setRecargoMetodoPagoAplicado(Boolean.TRUE.equals(aplicarRecargo));
+
+        // (Opcional) Anexa en observaciones por legibilidad
+        if (Boolean.TRUE.equals(pago.getRecargoMetodoPagoAplicado())) {
+            String obs = Optional.ofNullable(pago.getObservaciones()).orElse("");
+            pago.setObservaciones(obs + (obs.isEmpty()? "":"\n") + mp.getDescripcion());
         }
-        pagoRepositorio.saveAndFlush(pago);
+
+        // **Aquí** recalculas y guardas el pago completo con el recargo
+        recalcularTotalesNuevo(pago);
     }
 
     /**
@@ -241,8 +237,6 @@ public class PaymentProcessor {
         Usuario usuario = usuarioRepositorio.findById(request.usuarioId())
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
         nuevoPago.setUsuario(usuario);
-        nuevoPago.setMetodoPago(metodoPagoRepositorio.findById(request.metodoPagoId())
-                .orElseThrow(() -> new IllegalArgumentException("Método de pago no encontrado")));
         nuevoPago.setImporteInicial(sumaAbonos);
         nuevoPago.setMonto(sumaAbonos);
         nuevoPago.setDetallePagos(new ArrayList<>());
@@ -309,9 +303,6 @@ public class PaymentProcessor {
                 .allMatch(DetallePago::getCobrado);
         if (todos) {
             cerrarPagoHistorico(pagoActivo);
-        }
-        if (Boolean.TRUE.equals(request.recargoMetodoPagoAplicado())) {
-            nuevoPago.setObservaciones((nuevoPago.getObservaciones() != null ? nuevoPago.getObservaciones() + "\n" : "") + "DEBITO");
         }
         // 4) recalcular totales del nuevo pago
         recalcularTotalesNuevo(nuevoPago);

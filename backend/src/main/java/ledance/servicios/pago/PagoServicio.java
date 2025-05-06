@@ -104,7 +104,12 @@ public class PagoServicio {
         }
 
         // 3) Asignar metodo de pago y persistir
-        paymentProcessor.asignarMetodoYPersistir(pagoFinal, request.metodoPagoId());
+        paymentProcessor.asignarMetodoYPersistir(
+                pagoFinal,
+                request.metodoPagoId(),
+                request.recargoMetodoPagoAplicado()
+        );
+
         log.info("[registrarPago] Metodo de pago asignado al pago final id={}", pagoFinal.getId());
 
         // 4) Limpiar asociaciones para la respuesta
@@ -170,8 +175,6 @@ public class PagoServicio {
             log.info("[crearNuevoPago] ImporteInicial asignado desde request: {}", request.importeInicial());
         }
 
-        Optional<MetodoPago> metodoPago = metodoPagoRepositorio.findById(request.metodoPagoId());
-        nuevoPago.setMetodoPago(metodoPago.orElseThrow(() -> new IllegalArgumentException("Metodo de pago no encontrado.")));
         nuevoPago.setAlumno(alumno);
         Optional<Usuario> cobrador = usuarioRepositorio.findById(request.usuarioId());
         nuevoPago.setUsuario(cobrador.orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado.")));

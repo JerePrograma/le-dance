@@ -1320,9 +1320,6 @@ const CobranzasForm: React.FC = () => {
   );
 
   const onSubmit = async (values: CobranzasFormValues, actions: any) => {
-    const metodoSeleccionado = metodosPago.find(
-      (mp) => mp.id === Number(metodosPago)
-    );
     if (!values.detallePagos || values.detallePagos.length === 0) {
       toast.error("No hay nada que cobrar");
       return;
@@ -1336,6 +1333,8 @@ const CobranzasForm: React.FC = () => {
       }
       const usuario = JSON.parse(usuarioStorage);
       const usuarioId = Number(usuario.id);
+      const aplicarRecargoFlag = values.aplicarRecargo;
+
       const pagoRegistroRequest: PagoRegistroRequest = {
         alumno,
         fecha,
@@ -1367,8 +1366,7 @@ const CobranzasForm: React.FC = () => {
           estadoPago: d.estadoPago,
           removido: d.removido || false,
           tipo: d.tipo ?? null,
-          aplicarRecargoMetodoPago:
-            values.aplicarRecargo && !!metodoSeleccionado?.recargo,
+          aplicarRecargoMetodoPago: aplicarRecargoFlag,
         })),
         pagoMedios: [],
         observaciones: [
@@ -1395,6 +1393,7 @@ const CobranzasForm: React.FC = () => {
           .filter(Boolean)
           .join("\n"),
         usuarioId,
+        aplicarRecargoMetodoPago: aplicarRecargoFlag, // ← aquí
       };
 
       await pagosApi.registrarPago(pagoRegistroRequest);

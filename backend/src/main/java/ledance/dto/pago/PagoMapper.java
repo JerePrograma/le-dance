@@ -25,6 +25,7 @@ public interface PagoMapper {
     @Mapping(target = "estadoPago", ignore = true)
     @Mapping(target = "observaciones", ignore = true)
     @Mapping(target = "montoPagado", ignore = true)
+    @Mapping(target = "recargoMetodoPagoAplicado", source = "recargoMetodoPagoAplicado")
     Pago toEntity(PagoRegistroRequest request);
 
     @Mapping(target = "alumno", expression = "java(alumnoMapper.toResponse(pago.getAlumno()))")
@@ -38,6 +39,7 @@ public interface PagoMapper {
     @Mapping(target = "estadoPago", ignore = true)
     @Mapping(target = "observaciones", ignore = true)
     @Mapping(target = "montoPagado", ignore = true)
+    @Mapping(target = "recargoMetodoPagoAplicado", source = "recargoMetodoPagoAplicado")
     void updateEntityFromRequest(PagoRegistroRequest request, @MappingTarget Pago pago);
 
     default String map(Salon salon) {

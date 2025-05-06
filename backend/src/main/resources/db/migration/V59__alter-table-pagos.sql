@@ -1,0 +1,2 @@
+ALTER TABLE pagos
+    ADD COLUMN recargo_aplicado BOOLEAN NOT NULL DEFAULT FALSE
