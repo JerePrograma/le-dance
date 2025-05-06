@@ -6,8 +6,13 @@
   <component name="ChangeListManager">
     <list default="true" id="e68b5449-8c65-49d0-ba83-553b8febe7fe" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/pdfs/PdfService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/pdfs/PdfService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/reporte/ReporteServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/reporte/ReporteServicio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/DisciplinaControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/DisciplinaControlador.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/controladores/ProfesorControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/controladores/ProfesorControlador.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/repositorios/DisciplinaRepositorio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/repositorios/DisciplinaRepositorio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/repositorios/ProfesorRepositorio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/repositorios/ProfesorRepositorio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/detallepago/DetallePagoServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/detallepago/DetallePagoServicio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/profesor/ProfesorServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/profesor/ProfesorServicio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/funcionalidades/reportes/ReporteDetallePago.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/funcionalidades/reportes/ReporteDetallePago.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -150,7 +155,10 @@
       <workItem from="1746456591290" duration="531000" />
       <workItem from="1746480081058" duration="2270000" />
       <workItem from="1746482479246" duration="596000" />
-      <workItem from="1746483546905" duration="9917000" />
+      <workItem from="1746483546905" duration="10543000" />
+      <workItem from="1746534835598" duration="26000" />
+      <workItem from="1746545397896" duration="595000" />
+      <workItem from="1746560200434" duration="1220000" />
     </task>
     <servers />
   </component>

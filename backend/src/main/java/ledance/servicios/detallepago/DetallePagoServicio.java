@@ -344,7 +344,7 @@ public class DetallePagoServicio {
 
                 // 2) Construir la nueva observación
                 String nuevaObs = ("ANULADO " + descripcion
-                        + (limpio.isEmpty() ? "" : " " + limpio))
+                        + (limpio.isEmpty() ? "" : " " + limpio) + "\n")
                         .trim();
 
                 // 3) Guardar cambios
@@ -531,7 +531,7 @@ public class DetallePagoServicio {
         String obs = p.getObservaciones();
         if (obs != null && descripcion != null) {
             String regex = "\\b(CTA|DEUDA|SALDA)\\s+" + Pattern.quote(descripcion) + "\\b";
-            String reemplazo = "ANULADO " + descripcion;
+            String reemplazo = "ANULADO " + descripcion + "\n";
             p.setObservaciones(obs.replaceAll(regex, reemplazo));
             pagoRepositorio.save(p);
         }

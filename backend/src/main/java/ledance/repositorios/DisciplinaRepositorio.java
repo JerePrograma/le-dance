@@ -31,4 +31,5 @@ public interface DisciplinaRepositorio extends JpaRepository<Disciplina, Long> {
 
     @Query("SELECT d FROM Disciplina d WHERE d.profesor.id = :profesorId")
     List<Disciplina> findDisciplinasPorProfesor(@Param("profesorId") Long profesorId);
+
 }

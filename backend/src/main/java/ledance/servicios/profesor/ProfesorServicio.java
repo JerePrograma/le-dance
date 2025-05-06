@@ -1,11 +1,14 @@
 package ledance.servicios.profesor;
 
+import ledance.dto.alumno.AlumnoMapper;
+import ledance.dto.alumno.response.AlumnoResponse;
 import ledance.dto.disciplina.DisciplinaMapper;
 import ledance.dto.profesor.ProfesorMapper;
 import ledance.dto.profesor.request.ProfesorModificacionRequest;
 import ledance.dto.profesor.request.ProfesorRegistroRequest;
 import ledance.dto.disciplina.response.DisciplinaResponse;
 import ledance.dto.profesor.response.ProfesorResponse;
+import ledance.entidades.Alumno;
 import ledance.entidades.Profesor;
 import ledance.infra.errores.TratadorDeErrores;
 import ledance.repositorios.DisciplinaHorarioRepositorio;
@@ -28,11 +31,13 @@ public class ProfesorServicio implements IProfesorServicio {
     private final ProfesorRepositorio profesorRepositorio;
     private final ProfesorMapper profesorMapper;
     private final DisciplinaMapper disciplinaMapper;
+    private final AlumnoMapper alumnoMapper;
 
-    public ProfesorServicio(ProfesorRepositorio profesorRepositorio, ProfesorMapper profesorMapper, DisciplinaHorarioRepositorio disciplinaHorarioRepositorio, DisciplinaMapper disciplinaMapper) {
+    public ProfesorServicio(ProfesorRepositorio profesorRepositorio, ProfesorMapper profesorMapper, DisciplinaHorarioRepositorio disciplinaHorarioRepositorio, DisciplinaMapper disciplinaMapper, AlumnoMapper alumnoMapper) {
         this.profesorRepositorio = profesorRepositorio;
         this.profesorMapper = profesorMapper;
         this.disciplinaMapper = disciplinaMapper;
+        this.alumnoMapper = alumnoMapper;
     }
 
     /**
@@ -135,6 +140,17 @@ public class ProfesorServicio implements IProfesorServicio {
     public List<ProfesorResponse> buscarPorNombre(String nombre) {
         return profesorRepositorio.buscarPorNombreCompleto(nombre).stream()
                 .map(profesorMapper::toResponse)
+                .collect(Collectors.toList());
+    }
+
+
+    /**
+     * Retorna los alumnos que están inscriptos en cualquiera de las disciplinas del profesor.
+     */
+    public List<AlumnoResponse> obtenerAlumnosDeProfesor(Long profesorId) {
+        List<Alumno> alumnos = profesorRepositorio.findAlumnosPorProfesor(profesorId);
+        return alumnos.stream()
+                .map(alumnoMapper::toResponse)
                 .collect(Collectors.toList());
     }
 }

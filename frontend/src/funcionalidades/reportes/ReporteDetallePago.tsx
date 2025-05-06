@@ -5,17 +5,13 @@ import useDebounce from "../../hooks/useDebounce";
 import disciplinasApi from "../../api/disciplinasApi";
 import profesoresApi from "../../api/profesoresApi";
 import type { DetallePagoResponse } from "../../types/types";
-import reporteMensualidadApi from "../../api/reporteMensualidadApi";
+import reporteMensualidadApi, {
+  ExportLiquidacionPayload,
+} from "../../api/reporteMensualidadApi";
 import Tabla from "../../componentes/comunes/Tabla";
 import { toast } from "react-toastify";
 
-interface FiltrosBusqueda {
-  fechaInicio: string;
-  fechaFin: string;
-  disciplinaNombre: string;
-  profesorNombre: string;
-}
-
+// Utilidades de fecha
 const getCurrentMonth = () => {
   const now = new Date();
   return new Intl.DateTimeFormat("en-CA", {
@@ -25,22 +21,52 @@ const getCurrentMonth = () => {
   }).format(now);
 };
 
-const ReporteDetallePago: React.FC = () => {
-  const [resultados, setResultados] = useState<DetallePagoResponse[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-  const [porcentaje, setPorcentaje] = useState<number>(0);
+const formatDate = (d: Date) =>
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
 
+const transformMonthToDates = (mesStr: string) => {
+  const [year, month] = mesStr.split("-").map(Number);
+  const inicioDate = new Date(year, month - 1, 1);
+  const finDate = new Date(year, month, 0);
+  return { inicio: formatDate(inicioDate), fin: formatDate(finDate) };
+};
+
+// Tipo extendido para filas manuales
+// Usamos Omit para redefinir alumno de DetallePagoResponse
+export type RowItem = Omit<DetallePagoResponse, "alumno"> & {
+  alumno: { id: number | null; nombre: string; apellido: string };
+  isNew?: boolean;
+};
+
+const ReporteDetallePago: React.FC = () => {
+  const [resultados, setResultados] = useState<RowItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [porcentaje, setPorcentaje] = useState(0);
+
+  // Filtros y sugerencias
   const [sugerenciasDisciplinas, setSugerenciasDisciplinas] = useState<any[]>(
     []
   );
   const [sugerenciasProfesores, setSugerenciasProfesores] = useState<any[]>([]);
-  const [disciplinaBusqueda, setDisciplinaBusqueda] = useState<string>("");
-  const debouncedDisciplinaBusqueda = useDebounce(disciplinaBusqueda, 300);
-  const [profesorBusqueda, setProfesorBusqueda] = useState<string>("");
-  const debouncedProfesorBusqueda = useDebounce(profesorBusqueda, 300);
+  const [sugerenciasAlumnos, setSugerenciasAlumnos] = useState<any[]>([]);
+  const [selectedDisciplinaId, setSelectedDisciplinaId] = useState<
+    number | null
+  >(null);
+  const [selectedProfesorId, setSelectedProfesorId] = useState<number | null>(
+    null
+  );
+  const [busquedaDisciplina, setBusquedaDisciplina] = useState("");
+  const debouncedBusquedaDisciplina = useDebounce(busquedaDisciplina, 300);
+  const [busquedaProfesor, setBusquedaProfesor] = useState("");
+  const debouncedBusquedaProfesor = useDebounce(busquedaProfesor, 300);
 
-  const formik = useFormik<FiltrosBusqueda>({
+  const formik = useFormik({
     initialValues: {
       fechaInicio: getCurrentMonth(),
       fechaFin: getCurrentMonth(),
@@ -55,29 +81,16 @@ const ReporteDetallePago: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const transformarMesAFechas = (mesStr: string) => {
-          const [year, month] = mesStr.split("-").map(Number);
-          const inicioDate = new Date(year, month - 1, 1);
-          const finDate = new Date(year, month, 0);
-          const formatear = (d: Date) =>
-            new Intl.DateTimeFormat("en-CA", {
-              timeZone: "America/Argentina/Buenos_Aires",
-              year: "numeric",
-              month: "2-digit",
-              day: "2-digit",
-            }).format(d);
-          return { inicio: formatear(inicioDate), fin: formatear(finDate) };
-        };
-        const { inicio } = transformarMesAFechas(values.fechaInicio);
-        const { fin } = transformarMesAFechas(values.fechaFin);
+        const { inicio } = transformMonthToDates(values.fechaInicio);
+        const { fin } = transformMonthToDates(values.fechaFin);
         const params = {
           fechaInicio: inicio,
           fechaFin: fin,
           disciplinaNombre: values.disciplinaNombre || undefined,
           profesorNombre: values.profesorNombre || undefined,
         };
-        const response = await reporteMensualidadApi.listarReporte(params);
-        setResultados(response);
+        const resp = await reporteMensualidadApi.listarReporte(params);
+        setResultados(resp);
       } catch (err: any) {
         toast.error("Error al obtener el reporte: " + err);
         setError("Error al cargar los datos del reporte");
@@ -90,50 +103,85 @@ const ReporteDetallePago: React.FC = () => {
   useEffect(() => {
     formik.submitForm();
   }, []);
+
   useEffect(() => {
-    async function fetch() {
-      if (debouncedDisciplinaBusqueda) {
-        try {
-          setSugerenciasDisciplinas(
-            await disciplinasApi.buscarPorNombre(debouncedDisciplinaBusqueda)
-          );
-        } catch {
-          setSugerenciasDisciplinas([]);
-        }
-      } else setSugerenciasDisciplinas([]);
-    }
-    fetch();
-  }, [debouncedDisciplinaBusqueda]);
+    if (!debouncedBusquedaDisciplina) return setSugerenciasDisciplinas([]);
+    disciplinasApi
+      .buscarPorNombre(debouncedBusquedaDisciplina)
+      .then(setSugerenciasDisciplinas)
+      .catch(() => setSugerenciasDisciplinas([]));
+  }, [debouncedBusquedaDisciplina]);
+
   useEffect(() => {
-    async function fetch() {
-      if (debouncedProfesorBusqueda) {
-        try {
-          setSugerenciasProfesores(
-            await profesoresApi.buscarPorNombre(debouncedProfesorBusqueda)
-          );
-        } catch {
-          setSugerenciasProfesores([]);
-        }
-      } else setSugerenciasProfesores([]);
+    if (!debouncedBusquedaProfesor) return setSugerenciasProfesores([]);
+    profesoresApi
+      .buscarPorNombre(debouncedBusquedaProfesor)
+      .then(setSugerenciasProfesores)
+      .catch(() => setSugerenciasProfesores([]));
+  }, [debouncedBusquedaProfesor]);
+
+  useEffect(() => {
+    if (selectedDisciplinaId) {
+      disciplinasApi
+        .obtenerAlumnosDeDisciplina(selectedDisciplinaId)
+        .then(setSugerenciasAlumnos)
+        .catch(() => setSugerenciasAlumnos([]));
+    } else if (selectedProfesorId) {
+      profesoresApi
+        .findAlumnosPorProfesor(selectedProfesorId)
+        .then(setSugerenciasAlumnos)
+        .catch(() => setSugerenciasAlumnos([]));
+    } else {
+      setSugerenciasAlumnos([]);
     }
-    fetch();
-  }, [debouncedProfesorBusqueda]);
+  }, [selectedDisciplinaId, selectedProfesorId]);
+
+  const handleAddItem = () => {
+    setResultados((prev) => [
+      ...prev,
+      {
+        id: Date.now(),
+        isNew: true,
+        alumno: { id: null, nombre: "", apellido: "" },
+        descripcionConcepto: "",
+        importeInicial: 0,
+        bonificacionNombre: "",
+        ACobrar: 0,
+        cobrado: false,
+      } as RowItem,
+    ]);
+
+    // 🔄 Aquí recargamos sugerenciasAlumnos según disciplina o profesor
+    if (selectedDisciplinaId) {
+      disciplinasApi
+        .obtenerAlumnosDeDisciplina(selectedDisciplinaId)
+        .then(setSugerenciasAlumnos)
+        .catch(() => setSugerenciasAlumnos([]));
+    } else if (selectedProfesorId) {
+      profesoresApi
+        .findAlumnosPorProfesor(selectedProfesorId)
+        .then(setSugerenciasAlumnos)
+        .catch(() => setSugerenciasAlumnos([]));
+    }
+  };
 
   const handleCobradoChange = (id: number, checked: boolean) => {
     setResultados((prev) =>
-      prev.map((item) =>
-        item.id === id
+      prev.map((it) =>
+        it.id === id
           ? {
-              ...item,
+              ...it,
               cobrado: checked,
-              ACobrar: checked ? item.importeInicial : 0,
+              ACobrar: checked ? it.importeInicial : 0,
             }
-          : item
+          : it
       )
     );
   };
-  const handleDelete = (id: number) =>
-    setResultados((prev) => prev.filter((item) => item.id !== id));
+
+  const handleDelete = (id: number) => {
+    setResultados((prev) => prev.filter((it) => it.id !== id));
+  };
 
   const resultadosOrdenados = useMemo(
     () =>
@@ -148,7 +196,7 @@ const ReporteDetallePago: React.FC = () => {
   );
 
   const totalACobrar = resultados.reduce(
-    (sum, item) => sum + Number(item.ACobrar || 0),
+    (sum, it) => sum + Number(it.ACobrar || 0),
     0
   );
   const montoPorcentaje = totalACobrar * (porcentaje / 100);
@@ -156,29 +204,23 @@ const ReporteDetallePago: React.FC = () => {
   const handleExport = async () => {
     setLoading(true);
     try {
-      const transformarMesAFechas = (mesStr: string) => {
-        const [year, month] = mesStr.split("-").map(Number);
-        const inicioDate = new Date(year, month - 1, 1);
-        const finDate = new Date(year, month, 0);
-        const formatear = (d: Date) =>
-          new Intl.DateTimeFormat("en-CA", {
-            timeZone: "America/Argentina/Buenos_Aires",
-            year: "numeric",
-            month: "2-digit",
-            day: "2-digit",
-          }).format(d);
-        return { inicio: formatear(inicioDate), fin: formatear(finDate) };
-      };
-      const { inicio } = transformarMesAFechas(formik.values.fechaInicio);
-      const { fin } = transformarMesAFechas(formik.values.fechaFin);
-      const payload = {
+      const { inicio } = transformMonthToDates(formik.values.fechaInicio);
+      const { fin } = transformMonthToDates(formik.values.fechaFin);
+      // 1) Mapea resultados (RowItem[]) a DetallePagoResponse[]
+      const detallesExport: DetallePagoResponse[] = resultados.map(
+        ({ alumno, isNew, ...rest }) => rest as DetallePagoResponse
+      );
+
+      // 2) Usa detallesExport en lugar de resultados en el payload
+      const payload: ExportLiquidacionPayload = {
         fechaInicio: inicio,
         fechaFin: fin,
         disciplina: formik.values.disciplinaNombre,
         profesor: formik.values.profesorNombre,
         porcentaje,
-        detalles: resultados,
+        detalles: detallesExport,
       };
+
       const blob: Blob = await reporteMensualidadApi.exportarLiquidacion(
         payload
       );
@@ -238,7 +280,7 @@ const ReporteDetallePago: React.FC = () => {
             <div className="text-red-500">{formik.errors.fechaFin}</div>
           )}
         </div>
-        {/* Disciplina */}
+        {/* Disciplina con sugerencias */}
         <div className="relative">
           <label className="block font-medium">Disciplina:</label>
           <input
@@ -247,7 +289,7 @@ const ReporteDetallePago: React.FC = () => {
             placeholder="Escribe la disciplina..."
             onChange={(e) => {
               formik.handleChange(e);
-              setDisciplinaBusqueda(e.target.value);
+              setBusquedaDisciplina(e.target.value);
             }}
             value={formik.values.disciplinaNombre}
             className="border p-2 w-full"
@@ -259,6 +301,7 @@ const ReporteDetallePago: React.FC = () => {
                   key={d.id}
                   onClick={() => {
                     formik.setFieldValue("disciplinaNombre", d.nombre);
+                    setSelectedDisciplinaId(d.id);
                     formik.setFieldValue(
                       "profesorNombre",
                       `${d.profesorNombre} ${d.profesorApellido}`
@@ -273,7 +316,7 @@ const ReporteDetallePago: React.FC = () => {
             </ul>
           )}
         </div>
-        {/* Profesor */}
+        {/* Profesor con sugerencias */}
         <div className="relative">
           <label className="block font-medium">Profesor:</label>
           <input
@@ -282,7 +325,7 @@ const ReporteDetallePago: React.FC = () => {
             placeholder="Escribe el profesor..."
             onChange={(e) => {
               formik.handleChange(e);
-              setProfesorBusqueda(e.target.value);
+              setBusquedaProfesor(e.target.value);
             }}
             value={formik.values.profesorNombre}
             className="border p-2 w-full"
@@ -297,6 +340,7 @@ const ReporteDetallePago: React.FC = () => {
                       "profesorNombre",
                       `${p.nombre} ${p.apellido}`
                     );
+                    setSelectedProfesorId(p.id);
                     setSugerenciasProfesores([]);
                   }}
                   className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer"
@@ -317,16 +361,27 @@ const ReporteDetallePago: React.FC = () => {
           </button>
         </div>
       </form>
+
       <div className="mb-4">
         <label className="block font-medium">Porcentaje (%):</label>
-        <input
-          type="number"
-          value={porcentaje}
-          onChange={(e) => setPorcentaje(Number(e.target.value))}
-          className="border p-2 rounded w-24"
-        />
+        <div className="flex items-center">
+          <input
+            type="number"
+            value={porcentaje}
+            onChange={(e) => setPorcentaje(Number(e.target.value))}
+            className="border p-2 rounded w-24"
+          />
+          <button
+            onClick={handleAddItem}
+            className="ml-4 bg-gray-200 text-gray-800 px-3 py-1 rounded"
+          >
+            Agregar Item
+          </button>
+        </div>
       </div>
+
       {error && <div className="text-red-500 mb-4">{error}</div>}
+
       <div className="overflow-x-auto" style={{ maxHeight: "60vh" }}>
         {resultadosOrdenados.length === 0 ? (
           <div className="text-center py-4">No se encontraron resultados</div>
@@ -346,37 +401,69 @@ const ReporteDetallePago: React.FC = () => {
             customRender={(item) => {
               const fullName = `${item.alumno.nombre} ${item.alumno.apellido}`;
               const idx = item.descripcionConcepto.indexOf("-");
-              const descripcion =
+              const desc =
                 idx === -1
                   ? item.descripcionConcepto
-                  : item.descripcionConcepto.substring(0, idx).trim();
+                  : item.descripcionConcepto.slice(0, idx).trim();
               const tarifa =
                 idx === -1
                   ? ""
-                  : item.descripcionConcepto.substring(idx + 1).trim();
+                  : item.descripcionConcepto.slice(idx + 1).trim();
+
               return [
-                <input
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => {
-                    const [nombre, apellido] = e.target.value.split(" ");
-                    setResultados((prev) =>
-                      prev.map((it) =>
-                        it.id === item.id
-                          ? {
-                              ...it,
-                              alumno: {
-                                ...it.alumno,
-                                nombre: nombre || it.alumno.nombre,
-                                apellido: apellido || it.alumno.apellido,
-                              },
-                            }
-                          : it
-                      )
-                    );
-                  }}
-                  className="border p-1 w-auto text-center"
-                />,
+                <div className="relative w-32">
+                  <input
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => {
+                      const [nombre, apellido] = e.target.value.split(" ");
+                      setResultados((prev) =>
+                        prev.map((it) =>
+                          it.id === item.id
+                            ? {
+                                ...it,
+                                alumno: {
+                                  id: it.alumno.id,
+                                  nombre: nombre || "",
+                                  apellido: apellido || "",
+                                },
+                              }
+                            : it
+                        )
+                      );
+                    }}
+                    className="border p-1 w-full text-center"
+                  />
+                  {item.isNew && sugerenciasAlumnos.length > 0 && (
+                    <ul className="absolute w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 mt-1 z-10 rounded-md shadow-lg max-h-40 overflow-auto">
+                      {sugerenciasAlumnos.map((a) => (
+                        <li
+                          key={a.id}
+                          onClick={() => {
+                            setResultados((prev) =>
+                              prev.map((it) =>
+                                it.id === item.id
+                                  ? {
+                                      ...it,
+                                      alumno: {
+                                        id: a.id,
+                                        nombre: a.nombre,
+                                        apellido: a.apellido,
+                                      },
+                                    }
+                                  : it
+                              )
+                            );
+                            setSugerenciasAlumnos([]);
+                          }}
+                          className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer"
+                        >
+                          {a.nombre} {a.apellido}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>,
                 <input
                   type="text"
                   value={tarifa}
@@ -386,17 +473,17 @@ const ReporteDetallePago: React.FC = () => {
                         it.id === item.id
                           ? {
                               ...it,
-                              descripcionConcepto: `${descripcion} - ${e.target.value}`,
+                              descripcionConcepto: `${desc} - ${e.target.value}`,
                             }
                           : it
                       )
                     )
                   }
-                  className="border p-1 w-auto text-center"
+                  className="border p-1 w-24 text-center"
                 />,
                 <input
                   type="text"
-                  value={descripcion}
+                  value={desc}
                   onChange={(e) =>
                     setResultados((prev) =>
                       prev.map((it) =>
@@ -411,7 +498,7 @@ const ReporteDetallePago: React.FC = () => {
                       )
                     )
                   }
-                  className="border p-1 w-auto text-center"
+                  className="border p-1 w-32 text-center"
                 />,
                 <input
                   type="number"
@@ -425,7 +512,7 @@ const ReporteDetallePago: React.FC = () => {
                       )
                     )
                   }
-                  className="border p-1 w-auto text-center"
+                  className="border p-1 w-24 text-center"
                 />,
                 <input
                   type="text"
@@ -439,7 +526,7 @@ const ReporteDetallePago: React.FC = () => {
                       )
                     )
                   }
-                  className="border p-1 w-auto text-center"
+                  className="border p-1 w-32 text-center"
                 />,
                 <input
                   type="number"
@@ -453,7 +540,7 @@ const ReporteDetallePago: React.FC = () => {
                       )
                     )
                   }
-                  className="border p-1 w-auto text-center"
+                  className="border p-1 w-24 text-center"
                 />,
                 <input
                   type="checkbox"
@@ -474,12 +561,14 @@ const ReporteDetallePago: React.FC = () => {
           />
         )}
       </div>
+
       <div className="mt-4 text-center">
         <p>Total cobrado: $ {totalACobrar.toLocaleString()}</p>
         <p>
           Liquidación neta ({porcentaje}%): $ {montoPorcentaje.toLocaleString()}
         </p>
       </div>
+
       <button
         onClick={handleExport}
         className="mt-2 bg-green-600 text-white px-4 py-2 rounded"

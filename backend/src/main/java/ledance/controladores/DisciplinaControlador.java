@@ -5,7 +5,6 @@ import ledance.dto.disciplina.request.DisciplinaModificacionRequest;
 import ledance.dto.disciplina.request.DisciplinaRegistroRequest;
 import ledance.dto.alumno.response.AlumnoResponse;
 import ledance.dto.disciplina.response.DisciplinaResponse;
-import ledance.dto.disciplina.response.DisciplinaResponse;
 import ledance.dto.profesor.response.ProfesorResponse;
 import jakarta.validation.Valid;
 import ledance.servicios.disciplina.DisciplinaServicio;

@@ -5,59 +5,98 @@ import type {
   ProfesorDetalleResponse,
   ProfesorListadoResponse,
   DisciplinaListadoResponse,
+  AlumnoResponse,
 } from "../types/types";
 
+/**
+ * API client para Profesores
+ */
 const profesoresApi = {
-  registrarProfesor: async (
-    profesor: ProfesorRegistroRequest
-  ): Promise<ProfesorDetalleResponse> => {
-    console.log("Datos enviados al registrar:", profesor);
-    const response = await api.post("/profesores", profesor);
-    return response.data;
-  },
-
-  obtenerProfesorPorId: async (
-    id: number
-  ): Promise<ProfesorDetalleResponse> => {
-    const response = await api.get(`/profesores/${id}`);
-    return response.data;
-  },
-
-  listarProfesores: async (): Promise<ProfesorListadoResponse[]> => {
-    const response = await api.get("/profesores");
-    return response.data;
-  },
-
-  listarProfesoresActivos: async (): Promise<ProfesorListadoResponse[]> => {
-    const response = await api.get("/profesores/activos");
-    return response.data;
-  },
-
-  buscarPorNombre: async (nombre: string): Promise<ProfesorListadoResponse[]> => {
-    const response = await api.get(
-      `/profesores/buscar?nombre=${encodeURIComponent(nombre)}`
+  /**
+   * Registra un nuevo profesor
+   */
+  async registrarProfesor(
+    payload: ProfesorRegistroRequest
+  ): Promise<ProfesorDetalleResponse> {
+    const { data } = await api.post<ProfesorDetalleResponse>(
+      "/profesores",
+      payload
     );
-    return response.data;
+    return data;
   },
 
-  actualizarProfesor: async (
+  /**
+   * Obtiene el detalle de un profesor por su ID
+   */
+  async obtenerProfesorPorId(id: number): Promise<ProfesorDetalleResponse> {
+    const { data } = await api.get<ProfesorDetalleResponse>(
+      `/profesores/${id}`
+    );
+    return data;
+  },
+
+  /**
+   * Lista todos los profesores
+   * @param activos si true filtra sólo activos, de lo contrario todos
+   */
+  async listarProfesores(activos = false): Promise<ProfesorListadoResponse[]> {
+    const endpoint = activos ? "/profesores/activos" : "/profesores";
+    const { data } = await api.get<ProfesorListadoResponse[]>(endpoint);
+    return data;
+  },
+
+  /**
+   * Busca profesores por nombre (parcial)
+   */
+  async buscarPorNombre(nombre: string): Promise<ProfesorListadoResponse[]> {
+    const { data } = await api.get<ProfesorListadoResponse[]>(
+      "/profesores/buscar",
+      { params: { nombre } }
+    );
+    return data;
+  },
+
+  /**
+   * Actualiza un profesor existente
+   */
+  async actualizarProfesor(
     id: number,
-    profesor: ProfesorModificacionRequest
-  ): Promise<ProfesorDetalleResponse> => {
-    console.log("Datos enviados al actualizar:", profesor);
-    const response = await api.put(`/profesores/${id}`, profesor);
-    return response.data;
+    payload: ProfesorModificacionRequest
+  ): Promise<ProfesorDetalleResponse> {
+    const { data } = await api.put<ProfesorDetalleResponse>(
+      `/profesores/${id}`,
+      payload
+    );
+    return data;
   },
 
-  eliminarProfesor: async (id: number): Promise<void> => {
+  /**
+   * Elimina un profesor por su ID
+   */
+  async eliminarProfesor(id: number): Promise<void> {
     await api.delete(`/profesores/${id}`);
   },
 
-  obtenerDisciplinasDeProfesor: async (
+  /**
+   * Obtiene las disciplinas asignadas a un profesor
+   */
+  async obtenerDisciplinasDeProfesor(
     profesorId: number
-  ): Promise<DisciplinaListadoResponse[]> => {
-    const response = await api.get(`/profesores/${profesorId}/disciplinas`);
-    return response.data;
+  ): Promise<DisciplinaListadoResponse[]> {
+    const { data } = await api.get<DisciplinaListadoResponse[]>(
+      `/profesores/${profesorId}/disciplinas`
+    );
+    return data;
+  },
+
+  /**
+   * Obtiene los alumnos de las disciplinas impartidas por un profesor
+   */
+  async findAlumnosPorProfesor(profesorId: number): Promise<AlumnoResponse[]> {
+    const { data } = await api.get<AlumnoResponse[]>(
+      `/profesores/${profesorId}/alumnos`
+    );
+    return data;
   },
 };
 

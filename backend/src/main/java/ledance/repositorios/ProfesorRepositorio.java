@@ -1,5 +1,6 @@
 package ledance.repositorios;
 
+import ledance.entidades.Alumno;
 import ledance.entidades.Disciplina;
 import ledance.entidades.Profesor;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -24,4 +25,11 @@ public interface ProfesorRepositorio extends JpaRepository<Profesor, Long> {
             "LIKE LOWER(CONCAT('%', :nombre, '%'))")
     List<Profesor> buscarPorNombreCompleto(@Param("nombre") String nombre);
 
+    @Query("""
+              SELECT I.alumno
+                FROM Inscripcion I
+               WHERE I.disciplina.profesor.id = :profesorId
+                 AND I.alumno.activo = true
+            """)
+    List<Alumno> findAlumnosPorProfesor(@Param("profesorId") Long profesorId);
 }

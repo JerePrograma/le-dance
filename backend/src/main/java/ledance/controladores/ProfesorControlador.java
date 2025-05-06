@@ -69,7 +69,7 @@ public class ProfesorControlador {
      */
     @PutMapping("/{id}")
     public ResponseEntity<ProfesorResponse> actualizarProfesor(@PathVariable Long id,
-                                                                      @RequestBody @Validated ProfesorModificacionRequest request) {
+                                                               @RequestBody @Validated ProfesorModificacionRequest request) {
         log.info("Actualizando profesor con id: {}", id);
         ProfesorResponse response = profesorServicio.actualizarProfesor(id, request);
         return ResponseEntity.ok(response);
@@ -95,5 +95,17 @@ public class ProfesorControlador {
     public ResponseEntity<List<ProfesorResponse>> buscarPorNombre(@RequestParam String nombre) {
         List<ProfesorResponse> resultado = profesorServicio.buscarPorNombre(nombre);
         return ResponseEntity.ok(resultado);
+    }
+
+    /**
+     * GET /api/profesores/{profesorId}/alumnos
+     * Devuelve todos los alumnos de las disciplinas que dicta ese profesor.
+     */
+    @GetMapping("/{profesorId}/alumnos")
+    public ResponseEntity<List<AlumnoResponse>> listarAlumnosPorProfesor(@PathVariable Long profesorId) {
+        List<AlumnoResponse> lista = profesorServicio.obtenerAlumnosDeProfesor(profesorId);
+        return lista.isEmpty()
+                ? ResponseEntity.noContent().build()
+                : ResponseEntity.ok(lista);
     }
 }
