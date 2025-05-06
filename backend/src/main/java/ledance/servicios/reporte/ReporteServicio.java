@@ -214,6 +214,7 @@ public class ReporteServicio implements IReporteServicio {
         return pdfService.generarLiquidacionProfesorPdf(
                 req.profesor(),
                 req.disciplina(),
+                req.fechaInicio(),
                 req.detalles(),
                 req.porcentaje()
         );
