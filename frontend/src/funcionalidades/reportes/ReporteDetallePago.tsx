@@ -1,5 +1,4 @@
-// ReporteDetallePago.tsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import useDebounce from "../../hooks/useDebounce";
@@ -17,8 +16,6 @@ interface FiltrosBusqueda {
   profesorNombre: string;
 }
 
-// Función auxiliar para obtener el mes actual en formato "YYYY-MM"
-// considerando la zona horaria "America/Argentina/Buenos_Aires"
 const getCurrentMonth = () => {
   const now = new Date();
   return new Intl.DateTimeFormat("en-CA", {
@@ -34,7 +31,7 @@ const ReporteDetallePago: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [porcentaje, setPorcentaje] = useState<number>(0);
 
-  // Estados para sugerencias de disciplina y profesor
+  // Sugerencias
   const [sugerenciasDisciplinas, setSugerenciasDisciplinas] = useState<any[]>(
     []
   );
@@ -44,7 +41,7 @@ const ReporteDetallePago: React.FC = () => {
   const [profesorBusqueda, setProfesorBusqueda] = useState<string>("");
   const debouncedProfesorBusqueda = useDebounce(profesorBusqueda, 300);
 
-  // Configuración de Formik para los filtros
+  // Formik
   const formik = useFormik<FiltrosBusqueda>({
     initialValues: {
       fechaInicio: getCurrentMonth(),
@@ -60,13 +57,12 @@ const ReporteDetallePago: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        // 1) Transformar "YYYY-MM" a fechas completas
         const transformarMesAFechas = (
           mesStr: string
         ): { inicio: string; fin: string } => {
           const [year, month] = mesStr.split("-").map(Number);
-          const inicio = new Date(year, month - 1, 1);
-          const fin = new Date(year, month, 0);
+          const inicioDate = new Date(year, month - 1, 1);
+          const finDate = new Date(year, month, 0);
           const formatear = (d: Date) =>
             new Intl.DateTimeFormat("en-CA", {
               timeZone: "America/Argentina/Buenos_Aires",
@@ -74,40 +70,19 @@ const ReporteDetallePago: React.FC = () => {
               month: "2-digit",
               day: "2-digit",
             }).format(d);
-          return { inicio: formatear(inicio), fin: formatear(fin) };
+          return { inicio: formatear(inicioDate), fin: formatear(finDate) };
         };
+        const { inicio } = transformarMesAFechas(values.fechaInicio);
+        const { fin } = transformarMesAFechas(values.fechaFin);
 
-        const { inicio: inicioFecha } = transformarMesAFechas(
-          values.fechaInicio
-        );
-        const { fin: finFecha } = transformarMesAFechas(values.fechaFin);
-
-        // 2) Preparar parámetros y llamar al backend
         const params = {
-          fechaInicio: inicioFecha,
-          fechaFin: finFecha,
+          fechaInicio: inicio,
+          fechaFin: fin,
           disciplinaNombre: values.disciplinaNombre || undefined,
           profesorNombre: values.profesorNombre || undefined,
         };
-        console.log(
-          "Llamando a /api/reportes/mensualidades/buscar con parámetros:",
-          params
-        );
-        const response: DetallePagoResponse[] =
-          await reporteMensualidadApi.listarReporte(params);
-        console.log("Respuesta recibida (antes de ordenar):", response);
-
-        // 3) Ordenar alfabéticamente por descripcionConcepto
-        const ordenado = [...response].sort((a, b) =>
-          a.descripcionConcepto.localeCompare(
-            b.descripcionConcepto,
-            undefined,
-            { sensitivity: "base" }
-          )
-        );
-        console.log("Resultados ordenados:", ordenado);
-
-        setResultados(ordenado);
+        const response = await reporteMensualidadApi.listarReporte(params);
+        setResultados(response);
       } catch (err: any) {
         toast.error("Error al obtener el reporte: " + err);
         setError("Error al cargar los datos del reporte");
@@ -117,82 +92,90 @@ const ReporteDetallePago: React.FC = () => {
     },
   });
 
-  // Auto-submit al montar el componente
+  // Auto-submit al montar
   useEffect(() => {
     formik.submitForm();
   }, []);
 
   // Sugerencias de disciplinas
   useEffect(() => {
-    const buscarSugerenciasDisciplinas = async () => {
+    const fetch = async () => {
       if (debouncedDisciplinaBusqueda) {
         try {
-          const sugerencias = await disciplinasApi.buscarPorNombre(
+          const s = await disciplinasApi.buscarPorNombre(
             debouncedDisciplinaBusqueda
           );
-          console.log("Sugerencias de disciplinas:", sugerencias);
-          setSugerenciasDisciplinas(sugerencias);
-        } catch (err) {
-          toast.error("Error al buscar sugerencias de disciplinas:");
+          setSugerenciasDisciplinas(s);
+        } catch {
           setSugerenciasDisciplinas([]);
         }
-      } else {
-        setSugerenciasDisciplinas([]);
-      }
+      } else setSugerenciasDisciplinas([]);
     };
-    buscarSugerenciasDisciplinas();
+    fetch();
   }, [debouncedDisciplinaBusqueda]);
 
   // Sugerencias de profesores
   useEffect(() => {
-    const buscarSugerenciasProfesores = async () => {
+    const fetch = async () => {
       if (debouncedProfesorBusqueda) {
         try {
-          const sugerencias = await profesoresApi.buscarPorNombre(
+          const s = await profesoresApi.buscarPorNombre(
             debouncedProfesorBusqueda
           );
-          console.log("Sugerencias de profesores:", sugerencias);
-          setSugerenciasProfesores(sugerencias);
-        } catch (err) {
-          toast.error("Error al buscar sugerencias de profesores:");
+          setSugerenciasProfesores(s);
+        } catch {
           setSugerenciasProfesores([]);
         }
-      } else {
-        setSugerenciasProfesores([]);
-      }
+      } else setSugerenciasProfesores([]);
     };
-    buscarSugerenciasProfesores();
+    fetch();
   }, [debouncedProfesorBusqueda]);
 
-  // Función para actualizar campos dinámicos de cada fila
-  const actualizarCampo = (
-    id: number,
-    campo: keyof DetallePagoResponse,
-    valor: any
-  ) => {
+  // Cobrado / Eliminar
+  const handleCobradoChange = (id: number, checked: boolean) => {
     setResultados((prev) =>
-      prev.map((it) => (it.id === id ? { ...it, [campo]: valor } : it))
+      prev.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              cobrado: checked,
+              ACobrar: checked ? item.importeInicial : 0,
+            }
+          : item
+      )
     );
   };
+  const handleDelete = (id: number) =>
+    setResultados((prev) => prev.filter((item) => item.id !== id));
 
+  // Ordenar por alumno
+  const resultadosOrdenados = useMemo(
+    () =>
+      [...resultados].sort((a, b) => {
+        const nameA = `${a.alumno.nombre} ${a.alumno.apellido}`;
+        const nameB = `${b.alumno.nombre} ${b.alumno.apellido}`;
+        return nameA.localeCompare(nameB, undefined, { sensitivity: "base" });
+      }),
+    [resultados]
+  );
+
+  // Totales
   const totalACobrar = resultados.reduce(
     (sum, item) => sum + Number(item.ACobrar || 0),
     0
   );
   const montoPorcentaje = totalACobrar * (porcentaje / 100);
 
-  // --- Función para exportar PDF con fechas completas ---
+  // Export PDF
   const handleExport = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-
-      // 1) Transformar "YYYY-MM" a fechas completas "YYYY-MM-DD"
       const transformarMesAFechas = (
         mesStr: string
       ): { inicio: string; fin: string } => {
         const [year, month] = mesStr.split("-").map(Number);
-        const inicio = new Date(year, month - 1, 1);
-        const fin = new Date(year, month, 0);
+        const inicioDate = new Date(year, month - 1, 1);
+        const finDate = new Date(year, month, 0);
         const formatear = (d: Date) =>
           new Intl.DateTimeFormat("en-CA", {
             timeZone: "America/Argentina/Buenos_Aires",
@@ -200,25 +183,18 @@ const ReporteDetallePago: React.FC = () => {
             month: "2-digit",
             day: "2-digit",
           }).format(d);
-        return { inicio: formatear(inicio), fin: formatear(fin) };
+        return { inicio: formatear(inicioDate), fin: formatear(finDate) };
       };
-
-      const { inicio: inicioFecha } = transformarMesAFechas(
-        formik.values.fechaInicio
-      );
-      const { fin: finFecha } = transformarMesAFechas(formik.values.fechaFin);
-
-      // 2) Armar payload con fechas completas
+      const { inicio } = transformarMesAFechas(formik.values.fechaInicio);
+      const { fin } = transformarMesAFechas(formik.values.fechaFin);
       const payload = {
-        fechaInicio: inicioFecha, // ej. "2025-04-01"
-        fechaFin: finFecha, // ej. "2025-04-30"
+        fechaInicio: inicio,
+        fechaFin: fin,
         disciplina: formik.values.disciplinaNombre,
         profesor: formik.values.profesorNombre,
         porcentaje,
         detalles: resultados,
       };
-
-      // 3) Llamada al backend y forzar descarga
       const blob: Blob = await reporteMensualidadApi.exportarLiquidacion(
         payload
       );
@@ -238,60 +214,10 @@ const ReporteDetallePago: React.FC = () => {
       link.remove();
       window.URL.revokeObjectURL(url);
     } catch (err: any) {
-      toast.error("Error al exportar PDF: " + (err?.message || err));
+      toast.error("Error al exportar PDF: " + (err.message || err));
     } finally {
       setLoading(false);
     }
-  };
-  
-  const resultadosOrdenados = React.useMemo(
-    () =>
-      [...resultados].sort((a, b) =>
-        a.descripcionConcepto.localeCompare(b.descripcionConcepto, undefined, {
-          sensitivity: "base",
-        })
-      ),
-    [resultados]
-  );
-
-  /**
-   * Actualiza dinámicamente la descripción o tarifa dentro de resultados.
-   * @param id        El id del DetallePagoResponse a actualizar.
-   * @param campo     "descripcion" o "tarifa".
-   * @param valor     El nuevo valor para ese campo.
-   */
-  const handleCampoChange = (
-    id: number,
-    campo: "descripcion" | "tarifa",
-    valor: string
-  ) => {
-    setResultados((prev) =>
-      prev.map((item) => {
-        if (item.id !== id) return item;
-
-        // Separa la cadena actual en descripción y tarifa
-        const idx = item.descripcionConcepto.indexOf(" - ");
-        const currentDesc =
-          idx >= 0
-            ? item.descripcionConcepto.substring(0, idx).trim()
-            : item.descripcionConcepto.trim();
-        const currentTarifa =
-          idx >= 0 ? item.descripcionConcepto.substring(idx + 3).trim() : "";
-
-        // Sustituye el campo que corresponde
-        const nuevaDesc = campo === "descripcion" ? valor : currentDesc;
-        const nuevaTar = campo === "tarifa" ? valor : currentTarifa;
-
-        // Reconstruye la cadena
-        const nuevaCadena =
-          nuevaTar !== "" ? `${nuevaDesc} - ${nuevaTar}` : nuevaDesc;
-
-        return {
-          ...item,
-          descripcionConcepto: nuevaCadena,
-        };
-      })
-    );
   };
 
   return (
@@ -301,7 +227,7 @@ const ReporteDetallePago: React.FC = () => {
         onSubmit={formik.handleSubmit}
         className="mb-4 grid grid-cols-2 gap-4 relative"
       >
-        {/* Filtros de Fecha */}
+        {/* Mes Inicio */}
         <div>
           <label className="block font-medium">Mes Inicio:</label>
           <input
@@ -316,6 +242,7 @@ const ReporteDetallePago: React.FC = () => {
             <div className="text-red-500">{formik.errors.fechaInicio}</div>
           )}
         </div>
+        {/* Mes Fin */}
         <div>
           <label className="block font-medium">Mes Fin:</label>
           <input
@@ -330,13 +257,13 @@ const ReporteDetallePago: React.FC = () => {
             <div className="text-red-500">{formik.errors.fechaFin}</div>
           )}
         </div>
-        {/* Filtro de Disciplina */}
+        {/* Disciplina */}
         <div className="relative">
           <label className="block font-medium">Disciplina:</label>
           <input
             type="text"
             name="disciplinaNombre"
-            placeholder="Escribe el nombre de la disciplina..."
+            placeholder="Escribe la disciplina..."
             onChange={(e) => {
               formik.handleChange(e);
               setDisciplinaBusqueda(e.target.value);
@@ -346,16 +273,18 @@ const ReporteDetallePago: React.FC = () => {
           />
           {sugerenciasDisciplinas.length > 0 && (
             <ul className="absolute w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 mt-1 z-10 rounded-md shadow-lg">
-              {sugerenciasDisciplinas.map((disc: any) => (
+              {sugerenciasDisciplinas.map((disc) => (
                 <li
                   key={disc.id}
                   onClick={() => {
                     formik.setFieldValue("disciplinaNombre", disc.nombre);
-                    const profFullName = `${disc.profesorNombre} ${disc.profesorApellido}`;
-                    formik.setFieldValue("profesorNombre", profFullName);
+                    formik.setFieldValue(
+                      "profesorNombre",
+                      `${disc.profesorNombre} ${disc.profesorApellido}`
+                    );
                     setSugerenciasDisciplinas([]);
                   }}
-                  className="bg-slate-200 dark:bg-slate-600 hover:bg-gray-200 dark:hover:bg-gray-700 p-1"
+                  className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer"
                 >
                   {disc.nombre} — Prof. {disc.profesorNombre}{" "}
                   {disc.profesorApellido}
@@ -364,13 +293,13 @@ const ReporteDetallePago: React.FC = () => {
             </ul>
           )}
         </div>
-        {/* Filtro de Profesor */}
+        {/* Profesor */}
         <div className="relative">
           <label className="block font-medium">Profesor:</label>
           <input
             type="text"
             name="profesorNombre"
-            placeholder="Escribe el nombre del profesor..."
+            placeholder="Escribe el profesor..."
             onChange={(e) => {
               formik.handleChange(e);
               setProfesorBusqueda(e.target.value);
@@ -379,25 +308,26 @@ const ReporteDetallePago: React.FC = () => {
             className="border p-2 w-full"
           />
           {sugerenciasProfesores.length > 0 && (
-            <ul className="absolute bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 mt-1 z-10 rounded-md shadow-lg">
-              {sugerenciasProfesores.map((profesor: any) => (
+            <ul className="absolute w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 mt-1 z-10 rounded-md shadow-lg">
+              {sugerenciasProfesores.map((prof) => (
                 <li
-                  key={profesor.id}
+                  key={prof.id}
                   onClick={() => {
                     formik.setFieldValue(
                       "profesorNombre",
-                      `${profesor.nombre} ${profesor.apellido}`
+                      `${prof.nombre} ${prof.apellido}`
                     );
                     setSugerenciasProfesores([]);
                   }}
-                  className="bg-slate-200 dark:bg-slate-600 hover:bg-gray-200 dark:hover:bg-gray-700 p-1"
+                  className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer"
                 >
-                  {profesor.nombre} {profesor.apellido}
+                  {prof.nombre} {prof.apellido}
                 </li>
               ))}
             </ul>
           )}
         </div>
+        {/* Botón Buscar */}
         <div className="flex items-end">
           <button
             type="submit"
@@ -409,20 +339,20 @@ const ReporteDetallePago: React.FC = () => {
         </div>
       </form>
 
-      {/* Porcentaje dinámico */}
+      {/* Porcentaje */}
       <div className="mb-4">
         <label className="block font-medium">Porcentaje (%):</label>
         <input
           type="number"
           value={porcentaje}
           onChange={(e) => setPorcentaje(Number(e.target.value))}
-          className="border p-2 rounded w-auto"
+          className="border p-2 rounded w-24"
         />
       </div>
 
       {error && <div className="text-red-500 mb-4">{error}</div>}
-      <div className="overflow-x-auto">
-        {resultados.length === 0 ? (
+      <div className="overflow-x-auto" style={{ maxHeight: "60vh" }}>
+        {resultadosOrdenados.length === 0 ? (
           <div className="text-center py-4">No se encontraron resultados</div>
         ) : (
           <Tabla
@@ -434,111 +364,52 @@ const ReporteDetallePago: React.FC = () => {
               "Bonificación",
               "Monto Cobrado",
               "Cobrado",
+              "Acciones",
             ]}
             data={resultadosOrdenados}
-            customRender={(item: DetallePagoResponse) => {
-              const index = item.descripcionConcepto.indexOf("-");
+            customRender={(item) => {
+              const fullName = `${item.alumno.nombre} ${item.alumno.apellido}`;
+              const idx = item.descripcionConcepto.indexOf("-");
               const descripcion =
-                index === -1
+                idx === -1
                   ? item.descripcionConcepto
-                  : item.descripcionConcepto.substring(0, index).trim();
+                  : item.descripcionConcepto.substring(0, idx).trim();
               const tarifa =
-                index === -1
+                idx === -1
                   ? ""
-                  : item.descripcionConcepto.substring(index + 1).trim();
+                  : item.descripcionConcepto.substring(idx + 1).trim();
               return [
-                <input
-                  type="text"
-                  value={item.alumno.nombre + " " + item.alumno.apellido}
-                  onChange={(e) =>
-                    setResultados((prev) =>
-                      prev.map((it) =>
-                        it.id === item.id
-                          ? { ...it, alumnoDisplay: e.target.value }
-                          : it
-                      )
-                    )
-                  }
-                  className="border p-1 w-auto text-center"
-                />,
-                // Tarifa
-                <input
-                  type="text"
-                  value={tarifa}
-                  onChange={(e) =>
-                    handleCampoChange(item.id, "tarifa", e.target.value)
-                  }
-                  className="border p-1 w-auto text-center"
-                />,
-                // Descripción
-                <input
-                  type="text"
-                  value={descripcion}
-                  onChange={(e) =>
-                    handleCampoChange(item.id, "descripcion", e.target.value)
-                  }
-                  className="border p-1 w-auto text-center"
-                />,
-                // Valor Base (importeInicial)
-                <input
-                  type="number"
-                  value={item.importeInicial}
-                  onChange={(e) =>
-                    setResultados((prev) =>
-                      prev.map((it) =>
-                        it.id === item.id
-                          ? { ...it, importeInicial: Number(e.target.value) }
-                          : it
-                      )
-                    )
-                  }
-                  className="border p-1 w-auto text-center"
-                />,
-                // Bonificación
-                <input
-                  type="text"
-                  value={item.bonificacionNombre}
-                  onChange={(e) =>
-                    setResultados((prev) =>
-                      prev.map((it) =>
-                        it.id === item.id
-                          ? { ...it, bonificacionNombre: e.target.value }
-                          : it
-                      )
-                    )
-                  }
-                  className="border p-1 w-auto text-center"
-                />,
-                // Monto Cobrado (A Cobrar)
-                <input
-                  type="number"
-                  value={item.ACobrar}
-                  onChange={(e) =>
-                    setResultados((prev) =>
-                      prev.map((it) =>
-                        it.id === item.id
-                          ? { ...it, ACobrar: Number(e.target.value) }
-                          : it
-                      )
-                    )
-                  }
-                  className="border p-1 w-auto text-center"
-                />,
-                // Cobrado (checkbox)
+                <span className="text-center w-auto">{fullName}</span>,
+                <span className="text-center w-auto">{tarifa}</span>,
+                <span className="text-center w-auto">{descripcion}</span>,
+                <span className="text-center w-auto">
+                  {item.importeInicial}
+                </span>,
+                <span className="text-center w-auto">
+                  {item.bonificacionNombre}
+                </span>,
+                <span className="text-center w-auto">{item.ACobrar}</span>,
                 <input
                   type="checkbox"
                   checked={item.cobrado || false}
                   onChange={(e) =>
-                    actualizarCampo(item.id, "cobrado", e.target.checked)
+                    handleCobradoChange(item.id, e.target.checked)
                   }
-                  className="border p-1 w-auto text-center"
+                  className="border p-1"
                 />,
+                <button
+                  onClick={() => handleDelete(item.id)}
+                  className="text-red-500 p-1"
+                >
+                  Eliminar
+                </button>,
               ];
             }}
           />
         )}
       </div>
 
+      {/* Totales y Export */}
       <div className="mt-4 text-center">
         <p>Total cobrado: $ {totalACobrar.toLocaleString()}</p>
         <p>
@@ -547,8 +418,8 @@ const ReporteDetallePago: React.FC = () => {
       </div>
       <button
         onClick={handleExport}
-        className="bg-green-600 text-white px-4 py-2 rounded"
-        disabled={loading || resultados.length === 0}
+        className="mt-2 bg-green-600 text-white px-4 py-2 rounded"
+        disabled={loading || !resultados.length}
       >
         {loading ? "Generando PDF..." : "Exportar PDF"}
       </button>

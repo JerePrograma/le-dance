@@ -67,7 +67,6 @@ public class PaymentProcessor {
 
         double totalDetalles = 0.0;
         double totalCobrado = 0.0;
-        boolean tieneRecargoEnDetalles = false;
 
         for (DetallePago d : pago.getDetallePagos()) {
             if (Boolean.TRUE.equals(d.getRemovido()) || EstadoPago.ANULADO.equals(d.getEstadoPago())) continue;
@@ -77,9 +76,6 @@ public class PaymentProcessor {
             totalDetalles += Optional.ofNullable(d.getImporteInicial()).orElse(0.0);
             totalCobrado += Optional.ofNullable(d.getACobrar()).orElse(0.0);
 
-            if (Boolean.TRUE.equals(d.getTieneRecargo())) {
-                tieneRecargoEnDetalles = true;
-            }
         }
 
         boolean incluirRecargoMetodo = Boolean.TRUE.equals(pago.getRecargoMetodoPagoAplicado());

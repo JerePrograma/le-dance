@@ -757,6 +757,7 @@ public class MensualidadServicio {
 
         // a) Spec base: rango de fechas
         Specification<DetallePago> spec = (root, query, cb) -> {
+            assert query != null;
             query.distinct(true);
             return cb.between(root.get("fechaRegistro"), fechaInicio, fechaFin);
         };
@@ -771,7 +772,6 @@ public class MensualidadServicio {
                             .toUpperCase()
             );
         }
-        log.info(" Meses a filtrar: {}", meses);
         if (!meses.isEmpty()) {
             spec = spec.and((root, query, cb) -> {
                 Expression<String> desc = cb.upper(root.get("descripcionConcepto"));
@@ -793,33 +793,19 @@ public class MensualidadServicio {
                 String patt = "%" + profesorNombre.toLowerCase() + "%";
                 Predicate pNom  = cb.like(cb.lower(prof.get("nombre")), patt);
                 Predicate pApe  = cb.like(cb.lower(prof.get("apellido")), patt);
-                Predicate pFull = cb.like(
-                        cb.lower(cb.concat(
-                                cb.concat(prof.get("nombre"), cb.literal(" ")),
-                                prof.get("apellido")
-                        )),
-                        patt
-                );
+                Predicate pFull = cb.like(cb.lower(cb.concat(
+                        cb.concat(prof.get("nombre"), cb.literal(" ")),
+                        prof.get("apellido")
+                )), patt);
                 return cb.or(cb.isNull(root.get("mensualidad")), pNom, pApe, pFull);
             });
-            log.info(" Spec ampliada con filtro de profesor='{}'", profesorNombre);
         }
 
-        // d) Filtro por disciplinaNombre (en descripción)
-        spec = spec.and((root, query, cb) -> {
-            Expression<String> desc = cb.upper(root.get("descripcionConcepto"));
-            return cb.like(desc, "%" + disciplinaNombre.toUpperCase() + "%");
-        });
-        log.info(" Spec ampliada con filtro de disciplina en descripción");
-
-        // e) Recupero de BD
-        List<DetallePago> detalles = detallePagoRepositorio.findAll(spec);
-        log.info(" Recuperados {} DetallePago", detalles.size());
-        detalles.forEach(d ->
-                log.info("  [DB] id={} desc='{}' aCobrar={} alumId={}",
-                        d.getId(), d.getDescripcionConcepto(),
-                        d.getACobrar(), d.getAlumno().getId())
+        // d) y e) filtros adicionales y recuperación de BD
+        spec = spec.and((root, query, cb) ->
+                cb.like(cb.upper(root.get("descripcionConcepto")), "%" + disciplinaNombre.toUpperCase() + "%")
         );
+        List<DetallePago> detalles = detallePagoRepositorio.findAll(spec);
 
         // f) Determino tarifa por defecto
         Disciplina disc = disciplinaRepositorio
@@ -830,11 +816,9 @@ public class MensualidadServicio {
 
         // g) Agrupo y sumo
         List<DetallePagoResponse> agrupados = agruparYSumar(detalles, tarifaDefault);
-        log.info(" Tras agruparYSumar: {} entradas", agrupados.size());
 
-        // h) Alumnos SIN pago
-        List<Alumno> inscritos = disciplinaRepositorio
-                .findAlumnosPorDisciplina(disc.getId());
+        // h) Alumnos SIN pago -> dummies
+        List<Alumno> inscritos = disciplinaRepositorio.findAlumnosPorDisciplina(disc.getId());
         Set<Long> conPago = agrupados.stream()
                 .map(r -> r.alumno().id())
                 .collect(Collectors.toSet());
@@ -845,11 +829,8 @@ public class MensualidadServicio {
                 disciplinaNombre.toUpperCase(), etiquetaMeses, fechaInicio.getYear()
         );
 
-        log.info(" Añadiendo alumnos SIN-PAGO con tarifa por defecto...");
         for (Alumno a : inscritos) {
             if (!conPago.contains(a.getId())) {
-                log.info("  [SIN-PAGO] alumnoId={} desc='{}' tarifa={}",
-                        a.getId(), descripcionDefecto, tarifaDefault);
                 DetallePago dummy = new DetallePago();
                 dummy.setDescripcionConcepto(descripcionDefecto);
                 dummy.setValorBase(tarifaDefault);
@@ -858,13 +839,36 @@ public class MensualidadServicio {
                 dummy.setAlumno(a);
                 dummy.setTieneRecargo(false);
                 dummy.setEstadoPago(EstadoPago.ACTIVO);
-
                 agrupados.add(mapearDetallePagoResponse(dummy, tarifaDefault));
             }
         }
 
-        log.info("FINAL procesa {} DetallePagoResponse", agrupados.size());
-        return agrupados;
+        log.info("FINAL procesa {} DetallePagoResponse antes de ajustes", agrupados.size());
+
+        // Ajustar 'cobrado' si ACobrar == valorBase y ordenar por nombre de alumno
+        List<DetallePagoResponse> resultadoFinal = agrupados.stream()
+                .map(resp -> {
+                    boolean nuevaCobrado = resp.cobrado()
+                            || Double.compare(resp.ACobrar(), resp.valorBase()) == 0;
+                    if (nuevaCobrado == resp.cobrado()) return resp;
+                    return new DetallePagoResponse(
+                            resp.id(), resp.version(), resp.descripcionConcepto(),
+                            resp.cuotaOCantidad(), resp.valorBase(), resp.bonificacionId(),
+                            resp.bonificacionNombre(), resp.recargoId(), resp.ACobrar(),
+                            nuevaCobrado, resp.conceptoId(), resp.subConceptoId(),
+                            resp.mensualidadId(), resp.matriculaId(), resp.stockId(),
+                            resp.importeInicial(), resp.importePendiente(), resp.tipo(),
+                            resp.fechaRegistro(), resp.pagoId(), resp.alumno(),
+                            resp.tieneRecargo(), resp.usuarioId(), resp.estadoPago()
+                    );
+                })
+                .sorted(Comparator.comparing(
+                        r -> r.alumno().nombre(), String.CASE_INSENSITIVE_ORDER
+                ))
+                .collect(Collectors.toList());
+
+        log.info("FINAL procesa {} DetallePagoResponse ordenados y ajustados", resultadoFinal.size());
+        return resultadoFinal;
     }
 
     /**
@@ -910,7 +914,7 @@ public class MensualidadServicio {
         log.trace("→ mapearDetallePagoResponse id={}", d.getId());
 
         Double rawValorBase = d.getValorBase() != null ? d.getValorBase() : valorCuota;
-        Double rawACobrar   = d.getACobrar()    != null ? d.getACobrar()    : 0.0;
+        double rawACobrar   = d.getACobrar()    != null ? d.getACobrar()    : 0.0;
         Double finalACobrar = Math.min(rawACobrar, rawValorBase);
 
         log.info("[MAP] id={} → rawValorBase={} rawACobrar={} finalACobrar={}",
