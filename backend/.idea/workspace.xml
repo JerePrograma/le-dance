@@ -6,9 +6,8 @@
   <component name="ChangeListManager">
     <list default="true" id="e68b5449-8c65-49d0-ba83-553b8febe7fe" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/email/EmailService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/email/EmailService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/email/IEmailService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/email/IEmailService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/email/NoOpEmailService.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/pdfs/PdfService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/pdfs/PdfService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ledance/servicios/reporte/ReporteServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ledance/servicios/reporte/ReporteServicio.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/resources/application-prod.properties" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/application-prod.properties" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/application.properties" afterDir="false" />
     </list>

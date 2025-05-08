@@ -209,7 +209,7 @@ public class ReporteServicio implements IReporteServicio {
     }
 
     // --- 2) SERVICIO ---
-    public byte[] exportarLiquidacionProfesor(ReporteLiquidacionRequest req) {
+    public byte[] exportarLiquidacionProfesor(ReporteLiquidacionRequest req) throws IOException {
         // simplemente delega el PDF, con la lista de DetallePagoResponse ya viniendo del frontend
         return pdfService.generarLiquidacionProfesorPdf(
                 req.profesor(),
