@@ -29,8 +29,8 @@ public class EmailService implements IEmailService {
     private final String password;
 
     public EmailService(JavaMailSender mailSender,
-                        @Value("${spring.mail.imap.host:${spring.mail.host}}") String imapHost,
-                        @Value("${spring.mail.imap.port:993}") int imapPort,
+                        @Value("${spring.mail.imap.host}") String imapHost,
+                        @Value("${spring.mail.imap.port}") int imapPort,
                         @Value("${spring.mail.username}") String username,
                         @Value("${spring.mail.password}") String password) {
         this.mailSender = mailSender;
