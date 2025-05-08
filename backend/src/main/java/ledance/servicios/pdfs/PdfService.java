@@ -698,8 +698,8 @@ public class PdfService {
         int crop = 50;
         BufferedImage cropImg = orig.getSubimage(
                 crop, crop,
-                orig.getWidth() - crop * 2,
-                orig.getHeight() - crop * 2
+                orig.getWidth() - crop*2,
+                orig.getHeight() - crop*2
         );
         ByteArrayOutputStream logoBaos = new ByteArrayOutputStream();
         ImageIO.write(cropImg, "jpg", logoBaos);
@@ -714,7 +714,7 @@ public class PdfService {
         float indent = logo.getScaledWidth() + 20;
         Font titleFont = new Font(Font.HELVETICA, 14, Font.BOLD); // Fuente un poco más pequeña
         // Incluir mes y año en el título
-        DateTimeFormatter df = DateTimeFormatter.ofPattern("MMMM yyyy", new Locale("es", "AR"));
+        DateTimeFormatter df = DateTimeFormatter.ofPattern("MMMM yyyy", new Locale("es","AR"));
         String periodo = fechaInicio.format(df).toUpperCase();
         Paragraph h1 = new Paragraph("Liquidación Profesor " + periodo, titleFont);
         h1.setIndentationLeft(indent);
@@ -801,5 +801,4 @@ public class PdfService {
         doc.close();
         return bos.toByteArray();
     }
-
 }
