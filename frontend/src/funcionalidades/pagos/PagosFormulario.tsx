@@ -1395,11 +1395,11 @@ const CobranzasForm: React.FC = () => {
         usuarioId,
         aplicarRecargoMetodoPago: aplicarRecargoFlag, // ← aquí
       };
-
+      const alumnoId = values.alumno.id;
       await pagosApi.registrarPago(pagoRegistroRequest);
       toast.success("Cobranza registrada correctamente");
       actions.resetForm();
-      navigate(`/pagos/alumno/${values.alumno.id}`);
+      navigate(`/pagos/alumno/${alumnoId}`);
     } catch (error: any) {
       const errorMsg =
         error.response?.data?.detalle ||
