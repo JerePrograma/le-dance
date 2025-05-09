@@ -4,6 +4,7 @@ import ledance.entidades.Pago;
 import ledance.util.FilePathResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -28,6 +29,7 @@ public class ReciboStorageService {
      *
      * @param pago Objeto Pago con todos sus detalles.
      */
+    @Async
     public void generarYAlmacenarYEnviarRecibo(Pago pago) {
         try {
             // 1. Generar el PDF del recibo.
