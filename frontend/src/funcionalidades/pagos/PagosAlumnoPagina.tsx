@@ -33,12 +33,8 @@ const DetallePagoListByAlumno: React.FC = () => {
       setLoading(true);
       setError(null);
       const parsedAlumnoId = Number(alumnoId);
-      const data = await detallesPagoApi.listarDetallesPagos();
-      // Se filtran los detalles para el alumno actual y aquellos que tengan ACobrar > 0
-      const detallesFiltrados = data.filter(
-        (detalle) => detalle.alumno.id === parsedAlumnoId && detalle.ACobrar > 0
-      );
-      setDetalles(detallesFiltrados);
+      const data = await detallesPagoApi.listarPorAlumno(parsedAlumnoId);
+      setDetalles(data);
       setVisibleCount(itemsPerLoad);
     } catch (err) {
       toast.error("Error al cargar detalles de pago.");
@@ -112,7 +108,7 @@ const DetallePagoListByAlumno: React.FC = () => {
                 className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-sm"
               >
                 Descargar Factura
-              </button>
+              </button>,
             ]}
           />
         )}

@@ -20,6 +20,5 @@ public record PagoResponse(
         MetodoPagoResponse metodoPago,
         String observaciones,
         List<DetallePagoResponse> detallePagos,
-        List<PagoMedioResponse> pagoMedios,
         Long usuarioId  // NUEVO: Cobrador
 ) { }

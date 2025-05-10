@@ -20,7 +20,6 @@ public interface PagoMapper {
     @Mapping(target = "id", ignore = true)
     // Mapear la lista de detalles usando el DetallePagoMapper
     @Mapping(target = "detallePagos", source = "detallePagos")
-    @Mapping(target = "pagoMedios", ignore = true)
     @Mapping(target = "saldoRestante", ignore = true)
     @Mapping(target = "estadoPago", ignore = true)
     @Mapping(target = "observaciones", ignore = true)
@@ -35,7 +34,6 @@ public interface PagoMapper {
     // Actualizacion de una entidad existente con datos del request.
     @Mapping(target = "metodoPago", ignore = true)
     @Mapping(target = "detallePagos", ignore = true)
-    @Mapping(target = "pagoMedios", ignore = true)
     @Mapping(target = "estadoPago", ignore = true)
     @Mapping(target = "observaciones", ignore = true)
     @Mapping(target = "montoPagado", ignore = true)

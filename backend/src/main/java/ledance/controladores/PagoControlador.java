@@ -6,7 +6,6 @@ import ledance.dto.cobranza.CobranzaDTO;
 import ledance.dto.inscripcion.response.InscripcionResponse;
 import ledance.dto.pago.DetallePagoMapper;
 import ledance.dto.pago.request.DetallePagoRegistroRequest;
-import ledance.dto.pago.request.PagoMedioRegistroRequest;
 import ledance.dto.pago.request.PagoRegistroRequest;
 import ledance.dto.pago.response.DetallePagoResponse;
 import ledance.dto.pago.response.PagoResponse;

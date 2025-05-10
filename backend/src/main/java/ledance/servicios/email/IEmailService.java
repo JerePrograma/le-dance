@@ -2,6 +2,7 @@ package ledance.servicios.email;
 
 import jakarta.mail.MessagingException;
 
+// interfaz común (opcional, pero recomendable)
 public interface IEmailService {
     void sendEmailWithInlineImage(String from,
                                   String to,

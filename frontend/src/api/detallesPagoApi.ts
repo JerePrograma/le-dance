@@ -46,14 +46,6 @@ const anularDetallePago = async (id: number): Promise<DetallePagoResponse> => {
   return response.data; // Asegúrate de que response.data tenga la estructura de DetallePagoResponse
 };
 
-/**
- * Lista todos los detalles pagos activos.
- */
-const listarDetallesPagos = async (): Promise<DetallePagoResponse[]> => {
-  const { data } = await api.get<DetallePagoResponse[]>("/detalle-pago");
-  return data;
-};
-
 const listarDetallesPagosFecha = async (
   params: { fechaDesde?: string; fechaHasta?: string } = {}
 ): Promise<DetallePagoResponse[]> => {
@@ -63,12 +55,22 @@ const listarDetallesPagosFecha = async (
   return data;
 };
 
+// Nuevo método: lista sólo los detalles de un alumno
+const listarPorAlumno = async (
+  alumnoId: number
+): Promise<DetallePagoResponse[]> => {
+  const { data } = await api.get<DetallePagoResponse[]>(
+    `/detalle-pago/alumno/${alumnoId}`
+  );
+  return data;
+};
+
 const detallesPagoApi = {
   crearDetallePago,
   obtenerDetallePagoPorId,
+  listarPorAlumno,
   actualizarDetallePago,
   eliminarDetallePago,
-  listarDetallesPagos,
   anularDetallePago,
   listarDetallesPagosFecha,
 };

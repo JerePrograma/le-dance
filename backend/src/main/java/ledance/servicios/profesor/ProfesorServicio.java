@@ -8,16 +8,19 @@ import ledance.dto.profesor.request.ProfesorModificacionRequest;
 import ledance.dto.profesor.request.ProfesorRegistroRequest;
 import ledance.dto.disciplina.response.DisciplinaResponse;
 import ledance.dto.profesor.response.ProfesorResponse;
+import ledance.dto.reporte.request.ReporteLiquidacionRequest;
 import ledance.entidades.Alumno;
 import ledance.entidades.Profesor;
 import ledance.infra.errores.TratadorDeErrores;
 import ledance.repositorios.DisciplinaHorarioRepositorio;
 import ledance.repositorios.ProfesorRepositorio;
 import jakarta.transaction.Transactional;
+import ledance.servicios.pdfs.PdfService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.time.Period;
 import java.util.List;
@@ -32,12 +35,14 @@ public class ProfesorServicio implements IProfesorServicio {
     private final ProfesorMapper profesorMapper;
     private final DisciplinaMapper disciplinaMapper;
     private final AlumnoMapper alumnoMapper;
+    private final PdfService pdfService;
 
-    public ProfesorServicio(ProfesorRepositorio profesorRepositorio, ProfesorMapper profesorMapper, DisciplinaHorarioRepositorio disciplinaHorarioRepositorio, DisciplinaMapper disciplinaMapper, AlumnoMapper alumnoMapper) {
+    public ProfesorServicio(ProfesorRepositorio profesorRepositorio, ProfesorMapper profesorMapper, DisciplinaHorarioRepositorio disciplinaHorarioRepositorio, DisciplinaMapper disciplinaMapper, AlumnoMapper alumnoMapper, PdfService pdfService) {
         this.profesorRepositorio = profesorRepositorio;
         this.profesorMapper = profesorMapper;
         this.disciplinaMapper = disciplinaMapper;
         this.alumnoMapper = alumnoMapper;
+        this.pdfService = pdfService;
     }
 
     /**
@@ -152,5 +157,16 @@ public class ProfesorServicio implements IProfesorServicio {
         return alumnos.stream()
                 .map(alumnoMapper::toResponse)
                 .collect(Collectors.toList());
+    }
+
+    public byte[] exportarLiquidacionProfesor(ReporteLiquidacionRequest req) throws IOException {
+        // simplemente delega el PDF, con la lista de DetallePagoResponse ya viniendo del frontend
+        return pdfService.generarLiquidacionProfesorPdf(
+                req.profesor(),
+                req.disciplina(),
+                req.fechaInicio(),
+                req.detalles(),
+                req.porcentaje()
+        );
     }
 }

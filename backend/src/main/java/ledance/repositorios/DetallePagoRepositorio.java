@@ -22,11 +22,11 @@ public interface DetallePagoRepositorio extends JpaRepository<DetallePago, Long>
     boolean existsByMensualidadId(Long id);
 
     @Query("""
-  SELECT d 
-    FROM DetallePago d 
-   WHERE d.matricula.id = :matriculaId 
-     AND d.estadoPago = 'ACTIVO'
-""")
+              SELECT d 
+                FROM DetallePago d 
+               WHERE d.matricula.id = :matriculaId 
+                 AND d.estadoPago = 'ACTIVO'
+            """)
     Optional<DetallePago> findActiveByMatriculaId(@Param("matriculaId") Long matriculaId);
 
     boolean existsByAlumnoIdAndDescripcionConceptoIgnoreCaseAndTipo(Long alumnoId, String descripcion, TipoDetallePago tipo);
@@ -57,4 +57,14 @@ public interface DetallePagoRepositorio extends JpaRepository<DetallePago, Long>
     @Modifying
     @Query("UPDATE DetallePago d SET d.usuario = null WHERE d.usuario.id = :uid")
     void clearUsuarioFromDetallePagos(@Param("uid") Long usuarioId);
-}
+
+    @Query("""
+      SELECT dp
+        FROM DetallePago dp
+       WHERE dp.alumno.id = :alumnoId
+         AND dp.aCobrar > :valor
+    """)
+    List<DetallePago> findPorAlumnoConACobrarMayorQue(
+            @Param("alumnoId") Long alumnoId,
+            @Param("valor") Double valor
+    );}

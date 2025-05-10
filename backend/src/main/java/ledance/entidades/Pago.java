@@ -81,10 +81,6 @@ public class Pago {
     @JsonIgnore
     private List<DetallePago> detallePagos = new ArrayList<>();
 
-    @OneToMany(mappedBy = "pago", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonIgnore
-    private List<PagoMedio> pagoMedios;
-
     /**
      * Monto efectivamente abonado en este pago.
      */

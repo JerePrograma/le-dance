@@ -19,7 +19,6 @@ public record PagoRegistroRequest(
         @NotNull AlumnoRegistroRequest alumno,
         String observaciones,
         @NotNull List<DetallePagoRegistroRequest> detallePagos,
-        List<PagoMedioRegistroRequest> pagoMedios,
         Boolean activo,
         Long usuarioId,
         String estadoPago,

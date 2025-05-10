@@ -73,12 +73,6 @@ public class DetallePagoControlador {
         }
     }
 
-    @GetMapping
-    public ResponseEntity<List<DetallePagoResponse>> listarDetallesPagos() {
-        List<DetallePagoResponse> responses = detallePagoServicio.listarDetallesPagos();
-        return ResponseEntity.ok(responses);
-    }
-
     @GetMapping("/fecha")
     public ResponseEntity<List<DetallePagoResponse>> listarDetallesPagos(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaDesde,
@@ -88,4 +82,9 @@ public class DetallePagoControlador {
         return ResponseEntity.ok(responses);
     }
 
+    @GetMapping("/alumno/{alumnoId}")
+    public ResponseEntity<List<DetallePagoResponse>> listarPorAlumno(@PathVariable Long alumnoId) {
+        List<DetallePagoResponse> responses = detallePagoServicio.listarPorAlumno(alumnoId);
+        return ResponseEntity.ok(responses);
+    }
 }

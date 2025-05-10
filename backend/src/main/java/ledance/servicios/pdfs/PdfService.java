@@ -20,18 +20,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.Comparator;
 import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.stream.Stream;
 
 import static ledance.servicios.mensualidad.MensualidadServicio.validarRecargo;
@@ -663,19 +661,8 @@ public class PdfService {
     }
 
     /**
-     * Helper para crear PdfPCell con padding reducido y alineación.
-     */
-    private PdfPCell pCell(String text, Font font) {
-        PdfPCell cell = new PdfPCell(new Phrase(text, font));
-        cell.setHorizontalAlignment(Element.ALIGN_CENTER);
-        cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
-        cell.setPadding(2);               // Padding reducido para menor altura
-        cell.setFixedHeight(14f);         // Altura fija más compacta
-        return cell;
-    }
-
-    /**
-     * Genera el PDF de liquidación para un profesor, con márgenes superiores reducidos y ajuste de anchos.
+     * Genera el PDF de liquidación para un profesor, usando
+     * importeInicial como "Valor Base" y el booleano cobrado.
      */
     public byte[] generarLiquidacionProfesorPdf(
             String profesorNombre,
@@ -683,120 +670,85 @@ public class PdfService {
             @NotNull LocalDate fechaInicio,
             List<DetallePagoResponse> detalles,
             Double porcentaje
-    ) throws IOException, DocumentException {
-        // 1) Documento con márgenes reducidos (top=20 para menos espacio vacío)
-        // Márgenes reducidos superior/inferior para menos espacio
-        Document doc = new Document(PageSize.A4.rotate(), 36, 36, 10, 10);
+    ) throws DocumentException {
+        // 1) Configuración del documento
+        Document doc = new Document(PageSize.A4.rotate());
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         PdfWriter.getInstance(doc, bos);
         doc.open();
+        doc.setMargins(36, 36, 36, 36);
 
-        // 2) Logo recortado y posicionado (igual)
-        BufferedImage orig = ImageIO.read(
-                Objects.requireNonNull(getClass().getResourceAsStream("/RECIBO.jpg"))
-        );
-        int crop = 50;
-        BufferedImage cropImg = orig.getSubimage(
-                crop, crop,
-                orig.getWidth() - crop*2,
-                orig.getHeight() - crop*2
-        );
-        ByteArrayOutputStream logoBaos = new ByteArrayOutputStream();
-        ImageIO.write(cropImg, "jpg", logoBaos);
-        Image logo = Image.getInstance(logoBaos.toByteArray());
-        logo.scaleToFit(100, 100);
-        float x = doc.leftMargin();
-        float y = doc.getPageSize().getHeight() - doc.topMargin() - logo.getScaledHeight();
-        logo.setAbsolutePosition(x, y);
-        doc.add(logo);
-
-        // 3) Cabecera textual
-        float indent = logo.getScaledWidth() + 20;
-        Font titleFont = new Font(Font.HELVETICA, 14, Font.BOLD); // Fuente un poco más pequeña
-        // Incluir mes y año en el título
-        DateTimeFormatter df = DateTimeFormatter.ofPattern("MMMM yyyy", new Locale("es","AR"));
-        String periodo = fechaInicio.format(df).toUpperCase();
-        Paragraph h1 = new Paragraph("Liquidación Profesor " + periodo, titleFont);
-        h1.setIndentationLeft(indent);
-        doc.add(h1);
-        Font infoFont = new Font(Font.HELVETICA, 10, Font.NORMAL); // Tamaño de letra reducido
-        Paragraph p2 = new Paragraph("Profesor: " + profesorNombre, infoFont);
-        p2.setIndentationLeft(indent);
-        doc.add(p2);
-        Paragraph p3 = new Paragraph("Disciplina: " + disciplinaNombre, infoFont);
-        p3.setIndentationLeft(indent);
-        doc.add(p3);
-        Paragraph p4 = new Paragraph(
-                String.format("Porcentaje aplicado: %.2f%%", porcentaje),
-                infoFont
-        );
-        p4.setIndentationLeft(indent);
-        doc.add(p4);
+        // 2) Header con logo
+        PdfPTable header = crearHeaderTable();
+        doc.add(header);
         doc.add(Chunk.NEWLINE);
 
-        // 4) Tabla de detalle sin anchos fijos
-        PdfPTable table = new PdfPTable(7);
-        table.setWidthPercentage(100);
-        // ahora sí añadimos el espacio previo al cuerpo
-        table.setSpacingBefore(8f);
+        // 3) Título: mes de la liquidación a partir de fechaInicio
+        String mesLiquidacion = fechaInicio
+                .format(DateTimeFormatter.ofPattern("MMMM 'DE' yyyy", java.util.Locale.forLanguageTag("es-AR")))
+                .toUpperCase();
+        Font monthFont = new Font(Font.HELVETICA, 16, Font.BOLD);
+        Paragraph mesTitle = new Paragraph(mesLiquidacion, monthFont);
+        mesTitle.setAlignment(Element.ALIGN_CENTER);
+        doc.add(mesTitle);
+        doc.add(Chunk.NEWLINE);
 
-        // Encabezados centrados
-        Font hf = new Font(Font.HELVETICA, 9, Font.BOLD);
-        for (String header : List.of(
-                "Alumno", "Tarifa", "Descripción",
-                "Valor Base", "Bonificación", "Monto Cobrado", "Cobrado"
-        )) {
-            table.addCell(pCell(header, hf));
+        // 4) Info profesor y disciplina
+        Font infoFont = new Font(Font.HELVETICA, 12, Font.NORMAL);
+        doc.add(new Paragraph("Profesor: " + profesorNombre, infoFont));
+        doc.add(new Paragraph("Disciplina: " + disciplinaNombre, infoFont));
+        doc.add(new Paragraph(String.format("Porcentaje aplicado: %.2f%%", porcentaje), infoFont));
+        doc.add(Chunk.NEWLINE);
+
+        // 5) Cabecera de tabla
+        float[] columnWidths = {3f, 1.5f, 3f, 1.5f, 1.5f, 1.5f, 1f};
+        PdfPTable table = new PdfPTable(columnWidths);
+        table.setWidthPercentage(100);
+        Font headerFont = new Font(Font.HELVETICA, 10, Font.BOLD);
+        for (String h : List.of("Alumno","Tarifa","Descripción","Valor Base","Bonificación","Monto Cobrado","Cobrado")) {
+            PdfPCell cell = new PdfPCell(new Phrase(h, headerFont));
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            cell.setPadding(4);
+            table.addCell(cell);
         }
 
-        // Filas de datos con letra más pequeña
-        Font cf = new Font(Font.HELVETICA, 8, Font.NORMAL);
+        // 6) Filas de detalles
+        Font cellFont = new Font(Font.HELVETICA, 9, Font.NORMAL);
         for (DetallePagoResponse det : detalles) {
             String alumno = det.alumno().nombre() + " " + det.alumno().apellido();
+            table.addCell(new PdfPCell(new Phrase(alumno, cellFont)));
             String full = det.descripcionConcepto();
-            String desc = full, tarifa = "";
-            int idx = full.indexOf("-");
+            String tarifa = "", desc = full;
+            int idx = full.indexOf(" - ");
             if (idx >= 0) {
                 desc = full.substring(0, idx).trim();
-                tarifa = full.substring(idx + 1).trim();
+                tarifa = full.substring(idx + 3).trim();
             }
-            String base = String.format("%,.2f", det.importeInicial());
+            table.addCell(new PdfPCell(new Phrase(tarifa, cellFont)));
+            table.addCell(new PdfPCell(new Phrase(desc, cellFont)));
+            table.addCell(new PdfPCell(new Phrase(
+                    String.format("%,.2f", det.importeInicial()), cellFont)));
             String bonif = det.bonificacionNombre() != null ? det.bonificacionNombre() : "-";
-            String monto = String.format("%,.2f", det.ACobrar());
-            String estado = Boolean.TRUE.equals(det.cobrado()) ? "SALDADO" : "PENDIENTE";
-
-            table.addCell(pCell(alumno, cf));
-            table.addCell(pCell(tarifa, cf));
-            table.addCell(pCell(desc, cf));
-            table.addCell(pCell(base, cf));
-            table.addCell(pCell(bonif, cf));
-            table.addCell(pCell(monto, cf));
-            table.addCell(pCell(estado, cf));
+            table.addCell(new PdfPCell(new Phrase(bonif, cellFont)));
+            table.addCell(new PdfPCell(new Phrase(
+                    String.format("%,.2f", det.ACobrar()), cellFont)));
+            String estado = det.cobrado() != null && det.cobrado() ? "SALDADO" : "PENDIENTE";
+            table.addCell(new PdfPCell(new Phrase(estado, cellFont)));
         }
         doc.add(table);
 
-        // 5) Totales
+        // 7) Totales
         double totalBruto = detalles.stream()
-                .mapToDouble(d -> d.ACobrar() != null ? d.ACobrar() : 0.0)
-                .sum();
-        double totalNeto = totalBruto * (1.0 - porcentaje / 100.0);
-
-        Locale localeAR = new Locale("es", "AR");
-        DecimalFormatSymbols symbols = DecimalFormatSymbols.getInstance(localeAR);
-        DecimalFormat moneyFmt = new DecimalFormat("#,##0.00", symbols);
-
-        Font totalFont = new Font(Font.HELVETICA, 11, Font.BOLD); // Ligeramente menor
+                .mapToDouble(d -> d.ACobrar() != null ? d.ACobrar() : 0.0).sum();
+        double totalNeto = totalBruto * porcentaje / 100.0;
+        Font totalFont = new Font(Font.HELVETICA, 12, Font.BOLD);
         doc.add(Chunk.NEWLINE);
-        Paragraph pBr = new Paragraph(
-                "TOTAL BRUTO: $ " + moneyFmt.format(totalBruto), totalFont
-        );
-        pBr.setAlignment(Element.ALIGN_RIGHT);
-        doc.add(pBr);
-        Paragraph pNe = new Paragraph(
-                "LIQUIDACIÓN NETA: $ " + moneyFmt.format(totalNeto), totalFont
-        );
-        pNe.setAlignment(Element.ALIGN_RIGHT);
-        doc.add(pNe);
+        Paragraph pBruto = new Paragraph("TOTAL BRUTO: $ " + String.format("%,.2f", totalBruto), totalFont);
+        pBruto.setAlignment(Element.ALIGN_RIGHT);
+        doc.add(pBruto);
+        Paragraph pNeto = new Paragraph("LIQUIDACIÓN NETA: $ " + String.format("%,.2f", totalNeto), totalFont);
+        pNeto.setAlignment(Element.ALIGN_RIGHT);
+        doc.add(pNeto);
 
         doc.close();
         return bos.toByteArray();

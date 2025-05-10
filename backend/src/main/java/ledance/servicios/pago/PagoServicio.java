@@ -123,6 +123,7 @@ public class PagoServicio {
         if (!pagoFinal.getMetodoPago().getDescripcion().equalsIgnoreCase("DEBITO")) {
             reciboStorageService.generarYAlmacenarYEnviarRecibo(pagoFinal);
         }
+
         return response;
     }
 

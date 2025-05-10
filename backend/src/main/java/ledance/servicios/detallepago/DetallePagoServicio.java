@@ -626,12 +626,6 @@ public class DetallePagoServicio {
         }
     }
 
-    public List<DetallePagoResponse> listarDetallesPagos() {
-        List<DetallePago> detalles = detallePagoRepositorio.findAll();
-        log.info("Listado de DetallePagos obtenido. Total registros: {}", detalles.size());
-        return detalles.stream().map(detallePagoMapper::toDTO).collect(Collectors.toList());
-    }
-
     public List<DetallePagoResponse> listarDetallesPagos(LocalDate fechaDesde, LocalDate fechaHasta) {
         List<DetallePago> detalles;
         if (fechaDesde != null && fechaHasta != null) {
@@ -714,5 +708,12 @@ public class DetallePagoServicio {
             pago.setEstadoPago(EstadoPago.ANULADO);
             pagoRepositorio.save(pago);
         }
+    }
+
+    public List<DetallePagoResponse> listarPorAlumno(Long alumnoId) {
+        List<DetallePago> detalles = detallePagoRepositorio.findPorAlumnoConACobrarMayorQue(alumnoId, 0.0);
+        return detalles.stream()
+                .map(detallePagoMapper::toDTO)
+                .collect(Collectors.toList());
     }
 }
