@@ -694,12 +694,11 @@ public class MensualidadServicio {
     }
 
     /**
-
-     /**
+     * /**
      * 1) Busca y consolida todos los DetallePago PARA UNA DISCIPLINA POR NOMBRE
-     *    y rango de fechas, incluyendo:
-     *    • los pagos existentes (sumando aCobrar)
-     *    • los alumnos sin pago, asignándoles descripción y tarifa por defecto.
+     * y rango de fechas, incluyendo:
+     * • los pagos existentes (sumando aCobrar)
+     * • los alumnos sin pago, asignándoles descripción y tarifa por defecto.
      */
     public List<DetallePagoResponse> buscarDetallePagosPorDisciplina(
             String disciplinaNombre,
@@ -747,6 +746,9 @@ public class MensualidadServicio {
     /**
      * Extraído: construye spec, agrupa y añade dummies SIN-PAGO.
      */
+    /**
+     * Extraído: construye spec, agrupa y añade dummies SIN-PAGO.
+     */
     private List<DetallePagoResponse> procesarReporte(
             String disciplinaNombre,
             LocalDate fechaInicio,
@@ -755,6 +757,9 @@ public class MensualidadServicio {
     ) {
         log.info("→ procesarReporte para disciplina='{}'", disciplinaNombre);
 
+        // Normalizamos la disciplina a minúsculas una sola vez
+        String discLower = disciplinaNombre.toLowerCase();
+
         // a) Spec base: rango de fechas
         Specification<DetallePago> spec = (root, query, cb) -> {
             assert query != null;
@@ -762,52 +767,66 @@ public class MensualidadServicio {
             return cb.between(root.get("fechaRegistro"), fechaInicio, fechaFin);
         };
 
-        // b) Filtrar por mes(es)
-        List<String> meses = new ArrayList<>();
+        // b) Filtrar por mes(es), en minúsculas
+        List<String> mesesLower = new ArrayList<>();
         for (LocalDate m = fechaInicio.withDayOfMonth(1);
              !m.isAfter(fechaFin.withDayOfMonth(1));
              m = m.plusMonths(1)) {
-            meses.add(
-                    m.getMonth().getDisplayName(TextStyle.FULL, ESPANOL)
-                            .toUpperCase()
+            mesesLower.add(
+                    m.getMonth()
+                            .getDisplayName(TextStyle.FULL, ESPANOL)
+                            .toLowerCase()
             );
         }
-        if (!meses.isEmpty()) {
+        if (!mesesLower.isEmpty()) {
             spec = spec.and((root, query, cb) -> {
-                Expression<String> desc = cb.upper(root.get("descripcionConcepto"));
-                Predicate[] p = meses.stream()
-                        .map(mon -> cb.like(desc, "%" + mon + "%"))
+                Expression<String> descLower = cb.lower(root.get("descripcionConcepto"));
+                Predicate[] preds = mesesLower.stream()
+                        .map(mon -> cb.like(descLower, "%" + mon + "%"))
                         .toArray(Predicate[]::new);
-                return cb.or(p);
+                return cb.or(preds);
             });
         }
 
-        // c) Filtro por profesorNombre (opcional)
+        // c) Filtro por profesorNombre (opcional), también case-insensitive
         if (StringUtils.hasText(profesorNombre)) {
+            String profLower = profesorNombre.toLowerCase();
             spec = spec.and((root, query, cb) -> {
+                assert query != null;
                 query.distinct(true);
                 Join<DetallePago, Mensualidad> men = root.join("mensualidad", JoinType.LEFT);
                 Join<Mensualidad, Inscripcion> ins = men.join("inscripcion", JoinType.LEFT);
                 Join<Inscripcion, Disciplina> dis = ins.join("disciplina", JoinType.LEFT);
                 Join<Disciplina, Profesor> prof = dis.join("profesor", JoinType.LEFT);
-                String patt = "%" + profesorNombre.toLowerCase() + "%";
-                Predicate pNom  = cb.like(cb.lower(prof.get("nombre")), patt);
-                Predicate pApe  = cb.like(cb.lower(prof.get("apellido")), patt);
-                Predicate pFull = cb.like(cb.lower(cb.concat(
-                        cb.concat(prof.get("nombre"), cb.literal(" ")),
-                        prof.get("apellido")
-                )), patt);
+
+                Expression<String> nombreLower = cb.lower(prof.get("nombre"));
+                Expression<String> apellidoLower = cb.lower(prof.get("apellido"));
+                Expression<String> fullLower = cb.lower(
+                        cb.concat(
+                                cb.concat(prof.get("nombre"), cb.literal(" ")),
+                                prof.get("apellido")
+                        )
+                );
+
+                Predicate pNom = cb.like(nombreLower, "%" + profLower + "%");
+                Predicate pApe = cb.like(apellidoLower, "%" + profLower + "%");
+                Predicate pFull = cb.like(fullLower, "%" + profLower + "%");
+
+                // Incluimos también los detalles sin mensualidad
                 return cb.or(cb.isNull(root.get("mensualidad")), pNom, pApe, pFull);
             });
         }
 
-        // d) y e) filtros adicionales y recuperación de BD
-        spec = spec.and((root, query, cb) ->
-                cb.like(cb.upper(root.get("descripcionConcepto")), "%" + disciplinaNombre.toUpperCase() + "%")
-        );
+        // d) y e) filtro por disciplinaNombre, case-insensitive
+        spec = spec.and((root, query, cb) -> {
+            Expression<String> descLower = cb.lower(root.get("descripcionConcepto"));
+            return cb.like(descLower, "%" + discLower + "%");
+        });
+
+        // Recuperamos de BD
         List<DetallePago> detalles = detallePagoRepositorio.findAll(spec);
 
-        // f) Determino tarifa por defecto
+        // f) Tarifa por defecto
         Disciplina disc = disciplinaRepositorio
                 .findByNombreContainingIgnoreCase(disciplinaNombre);
         Double tarifaDefault = Optional.ofNullable(disc)
@@ -817,13 +836,15 @@ public class MensualidadServicio {
         // g) Agrupo y sumo
         List<DetallePagoResponse> agrupados = agruparYSumar(detalles, tarifaDefault);
 
-        // h) Alumnos SIN pago -> dummies
+        // h) Dummies SIN pago
         List<Alumno> inscritos = disciplinaRepositorio.findAlumnosPorDisciplina(disc.getId());
         Set<Long> conPago = agrupados.stream()
                 .map(r -> r.alumno().id())
                 .collect(Collectors.toSet());
 
-        String etiquetaMeses = String.join("/", meses);
+        String etiquetaMeses = mesesLower.stream()
+                .map(m -> m.substring(0, 1).toUpperCase() + m.substring(1)) // si quieres capitalizar
+                .collect(Collectors.joining("/"));
         String descripcionDefecto = String.format(
                 "%s - CUOTA - %s DE %d",
                 disciplinaNombre.toUpperCase(), etiquetaMeses, fechaInicio.getYear()
@@ -831,7 +852,7 @@ public class MensualidadServicio {
 
         log.info("FINAL procesa {} DetallePagoResponse antes de ajustes", agrupados.size());
 
-        // Ajustar 'cobrado' si ACobrar == valorBase y ordenar por nombre de alumno
+        // Ajustar 'cobrado' y ordenar case-insensitive por nombre de alumno
         List<DetallePagoResponse> resultadoFinal = agrupados.stream()
                 .map(resp -> {
                     boolean nuevaCobrado = resp.cobrado()
@@ -849,7 +870,7 @@ public class MensualidadServicio {
                     );
                 })
                 .sorted(Comparator.comparing(
-                        r -> r.alumno().nombre(), String.CASE_INSENSITIVE_ORDER
+                        r -> r.alumno().nombre().toLowerCase()
                 ))
                 .collect(Collectors.toList());
 
@@ -859,11 +880,11 @@ public class MensualidadServicio {
 
     /**
      * 2) Agrupa y suma todos los aCobrar de la lista de DetallePago
-     *    por clave (descripcionConcepto, alumnoId).
+     * por clave (descripcionConcepto, alumnoId).
      */
     private List<DetallePagoResponse> agruparYSumar(List<DetallePago> detalles, Double valorCuota) {
         log.trace("→ agruparYSumar con {} items", detalles.size());
-        Map<Map.Entry<String, Long>, Double> suma    = new LinkedHashMap<>();
+        Map<Map.Entry<String, Long>, Double> suma = new LinkedHashMap<>();
         Map<Map.Entry<String, Long>, DetallePagoResponse> primera = new LinkedHashMap<>();
 
         for (DetallePago d : detalles) {
@@ -893,14 +914,14 @@ public class MensualidadServicio {
 
     /**
      * 3) Convierte un DetallePago en DetallePagoResponse usando alumnoMapper,
-     *    aplicando lógica de ACobrar = min(d.getACobrar(), d.getValorBase())
-     *    y protegiendo contra nulls.
+     * aplicando lógica de ACobrar = min(d.getACobrar(), d.getValorBase())
+     * y protegiendo contra nulls.
      */
     public DetallePagoResponse mapearDetallePagoResponse(DetallePago d, Double valorCuota) {
         log.trace("→ mapearDetallePagoResponse id={}", d.getId());
 
         Double rawValorBase = d.getValorBase() != null ? d.getValorBase() : valorCuota;
-        double rawACobrar   = d.getACobrar()    != null ? d.getACobrar()    : 0.0;
+        double rawACobrar = d.getACobrar() != null ? d.getACobrar() : 0.0;
         Double finalACobrar = Math.min(rawACobrar, rawValorBase);
 
         log.info("[MAP] id={} → rawValorBase={} rawACobrar={} finalACobrar={}",
@@ -914,21 +935,21 @@ public class MensualidadServicio {
                 d.getRecargo() != null ? d.getRecargo().getId() : null,
                 finalACobrar,
                 d.getCobrado(),
-                d.getConcepto()    != null ? d.getConcepto().getId()    : null,
+                d.getConcepto() != null ? d.getConcepto().getId() : null,
                 d.getSubConcepto() != null ? d.getSubConcepto().getId() : null,
                 d.getDescripcionConcepto().contains("CUOTA")
                         ? Optional.ofNullable(d.getMensualidad()).map(Mensualidad::getId).orElse(null)
                         : null,
-                d.getMatricula()   != null ? d.getMatricula().getId()   : null,
-                d.getStock()       != null ? d.getStock().getId()       : null,
+                d.getMatricula() != null ? d.getMatricula().getId() : null,
+                d.getStock() != null ? d.getStock().getId() : null,
                 rawValorBase,
                 d.getImportePendiente(),
                 d.getTipo(),
                 d.getFechaRegistro(),
-                d.getPago()        != null ? d.getPago().getId()        : null,
+                d.getPago() != null ? d.getPago().getId() : null,
                 alumnoMapper.toAlumnoListadoResponse(d.getAlumno()),
                 d.getTieneRecargo(),
-                d.getUsuario()     != null ? d.getUsuario().getId()     : null,
+                d.getUsuario() != null ? d.getUsuario().getId() : null,
                 d.getEstadoPago().toString()
         );
     }

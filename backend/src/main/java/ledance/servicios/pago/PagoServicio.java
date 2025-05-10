@@ -120,7 +120,7 @@ public class PagoServicio {
         log.info("[registrarPago] Pago registrado con exito. Respuesta final: {}", response);
 
         // 5) Generar recibo si corresponde
-        if (!pagoFinal.getMetodoPago().getDescripcion().equalsIgnoreCase("DEBITO")) {
+        if (!pagoFinal.getMetodoPago().getDescripcion().equalsIgnoreCase("DEBITO") && pagoFinal.getMonto() > 0) {
             reciboStorageService.generarYAlmacenarYEnviarRecibo(pagoFinal);
         }
 

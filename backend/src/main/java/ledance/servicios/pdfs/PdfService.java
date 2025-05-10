@@ -183,7 +183,7 @@ public class PdfService {
     private String obtenerCadenaDetalles(Pago pago) {
         StringBuilder sb = new StringBuilder();
         for (DetallePago det : pago.getDetallePagos()) {
-            if (!det.getRemovido() && det.getDescripcionConcepto() != null) {
+            if (!det.getRemovido() && det.getDescripcionConcepto() != null && det.getACobrar() > 0) {
                 sb.append(det.getDescripcionConcepto()).append("<br/>");
             }
         }
@@ -705,7 +705,7 @@ public class PdfService {
         PdfPTable table = new PdfPTable(columnWidths);
         table.setWidthPercentage(100);
         Font headerFont = new Font(Font.HELVETICA, 10, Font.BOLD);
-        for (String h : List.of("Alumno","Tarifa","Descripción","Valor Base","Bonificación","Monto Cobrado","Cobrado")) {
+        for (String h : List.of("Alumno", "Tarifa", "Descripción", "Valor Base", "Bonificación", "Monto Cobrado", "Cobrado")) {
             PdfPCell cell = new PdfPCell(new Phrase(h, headerFont));
             cell.setHorizontalAlignment(Element.ALIGN_CENTER);
             cell.setPadding(4);
