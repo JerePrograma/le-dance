@@ -11,6 +11,7 @@ import reporteMensualidadApi, {
 import Tabla from "../../componentes/comunes/Tabla";
 import { toast } from "react-toastify";
 import alumnosApi from "../../api/alumnosApi";
+import NumberInputWithoutScroll from "../pagos/NumberInputWithoutScroll";
 
 // Utilidades de fecha
 const getCurrentMonth = () => {
@@ -37,7 +38,6 @@ const transformMonthToDates = (mesStr: string) => {
   return { inicio: formatDate(inicioDate), fin: formatDate(finDate) };
 };
 
-// Tipo extendido para filas manuales
 export type RowItem = Omit<DetallePagoResponse, "alumno"> & {
   alumno: { id: number | null; nombre: string; apellido: string };
   isNew?: boolean;
@@ -49,14 +49,12 @@ const ReporteDetallePago: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [porcentaje, setPorcentaje] = useState(0);
 
-  // sugerencias globales
   const [sugerenciasDisciplinas, setSugerenciasDisciplinas] = useState<any[]>(
     []
   );
   const [sugerenciasProfesores, setSugerenciasProfesores] = useState<any[]>([]);
   const [sugerenciasAlumnos, setSugerenciasAlumnos] = useState<any[]>([]);
 
-  // filtros
   const [selectedDisciplinaId, setSelectedDisciplinaId] = useState<
     number | null
   >(null);
@@ -64,13 +62,11 @@ const ReporteDetallePago: React.FC = () => {
     null
   );
 
-  // búsquedas con debounce
   const [busquedaDisciplina, setBusquedaDisciplina] = useState("");
   const debouncedBusquedaDisciplina = useDebounce(busquedaDisciplina, 300);
   const [busquedaProfesor, setBusquedaProfesor] = useState("");
   const debouncedBusquedaProfesor = useDebounce(busquedaProfesor, 300);
 
-  // para controlar el dropdown activo
   const [activeRowId, setActiveRowId] = useState<number | null>(null);
 
   const formik = useFormik({
@@ -107,13 +103,11 @@ const ReporteDetallePago: React.FC = () => {
     },
   });
 
-  // carga inicial
   useEffect(() => {
     formik.submitForm();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // sugerencias disciplinas
   useEffect(() => {
     if (!debouncedBusquedaDisciplina) {
       setSugerenciasDisciplinas([]);
@@ -125,7 +119,6 @@ const ReporteDetallePago: React.FC = () => {
       .catch(() => setSugerenciasDisciplinas([]));
   }, [debouncedBusquedaDisciplina]);
 
-  // sugerencias profesores
   useEffect(() => {
     if (!debouncedBusquedaProfesor) {
       setSugerenciasProfesores([]);
@@ -137,7 +130,6 @@ const ReporteDetallePago: React.FC = () => {
       .catch(() => setSugerenciasProfesores([]));
   }, [debouncedBusquedaProfesor]);
 
-  // sugerencias alumnos según disciplina o profesor seleccionado
   useEffect(() => {
     if (selectedDisciplinaId) {
       disciplinasApi
@@ -168,7 +160,6 @@ const ReporteDetallePago: React.FC = () => {
         cobrado: false,
       } as RowItem,
     ]);
-    // recarga sugerencias de alumnos
     if (selectedDisciplinaId) {
       disciplinasApi
         .obtenerAlumnosDeDisciplina(selectedDisciplinaId)
@@ -398,8 +389,7 @@ const ReporteDetallePago: React.FC = () => {
       <div className="mb-4">
         <label className="block font-medium">Porcentaje (%):</label>
         <div className="flex items-center">
-          <input
-            type="number"
+          <NumberInputWithoutScroll
             value={porcentaje}
             onChange={(e) => setPorcentaje(Number(e.target.value))}
             className="border p-2 rounded w-24"
@@ -539,9 +529,8 @@ const ReporteDetallePago: React.FC = () => {
                   }
                   className="border p-1 w-32 text-center"
                 />,
-                <input
+                <NumberInputWithoutScroll
                   key="importe"
-                  type="number"
                   value={item.importeInicial}
                   onChange={(e) =>
                     setResultados((prev) =>
@@ -569,9 +558,8 @@ const ReporteDetallePago: React.FC = () => {
                   }
                   className="border p-1 w-32 text-center"
                 />,
-                <input
+                <NumberInputWithoutScroll
                   key="acobrar"
-                  type="number"
                   value={item.ACobrar}
                   onChange={(e) =>
                     setResultados((prev) =>
