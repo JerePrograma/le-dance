@@ -83,7 +83,7 @@ public class ScheduledTasks {
             mensajes.forEach(msg ->
                     System.out.println("[ScheduledTasks] Notificacion enviada: " + msg)
             );
-        } catch (IOException | MessagingException e) {
+        } catch (IOException e) {
             // Aqui podrias usar tu logger en lugar de printStackTrace
             System.err.println("[ScheduledTasks] Error al enviar notificaciones de cumpleaños:");
             e.printStackTrace();
