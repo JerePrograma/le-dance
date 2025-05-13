@@ -31,6 +31,7 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -116,87 +117,6 @@ public class CajaServicio {
         return resultado;
     }
 
-    /**
-     * Suma los montos de pagos que tengan el metodo de pago con la descripcion indicada.
-     */
-    private double sumarPorMetodoPago(List<Pago> pagos, String metodoDescripcion) {
-        return pagos.stream()
-                .filter(p -> p.getMetodoPago() != null
-                        && p.getMetodoPago().getDescripcion().equalsIgnoreCase(metodoDescripcion))
-                .mapToDouble(Pago::getMonto)
-                .sum();
-    }
-
-    /**
-     * Calcula el rango de recibos (IDs) para una lista de pagos.
-     */
-    private String calcularRangoRecibos(List<Pago> pagos) {
-        if (pagos.isEmpty()) return "Sin Recibos";
-        long min = pagos.stream().mapToLong(Pago::getId).min().orElse(0);
-        long max = pagos.stream().mapToLong(Pago::getId).max().orElse(0);
-        return min == max ? "Recibo #" + min : String.format("Recibo #%d al #%d", min, max);
-    }
-
-    /**
-     * Obtiene la caja diaria para una fecha dada, mapea los pagos y egresos
-     * y calcula todos los totales para devolver un CajaDiariaImp completo.
-     */
-    public CajaDiariaImp obtenerCajaDiaria(LocalDate fecha) {
-        // 1) Traer datos
-        List<Pago> pagosEnt = pagoRepositorio.findPagosConAlumnoPorFecha(fecha, fecha);
-        List<Egreso> egresosEnt = egresoRepositorio.findByFecha(fecha);
-
-        // 2) Mapear a DTOs
-        List<PagoResponse> pagos = pagoMapper.toDTOList(pagosEnt);
-        List<EgresoResponse> egresos = egresoMapper.toDTOList(egresosEnt);
-
-        // 3) Calcular totales de pagos
-        double totalEfectivo = pagos.stream()
-                .filter(p -> p.metodoPago() != null
-                        && "EFECTIVO".equalsIgnoreCase(p.metodoPago().descripcion()))
-                .mapToDouble(PagoResponse::monto)
-                .sum();
-
-        double totalDebito = pagos.stream()
-                .filter(p -> p.metodoPago() != null
-                        && "DEBITO".equalsIgnoreCase(p.metodoPago().descripcion()))
-                .mapToDouble(PagoResponse::monto)
-                .sum();
-
-        double totalCobrado = totalEfectivo + totalDebito;
-
-        // 4) Calcular totales de egresos
-        double totalEgresosEfectivo = egresos.stream()
-                .filter(e -> e.metodoPago() != null
-                        && "EFECTIVO".equalsIgnoreCase(e.metodoPago().descripcion()))
-                .mapToDouble(EgresoResponse::monto)
-                .sum();
-
-        double totalEgresosDebito = egresos.stream()
-                .filter(e -> e.metodoPago() != null
-                        && "DEBITO".equalsIgnoreCase(e.metodoPago().descripcion()))
-                .mapToDouble(EgresoResponse::monto)
-                .sum();
-
-        double totalEgresos = totalEgresosEfectivo + totalEgresosDebito;
-
-        // 5) Calcular neto
-        double totalNeto = totalCobrado - totalEgresos;
-
-        // 6) Devolver DTO completo
-        return new CajaDiariaImp(
-                pagos,
-                egresos,
-                totalEfectivo,
-                totalDebito,
-                totalCobrado,
-                totalEgresosEfectivo,
-                totalEgresosDebito,
-                totalEgresos,
-                totalNeto
-        );
-    }
-
     public CobranzasDataResponse obtenerDatosCobranzas() {
         // 1. Obtener listado simplificado de alumnos.
         List<AlumnoResponse> alumnos = alumnoServicio.listarAlumnosSimplificado();
@@ -234,32 +154,51 @@ public class CajaServicio {
     }
 
 
-    public CajaRendicionDTO obtenerCajaRendicionMensual(LocalDate start, LocalDate end) {
-        CajaDetalleDTO base = obtenerCajaMensual(start, end); // tu método existente
+    /**
+     * Devuelve la descripción del método de pago en mayúsculas,
+     * o "EFECTIVO" si el método es null o su descripción es null.
+     */
+    private String descripcionMetodoSeguro(PagoResponse p) {
+        var mp = p.metodoPago();
+        return (mp == null || mp.descripcion() == null)
+                ? "EFECTIVO"
+                : mp.descripcion().toUpperCase();
+    }
 
-        // Cálculos de pagos
+    public CajaRendicionDTO obtenerCajaRendicionMensual(LocalDate start, LocalDate end) {
+        CajaDetalleDTO base = obtenerCajaMensual(start, end);
+
+        // Totales de pagos
         double totalEfectivo = base.pagosDelDia().stream()
-                .filter(p -> "EFECTIVO".equalsIgnoreCase(p.metodoPago().descripcion()))
+                .filter(p -> descripcionMetodoSeguro(p).equals("EFECTIVO"))
                 .mapToDouble(PagoResponse::monto)
                 .sum();
+
         double totalDebito = base.pagosDelDia().stream()
-                .filter(p -> "DEBITO".equalsIgnoreCase(p.metodoPago().descripcion()))
+                .filter(p -> descripcionMetodoSeguro(p).equals("DEBITO"))
                 .mapToDouble(PagoResponse::monto)
                 .sum();
+
         double totalCobrado = totalEfectivo + totalDebito;
 
-        // Cálculos de egresos
+        // Totales de egresos
         double totalEgresosEfectivo = base.egresosDelDia().stream()
-                .filter(e -> e.metodoPago() != null && "EFECTIVO".equalsIgnoreCase(e.metodoPago().descripcion()))
+                .filter(e -> {
+                    var mp = e.metodoPago();
+                    return mp != null && "EFECTIVO".equalsIgnoreCase(mp.descripcion());
+                })
                 .mapToDouble(EgresoResponse::monto)
                 .sum();
-        double totalEgresosDebito = base.egresosDelDia().stream()
-                .filter(e -> e.metodoPago() != null && "DEBITO".equalsIgnoreCase(e.metodoPago().descripcion()))
-                .mapToDouble(EgresoResponse::monto)
-                .sum();
-        double totalEgresos = totalEgresosEfectivo + totalEgresosDebito;
 
-        // Neto
+        double totalEgresosDebito = base.egresosDelDia().stream()
+                .filter(e -> {
+                    var mp = e.metodoPago();
+                    return mp != null && "DEBITO".equalsIgnoreCase(mp.descripcion());
+                })
+                .mapToDouble(EgresoResponse::monto)
+                .sum();
+
+        double totalEgresos = totalEgresosEfectivo + totalEgresosDebito;
         double totalNeto = totalCobrado - totalEgresos;
 
         return new CajaRendicionDTO(
@@ -275,6 +214,62 @@ public class CajaServicio {
         );
     }
 
+    public CajaDiariaImp obtenerCajaDiaria(LocalDate fecha) {
+        // 1) Traer entidades
+        List<PagoResponse> pagos = pagoMapper.toDTOList(
+                pagoRepositorio.findPagosConAlumnoPorFecha(fecha, fecha)
+        );
+        List<EgresoResponse> egresos = egresoMapper.toDTOList(
+                egresoRepositorio.findByFecha(fecha)
+        );
+
+        // 2) Totales de pagos
+        double totalEfectivo = pagos.stream()
+                .filter(p -> descripcionMetodoSeguro(p).equals("EFECTIVO"))
+                .mapToDouble(PagoResponse::monto)
+                .sum();
+
+        double totalDebito = pagos.stream()
+                .filter(p -> descripcionMetodoSeguro(p).equals("DEBITO"))
+                .mapToDouble(PagoResponse::monto)
+                .sum();
+
+        double totalCobrado = totalEfectivo + totalDebito;
+
+        // 3) Totales de egresos
+        double totalEgresosEfectivo = egresos.stream()
+                .filter(e -> {
+                    var mp = e.metodoPago();
+                    return mp != null && "EFECTIVO".equalsIgnoreCase(mp.descripcion());
+                })
+                .mapToDouble(EgresoResponse::monto)
+                .sum();
+
+        double totalEgresosDebito = egresos.stream()
+                .filter(e -> {
+                    var mp = e.metodoPago();
+                    return mp != null && "DEBITO".equalsIgnoreCase(mp.descripcion());
+                })
+                .mapToDouble(EgresoResponse::monto)
+                .sum();
+
+        double totalEgresos = totalEgresosEfectivo + totalEgresosDebito;
+        double totalNeto = totalCobrado - totalEgresos;
+
+        // 4) Devolver DTO completo
+        return new CajaDiariaImp(
+                pagos,
+                egresos,
+                totalEfectivo,
+                totalDebito,
+                totalCobrado,
+                totalEgresosEfectivo,
+                totalEgresosDebito,
+                totalEgresos,
+                totalNeto
+        );
+    }
+    
     public byte[] generarCajaDiariaPdf(CajaDiariaImp cajaDetalleImp) {
         return pdfService.generarCajaDiariaPdf(cajaDetalleImp);
     }
