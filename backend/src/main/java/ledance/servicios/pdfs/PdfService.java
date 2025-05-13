@@ -1,9 +1,7 @@
 package ledance.servicios.pdfs;
 
 import com.lowagie.text.*;
-import com.lowagie.text.pdf.PdfPCell;
-import com.lowagie.text.pdf.PdfPTable;
-import com.lowagie.text.pdf.PdfWriter;
+import com.lowagie.text.pdf.*;
 import jakarta.mail.MessagingException;
 import jakarta.validation.constraints.NotNull;
 import ledance.dto.alumno.response.AlumnoResponse;
@@ -11,6 +9,7 @@ import ledance.dto.caja.CajaDetalleDTO;
 import ledance.dto.caja.CajaDiariaImp;
 import ledance.dto.caja.CajaRendicionDTO;
 import ledance.dto.egreso.response.EgresoResponse;
+import ledance.dto.metodopago.response.MetodoPagoResponse;
 import ledance.dto.pago.response.DetallePagoResponse;
 import ledance.dto.pago.response.PagoResponse;
 import ledance.entidades.*;
@@ -34,13 +33,29 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static ledance.servicios.mensualidad.MensualidadServicio.validarRecargo;
 
 @Service
 public class PdfService {
+    // --- 1) CONSTANTES DE ESTILO ---
+    private static final Locale LOCALE_AR = new Locale("es", "AR");
+    private static final DecimalFormatSymbols DEC_SYM = DecimalFormatSymbols.getInstance(LOCALE_AR);
+    private static final DecimalFormat MONEY_FMT = new DecimalFormat("#,##0.00", DEC_SYM);
+
+    private static final Font TITLE_FONT = new Font(Font.HELVETICA, 14, Font.BOLD);
+    private static final Font SECTION_FONT = new Font(Font.HELVETICA, 12, Font.BOLD);
+    private static final Font HEADER_FONT = new Font(Font.HELVETICA, 9, Font.BOLD);
+    private static final Font CELL_FONT = new Font(Font.HELVETICA, 8, Font.NORMAL);
+
+    // Anchos de columnas para cada tabla
+    private static final float[] COL_WIDTHS_PAGOS = {10, 10, 30, 35, 15};
+    private static final float[] COL_WIDTHS_EGRESOS = {15, 70, 15};
+    private static final float[] COL_WIDTHS_TOTALES = {60, 40};
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PdfService.class);
     private final IEmailService emailService;               // <-- tipo interfaz
@@ -410,82 +425,63 @@ public class PdfService {
      * @return Un arreglo de bytes representando el PDF generado.
      * @throws DocumentException En caso de error al crear el documento PDF.
      */
-    public byte[] generarRendicionMensualPdf(CajaRendicionDTO caja) throws DocumentException {
-        // Configuración inicial del documento
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        Document document = new Document(PageSize.A4.rotate()); // Landscape
-        document.setMargins(15, 15, 15, 15);
-        PdfWriter.getInstance(document, bos);
-        document.open();
+    public byte[] generarRendicionMensualPdf(CajaRendicionDTO caja) throws DocumentException, IOException {
+        try (
+                ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                Document doc = new Document(PageSize.A4.rotate(), 15, 15, 15, 15)
+        ) {
+            // 1) Obtengo el PdfWriter y lo guardo en una variable
+            PdfWriter writer = PdfWriter.getInstance(doc, bos);
 
-        // Fuentes
-        Font titleFont = new Font(Font.HELVETICA, 14, Font.BOLD);
-        Font sectionFont = new Font(Font.HELVETICA, 12, Font.BOLD);
-        Font contentFont = new Font(Font.HELVETICA, 8, Font.NORMAL);
+            // 2) Le adjunto el event handler de numeración
+            addPageNumbers(writer);
 
-        // Título
-        Paragraph titulo = new Paragraph("RENDICIÓN MENSUAL", titleFont);
-        titulo.setAlignment(Element.ALIGN_CENTER);
-        document.add(titulo);
-        document.add(new Paragraph(" ", contentFont));
+            // 3) Abro el documento
+            doc.open();
 
-        // --- PAGOS ---
-        document.add(new Paragraph("PAGOS DEL MES", sectionFont));
-        document.add(new Paragraph(" ", contentFont));
-        List<PagoResponse> pagos = caja.pagosDelDia();
-        if (pagos == null || pagos.isEmpty()) {
-            document.add(new Paragraph("No hay pagos registrados para este periodo.", contentFont));
-            document.add(new Paragraph(" ", contentFont));
-        } else {
-            PdfPTable tablaPagos = getPdfPTable(pagos, contentFont);
-            document.add(tablaPagos);
-            document.add(new Paragraph(" ", contentFont));
+            // 4) Ahora agrego el header y todo lo demás
+            addHeader(doc);
+
+            // Título centrado
+            addCenteredTitle(doc, "RENDICIÓN MENSUAL");
+
+            // Sección de pagos
+            addSection(doc, "PAGOS DEL MES",
+                    createTable(
+                            List.of("Recibo", "Alumno", "Método", "Observaciones", "Importe"),
+                            COL_WIDTHS_PAGOS,
+                            caja.pagosDelDia().stream()
+                                    .map(this::toRowPago)
+                                    .toList()
+                    )
+            );
+
+            // Sección de egresos
+            addSection(doc, "EGRESOS DEL MES",
+                    createTable(
+                            List.of("ID", "Observaciones", "Monto"),
+                            COL_WIDTHS_EGRESOS,
+                            caja.egresosDelDia().stream()
+                                    .map(this::toRowEgreso)
+                                    .toList()
+                    )
+            );
+
+            // Sección de totales
+            List<List<String>> rowsTotales = List.of(
+                    List.of("Pagos Efectivo", MONEY_FMT.format(caja.totalEfectivo())),
+                    List.of("Pagos Débito", MONEY_FMT.format(caja.totalDebito())),
+                    List.of("Total Cobrado", MONEY_FMT.format(caja.totalCobrado())),
+                    List.of("Egresos Efectivo", MONEY_FMT.format(caja.totalEgresosEfectivo())),
+                    List.of("Egresos Débito", MONEY_FMT.format(caja.totalEgresosDebito())),
+                    List.of("Total Egresos", MONEY_FMT.format(caja.totalEgresos())),
+                    List.of("Total Neto", MONEY_FMT.format(caja.totalNeto()))
+            );
+            addSection(doc, "TOTALES", createTable(List.of("Concepto", "Importe"), COL_WIDTHS_TOTALES, rowsTotales));
+
+            doc.close();
+            return bos.toByteArray();
         }
-
-        // --- EGRESOS ---
-        document.add(new Paragraph("EGRESOS DEL MES", sectionFont));
-        document.add(new Paragraph(" ", contentFont));
-        List<EgresoResponse> egresos = caja.egresosDelDia();
-        if (egresos == null || egresos.isEmpty()) {
-            document.add(new Paragraph("No hay egresos registrados para este periodo.", contentFont));
-            document.add(new Paragraph(" ", contentFont));
-        } else {
-            PdfPTable tablaEgresos = getPTable(egresos, contentFont);
-            document.add(tablaEgresos);
-            document.add(new Paragraph(" ", contentFont));
-        }
-
-        // --- TOTALES ---
-        document.add(new Paragraph("TOTALES", sectionFont));
-        document.add(new Paragraph(" ", contentFont));
-
-        PdfPTable tablaTotales = new PdfPTable(2);
-        tablaTotales.setWidths(new float[]{3, 2});
-
-        // Pagos
-        tablaTotales.addCell(new Phrase("Pagos Efectivo", contentFont));
-        tablaTotales.addCell(new Phrase(String.valueOf(caja.totalEfectivo()), contentFont));
-        tablaTotales.addCell(new Phrase("Pagos Débito", contentFont));
-        tablaTotales.addCell(new Phrase(String.valueOf(caja.totalDebito()), contentFont));
-        tablaTotales.addCell(new Phrase("Total Cobrado", contentFont));
-        tablaTotales.addCell(new Phrase(String.valueOf(caja.totalCobrado()), contentFont));
-
-        // Egresos
-        tablaTotales.addCell(new Phrase("Egresos Efectivo", contentFont));
-        tablaTotales.addCell(new Phrase(String.valueOf(caja.totalEgresosEfectivo()), contentFont));
-        tablaTotales.addCell(new Phrase("Egresos Débito", contentFont));
-        tablaTotales.addCell(new Phrase(String.valueOf(caja.totalEgresosDebito()), contentFont));
-        tablaTotales.addCell(new Phrase("Total Egresos", contentFont));
-        tablaTotales.addCell(new Phrase(String.valueOf(caja.totalEgresos()), contentFont));
-
-        // Neto
-        tablaTotales.addCell(new Phrase("Total Neto", contentFont));
-        tablaTotales.addCell(new Phrase(String.valueOf(caja.totalNeto()), contentFont));
-
-        document.add(tablaTotales);
-
-        document.close();
-        return bos.toByteArray();
     }
 
     private static PdfPTable getPTable(List<EgresoResponse> egresos, Font contentFont) {
@@ -831,9 +827,19 @@ public class PdfService {
     }
 
     /**
+     * Devuelve la descripción en mayúsculas o "EFECTIVO" si no existe método o su descripción es null.
+     */
+    private String descripcionMetodoPagoSeguro(PagoResponse p) {
+        var mp = p.metodoPago();
+        return (mp == null || mp.descripcion() == null)
+                ? "EFECTIVO"
+                : mp.descripcion().toUpperCase();
+    }
+
+    /**
      * Genera un PDF con la caja diaria, es decir, con TODOS los pagos y egresos
      * obtenidos para una fecha dada. Incluye secciones de:
-     * - PAGOS DEL DÍA
+     * - PAGOS DEL DÍA (excluye pagos con monto=0 y sin observaciones)
      * - EGRESOS DEL DÍA
      * - TOTALES (efectivo, débito, cobrado, egresos y neto)
      *
@@ -843,13 +849,11 @@ public class PdfService {
      */
     public byte[] generarCajaDiariaPdf(CajaDiariaImp cajaDetalleDTO) throws DocumentException {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        // Documento horizontal para más espacio
         Document document = new Document(PageSize.A4.rotate());
         document.setMargins(15, 15, 15, 15);
         PdfWriter.getInstance(document, bos);
         document.open();
 
-        // Fuentes
         Font titleFont = new Font(Font.HELVETICA, 14, Font.BOLD);
         Font sectionFont = new Font(Font.HELVETICA, 12, Font.BOLD);
         Font contentFont = new Font(Font.HELVETICA, 8, Font.NORMAL);
@@ -858,51 +862,81 @@ public class PdfService {
         Paragraph titulo = new Paragraph("CAJA DIARIA", titleFont);
         titulo.setAlignment(Element.ALIGN_CENTER);
         document.add(titulo);
-        document.add(new Paragraph(" ", contentFont));
+        document.add(Chunk.NEWLINE);
 
         // --- PAGOS DEL DÍA ---
         document.add(new Paragraph("PAGOS DEL DÍA", sectionFont));
-        document.add(new Paragraph(" ", contentFont));
-        List<PagoResponse> pagos = cajaDetalleDTO.pagosDelDia();
-        if (pagos == null || pagos.isEmpty()) {
+        document.add(Chunk.NEWLINE);
+        List<PagoResponse> pagos = cajaDetalleDTO.pagosDelDia().stream()
+                .filter(p -> p.monto() != 0
+                        || (p.observaciones() != null && !p.observaciones().isBlank()))
+                .collect(Collectors.toList());
+
+        if (pagos.isEmpty()) {
             document.add(new Paragraph("No hay pagos para esta fecha.", contentFont));
-            document.add(new Paragraph(" ", contentFont));
+            document.add(Chunk.NEWLINE);
         } else {
-            PdfPTable tablaPagos = getPdfPTable(pagos, contentFont);
+            PdfPTable tablaPagos = new PdfPTable(new float[]{1, 3, 2, 4, 2});
+            tablaPagos.setWidthPercentage(100);
+            // Encabezados
+            Arrays.asList("Recibo", "Alumno", "Método", "Observaciones", "Importe")
+                    .forEach(h -> tablaPagos.addCell(new PdfPCell(new Phrase(h, sectionFont))));
+
+            for (PagoResponse p : pagos) {
+                tablaPagos.addCell(p.id().toString());
+                tablaPagos.addCell(p.alumno().nombre() + " " + p.alumno().apellido());
+                tablaPagos.addCell(descripcionMetodoPagoSeguro(p));
+                tablaPagos.addCell(p.observaciones() == null ? "" : p.observaciones());
+                tablaPagos.addCell(String.format("%.2f", p.monto()));
+            }
             document.add(tablaPagos);
-            document.add(new Paragraph(" ", contentFont));
+            document.add(Chunk.NEWLINE);
         }
 
         // --- EGRESOS DEL DÍA ---
         document.add(new Paragraph("EGRESOS DEL DÍA", sectionFont));
-        document.add(new Paragraph(" ", contentFont));
+        document.add(Chunk.NEWLINE);
         List<EgresoResponse> egresos = cajaDetalleDTO.egresosDelDia();
-        if (egresos == null || egresos.isEmpty()) {
+        if (egresos.isEmpty()) {
             document.add(new Paragraph("No hay egresos para esta fecha.", contentFont));
-            document.add(new Paragraph(" ", contentFont));
+            document.add(Chunk.NEWLINE);
         } else {
-            PdfPTable tablaEgresos = getPTable(egresos, contentFont);
+            PdfPTable tablaEgresos = new PdfPTable(new float[]{1, 4, 2});
+            tablaEgresos.setWidthPercentage(100);
+            Arrays.asList("ID", "Observaciones", "Monto")
+                    .forEach(h -> tablaEgresos.addCell(new PdfPCell(new Phrase(h, sectionFont))));
+            for (EgresoResponse e : egresos) {
+                tablaEgresos.addCell(e.id().toString());
+                tablaEgresos.addCell(e.observaciones() == null ? "" : e.observaciones());
+                tablaEgresos.addCell(String.format("%.2f", e.monto()));
+            }
             document.add(tablaEgresos);
-            document.add(new Paragraph(" ", contentFont));
+            document.add(Chunk.NEWLINE);
         }
 
         // --- CÁLCULO DE TOTALES ---
-        double totalEfectivo = cajaDetalleDTO.pagosDelDia().stream()
-                .filter(p -> "EFECTIVO".equalsIgnoreCase(p.metodoPago().descripcion()))
+        double totalEfectivo = pagos.stream()
+                .filter(p -> descripcionMetodoPagoSeguro(p).equals("EFECTIVO"))
                 .mapToDouble(PagoResponse::monto)
                 .sum();
-        double totalDebito = cajaDetalleDTO.pagosDelDia().stream()
-                .filter(p -> "DEBITO".equalsIgnoreCase(p.metodoPago().descripcion()))
+        double totalDebito = pagos.stream()
+                .filter(p -> descripcionMetodoPagoSeguro(p).equals("DEBITO"))
                 .mapToDouble(PagoResponse::monto)
                 .sum();
         double totalCobrado = totalEfectivo + totalDebito;
 
-        double totalEgresosEfectivo = cajaDetalleDTO.egresosDelDia().stream()
-                .filter(e -> e.metodoPago() != null && "EFECTIVO".equalsIgnoreCase(e.metodoPago().descripcion()))
+        double totalEgresosEfectivo = egresos.stream()
+                .filter(e -> {
+                    var mp = e.metodoPago();
+                    return mp != null && "EFECTIVO".equalsIgnoreCase(mp.descripcion());
+                })
                 .mapToDouble(EgresoResponse::monto)
                 .sum();
-        double totalEgresosDebito = cajaDetalleDTO.egresosDelDia().stream()
-                .filter(e -> e.metodoPago() != null && "DEBITO".equalsIgnoreCase(e.metodoPago().descripcion()))
+        double totalEgresosDebito = egresos.stream()
+                .filter(e -> {
+                    var mp = e.metodoPago();
+                    return mp != null && "DEBITO".equalsIgnoreCase(mp.descripcion());
+                })
                 .mapToDouble(EgresoResponse::monto)
                 .sum();
         double totalEgresos = totalEgresosEfectivo + totalEgresosDebito;
@@ -910,30 +944,23 @@ public class PdfService {
 
         // --- TOTALES EN TABLA ---
         document.add(new Paragraph("TOTALES", sectionFont));
-        document.add(new Paragraph(" ", contentFont));
-        PdfPTable tablaTotales = new PdfPTable(2);
-        tablaTotales.setWidths(new float[]{3, 2});
+        document.add(Chunk.NEWLINE);
+        PdfPTable tablaTotales = new PdfPTable(new float[]{3, 2});
+        tablaTotales.setWidthPercentage(50);
+        tablaTotales.setHorizontalAlignment(Element.ALIGN_RIGHT);
 
-        tablaTotales.addCell(new Phrase("Efectivo", contentFont));
-        tablaTotales.addCell(new Phrase(String.valueOf(totalEfectivo), contentFont));
+        BiConsumer<String, Double> addTotal = (label, val) -> {
+            tablaTotales.addCell(new Phrase(label, contentFont));
+            tablaTotales.addCell(new Phrase(String.format("%.2f", val), contentFont));
+        };
 
-        tablaTotales.addCell(new Phrase("Débito", contentFont));
-        tablaTotales.addCell(new Phrase(String.valueOf(totalDebito), contentFont));
-
-        tablaTotales.addCell(new Phrase("Total Cobrado", contentFont));
-        tablaTotales.addCell(new Phrase(String.valueOf(totalCobrado), contentFont));
-
-        tablaTotales.addCell(new Phrase("Egresos Efectivo", contentFont));
-        tablaTotales.addCell(new Phrase(String.valueOf(totalEgresosEfectivo), contentFont));
-
-        tablaTotales.addCell(new Phrase("Egresos Débito", contentFont));
-        tablaTotales.addCell(new Phrase(String.valueOf(totalEgresosDebito), contentFont));
-
-        tablaTotales.addCell(new Phrase("Total Egresos", contentFont));
-        tablaTotales.addCell(new Phrase(String.valueOf(totalEgresos), contentFont));
-
-        tablaTotales.addCell(new Phrase("Total Neto", contentFont));
-        tablaTotales.addCell(new Phrase(String.valueOf(totalNeto), contentFont));
+        addTotal.accept("Efectivo", totalEfectivo);
+        addTotal.accept("Débito", totalDebito);
+        addTotal.accept("Total Cobrado", totalCobrado);
+        addTotal.accept("Egresos Efectivo", totalEgresosEfectivo);
+        addTotal.accept("Egresos Débito", totalEgresosDebito);
+        addTotal.accept("Total Egresos", totalEgresos);
+        addTotal.accept("Total Neto", totalNeto);
 
         document.add(tablaTotales);
 
@@ -941,4 +968,83 @@ public class PdfService {
         return bos.toByteArray();
     }
 
+    // HELPERS
+    private void addCenteredTitle(Document doc, String text) throws DocumentException {
+        Paragraph p = new Paragraph(text, TITLE_FONT);
+        p.setAlignment(Element.ALIGN_CENTER);
+        doc.add(p);
+        doc.add(Chunk.NEWLINE);
+    }
+
+    private void addSection(Document doc, String title, PdfPTable table) throws DocumentException {
+        doc.add(new Paragraph(title, SECTION_FONT));
+        doc.add(Chunk.NEWLINE);
+        doc.add(table);
+        doc.add(Chunk.NEWLINE);
+    }
+
+    private PdfPTable createTable(List<String> headers, float[] widths, List<List<String>> rows) {
+        PdfPTable table = new PdfPTable(widths);
+        table.setWidthPercentage(100);
+        // Encabezados
+        for (String h : headers) {
+            PdfPCell hc = new PdfPCell(new Phrase(h, HEADER_FONT));
+            hc.setHorizontalAlignment(Element.ALIGN_CENTER);
+            hc.setPadding(4);
+            table.addCell(hc);
+        }
+        // Filas
+        for (List<String> row : rows) {
+            for (String cell : row) {
+                PdfPCell c = new PdfPCell(new Phrase(cell, CELL_FONT));
+                c.setPadding(3);
+                c.setBorder(Rectangle.NO_BORDER);
+                c.setHorizontalAlignment(headers.indexOf(cell) == headers.size() - 1 ?
+                        Element.ALIGN_RIGHT : Element.ALIGN_LEFT);
+                table.addCell(c);
+            }
+        }
+        return table;
+    }
+
+    private List<String> toRowPago(PagoResponse p) {
+        String metodo = Optional.ofNullable(p.metodoPago())
+                .map(MetodoPagoResponse::descripcion)
+                .orElse("EFECTIVO").toUpperCase();
+        return List.of(
+                String.valueOf(p.id()),
+                p.alumno().nombre() + " " + p.alumno().apellido(),
+                metodo,
+                Optional.ofNullable(p.observaciones()).orElse(""),
+                MONEY_FMT.format(p.monto())
+        );
+    }
+
+    private List<String> toRowEgreso(EgresoResponse e) {
+        return List.of(
+                String.valueOf(e.id()),
+                Optional.ofNullable(e.observaciones()).orElse(""),
+                MONEY_FMT.format(e.monto())
+        );
+    }
+
+    private void addHeader(Document doc) throws DocumentException {
+        // aquí pones tu logo + datos, o reutilizas tu crearHeaderTable()
+    }
+
+    private void addPageNumbers(PdfWriter writer) {
+        writer.setPageEvent(new PdfPageEventHelper() {
+            @Override
+            public void onEndPage(PdfWriter w, Document d) {
+                ColumnText.showTextAligned(
+                        w.getDirectContent(),
+                        Element.ALIGN_RIGHT,
+                        new Phrase(String.format("Página %d", w.getPageNumber()), CELL_FONT),
+                        d.getPageSize().getRight(40),
+                        d.getPageSize().getBottom(20),
+                        0
+                );
+            }
+        });
+    }
 }
