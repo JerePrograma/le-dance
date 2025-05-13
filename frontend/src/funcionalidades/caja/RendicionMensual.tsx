@@ -38,6 +38,7 @@ interface EgresoDelDia {
   fecha: string;
   monto: number;
   observaciones?: string;
+  metodoPago?: { id: number; descripcion: string } | null;
 }
 
 export interface CajaDetalleDTO {
@@ -98,6 +99,7 @@ const RendicionMensual: React.FC = () => {
         egresosDelDia: detalle.egresosDelDia.map((egreso: any) => ({
           ...egreso,
           observaciones: egreso.observaciones ?? "",
+          metodoPago: egreso.metodoPago ?? null,
         })),
       };
       setData(mappedDetalle);
@@ -147,7 +149,6 @@ const RendicionMensual: React.FC = () => {
 
   const egresos: EgresoDelDia[] = data?.egresosDelDia || [];
   const sortedEgresos = [...egresos].sort((a, b) => b.id - a.id);
-  const totalEgresos = egresos.reduce((sum, e) => sum + e.monto, 0);
 
   const handleImprimir = async () => {
     try {
@@ -169,6 +170,16 @@ const RendicionMensual: React.FC = () => {
       toast.error("Error al imprimir la rendición.");
     }
   };
+
+  const totalEgresosEfectivo = egresos
+    .filter((e) => e.metodoPago?.descripcion.toUpperCase() === "EFECTIVO")
+    .reduce((sum, e) => sum + e.monto, 0);
+
+  const totalEgresosDebito = egresos
+    .filter((e) => e.metodoPago?.descripcion.toUpperCase() === "DEBITO")
+    .reduce((sum, e) => sum + e.monto, 0);
+
+  const totalEgresos = totalEgresosEfectivo + totalEgresosDebito;
 
   return (
     <div className="page-container p-4">
@@ -261,29 +272,22 @@ const RendicionMensual: React.FC = () => {
 
       {/* Totales */}
       <div className="text-right mt-2">
+        <p>Efectivo: $ {totalEfectivo.toLocaleString()}</p>
+        <p>Débito: $ {totalDebito.toLocaleString()}</p>
+        <p>Total cobrado: $ {totalCobrado.toLocaleString()}</p>
+
+        <p>Egresos en efectivo: $ {totalEgresosEfectivo.toLocaleString()}</p>
         <p>
-          Efectivo: ${" "}
-          {pagosFiltradosPorUsuario
-            .filter(
-              (p) => p.metodoPago?.descripcion?.toUpperCase() === "EFECTIVO"
-            )
-            .reduce((sum, p) => sum + p.monto, 0)
-            .toLocaleString()}
+          Total efectivo: ${" "}
+          {(totalEfectivo - totalEgresosEfectivo).toLocaleString()}
         </p>
+
+        <p>Egresos en débito: $ {totalEgresosDebito.toLocaleString()}</p>
         <p>
-          Débito: ${" "}
-          {pagosFiltradosPorUsuario
-            .filter(
-              (p) => p.metodoPago?.descripcion?.toUpperCase() === "DEBITO"
-            )
-            .reduce((sum, p) => sum + p.monto, 0)
-            .toLocaleString()}
+          Total débito: $ {(totalDebito - totalEgresosDebito).toLocaleString()}
         </p>
+
         <p>Total neto: $ {(totalCobrado - totalEgresos).toLocaleString()}</p>
-        <p>Egresos en efectivo: $ {totalEgresos.toLocaleString()}</p>
-        <p>
-          Total efectivo: $ {(totalEfectivo - totalEgresos).toLocaleString()}
-        </p>
       </div>
     </div>
   );

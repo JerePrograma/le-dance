@@ -5,13 +5,16 @@ import ledance.dto.alumno.response.AlumnoResponse;
 import ledance.dto.bonificacion.response.BonificacionResponse;
 import ledance.dto.caja.CajaDetalleDTO;
 import ledance.dto.caja.CajaDiariaDTO;
-import ledance.dto.caja.RendicionDTO;
+import ledance.dto.caja.CajaDiariaImp;
+import ledance.dto.caja.CajaRendicionDTO;
 import ledance.dto.caja.response.CobranzasDataResponse;
 import ledance.dto.concepto.response.ConceptoResponse;
 import ledance.dto.disciplina.response.DisciplinaResponse;
 import ledance.dto.egreso.EgresoMapper;
+import ledance.dto.egreso.response.EgresoResponse;
 import ledance.dto.metodopago.response.MetodoPagoResponse;
 import ledance.dto.pago.PagoMapper;
+import ledance.dto.pago.response.PagoResponse;
 import ledance.dto.recargo.response.RecargoResponse;
 import ledance.dto.stock.response.StockResponse;
 import ledance.entidades.Egreso;
@@ -136,12 +139,64 @@ public class CajaServicio {
         return min == max ? "Recibo #" + min : String.format("Recibo #%d al #%d", min, max);
     }
 
-    public CajaDetalleDTO obtenerCajaDiaria(LocalDate fecha) {
-        List<Pago> pagosDia = pagoRepositorio.findPagosConAlumnoPorFecha(fecha, fecha);
-        List<Egreso> egresosDia = egresoRepositorio.findByFecha(fecha);
+    /**
+     * Obtiene la caja diaria para una fecha dada, mapea los pagos y egresos
+     * y calcula todos los totales para devolver un CajaDiariaImp completo.
+     */
+    public CajaDiariaImp obtenerCajaDiaria(LocalDate fecha) {
+        // 1) Traer datos
+        List<Pago> pagosEnt = pagoRepositorio.findPagosConAlumnoPorFecha(fecha, fecha);
+        List<Egreso> egresosEnt = egresoRepositorio.findByFecha(fecha);
 
-        // Se pueden mapear a DTOs si se requiere
-        return new CajaDetalleDTO(pagoMapper.toDTOList(pagosDia), egresoMapper.toDTOList(egresosDia));
+        // 2) Mapear a DTOs
+        List<PagoResponse> pagos = pagoMapper.toDTOList(pagosEnt);
+        List<EgresoResponse> egresos = egresoMapper.toDTOList(egresosEnt);
+
+        // 3) Calcular totales de pagos
+        double totalEfectivo = pagos.stream()
+                .filter(p -> p.metodoPago() != null
+                        && "EFECTIVO".equalsIgnoreCase(p.metodoPago().descripcion()))
+                .mapToDouble(PagoResponse::monto)
+                .sum();
+
+        double totalDebito = pagos.stream()
+                .filter(p -> p.metodoPago() != null
+                        && "DEBITO".equalsIgnoreCase(p.metodoPago().descripcion()))
+                .mapToDouble(PagoResponse::monto)
+                .sum();
+
+        double totalCobrado = totalEfectivo + totalDebito;
+
+        // 4) Calcular totales de egresos
+        double totalEgresosEfectivo = egresos.stream()
+                .filter(e -> e.metodoPago() != null
+                        && "EFECTIVO".equalsIgnoreCase(e.metodoPago().descripcion()))
+                .mapToDouble(EgresoResponse::monto)
+                .sum();
+
+        double totalEgresosDebito = egresos.stream()
+                .filter(e -> e.metodoPago() != null
+                        && "DEBITO".equalsIgnoreCase(e.metodoPago().descripcion()))
+                .mapToDouble(EgresoResponse::monto)
+                .sum();
+
+        double totalEgresos = totalEgresosEfectivo + totalEgresosDebito;
+
+        // 5) Calcular neto
+        double totalNeto = totalCobrado - totalEgresos;
+
+        // 6) Devolver DTO completo
+        return new CajaDiariaImp(
+                pagos,
+                egresos,
+                totalEfectivo,
+                totalDebito,
+                totalCobrado,
+                totalEgresosEfectivo,
+                totalEgresosDebito,
+                totalEgresos,
+                totalNeto
+        );
     }
 
     public CobranzasDataResponse obtenerDatosCobranzas() {
@@ -176,9 +231,53 @@ public class CajaServicio {
         return new CajaDetalleDTO(pagoMapper.toDTOList(pagosMes), egresoMapper.toDTOList(egresosMes));
     }
 
-    public byte[] generarRendicionMensualPdf(LocalDate start, LocalDate end) throws IOException, DocumentException {
-        CajaDetalleDTO caja = obtenerCajaMensual(start, end); // ya implementado
+    public byte[] generarRendicionMensualPdf(CajaRendicionDTO caja) throws DocumentException {
         return pdfService.generarRendicionMensualPdf(caja);
     }
 
+
+    public CajaRendicionDTO obtenerCajaRendicionMensual(LocalDate start, LocalDate end) {
+        CajaDetalleDTO base = obtenerCajaMensual(start, end); // tu método existente
+
+        // Cálculos de pagos
+        double totalEfectivo = base.pagosDelDia().stream()
+                .filter(p -> "EFECTIVO".equalsIgnoreCase(p.metodoPago().descripcion()))
+                .mapToDouble(PagoResponse::monto)
+                .sum();
+        double totalDebito = base.pagosDelDia().stream()
+                .filter(p -> "DEBITO".equalsIgnoreCase(p.metodoPago().descripcion()))
+                .mapToDouble(PagoResponse::monto)
+                .sum();
+        double totalCobrado = totalEfectivo + totalDebito;
+
+        // Cálculos de egresos
+        double totalEgresosEfectivo = base.egresosDelDia().stream()
+                .filter(e -> e.metodoPago() != null && "EFECTIVO".equalsIgnoreCase(e.metodoPago().descripcion()))
+                .mapToDouble(EgresoResponse::monto)
+                .sum();
+        double totalEgresosDebito = base.egresosDelDia().stream()
+                .filter(e -> e.metodoPago() != null && "DEBITO".equalsIgnoreCase(e.metodoPago().descripcion()))
+                .mapToDouble(EgresoResponse::monto)
+                .sum();
+        double totalEgresos = totalEgresosEfectivo + totalEgresosDebito;
+
+        // Neto
+        double totalNeto = totalCobrado - totalEgresos;
+
+        return new CajaRendicionDTO(
+                base.pagosDelDia(),
+                base.egresosDelDia(),
+                totalEfectivo,
+                totalDebito,
+                totalCobrado,
+                totalEgresosEfectivo,
+                totalEgresosDebito,
+                totalEgresos,
+                totalNeto
+        );
+    }
+
+    public byte[] generarCajaDiariaPdf(CajaDiariaImp cajaDetalleImp) {
+        return pdfService.generarCajaDiariaPdf(cajaDetalleImp);
+    }
 }

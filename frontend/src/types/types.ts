@@ -673,11 +673,42 @@ export interface Pago {
   // metodo de pago, etc., segun tu back
 }
 
+export interface MetodoPago {
+  id: number;
+  descripcion: string;
+}
+
+export interface DetallePago {
+  id: number;
+  ACobrar: number;
+  estadoPago?: "ACTIVO" | "ANULADO" | "HISTORICO";
+}
+
+export interface PagoDelDia {
+  id: number;
+  fecha: string;
+  fechaVencimiento: string;
+  monto: number;
+  alumno: {
+    id: number;
+    nombre: string;
+    apellido: string;
+  };
+  observaciones: string;
+  metodoPago?: MetodoPago | null;
+  usuarioId: number; // Identificador del usuario que realizó el pago
+  detallePagos?: DetallePago[];
+  estadoPago?: "ACTIVO" | "ANULADO" | "HISTORICO";
+}
+
 export interface CajaDiariaDTO {
-  fecha: string; // "2025-02-26"
-  rangoRecibos: string; // "Recibo #10 al #12"
+  pagosDelDia: PagoDelDia[];
+  egresosDelDia: EgresoResponse[];
   totalEfectivo: number;
   totalDebito: number;
+  totalCobrado: number;
+  totalEgresosEfectivo: number;
+  totalEgresosDebito: number;
   totalEgresos: number;
   totalNeto: number;
 }

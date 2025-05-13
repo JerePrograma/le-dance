@@ -3,6 +3,7 @@ package ledance.controladores;
 import com.lowagie.text.DocumentException;
 import ledance.dto.caja.CajaDetalleDTO;
 import ledance.dto.caja.CajaDiariaDTO;
+import ledance.dto.caja.CajaDiariaImp;
 import ledance.dto.caja.response.CobranzasDataResponse;
 import ledance.servicios.caja.CajaServicio;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -38,12 +39,31 @@ public class CajaControlador {
     }
 
     @GetMapping("/dia/{fecha}")
-    public CajaDetalleDTO obtenerCajaDia(
+    public CajaDiariaImp obtenerCajaDia(
             @PathVariable("fecha")
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha
     ) {
         return cajaServicio.obtenerCajaDiaria(fecha);
     }
+
+    @GetMapping("/dia/{fecha}/imprimir")
+    public ResponseEntity<byte[]> imprimirCajaDiaria(
+            @PathVariable("fecha")
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha
+    ) throws DocumentException {
+        byte[] pdf = cajaServicio.generarCajaDiariaPdf(
+                cajaServicio.obtenerCajaDiaria(fecha)
+        );
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDisposition(
+                ContentDisposition.builder("attachment")
+                        .filename("caja_" + fecha + ".pdf")
+                        .build()
+        );
+        return new ResponseEntity<>(pdf, headers, HttpStatus.OK);
+    }
+
 
     @GetMapping("/mes")
     public CajaDetalleDTO obtenerCajaMes(
@@ -53,7 +73,6 @@ public class CajaControlador {
             @RequestParam("endDate")
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end
     ) {
-        // Se espera que start y end delimiten el periodo del mes que se desea consultar.
         return cajaServicio.obtenerCajaMensual(start, end);
     }
 
@@ -65,15 +84,12 @@ public class CajaControlador {
 
     @GetMapping("/rendicion/imprimir")
     public ResponseEntity<byte[]> imprimirRendicion(
-            @RequestParam("startDate")
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
-            @RequestParam("endDate")
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end) throws IOException, DocumentException {
-
-        // Se llama al servicio para generar el PDF; aqui se asume que cajaServicio tiene un metodo que recibe start y end.
-        byte[] pdfBytes = cajaServicio.generarRendicionMensualPdf(start, end);
-
-        // Configurar los headers para retornar un PDF descargable.
+            @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
+            @RequestParam("endDate")   @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end
+    ) throws IOException, DocumentException {
+        byte[] pdf = cajaServicio.generarRendicionMensualPdf(
+                cajaServicio.obtenerCajaRendicionMensual(start, end)
+        );
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
         headers.setContentDisposition(
@@ -81,8 +97,7 @@ public class CajaControlador {
                         .filename("rendicion_" + start + "_" + end + ".pdf")
                         .build()
         );
-
-        return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
+        return new ResponseEntity<>(pdf, headers, HttpStatus.OK);
     }
 
 }

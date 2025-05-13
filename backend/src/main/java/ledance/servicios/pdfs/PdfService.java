@@ -8,6 +8,8 @@ import jakarta.mail.MessagingException;
 import jakarta.validation.constraints.NotNull;
 import ledance.dto.alumno.response.AlumnoResponse;
 import ledance.dto.caja.CajaDetalleDTO;
+import ledance.dto.caja.CajaDiariaImp;
+import ledance.dto.caja.CajaRendicionDTO;
 import ledance.dto.egreso.response.EgresoResponse;
 import ledance.dto.pago.response.DetallePagoResponse;
 import ledance.dto.pago.response.PagoResponse;
@@ -408,48 +410,41 @@ public class PdfService {
      * @return Un arreglo de bytes representando el PDF generado.
      * @throws DocumentException En caso de error al crear el documento PDF.
      */
-    public byte[] generarRendicionMensualPdf(CajaDetalleDTO caja) throws DocumentException {
-        // Configuracion inicial del documento
+    public byte[] generarRendicionMensualPdf(CajaRendicionDTO caja) throws DocumentException {
+        // Configuración inicial del documento
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        Document document = new Document(PageSize.A4); // Orientacion horizontal para mas ancho
-        document.setMargins(15, 15, 15, 15); // Margenes ajustados
+        Document document = new Document(PageSize.A4.rotate()); // Landscape
+        document.setMargins(15, 15, 15, 15);
         PdfWriter.getInstance(document, bos);
         document.open();
 
-        // Definicion de fuentes compactas
+        // Fuentes
         Font titleFont = new Font(Font.HELVETICA, 14, Font.BOLD);
         Font sectionFont = new Font(Font.HELVETICA, 12, Font.BOLD);
-        Font contentFont = new Font(Font.HELVETICA, 8, Font.NORMAL); // Fuente pequeña para mayor cantidad de informacion
+        Font contentFont = new Font(Font.HELVETICA, 8, Font.NORMAL);
 
-        // Titulo principal
-        Paragraph titulo = new Paragraph("RENDICION MENSUAL", titleFont);
+        // Título
+        Paragraph titulo = new Paragraph("RENDICIÓN MENSUAL", titleFont);
         titulo.setAlignment(Element.ALIGN_CENTER);
         document.add(titulo);
         document.add(new Paragraph(" ", contentFont));
 
-        // -------------------------------------------------------------------------
-        // Seccion PAGOS DEL MES
-        // -------------------------------------------------------------------------
+        // --- PAGOS ---
         document.add(new Paragraph("PAGOS DEL MES", sectionFont));
         document.add(new Paragraph(" ", contentFont));
-
         List<PagoResponse> pagos = caja.pagosDelDia();
         if (pagos == null || pagos.isEmpty()) {
             document.add(new Paragraph("No hay pagos registrados para este periodo.", contentFont));
             document.add(new Paragraph(" ", contentFont));
         } else {
-            // Crear tabla de pagos filtrados y ordenados
             PdfPTable tablaPagos = getPdfPTable(pagos, contentFont);
             document.add(tablaPagos);
             document.add(new Paragraph(" ", contentFont));
         }
 
-        // -------------------------------------------------------------------------
-        // Seccion EGRESOS DEL MES
-        // -------------------------------------------------------------------------
+        // --- EGRESOS ---
         document.add(new Paragraph("EGRESOS DEL MES", sectionFont));
         document.add(new Paragraph(" ", contentFont));
-
         List<EgresoResponse> egresos = caja.egresosDelDia();
         if (egresos == null || egresos.isEmpty()) {
             document.add(new Paragraph("No hay egresos registrados para este periodo.", contentFont));
@@ -460,7 +455,35 @@ public class PdfService {
             document.add(new Paragraph(" ", contentFont));
         }
 
-        // Cerrar documento y devolver bytes
+        // --- TOTALES ---
+        document.add(new Paragraph("TOTALES", sectionFont));
+        document.add(new Paragraph(" ", contentFont));
+
+        PdfPTable tablaTotales = new PdfPTable(2);
+        tablaTotales.setWidths(new float[]{3, 2});
+
+        // Pagos
+        tablaTotales.addCell(new Phrase("Pagos Efectivo", contentFont));
+        tablaTotales.addCell(new Phrase(String.valueOf(caja.totalEfectivo()), contentFont));
+        tablaTotales.addCell(new Phrase("Pagos Débito", contentFont));
+        tablaTotales.addCell(new Phrase(String.valueOf(caja.totalDebito()), contentFont));
+        tablaTotales.addCell(new Phrase("Total Cobrado", contentFont));
+        tablaTotales.addCell(new Phrase(String.valueOf(caja.totalCobrado()), contentFont));
+
+        // Egresos
+        tablaTotales.addCell(new Phrase("Egresos Efectivo", contentFont));
+        tablaTotales.addCell(new Phrase(String.valueOf(caja.totalEgresosEfectivo()), contentFont));
+        tablaTotales.addCell(new Phrase("Egresos Débito", contentFont));
+        tablaTotales.addCell(new Phrase(String.valueOf(caja.totalEgresosDebito()), contentFont));
+        tablaTotales.addCell(new Phrase("Total Egresos", contentFont));
+        tablaTotales.addCell(new Phrase(String.valueOf(caja.totalEgresos()), contentFont));
+
+        // Neto
+        tablaTotales.addCell(new Phrase("Total Neto", contentFont));
+        tablaTotales.addCell(new Phrase(String.valueOf(caja.totalNeto()), contentFont));
+
+        document.add(tablaTotales);
+
         document.close();
         return bos.toByteArray();
     }
@@ -804,6 +827,117 @@ public class PdfService {
         doc.add(pNe);
 
         doc.close();
+        return bos.toByteArray();
+    }
+
+    /**
+     * Genera un PDF con la caja diaria, es decir, con TODOS los pagos y egresos
+     * obtenidos para una fecha dada. Incluye secciones de:
+     * - PAGOS DEL DÍA
+     * - EGRESOS DEL DÍA
+     * - TOTALES (efectivo, débito, cobrado, egresos y neto)
+     *
+     * @param cajaDetalleDTO DTO que trae los pagos y egresos del día.
+     * @return Un arreglo de bytes con el PDF generado.
+     * @throws DocumentException En caso de error al crear el documento PDF.
+     */
+    public byte[] generarCajaDiariaPdf(CajaDiariaImp cajaDetalleDTO) throws DocumentException {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        // Documento horizontal para más espacio
+        Document document = new Document(PageSize.A4.rotate());
+        document.setMargins(15, 15, 15, 15);
+        PdfWriter.getInstance(document, bos);
+        document.open();
+
+        // Fuentes
+        Font titleFont = new Font(Font.HELVETICA, 14, Font.BOLD);
+        Font sectionFont = new Font(Font.HELVETICA, 12, Font.BOLD);
+        Font contentFont = new Font(Font.HELVETICA, 8, Font.NORMAL);
+
+        // Título
+        Paragraph titulo = new Paragraph("CAJA DIARIA", titleFont);
+        titulo.setAlignment(Element.ALIGN_CENTER);
+        document.add(titulo);
+        document.add(new Paragraph(" ", contentFont));
+
+        // --- PAGOS DEL DÍA ---
+        document.add(new Paragraph("PAGOS DEL DÍA", sectionFont));
+        document.add(new Paragraph(" ", contentFont));
+        List<PagoResponse> pagos = cajaDetalleDTO.pagosDelDia();
+        if (pagos == null || pagos.isEmpty()) {
+            document.add(new Paragraph("No hay pagos para esta fecha.", contentFont));
+            document.add(new Paragraph(" ", contentFont));
+        } else {
+            PdfPTable tablaPagos = getPdfPTable(pagos, contentFont);
+            document.add(tablaPagos);
+            document.add(new Paragraph(" ", contentFont));
+        }
+
+        // --- EGRESOS DEL DÍA ---
+        document.add(new Paragraph("EGRESOS DEL DÍA", sectionFont));
+        document.add(new Paragraph(" ", contentFont));
+        List<EgresoResponse> egresos = cajaDetalleDTO.egresosDelDia();
+        if (egresos == null || egresos.isEmpty()) {
+            document.add(new Paragraph("No hay egresos para esta fecha.", contentFont));
+            document.add(new Paragraph(" ", contentFont));
+        } else {
+            PdfPTable tablaEgresos = getPTable(egresos, contentFont);
+            document.add(tablaEgresos);
+            document.add(new Paragraph(" ", contentFont));
+        }
+
+        // --- CÁLCULO DE TOTALES ---
+        double totalEfectivo = cajaDetalleDTO.pagosDelDia().stream()
+                .filter(p -> "EFECTIVO".equalsIgnoreCase(p.metodoPago().descripcion()))
+                .mapToDouble(PagoResponse::monto)
+                .sum();
+        double totalDebito = cajaDetalleDTO.pagosDelDia().stream()
+                .filter(p -> "DEBITO".equalsIgnoreCase(p.metodoPago().descripcion()))
+                .mapToDouble(PagoResponse::monto)
+                .sum();
+        double totalCobrado = totalEfectivo + totalDebito;
+
+        double totalEgresosEfectivo = cajaDetalleDTO.egresosDelDia().stream()
+                .filter(e -> e.metodoPago() != null && "EFECTIVO".equalsIgnoreCase(e.metodoPago().descripcion()))
+                .mapToDouble(EgresoResponse::monto)
+                .sum();
+        double totalEgresosDebito = cajaDetalleDTO.egresosDelDia().stream()
+                .filter(e -> e.metodoPago() != null && "DEBITO".equalsIgnoreCase(e.metodoPago().descripcion()))
+                .mapToDouble(EgresoResponse::monto)
+                .sum();
+        double totalEgresos = totalEgresosEfectivo + totalEgresosDebito;
+        double totalNeto = totalCobrado - totalEgresos;
+
+        // --- TOTALES EN TABLA ---
+        document.add(new Paragraph("TOTALES", sectionFont));
+        document.add(new Paragraph(" ", contentFont));
+        PdfPTable tablaTotales = new PdfPTable(2);
+        tablaTotales.setWidths(new float[]{3, 2});
+
+        tablaTotales.addCell(new Phrase("Efectivo", contentFont));
+        tablaTotales.addCell(new Phrase(String.valueOf(totalEfectivo), contentFont));
+
+        tablaTotales.addCell(new Phrase("Débito", contentFont));
+        tablaTotales.addCell(new Phrase(String.valueOf(totalDebito), contentFont));
+
+        tablaTotales.addCell(new Phrase("Total Cobrado", contentFont));
+        tablaTotales.addCell(new Phrase(String.valueOf(totalCobrado), contentFont));
+
+        tablaTotales.addCell(new Phrase("Egresos Efectivo", contentFont));
+        tablaTotales.addCell(new Phrase(String.valueOf(totalEgresosEfectivo), contentFont));
+
+        tablaTotales.addCell(new Phrase("Egresos Débito", contentFont));
+        tablaTotales.addCell(new Phrase(String.valueOf(totalEgresosDebito), contentFont));
+
+        tablaTotales.addCell(new Phrase("Total Egresos", contentFont));
+        tablaTotales.addCell(new Phrase(String.valueOf(totalEgresos), contentFont));
+
+        tablaTotales.addCell(new Phrase("Total Neto", contentFont));
+        tablaTotales.addCell(new Phrase(String.valueOf(totalNeto), contentFont));
+
+        document.add(tablaTotales);
+
+        document.close();
         return bos.toByteArray();
     }
 

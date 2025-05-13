@@ -77,6 +77,13 @@ const cajaApi = {
     return data;
   },
 
+  async imprimirCajaDiaria(fecha: string): Promise<Blob> {
+    const { data } = await api.get<Blob>(`/caja/dia/${fecha}/imprimir`, {
+      responseType: "blob",
+    });
+    return data;
+  },
+
   async generarRendicionMensual(): Promise<RendicionDTO> {
     const { data } = await api.post<RendicionDTO>("/caja/rendicion/generar");
     return data;

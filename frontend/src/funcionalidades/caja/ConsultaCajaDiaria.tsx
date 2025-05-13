@@ -7,35 +7,8 @@ import Tabla from "../../componentes/comunes/Tabla";
 import Boton from "../../componentes/comunes/Boton";
 import { toast } from "react-toastify";
 import { useAuth } from "../../hooks/context/authContext";
-import { EgresoResponse } from "../../types/types";
+import { EgresoResponse, PagoDelDia } from "../../types/types";
 
-interface MetodoPago {
-  id: number;
-  descripcion: string;
-}
-
-interface DetallePago {
-  id: number;
-  ACobrar: number;
-  estadoPago?: "ACTIVO" | "ANULADO" | "HISTORICO";
-}
-
-interface PagoDelDia {
-  id: number;
-  fecha: string;
-  fechaVencimiento: string;
-  monto: number;
-  alumno: {
-    id: number;
-    nombre: string;
-    apellido: string;
-  };
-  observaciones: string;
-  metodoPago?: MetodoPago | null;
-  usuarioId: number; // Identificador del usuario que realizó el pago
-  detallePagos?: DetallePago[];
-  estadoPago?: "ACTIVO" | "ANULADO" | "HISTORICO";
-}
 export interface CajaDetalleDTO {
   pagosDelDia: PagoDelDia[];
   egresosDelDia: EgresoResponse[];
@@ -143,8 +116,22 @@ const ConsultaCajaDiaria: React.FC = () => {
     0
   );
 
-  const handleImprimir = () =>
-    toast.info("Funcionalidad de imprimir no implementada");
+  const handleImprimirDiaria = async () => {
+    try {
+      const blob = await cajaApi.imprimirCajaDiaria(fecha);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `caja_${fecha}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      toast.error("Error al imprimir la caja diaria.");
+    }
+  };
+
   const handleAbrirModalEgreso = () => {
     setMontoEgreso(0);
     setObsEgreso("");
@@ -291,7 +278,7 @@ const ConsultaCajaDiaria: React.FC = () => {
       {/* Botones finales */}
       <div className="mt-4 flex gap-2">
         <Boton
-          onClick={handleImprimir}
+          onClick={handleImprimirDiaria}
           className="bg-pink-400 text-white p-2 rounded"
         >
           Imprimir
@@ -306,17 +293,23 @@ const ConsultaCajaDiaria: React.FC = () => {
 
       {/* Totales */}
       <div className="text-right mt-2">
-        <p>Efectivo: {totalEfectivo.toLocaleString()}</p>
-        <p>Débito: {totalDebito.toLocaleString()}</p>
-        <p>Total cobrado: {totalCobrado.toLocaleString()}</p>
-        <p>Egresos en efectivo: {totalEgresosEfectivo.toLocaleString()}</p>
-        <p>Egresos en débito: {totalEgresosDebito.toLocaleString()}</p>
+        <p>Efectivo: $ {totalEfectivo.toLocaleString()}</p>
+        <p>Débito: $ {totalDebito.toLocaleString()}</p>
+        <p>Total cobrado: $ {totalCobrado.toLocaleString()}</p>
+
+        <p>Egresos en efectivo: $ {totalEgresosEfectivo.toLocaleString()}</p>
         <p>
-          Total efectivo:{" "}
+          Total efectivo: ${" "}
           {(totalEfectivo - totalEgresosEfectivo).toLocaleString()}
         </p>
+
+        <p>Egresos en débito: $ {totalEgresosDebito.toLocaleString()}</p>
         <p>
-          Total neto:{" "}
+          Total débito: $ {(totalDebito - totalEgresosDebito).toLocaleString()}
+        </p>
+
+        <p>
+          Total neto: ${" "}
           {(
             totalCobrado -
             (totalEgresosEfectivo + totalEgresosDebito)
