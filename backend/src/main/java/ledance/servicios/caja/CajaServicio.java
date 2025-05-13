@@ -168,20 +168,27 @@ public class CajaServicio {
     public CajaRendicionDTO obtenerCajaRendicionMensual(LocalDate start, LocalDate end) {
         CajaDetalleDTO base = obtenerCajaMensual(start, end);
 
-        // Totales de pagos
-        double totalEfectivo = base.pagosDelDia().stream()
+        // 1) Filtrar pagos: quitamos aquellos con monto == 0 y observaciones vacías o null
+        List<PagoResponse> pagosValidos = base.pagosDelDia().stream()
+                .filter(p -> !(p.monto() == 0
+                        && (p.observaciones() == null || p.observaciones().isBlank()))
+                )
+                .toList();
+
+        // 2) Totales de pagos sobre la lista filtrada
+        double totalEfectivo = pagosValidos.stream()
                 .filter(p -> descripcionMetodoSeguro(p).equals("EFECTIVO"))
                 .mapToDouble(PagoResponse::monto)
                 .sum();
 
-        double totalDebito = base.pagosDelDia().stream()
+        double totalDebito = pagosValidos.stream()
                 .filter(p -> descripcionMetodoSeguro(p).equals("DEBITO"))
                 .mapToDouble(PagoResponse::monto)
                 .sum();
 
         double totalCobrado = totalEfectivo + totalDebito;
 
-        // Totales de egresos
+        // 3) Totales de egresos (igual que antes)
         double totalEgresosEfectivo = base.egresosDelDia().stream()
                 .filter(e -> {
                     var mp = e.metodoPago();
@@ -201,8 +208,9 @@ public class CajaServicio {
         double totalEgresos = totalEgresosEfectivo + totalEgresosDebito;
         double totalNeto = totalCobrado - totalEgresos;
 
+        // 4) Devolvemos la DTO usando la lista de pagos filtrados
         return new CajaRendicionDTO(
-                base.pagosDelDia(),
+                pagosValidos,
                 base.egresosDelDia(),
                 totalEfectivo,
                 totalDebito,
@@ -214,6 +222,21 @@ public class CajaServicio {
         );
     }
 
+    /**
+     * Devuelve la descripción del método de pago en mayúsculas,
+     * o "EFECTIVO" si no existe método o su descripción es null.
+     */
+    private String descripcionMetodoPagoSeguro(PagoResponse p) {
+        var mp = p.metodoPago();
+        return (mp == null || mp.descripcion() == null)
+                ? "EFECTIVO"
+                : mp.descripcion().toUpperCase();
+    }
+
+    /**
+     * Obtiene la caja diaria para una fecha dada, mapea los pagos y egresos
+     * y calcula todos los totales para devolver un CajaDiariaImp completo.
+     */
     public CajaDiariaImp obtenerCajaDiaria(LocalDate fecha) {
         // 1) Traer entidades
         List<PagoResponse> pagos = pagoMapper.toDTOList(
@@ -223,20 +246,20 @@ public class CajaServicio {
                 egresoRepositorio.findByFecha(fecha)
         );
 
-        // 2) Totales de pagos
+        // 2) Totales de pagos (filtrando método seguro)
         double totalEfectivo = pagos.stream()
-                .filter(p -> descripcionMetodoSeguro(p).equals("EFECTIVO"))
+                .filter(p -> descripcionMetodoPagoSeguro(p).equals("EFECTIVO"))
                 .mapToDouble(PagoResponse::monto)
                 .sum();
 
         double totalDebito = pagos.stream()
-                .filter(p -> descripcionMetodoSeguro(p).equals("DEBITO"))
+                .filter(p -> descripcionMetodoPagoSeguro(p).equals("DEBITO"))
                 .mapToDouble(PagoResponse::monto)
                 .sum();
 
         double totalCobrado = totalEfectivo + totalDebito;
 
-        // 3) Totales de egresos
+        // 3) Totales de egresos (efectivo y débito)
         double totalEgresosEfectivo = egresos.stream()
                 .filter(e -> {
                     var mp = e.metodoPago();
@@ -254,9 +277,11 @@ public class CajaServicio {
                 .sum();
 
         double totalEgresos = totalEgresosEfectivo + totalEgresosDebito;
+
+        // 4) Neto
         double totalNeto = totalCobrado - totalEgresos;
 
-        // 4) Devolver DTO completo
+        // 5) Devolver DTO completo
         return new CajaDiariaImp(
                 pagos,
                 egresos,
@@ -269,7 +294,7 @@ public class CajaServicio {
                 totalNeto
         );
     }
-    
+
     public byte[] generarCajaDiariaPdf(CajaDiariaImp cajaDetalleImp) {
         return pdfService.generarCajaDiariaPdf(cajaDetalleImp);
     }
