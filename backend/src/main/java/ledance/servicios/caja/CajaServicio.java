@@ -3,10 +3,7 @@ package ledance.servicios.caja;
 import com.lowagie.text.DocumentException;
 import ledance.dto.alumno.response.AlumnoResponse;
 import ledance.dto.bonificacion.response.BonificacionResponse;
-import ledance.dto.caja.CajaDetalleDTO;
-import ledance.dto.caja.CajaDiariaDTO;
-import ledance.dto.caja.CajaDiariaImp;
-import ledance.dto.caja.CajaRendicionDTO;
+import ledance.dto.caja.*;
 import ledance.dto.caja.response.CobranzasDataResponse;
 import ledance.dto.concepto.response.ConceptoResponse;
 import ledance.dto.disciplina.response.DisciplinaResponse;
@@ -74,47 +71,48 @@ public class CajaServicio {
     // -------------------------------------------------------------------------
     // 1. Planilla General de Caja: Lista diaria con totales de ingresos y egresos.
     // -------------------------------------------------------------------------
-    public List<CajaDiariaDTO> obtenerPlanillaGeneral(LocalDate start, LocalDate end) {
-        // a) Obtener pagos activos (o HISTORICOS segun convenga) en el rango
-        List<Pago> pagos = pagoRepositorio.findPagosConAlumnoPorFecha(start, end);
-        // b) Obtener egresos en el rango
-        List<Egreso> egresos = egresoRepositorio.findByFechaBetween(start, end);
+    public List<CajaPlanillaDTO> obtenerPlanillaGeneral(LocalDate start, LocalDate end) {
+        var pagos = pagoRepositorio.findPagosConAlumnoPorFecha(start, end);
+        var egresos = egresoRepositorio.findByFechaBetween(start, end);
 
-        // Para agrupar, usaremos las fechas (asumimos que en los DTOs la fecha es de tipo LocalDate)
-        Map<LocalDate, List<Pago>> pagosPorDia = pagos.stream()
+        var pagosPorDia = pagos.stream()
                 .collect(Collectors.groupingBy(Pago::getFecha));
-        Map<LocalDate, List<Egreso>> egresosPorDia = egresos.stream()
+        var egresosPorDia = egresos.stream()
                 .collect(Collectors.groupingBy(Egreso::getFecha));
 
-        // Todas las fechas involucradas
-        Set<LocalDate> fechasCompletas = new HashSet<>();
-        fechasCompletas.addAll(pagosPorDia.keySet());
-        fechasCompletas.addAll(egresosPorDia.keySet());
+        var todasFechas = new HashSet<LocalDate>();
+        todasFechas.addAll(pagosPorDia.keySet());
+        todasFechas.addAll(egresosPorDia.keySet());
 
-        List<CajaDiariaDTO> resultado = new ArrayList<>();
-        for (LocalDate dia : fechasCompletas) {
-            List<Pago> pagosDia = pagosPorDia.getOrDefault(dia, Collections.emptyList());
-            List<Egreso> egresosDia = egresosPorDia.getOrDefault(dia, Collections.emptyList());
+        var resultado = new ArrayList<CajaPlanillaDTO>();
+        for (var dia : todasFechas) {
+            var pDia = pagosPorDia.getOrDefault(dia, List.of());
+            var eDia = egresosPorDia.getOrDefault(dia, List.of());
 
-            double totalEfectivo = sumarPorMetodoPago(pagosDia, "EFECTIVO");
-            double totalDebito = sumarPorMetodoPago(pagosDia, "DEBITO");
-            double totalEgresos = egresosDia.stream().mapToDouble(Egreso::getMonto).sum();
+            double ef = pDia.stream()
+                    .filter(p -> "EFECTIVO".equalsIgnoreCase(p.getMetodoPago().getDescripcion()))
+                    .mapToDouble(Pago::getMonto).sum();
 
-            String rangoRecibos = calcularRangoRecibos(pagosDia);
-            double totalNeto = (totalEfectivo + totalDebito) - totalEgresos;
+            double db = pDia.stream()
+                    .filter(p -> "DEBITO".equalsIgnoreCase(p.getMetodoPago().getDescripcion()))
+                    .mapToDouble(Pago::getMonto).sum();
 
-            CajaDiariaDTO dto = new CajaDiariaDTO(
-                    dia,
-                    rangoRecibos,
-                    totalEfectivo,
-                    totalDebito,
-                    totalEgresos,
-                    totalNeto
-            );
-            resultado.add(dto);
+            double egTot = eDia.stream().mapToDouble(Egreso::getMonto).sum();
+            double neto = (ef + db) - egTot;
+
+            String rango = pDia.isEmpty()
+                    ? ""
+                    : pDia.stream().map(Pago::getId)
+                    .sorted()
+                    .collect(Collectors.collectingAndThen(
+                            Collectors.toList(),
+                            ids -> ids.get(0) + "-" + ids.get(ids.size() - 1)
+                    ));
+
+            resultado.add(new CajaPlanillaDTO(dia, rango, ef, db, egTot, neto));
         }
 
-        resultado.sort(Comparator.comparing(CajaDiariaDTO::fecha));
+        resultado.sort(Comparator.comparing(CajaPlanillaDTO::fecha));
         return resultado;
     }
 

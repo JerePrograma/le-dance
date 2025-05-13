@@ -4,6 +4,7 @@ import com.lowagie.text.DocumentException;
 import ledance.dto.caja.CajaDetalleDTO;
 import ledance.dto.caja.CajaDiariaDTO;
 import ledance.dto.caja.CajaDiariaImp;
+import ledance.dto.caja.CajaPlanillaDTO;
 import ledance.dto.caja.response.CobranzasDataResponse;
 import ledance.servicios.caja.CajaServicio;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -25,15 +26,12 @@ public class CajaControlador {
     }
 
     /**
-     * 1) Planilla general de caja en un rango
+     * 1) Planilla general de caja en un rango de fechas
      */
     @GetMapping("/planilla")
-    public List<CajaDiariaDTO> obtenerPlanilla(
-            @RequestParam("startDate")
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
-
-            @RequestParam("endDate")
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end
+    public List<CajaPlanillaDTO> obtenerPlanilla(
+            @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
+            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end
     ) {
         return cajaServicio.obtenerPlanillaGeneral(start, end);
     }
@@ -85,7 +83,7 @@ public class CajaControlador {
     @GetMapping("/rendicion/imprimir")
     public ResponseEntity<byte[]> imprimirRendicion(
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
-            @RequestParam("endDate")   @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end
+            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end
     ) throws IOException, DocumentException {
         byte[] pdf = cajaServicio.generarRendicionMensualPdf(
                 cajaServicio.obtenerCajaRendicionMensual(start, end)

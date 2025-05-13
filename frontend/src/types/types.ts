@@ -673,6 +673,15 @@ export interface Pago {
   // metodo de pago, etc., segun tu back
 }
 
+export interface CajaPlanillaDTO {
+  fecha: string; // "2025-02-26"
+  rangoRecibos: string; // "19270-19282"
+  totalEfectivo: number;
+  totalDebito: number;
+  totalEgresos: number;
+  totalNeto: number;
+}
+
 export interface MetodoPago {
   id: number;
   descripcion: string;

@@ -2,18 +2,18 @@
 import api from "./axiosConfig";
 import type {
   CajaDetalleDTO,
-  CajaDiariaDTO,
   EgresoResponse,
   RendicionDTO,
   CobranzasDataResponse,
+  CajaPlanillaDTO,
 } from "../types/types";
 
 const cajaApi = {
   async obtenerPlanillaGeneral(
     startDate: string,
     endDate: string
-  ): Promise<CajaDiariaDTO[]> {
-    const { data } = await api.get<CajaDiariaDTO[]>("/caja/planilla", {
+  ): Promise<CajaPlanillaDTO[]> {
+    const { data } = await api.get<CajaPlanillaDTO[]>("/caja/planilla", {
       params: { startDate, endDate },
     });
     return data;
