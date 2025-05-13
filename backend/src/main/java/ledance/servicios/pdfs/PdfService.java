@@ -425,63 +425,56 @@ public class PdfService {
      * @return Un arreglo de bytes representando el PDF generado.
      * @throws DocumentException En caso de error al crear el documento PDF.
      */
-    public byte[] generarRendicionMensualPdf(CajaRendicionDTO caja) throws DocumentException, IOException {
-        try (
-                ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                Document doc = new Document(PageSize.A4.rotate(), 15, 15, 15, 15)
-        ) {
-            // 1) Obtengo el PdfWriter y lo guardo en una variable
-            PdfWriter writer = PdfWriter.getInstance(doc, bos);
+    public byte[] generarRendicionMensualPdf(CajaRendicionDTO caja)
+            throws DocumentException, IOException {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        Document doc = new Document(PageSize.A4.rotate(), 15, 15, 15, 15);
+        PdfWriter writer = PdfWriter.getInstance(doc, bos);
+        addPageNumbers(writer);
+        doc.open();
 
-            // 2) Le adjunto el event handler de numeración
-            addPageNumbers(writer);
+        // 4) Ahora agrego el header y todo lo demás
+        addHeader(doc);
 
-            // 3) Abro el documento
-            doc.open();
+        // Título centrado
+        addCenteredTitle(doc, "RENDICIÓN MENSUAL");
 
-            // 4) Ahora agrego el header y todo lo demás
-            addHeader(doc);
+        // Sección de pagos
+        addSection(doc, "PAGOS DEL MES",
+                createTable(
+                        List.of("Recibo", "Alumno", "Método", "Observaciones", "Importe"),
+                        COL_WIDTHS_PAGOS,
+                        caja.pagosDelDia().stream()
+                                .map(this::toRowPago)
+                                .toList()
+                )
+        );
 
-            // Título centrado
-            addCenteredTitle(doc, "RENDICIÓN MENSUAL");
+        // Sección de egresos
+        addSection(doc, "EGRESOS DEL MES",
+                createTable(
+                        List.of("ID", "Observaciones", "Monto"),
+                        COL_WIDTHS_EGRESOS,
+                        caja.egresosDelDia().stream()
+                                .map(this::toRowEgreso)
+                                .toList()
+                )
+        );
 
-            // Sección de pagos
-            addSection(doc, "PAGOS DEL MES",
-                    createTable(
-                            List.of("Recibo", "Alumno", "Método", "Observaciones", "Importe"),
-                            COL_WIDTHS_PAGOS,
-                            caja.pagosDelDia().stream()
-                                    .map(this::toRowPago)
-                                    .toList()
-                    )
-            );
+        // Sección de totales
+        List<List<String>> rowsTotales = List.of(
+                List.of("Pagos Efectivo", MONEY_FMT.format(caja.totalEfectivo())),
+                List.of("Pagos Débito", MONEY_FMT.format(caja.totalDebito())),
+                List.of("Total Cobrado", MONEY_FMT.format(caja.totalCobrado())),
+                List.of("Egresos Efectivo", MONEY_FMT.format(caja.totalEgresosEfectivo())),
+                List.of("Egresos Débito", MONEY_FMT.format(caja.totalEgresosDebito())),
+                List.of("Total Egresos", MONEY_FMT.format(caja.totalEgresos())),
+                List.of("Total Neto", MONEY_FMT.format(caja.totalNeto()))
+        );
+        addSection(doc, "TOTALES", createTable(List.of("Concepto", "Importe"), COL_WIDTHS_TOTALES, rowsTotales));
 
-            // Sección de egresos
-            addSection(doc, "EGRESOS DEL MES",
-                    createTable(
-                            List.of("ID", "Observaciones", "Monto"),
-                            COL_WIDTHS_EGRESOS,
-                            caja.egresosDelDia().stream()
-                                    .map(this::toRowEgreso)
-                                    .toList()
-                    )
-            );
-
-            // Sección de totales
-            List<List<String>> rowsTotales = List.of(
-                    List.of("Pagos Efectivo", MONEY_FMT.format(caja.totalEfectivo())),
-                    List.of("Pagos Débito", MONEY_FMT.format(caja.totalDebito())),
-                    List.of("Total Cobrado", MONEY_FMT.format(caja.totalCobrado())),
-                    List.of("Egresos Efectivo", MONEY_FMT.format(caja.totalEgresosEfectivo())),
-                    List.of("Egresos Débito", MONEY_FMT.format(caja.totalEgresosDebito())),
-                    List.of("Total Egresos", MONEY_FMT.format(caja.totalEgresos())),
-                    List.of("Total Neto", MONEY_FMT.format(caja.totalNeto()))
-            );
-            addSection(doc, "TOTALES", createTable(List.of("Concepto", "Importe"), COL_WIDTHS_TOTALES, rowsTotales));
-
-            doc.close();
-            return bos.toByteArray();
-        }
+        doc.close();
+        return bos.toByteArray();
     }
 
     private static PdfPTable getPTable(List<EgresoResponse> egresos, Font contentFont) {
@@ -986,21 +979,22 @@ public class PdfService {
     private PdfPTable createTable(List<String> headers, float[] widths, List<List<String>> rows) {
         PdfPTable table = new PdfPTable(widths);
         table.setWidthPercentage(100);
-        // Encabezados
         for (String h : headers) {
             PdfPCell hc = new PdfPCell(new Phrase(h, HEADER_FONT));
             hc.setHorizontalAlignment(Element.ALIGN_CENTER);
             hc.setPadding(4);
             table.addCell(hc);
         }
-        // Filas
         for (List<String> row : rows) {
-            for (String cell : row) {
-                PdfPCell c = new PdfPCell(new Phrase(cell, CELL_FONT));
+            for (int col = 0; col < row.size(); col++) {
+                PdfPCell c = new PdfPCell(new Phrase(row.get(col), CELL_FONT));
                 c.setPadding(3);
                 c.setBorder(Rectangle.NO_BORDER);
-                c.setHorizontalAlignment(headers.indexOf(cell) == headers.size() - 1 ?
-                        Element.ALIGN_RIGHT : Element.ALIGN_LEFT);
+                c.setHorizontalAlignment(
+                        col == row.size() - 1
+                                ? Element.ALIGN_RIGHT
+                                : Element.ALIGN_LEFT
+                );
                 table.addCell(c);
             }
         }
@@ -1029,7 +1023,9 @@ public class PdfService {
     }
 
     private void addHeader(Document doc) throws DocumentException {
-        // aquí pones tu logo + datos, o reutilizas tu crearHeaderTable()
+        PdfPTable header = crearHeaderTable();
+        doc.add(header);
+        doc.add(Chunk.NEWLINE);
     }
 
     private void addPageNumbers(PdfWriter writer) {

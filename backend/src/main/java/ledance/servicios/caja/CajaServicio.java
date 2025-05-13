@@ -149,7 +149,7 @@ public class CajaServicio {
         return new CajaDetalleDTO(pagoMapper.toDTOList(pagosMes), egresoMapper.toDTOList(egresosMes));
     }
 
-    public byte[] generarRendicionMensualPdf(CajaRendicionDTO caja) throws DocumentException {
+    public byte[] generarRendicionMensualPdf(CajaRendicionDTO caja) throws DocumentException, IOException {
         return pdfService.generarRendicionMensualPdf(caja);
     }
 
