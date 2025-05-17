@@ -87,7 +87,7 @@ public class AlumnoServicio implements IAlumnoServicio {
 
     @Override
     public List<AlumnoResponse> listarAlumnos() {
-        return alumnoRepositorio.findByActivoTrue().stream()
+        return alumnoRepositorio.findAll().stream()
                 .map(alumnoMapper::toResponse)
                 .collect(Collectors.toList());
     }
