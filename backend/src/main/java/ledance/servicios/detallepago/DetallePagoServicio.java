@@ -343,8 +343,7 @@ public class DetallePagoServicio {
                         .trim();
 
                 // 2) Construir la nueva observación
-                String nuevaObs = ("ANULADO " + descripcion
-                        + (limpio.isEmpty() ? "" : " " + limpio) + "\n")
+                String nuevaObs = ("\n")
                         .trim();
 
                 // 3) Guardar cambios
