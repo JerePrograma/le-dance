@@ -199,6 +199,22 @@ const filtrarDetalles = async (params: {
   return data;
 };
 
+/**
+ * Lista DetallePago filtrados sólo por rango de fecha.
+ */
+const listarDetallesPorFecha = async (params: {
+  fechaDesde?: string;
+  fechaHasta?: string;
+}): Promise<DetallePagoResponse[]> => {
+  const { data } = await api.get<DetallePagoResponse[]>(
+    "/detalle-pago/fecha",
+    {
+      params,
+    }
+  );
+  return data;
+};
+
 const obtenerDatosUnificadosAlumno = async (
   alumnoId: number
 ): Promise<DatosUnificadosAlumnoResponse> => {
@@ -222,6 +238,7 @@ const pagosApi = {
   listarPagosVencidos,
   // Nuevos endpoints basicos
   listarDisciplinasBasicas,
+  listarDetallesPorFecha,
   listarStocksBasicos,
   listarAlumnosBasicos,
   obtenerCobranzaPorAlumno, // Agregado aqui

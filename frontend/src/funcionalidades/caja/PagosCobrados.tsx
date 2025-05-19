@@ -57,24 +57,24 @@ const DetallePagoList: React.FC = () => {
 
   // Función para cargar detalles (aplicando filtros si existen)
   const fetchDetalles = useCallback(
-    async (params: Record<string, string> = {}) => {
+    async (params: { fechaDesde?: string; fechaHasta?: string } = {}) => {
       try {
         setLoading(true);
         setError(null);
-        const data = await pagosApi.filtrarDetalles(params);
+        // ahora usamos listarDetallesPorFecha
+        const data = await pagosApi.listarDetallesPorFecha(params);
         setDetalles(Array.isArray(data) ? data : []);
-        // Reiniciamos visibleCount al recargar datos
         setVisibleCount(itemsPerPage);
       } catch (error) {
-        toast.error("Error al cargar pagos cobrados");
-        setError("Error al cargar pagos cobrados");
+        toast.error("Error al cargar detalles de pago");
+        setError("Error al cargar detalles de pago");
       } finally {
         setLoading(false);
       }
     },
     []
   );
-
+  
   // Cargar datos al montar
   useEffect(() => {
     fetchDetalles();

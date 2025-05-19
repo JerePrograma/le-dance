@@ -1193,12 +1193,15 @@ const CobranzasForm: React.FC = () => {
             calcularRecargoPorFecha(fecha, recargos, importeInicial);
           const recargoId = recargoAplicado?.id ?? null;
 
+          // 6) Etiqueta corta para mostrar en 'cuotaOCantidad'
+          const cuotaLabel = `${tarifaLabel} - ${fecha}`;
+
           const payload: DetallePagoRegistroRequest = {
             id: 0,
             version: 0,
             alumno: values.alumno,
             descripcionConcepto: label,
-            cuotaOCantidad: cantidad.toString(),
+            cuotaOCantidad: cuotaLabel,
             valorBase,
             importeInicial,
             bonificacionId: bonificacion?.id ?? null,

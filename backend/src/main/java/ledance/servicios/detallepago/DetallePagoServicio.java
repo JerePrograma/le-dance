@@ -339,15 +339,14 @@ public class DetallePagoServicio {
                 // 1) Quitar todas las ocurrencias previas
                 String limpio = obs
                         .replaceAll(regex, "")
-                        .replaceAll("\\s{2,}", " ") // colapsar espacios dobles
+                        .replaceAll("\\s{2,}", " ")  // colapsar espacios dobles
                         .trim();
 
-                // 2) Construir la nueva observación
-                String nuevaObs = ("\n")
-                        .trim();
+                // 2) Usar sólo el resto (sin prefijo "ANULADO")
+                String nuevaObs = limpio.isEmpty() ? "" : limpio + "\n";
 
                 // 3) Guardar cambios
-                pago.setObservaciones(nuevaObs);
+                pago.setObservaciones(nuevaObs.trim());
                 pagoRepositorio.save(pago);
                 log.info("[eliminarDetallePago] Observaciones actualizadas: {}", nuevaObs);
             }
