@@ -29,7 +29,6 @@ import type {
   InscripcionResponse,
   BonificacionResponse,
   RecargoResponse,
-  DetallePagoRegistroRequest,
   DetallePagoRegistroRequestExt,
 } from "../../types/types";
 import ResponsiveContainer from "../../componentes/comunes/ResponsiveContainer";
@@ -1016,8 +1015,6 @@ const CobranzasForm: React.FC = () => {
       : (bonificacion.valorFijo ?? 0) +
         base * ((bonificacion.porcentajeDescuento ?? 0) / 100);
 
-  // ----- handleAgregarDetalle completo -----
-
   const handleAgregarDetalle = useCallback(
     async (
       values: CobranzasFormValues,
@@ -1026,9 +1023,9 @@ const CobranzasForm: React.FC = () => {
       const newDetails = [...values.detallePagos];
       let added = false;
 
-      const isDuplicate = (conceptId: number) =>
+      const isDuplicateId = (conceptId: number) =>
         newDetails.some((d) => d.conceptoId === conceptId);
-      const isDuplicateString = (desc: string) =>
+      const isDuplicateDesc = (desc: string) =>
         newDetails.some((d) => d.descripcionConcepto.trim() === desc.trim());
 
       // 1) CONCEPTO (incluye MATRÍCULA)
@@ -1037,44 +1034,39 @@ const CobranzasForm: React.FC = () => {
           (c) => c.id.toString() === values.conceptoSeleccionado
         );
         if (selectedConcept) {
-          const descMayus = (selectedConcept.descripcion || "").toUpperCase();
+          const descMayus = selectedConcept.descripcion!.toUpperCase();
 
-          // -- MATRÍCULA --
+          // --- MATRÍCULA ---
           if (descMayus.includes("MATRICULA")) {
             const credit = Number(values.alumno?.creditoAcumulado ?? 0);
-            const originalPrice = selectedConcept.precio;
-            const used = Math.min(originalPrice, credit);
-            const total = Math.max(0, originalPrice - used);
-            const detalleLabel = `MATRICULA ${new Date().getFullYear()}`;
+            const price = selectedConcept.precio;
+            const used = Math.min(price, credit);
+            const total = Math.max(0, price - used);
+            const label = `MATRICULA ${new Date().getFullYear()}`;
 
-            console.log("[DEBUG] Matricula:", {
-              credit,
-              originalPrice,
-              used,
-              total,
-            });
-
-            if (isDuplicateString(detalleLabel)) {
+            if (isDuplicateDesc(label)) {
               toast.error("Concepto ya agregado");
               return;
             }
             try {
+              // Verifica que no esté cobrada la matrícula
               await pagosApi.verificarMensualidadOMatricula({
                 id: 0,
                 version: 0,
                 alumno: values.alumno,
-                descripcionConcepto: detalleLabel,
+                descripcionConcepto: label,
                 cuotaOCantidad: total.toString(),
                 valorBase: total,
                 importeInicial: total,
-                aCobrar: total,
+                ACobrar: total,
                 cobrado: false,
               } as unknown as DetallePagoRegistroRequestExt);
 
+              // Actualiza crédito y agrega detalle
               setFieldValue("alumno.creditoAcumulado", credit - used);
               newDetails.push({
                 id: 0,
-                descripcionConcepto: detalleLabel,
+                descripcionConcepto: label,
                 conceptoId: selectedConcept.id,
                 subConceptoId: selectedConcept.subConcepto?.id ?? null,
                 cuotaOCantidad: total.toString(),
@@ -1102,26 +1094,26 @@ const CobranzasForm: React.FC = () => {
               return;
             }
           }
-          // -- OTROS CONCEPTOS --
+          // --- OTROS CONCEPTOS ---
           else {
-            if (isDuplicate(selectedConcept.id)) {
+            if (isDuplicateId(selectedConcept.id)) {
               toast.error("Concepto ya agregado");
               return;
             }
-            const cantidad = Number(values.cantidad) || 1;
-            const valorBase = selectedConcept.precio * cantidad;
+            const qty = Number(values.cantidad) || 1;
+            const base = selectedConcept.precio * qty;
             newDetails.push({
               id: 0,
               descripcionConcepto: selectedConcept.descripcion,
               conceptoId: selectedConcept.id,
               subConceptoId: selectedConcept.subConcepto?.id ?? null,
-              cuotaOCantidad: cantidad.toString(),
-              valorBase,
-              importeInicial: valorBase,
-              importePendiente: valorBase,
+              cuotaOCantidad: qty.toString(),
+              valorBase: base,
+              importeInicial: base,
+              importePendiente: base,
               bonificacionId: null,
               recargoId: null,
-              ACobrar: valorBase,
+              ACobrar: base,
               cobrado: false,
               mensualidadId: null,
               matriculaId: null,
@@ -1132,7 +1124,6 @@ const CobranzasForm: React.FC = () => {
               removido: false,
               tipo: values.tarifa === "CUOTA" ? "MENSUALIDAD" : "NORMAL",
               version: 0,
-              alumno: undefined,
               estadoPago: "",
             });
             added = true;
@@ -1140,128 +1131,133 @@ const CobranzasForm: React.FC = () => {
         }
       }
 
-      // 2) LÓGICA PARA TARIFAS SOBRE DISCIPLINA
-      if (
-        !added &&
-        values.disciplina &&
-        ["CUOTA", "CLASE_SUELTA", "CLASE_PRUEBA"].includes(values.tarifa)
-      ) {
+      // 2) TARIFAS SOBRE DISCIPLINA (CUOTA, CLASE_SUELTA, CLASE_PRUEBA)
+      if (!added && values.disciplina && values.tarifa) {
+        // Busca la disciplina seleccionada
         const disc = mappedDisciplinas.find(
           (d) => d.nombre === values.disciplina
-        )!;
-        type Tarifa = "CUOTA" | "CLASE_SUELTA" | "CLASE_PRUEBA";
-        const tarifaConfig: Record<Tarifa, { precio: number; label: string }> =
-          {
-            CUOTA: { precio: disc.valorCuota, label: "CUOTA" },
-            CLASE_SUELTA: {
-              precio: disc.claseSuelta ?? 0,
-              label: "CLASE SUELTA",
-            },
-            CLASE_PRUEBA: {
-              precio: disc.clasePrueba ?? 0,
-              label: "CLASE DE PRUEBA",
-            },
-          };
-        const tarifaKey = values.tarifa as Tarifa;
-        const { precio: precioUnit, label: tarifaLabel } =
-          tarifaConfig[tarifaKey];
+        );
+        if (!disc) {
+          toast.error("Disciplina inválida");
+          return;
+        }
 
-        const cantidad = Number(values.cantidad) || 1;
-        const valorBase = precioUnit * cantidad;
+        const tipoTarifa = values.tarifa as
+          | "CUOTA"
+          | "CLASE_SUELTA"
+          | "CLASE_PRUEBA";
 
-        // Etiqueta genérica (sin periodo para clases sueltas o de prueba)
-        const label =
-          tarifaKey === "CUOTA"
-            ? `${disc.nombre} - ${tarifaLabel} - ${values.periodoMensual}`
-            : `${disc.nombre} - ${tarifaLabel}`;
+        // Config del precio según tipo
+        const tarifaMap = {
+          CUOTA: { precio: disc.valorCuota, label: "CUOTA" },
+          CLASE_SUELTA: {
+            precio: disc.claseSuelta ?? 0,
+            label: "CLASE SUELTA",
+          },
+          CLASE_PRUEBA: {
+            precio: disc.clasePrueba ?? 0,
+            label: "CLASE DE PRUEBA",
+          },
+        };
+        const { precio: unitPrice, label } = tarifaMap[tipoTarifa];
 
-        if (isDuplicateString(label)) {
+        const qty = Number(values.cantidad) || 1;
+        const baseTotal = unitPrice * qty;
+        // Construimos la etiqueta
+        const fullLabel =
+          tipoTarifa === "CUOTA"
+            ? `${disc.nombre} - ${label} - ${values.periodoMensual}`
+            : `${disc.nombre} - ${label}`;
+
+        if (isDuplicateDesc(fullLabel)) {
           toast.error("Concepto ya agregado");
           return;
         }
 
-        if (tarifaKey === "CUOTA") {
-          // --- lógica refactorizada de CUOTA (descuento fijo + porcentaje, recargo, payload, verify API) ---
-          const inscripcion = activeInscripciones.find(
+        if (tipoTarifa === "CUOTA") {
+          // Aplica descuento y recargo
+          const insc = activeInscripciones.find(
             (i) => i.disciplina.id === disc.id
           );
-          const bonificacion = inscripcion?.bonificacion;
-          const importeDescuento = calcularDescuento(valorBase, bonificacion);
-          const importeInicial = valorBase - importeDescuento;
+          const bonif = insc?.bonificacion;
+          const descuento = calcularDescuento(baseTotal, bonif);
+          const inicial = baseTotal - descuento;
           const fecha = obtenerFechaDePeriodo(values.periodoMensual);
           const { recargoAplicado, importeConRecargo } =
-            calcularRecargoPorFecha(fecha, recargos, importeInicial);
-          const recargoId = recargoAplicado?.id ?? null;
+            calcularRecargoPorFecha(fecha, recargos, inicial);
 
-          // 6) Etiqueta corta para mostrar en 'cuotaOCantidad'
-          const cuotaLabel = `${tarifaLabel} - ${fecha}`;
-
-          const payload: DetallePagoRegistroRequest = {
-            id: 0,
-            version: 0,
-            alumno: values.alumno,
-            descripcionConcepto: label,
-            cuotaOCantidad: cuotaLabel,
-            valorBase,
-            importeInicial,
-            bonificacionId: bonificacion?.id ?? null,
-            recargoId,
-            importePendiente: importeConRecargo,
-            ACobrar: importeConRecargo,
-            cobrado: false,
-            conceptoId: disc.id,
-            subConceptoId: null,
-            mensualidadId: null,
-            matriculaId: null,
-            stockId: null,
-            pagoId: null,
-            tieneRecargo: Boolean(recargoId),
-            removido: false,
-            autoGenerated: undefined,
-            estadoPago: "",
-            tipo: "", // se asigna luego
-          };
-
+          // Verifica no duplicar mensualidad
           try {
-            await pagosApi.verificarMensualidadOMatricula(payload);
+            await pagosApi.verificarMensualidadOMatricula({
+              id: 0,
+              version: 0,
+              alumno: values.alumno,
+              descripcionConcepto: fullLabel,
+              cuotaOCantidad: `${label} - ${fecha.toLocaleDateString()}`,
+              valorBase: baseTotal,
+              importeInicial: inicial,
+              recargoId: recargoAplicado?.id ?? null,
+              importePendiente: importeConRecargo,
+              ACobrar: importeConRecargo,
+              cobrado: false,
+            } as unknown as DetallePagoRegistroRequestExt);
           } catch {
             toast.error("MENSUALIDAD YA COBRADA");
             return;
           }
 
           newDetails.push({
-            ...payload,
             id: 0,
-            tipo: "MENSUALIDAD",
-          });
-          added = true;
-        } else {
-          // --- CLASE_SUELTA o CLASE_PRUEBA: solo agregamos el DetallePago ---
-          newDetails.push({
-            id: 0,
-            descripcionConcepto: label,
-            conceptoId: null,
+            descripcionConcepto: fullLabel,
+            conceptoId: disc.id,
             subConceptoId: null,
-            cuotaOCantidad: cantidad.toString(),
-            valorBase,
-            importeInicial: valorBase,
-            importePendiente: valorBase,
-            bonificacionId: null,
-            recargoId: null,
-            ACobrar: valorBase,
+            cuotaOCantidad: `${label} - ${fecha.toLocaleDateString()}`,
+            valorBase: baseTotal,
+            importeInicial: inicial,
+            importePendiente: importeConRecargo,
+            bonificacionId: bonif?.id ?? null,
+            recargoId: recargoAplicado?.id ?? null,
+            ACobrar: importeConRecargo,
             cobrado: false,
             mensualidadId: null,
             matriculaId: null,
             stockId: null,
             autoGenerated: false,
+            pagoId: null,
+            tieneRecargo: Boolean(recargoAplicado),
             removido: false,
-            tipo: tarifaKey, // "CLASE_SUELTA" o "CLASE_PRUEBA"
-            estadoPago: "",
+            tipo: "MENSUALIDAD",
             version: 0,
-            tieneRecargo: true,
+            estadoPago: "",
           });
-          added = true;
+        } else {
+          // CLASE_SUELTA o CLASE_PRUEBA
+          newDetails.push({
+            id: 0,
+            descripcionConcepto: fullLabel,
+            conceptoId: null,
+            subConceptoId: null,
+            cuotaOCantidad: qty.toString(),
+            valorBase: unitPrice,
+            importeInicial: baseTotal,
+            importePendiente: baseTotal,
+            bonificacionId: null,
+            recargoId: null,
+            ACobrar: baseTotal,
+            cobrado: false,
+            mensualidadId: null,
+            matriculaId: null,
+            stockId: null,
+            autoGenerated: false,
+            pagoId: null,
+            tieneRecargo: true,
+            removido: false,
+            tipo: tipoTarifa,
+            version: 0,
+            estadoPago: "",
+          });
         }
+        added = true;
       }
 
       // 3) STOCK
@@ -1270,10 +1266,10 @@ const CobranzasForm: React.FC = () => {
           (s) => s.id.toString() === values.stockSeleccionado
         );
         if (stk) {
-          const cantidad = Number(values.cantidad) || 1;
-          const total = stk.precio * cantidad;
+          const qty = Number(values.cantidad) || 1;
+          const total = stk.precio * qty;
           const label = stk.nombre;
-          if (isDuplicateString(label)) {
+          if (isDuplicateDesc(label)) {
             toast.error("Concepto ya agregado");
             return;
           }
@@ -1282,7 +1278,7 @@ const CobranzasForm: React.FC = () => {
             descripcionConcepto: label,
             conceptoId: null,
             subConceptoId: null,
-            cuotaOCantidad: cantidad.toString(),
+            cuotaOCantidad: qty.toString(),
             valorBase: stk.precio,
             importeInicial: total,
             importePendiente: total,
@@ -1293,30 +1289,26 @@ const CobranzasForm: React.FC = () => {
             mensualidadId: null,
             matriculaId: null,
             stockId: stk.id,
-            version: stk.version ?? 0,
             autoGenerated: false,
             pagoId: null,
             tieneRecargo: true,
             removido: false,
             tipo: "STOCK",
+            version: stk.version ?? 0,
             estadoPago: "",
           });
           added = true;
         }
       }
 
-      // 4) Aplicar o mostrar error
+      // 4) ¡Guarda o muestra error!
       if (added) {
         setFieldValue("detallePagos", newDetails);
         setFieldValue("conceptoSeleccionado", "");
         setFieldValue("stockSeleccionado", "");
         setFieldValue("cantidad", 1);
-      } else if (
-        !values.conceptoSeleccionado &&
-        !values.disciplina &&
-        !values.stockSeleccionado
-      ) {
-        toast.error("Seleccione al menos un conjunto de campos para agregar");
+      } else {
+        toast.error("Seleccione una opción válida para agregar");
       }
     },
     [conceptos, mappedDisciplinas, stocks, activeInscripciones, recargos]
