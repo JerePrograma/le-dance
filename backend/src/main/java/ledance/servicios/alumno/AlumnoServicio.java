@@ -13,14 +13,12 @@ import ledance.dto.pago.response.DetallePagoResponse;
 import ledance.entidades.*;
 import ledance.repositorios.*;
 import jakarta.transaction.Transactional;
-import ledance.servicios.inscripcion.InscripcionServicio;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.Period;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -34,19 +32,16 @@ public class AlumnoServicio implements IAlumnoServicio {
     private final DisciplinaMapper disciplinaMapper;
     private final DetallePagoRepositorio detallePagoRepositorio;
     private final DetallePagoMapper detallePagoMapper;
-    private final InscripcionServicio inscripcionServicio;
 
     public AlumnoServicio(AlumnoRepositorio alumnoRepositorio, AlumnoMapper alumnoMapper,
                           DisciplinaMapper disciplinaMapper,
                           DetallePagoRepositorio detallePagoRepositorio,
-                          DetallePagoMapper detallePagoMapper,
-                          InscripcionServicio inscripcionServicio) {
+                          DetallePagoMapper detallePagoMapper) {
         this.alumnoRepositorio = alumnoRepositorio;
         this.alumnoMapper = alumnoMapper;
         this.disciplinaMapper = disciplinaMapper;
         this.detallePagoRepositorio = detallePagoRepositorio;
         this.detallePagoMapper = detallePagoMapper;
-        this.inscripcionServicio = inscripcionServicio;
     }
 
     @Override
