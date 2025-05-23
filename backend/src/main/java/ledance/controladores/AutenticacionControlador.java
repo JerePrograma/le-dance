@@ -56,10 +56,7 @@ public class AutenticacionControlador {
     public ResponseEntity<?> realizarLogin(@RequestBody @Valid LoginRequest datos) throws MessagingException, IOException {
         log.info("Intento de login para nombreUsuario: {}", datos.nombreUsuario());
 
-        mensualidadServicio.generarMensualidadesParaMesVigente();
-        matriculaServicio.generarMatriculasAnioVigente();
         recargoServicio.aplicarRecargosAutomaticos();
-        asistenciaMensualServicio.crearAsistenciasParaInscripcionesActivasDetallado();
         List<String> cumpleaneros = notificacionService.generarYObtenerCumpleanerosDelDia();
 
         log.info("Cumpleañeros del dia: {}", cumpleaneros);
