@@ -1260,7 +1260,7 @@ const CobranzasForm: React.FC = () => {
         }
         added = true;
       }
-      
+
       // 3) STOCK
       if (!added && values.stockSeleccionado) {
         const stk = stocks.find(
@@ -1379,6 +1379,8 @@ const CobranzasForm: React.FC = () => {
                 return `SALDA ${concepto}`;
               } else if (ACobrar < pendiente) {
                 return `CTA ${concepto}`;
+              } else if (ACobrar > pendiente) {
+                return `SALDA ${concepto}`; // o la etiqueta que prefieras
               } else {
                 return null;
               }

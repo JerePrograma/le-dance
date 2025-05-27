@@ -18,4 +18,5 @@ public interface SubConceptoRepositorio extends JpaRepository<SubConcepto, Long>
 
     Optional<SubConcepto> findByDescripcionIgnoreCase(String descripcion);
 
+    List<SubConcepto> findByDescripcionInIgnoreCase(List<String> descripciones);
 }
