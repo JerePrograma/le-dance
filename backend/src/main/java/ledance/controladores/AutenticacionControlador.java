@@ -33,9 +33,6 @@ public class AutenticacionControlador {
     private final TokenService tokenService;
     private final UsuarioRepositorio usuarioRepositorio;
     private final RecargoServicio recargoServicio;
-    private final MensualidadServicio mensualidadServicio;
-    private final MatriculaServicio matriculaServicio;
-    private final AsistenciaMensualServicio asistenciaMensualServicio;
     private final NotificacionService notificacionService;
 
     public AutenticacionControlador(AuthenticationManager authManager,
@@ -46,9 +43,6 @@ public class AutenticacionControlador {
         this.tokenService = tokenService;
         this.usuarioRepositorio = usuarioRepositorio;
         this.recargoServicio = recargoServicio;
-        this.mensualidadServicio = mensualidadServicio;
-        this.matriculaServicio = matriculaServicio;
-        this.asistenciaMensualServicio = asistenciaMensualServicio;
         this.notificacionService = notificacionService;
     }
 

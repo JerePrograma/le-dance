@@ -9,10 +9,7 @@ import jakarta.persistence.criteria.Predicate;
 import ledance.dto.pago.DetallePagoMapper;
 import ledance.dto.pago.response.DetallePagoResponse;
 import ledance.entidades.*;
-import ledance.repositorios.DetallePagoRepositorio;
-import ledance.repositorios.MatriculaRepositorio;
-import ledance.repositorios.MensualidadRepositorio;
-import ledance.repositorios.PagoRepositorio;
+import ledance.repositorios.*;
 import org.flywaydb.core.internal.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,14 +35,19 @@ public class DetallePagoServicio {
     private final MensualidadRepositorio mensualidadRepositorio;
     private final PagoRepositorio pagoRepositorio;
     private final MatriculaRepositorio matriculaRepositorio;
+    private final SubConceptoRepositorio subConceptoRepo;
+    private final ConceptoRepositorio conceptoRepo;
+
 
     public DetallePagoServicio(DetallePagoRepositorio detallePagoRepositorio, DetallePagoMapper detallePagoMapper, MensualidadRepositorio mensualidadRepositorio, PagoRepositorio pagoRepositorio,
-                               MatriculaRepositorio matriculaRepositorio) {
+                               MatriculaRepositorio matriculaRepositorio, SubConceptoRepositorio subConceptoRepo, ConceptoRepositorio conceptoRepo) {
         this.detallePagoRepositorio = detallePagoRepositorio;
         this.detallePagoMapper = detallePagoMapper;
         this.mensualidadRepositorio = mensualidadRepositorio;
         this.pagoRepositorio = pagoRepositorio;
         this.matriculaRepositorio = matriculaRepositorio;
+        this.subConceptoRepo = subConceptoRepo;
+        this.conceptoRepo = conceptoRepo;
     }
 
     /**
@@ -220,34 +222,66 @@ public class DetallePagoServicio {
                     }
                     break;
                 case "CONCEPTOS":
-                    // Se listan todos los detalles con tipo CONCEPTO
+                    // 1) Siempre filtramos por tipo CONCEPTO
                     predicates.add(cb.equal(root.get("tipo"), TipoDetallePago.CONCEPTO));
-                    // Si se envia un subConcepto, aplicar filtro
+                    log.info("  • Añadido predicate → tipo = CONCEPTO");
+
+                    // 2) Filtrar SubConcepto por descripción (exacta, tras trim)
                     if (StringUtils.hasText(subConcepto)) {
-                        if ("MATRICULA".equalsIgnoreCase(subConcepto)) {
-                            // Filtra por descripcion que contenga "MATRICULA"
-                            predicates.add(cb.like(cb.upper(root.get("descripcionConcepto")), "%MATRICULA%"));
-                        } else {
-                            String pattern = "%" + subConcepto.toUpperCase() + "%";
-                            Predicate pDirect = cb.like(cb.upper(root.get("subConcepto").get("descripcion")), pattern);
-                            Join<DetallePago, Concepto> joinConcepto = root.join("concepto", JoinType.LEFT);
-                            Predicate pViaConcepto = cb.like(cb.upper(joinConcepto.get("subConcepto").get("descripcion")), pattern);
-                            predicates.add(cb.or(pDirect, pViaConcepto));
+                        List<String> descSubs = Arrays.stream(subConcepto.split(","))
+                                .map(String::trim)
+                                .filter(StringUtils::hasText)
+                                .toList();
+                        log.info("  • SubConcepto raw split & trim → {}", descSubs);
+
+                        List<Long> subIds = subConceptoRepo
+                                .findByDescripcionInIgnoreCase(descSubs)
+                                .stream()
+                                .map(SubConcepto::getId)
+                                .toList();
+                        log.info("  • SubConcepto IDs encontrados → {}", subIds);
+
+                        if (!subIds.isEmpty()) {
+                            predicates.add(root.get("subConcepto").get("id").in(subIds));
+                            log.info("    – Añadido predicate → subConcepto.id IN {}", subIds);
                         }
                     }
+
+                    // 3) Filtrar Concepto (detalle) por descripción
                     if (StringUtils.hasText(detalleConcepto)) {
-                        String pattern = "%" + detalleConcepto.toUpperCase() + "%";
-                        predicates.add(cb.like(cb.upper(root.get("descripcionConcepto")), pattern));
+                        List<String> descCons = Arrays.stream(detalleConcepto.split(","))
+                                .map(String::trim)
+                                .filter(StringUtils::hasText)
+                                .toList();
+                        log.info("  • DetalleConcepto raw split & trim → {}", descCons);
+
+                        List<Long> conIds = conceptoRepo
+                                .findByDescripcionInIgnoreCase(descCons)
+                                .stream()
+                                .map(Concepto::getId)
+                                .toList();
+                        log.info("  • Concepto IDs encontrados → {}", conIds);
+
+                        if (!conIds.isEmpty()) {
+                            predicates.add(root.get("concepto").get("id").in(conIds));
+                            log.info("    – Añadido predicate → concepto.id IN {}", conIds);
+                        }
                     }
                     break;
+
                 case "MATRICULA":
                     predicates.add(cb.like(cb.upper(root.get("descripcionConcepto")), "%MATRICULA%"));
+                    log.info("  • Añadido predicate → descripcionConcepto LIKE '%MATRICULA%'");
                     break;
+
                 default:
-                    // Sin filtro adicional
+                    log.info("  • Categoría desconocida, no se añaden filtros adicionales");
                     break;
             }
-            return cb.and(predicates.toArray(new Predicate[0]));
+
+            Predicate finalPredicate = cb.and(predicates.toArray(new Predicate[0]));
+            log.info("✅ Predicado final: {}", finalPredicate);
+            return finalPredicate;
         };
     }
 
