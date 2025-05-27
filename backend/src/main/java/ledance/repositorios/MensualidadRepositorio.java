@@ -1,5 +1,6 @@
 package ledance.repositorios;
 
+import ledance.dto.pago.PagoMapper;
 import ledance.entidades.EstadoMensualidad;
 import ledance.entidades.Inscripcion;
 import ledance.entidades.Mensualidad;
@@ -28,4 +29,5 @@ public interface MensualidadRepositorio extends JpaRepository<Mensualidad, Long>
 
     List<Mensualidad> findAllByInscripcionAlumnoIdAndDescripcionAndEsClonFalse(Long alumnoId, String descripcion);
 
+    Optional<Mensualidad> findFirstByDescripcionContainingIgnoreCase(String descripcion);
 }

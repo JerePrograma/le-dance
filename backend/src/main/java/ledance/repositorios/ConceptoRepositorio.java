@@ -1,5 +1,6 @@
 package ledance.repositorios;
 
+import ledance.dto.pago.PagoMapper;
 import ledance.entidades.Concepto;
 import ledance.entidades.SubConcepto;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -16,4 +17,8 @@ public interface ConceptoRepositorio extends JpaRepository<Concepto, Long> {
     Optional<Concepto> findByDescripcionIgnoreCase(String descripcion);
 
     List<Concepto>   findByDescripcionInIgnoreCase(List<String> descripciones);
+
+    Optional<Concepto> findFirstByDescripcionContainingIgnoreCase(String descripcion);
+
+    Optional<Concepto> findFirstBySubConceptoId(Long subId);
 }

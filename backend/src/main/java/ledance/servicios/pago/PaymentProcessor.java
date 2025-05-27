@@ -3,10 +3,12 @@ package ledance.servicios.pago;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
+import ledance.dto.pago.DetallePagoResolucion;
 import ledance.dto.pago.request.DetallePagoRegistroRequest;
 import ledance.dto.pago.request.PagoRegistroRequest;
 import ledance.entidades.*;
 import ledance.repositorios.*;
+import ledance.servicios.detallepago.DetallePagoResolver;
 import ledance.servicios.detallepago.DetallePagoServicio;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,6 +37,12 @@ public class PaymentProcessor {
     private final DetallePagoServicio detallePagoServicio;
     private final BonificacionRepositorio bonificacionRepositorio;
     private final RecargoRepositorio recargoRepositorio;
+    private final DetallePagoResolver detallePagoResolver;
+    private final SubConceptoRepositorio subConceptoRepositorio;
+    private final ConceptoRepositorio conceptoRepositorio;
+    private final MatriculaRepositorio matriculaRepositorio;
+    private final MensualidadRepositorio mensualidadRepositorio;
+    private final StockRepositorio stockRepositorio;
 
     @PersistenceContext
     private jakarta.persistence.EntityManager entityManager;
@@ -43,7 +51,7 @@ public class PaymentProcessor {
                             DetallePagoRepositorio detallePagoRepositorio,
                             MetodoPagoRepositorio metodoPagoRepositorio,
                             PaymentCalculationServicio paymentCalculationServicio,
-                            UsuarioRepositorio usuarioRepositorio, DetallePagoServicio detallePagoServicio, BonificacionRepositorio bonificacionRepositorio, RecargoRepositorio recargoRepositorio) {
+                            UsuarioRepositorio usuarioRepositorio, DetallePagoServicio detallePagoServicio, BonificacionRepositorio bonificacionRepositorio, RecargoRepositorio recargoRepositorio, DetallePagoResolver detallePagoResolver, SubConceptoRepositorio subConceptoRepositorio, ConceptoRepositorio conceptoRepositorio, MatriculaRepositorio matriculaRepositorio, MensualidadRepositorio mensualidadRepositorio, StockRepositorio stockRepositorio) {
         this.pagoRepositorio = pagoRepositorio;
         this.detallePagoRepositorio = detallePagoRepositorio;
         this.metodoPagoRepositorio = metodoPagoRepositorio;
@@ -52,6 +60,12 @@ public class PaymentProcessor {
         this.detallePagoServicio = detallePagoServicio;
         this.bonificacionRepositorio = bonificacionRepositorio;
         this.recargoRepositorio = recargoRepositorio;
+        this.detallePagoResolver = detallePagoResolver;
+        this.subConceptoRepositorio = subConceptoRepositorio;
+        this.conceptoRepositorio = conceptoRepositorio;
+        this.matriculaRepositorio = matriculaRepositorio;
+        this.mensualidadRepositorio = mensualidadRepositorio;
+        this.stockRepositorio = stockRepositorio;
     }
 
     /**
@@ -115,7 +129,16 @@ public class PaymentProcessor {
         detalle.setDescripcionConcepto(descripcion);
         detalle.setValorBase(req.getValorBase());
         detalle.setCuotaOCantidad(req.getCuotaOCantidad());
-        detalle.setTipo(paymentCalculationServicio.determinarTipoDetalle(descripcion));
+
+        // 1) resolver tipo e IDs
+        DetallePagoResolucion res = detallePagoResolver.resolver(descripcion);
+
+        // 2) poblar con el helper
+        populate(detalle, res);
+
+        if (detalle.getTipo().equals(TipoDetallePago.STOCK)) {
+            paymentCalculationServicio.calcularStock(detalle);
+        }
 
         // Bonificación
         if (req.getBonificacion() != null) {
@@ -165,7 +188,14 @@ public class PaymentProcessor {
     private void actualizarDetalleOriginal(DetallePago original) {
         original.setImportePendiente(0.0);
         original.setEstadoPago(EstadoPago.HISTORICO); // Opcional, pero recomendable si querés marcarlo "cerrado"
-        original.setTipo(paymentCalculationServicio.determinarTipoDetalle(original.getDescripcionConcepto()));
+
+        String descripcion = original.getDescripcionConcepto().trim().toUpperCase();
+
+        // 1) resolver tipo e IDs
+        DetallePagoResolucion res = detallePagoResolver.resolver(descripcion);
+
+        // 2) poblar con el helper
+        populate(original, res);
         detallePagoRepositorio.save(original);
     }
 
@@ -203,7 +233,7 @@ public class PaymentProcessor {
         // (Opcional) Anexa en observaciones por legibilidad
         if (Boolean.TRUE.equals(pago.getRecargoMetodoPagoAplicado())) {
             String obs = Optional.ofNullable(pago.getObservaciones()).orElse("");
-            pago.setObservaciones(obs + (obs.isEmpty()? "":"\n") + mp.getDescripcion());
+            pago.setObservaciones(obs + (obs.isEmpty() ? "" : "\n") + mp.getDescripcion());
         }
 
         // **Aquí** recalculas y guardas el pago completo con el recargo
@@ -252,8 +282,11 @@ public class PaymentProcessor {
                 original.setImportePendiente(0.0);
                 original.setCobrado(true);
                 original.setEstadoPago(EstadoPago.HISTORICO);
-                TipoDetallePago tipo = paymentCalculationServicio.determinarTipoDetalle(original.getDescripcionConcepto());
-                original.setTipo(tipo);
+                String descripcion = original.getDescripcionConcepto();
+
+                DetallePagoResolucion res = detallePagoResolver.resolver(descripcion);
+                populate(original, res);
+
                 detallePagoRepositorio.save(original);
             }
 
@@ -263,12 +296,21 @@ public class PaymentProcessor {
             abono.setAlumno(nuevoPago.getAlumno());
 
             // Copio descripción, base y tipo del request (no del original)
-            String desc = req.descripcionConcepto().trim().toUpperCase();
-            abono.setDescripcionConcepto(desc);
+            String descripcion = req.descripcionConcepto().trim().toUpperCase();
+            abono.setDescripcionConcepto(descripcion);
             abono.setValorBase(req.valorBase());
             abono.setCuotaOCantidad(req.cuotaOCantidad());
-            TipoDetallePago tipo = paymentCalculationServicio.determinarTipoDetalle(desc);
-            abono.setTipo(tipo);
+
+
+            // 1) resolver tipo e IDs
+            DetallePagoResolucion res = detallePagoResolver.resolver(descripcion);
+
+            // 2) poblar con el helper
+            populate(abono, res);
+
+            if (abono.getTipo().equals(TipoDetallePago.STOCK)) {
+                paymentCalculationServicio.calcularStock(abono);
+            }
 
             // importes
             double aCobrar = Optional.ofNullable(req.ACobrar()).orElse(0.0);
@@ -371,4 +413,47 @@ public class PaymentProcessor {
         return pagoFinal;
     }
 
+    /**
+     * Toma un DetallePago ya creado y un DetallePagoResolucion con tipo e IDs resueltos,
+     * y le inyecta las entidades correspondientes si el ID no es null.
+     */
+    public void populate(DetallePago detalle, DetallePagoResolucion res) {
+        // 1) establecer el tipo
+        detalle.setTipo(res.tipo());
+
+        // 2) SubConcepto
+        Optional.ofNullable(res.subConceptoId())
+                .ifPresent(id -> detalle.setSubConcepto(
+                        subConceptoRepositorio.findById(id)
+                                .orElseThrow(() -> new EntityNotFoundException("SubConcepto " + id + " no existe"))
+                ));
+
+        // 3) Concepto
+        Optional.ofNullable(res.conceptoId())
+                .ifPresent(id -> detalle.setConcepto(
+                        conceptoRepositorio.findById(id)
+                                .orElseThrow(() -> new EntityNotFoundException("Concepto " + id + " no existe"))
+                ));
+
+        // 4) Matrícula
+        Optional.ofNullable(res.matriculaId())
+                .ifPresent(id -> detalle.setMatricula(
+                        matriculaRepositorio.findById(id)
+                                .orElseThrow(() -> new EntityNotFoundException("Matrícula " + id + " no existe"))
+                ));
+
+        // 5) Mensualidad
+        Optional.ofNullable(res.mensualidadId())
+                .ifPresent(id -> detalle.setMensualidad(
+                        mensualidadRepositorio.findById(id)
+                                .orElseThrow(() -> new EntityNotFoundException("Mensualidad " + id + " no existe"))
+                ));
+
+        // 6) Stock
+        Optional.ofNullable(res.stockId())
+                .ifPresent(id -> detalle.setStock(
+                        stockRepositorio.findById(id)
+                                .orElseThrow(() -> new EntityNotFoundException("Stock " + id + " no existe"))
+                ));
+    }
 }
