@@ -66,7 +66,8 @@ public class EgresoServicio {
         Egreso egreso = egresoRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Egreso no encontrado para id: " + id));
         // Realizamos una baja logica (marcandolo inactivo)
-        egresoRepositorio.delete(egreso);
+        egreso.setActivo(false);
+        egresoRepositorio.save(egreso);
     }
 
     public EgresoResponse obtenerEgresoPorId(Long id) {
