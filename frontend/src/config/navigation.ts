@@ -150,8 +150,8 @@ export const navigationItems: NavigationItem[] = [
         icon: Receipt,
       },
       {
-        id: "correcion",
-        label: "Correcion",
+        id: "correccion",
+        label: "Correccion",
         href: "/pagos/editar",
         icon: DollarSign,
       },
