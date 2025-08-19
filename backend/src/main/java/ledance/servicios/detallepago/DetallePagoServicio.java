@@ -10,6 +10,7 @@ import ledance.dto.pago.DetallePagoMapper;
 import ledance.dto.pago.response.DetallePagoResponse;
 import ledance.entidades.*;
 import ledance.repositorios.*;
+import ledance.servicios.stock.StockServicio;
 import org.flywaydb.core.internal.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +27,7 @@ import java.util.stream.Collectors;
 @Service
 public class DetallePagoServicio {
 
+    private final StockServicio stockServicio;
     @PersistenceContext
     private EntityManager entityManager;
 
@@ -40,7 +42,7 @@ public class DetallePagoServicio {
 
 
     public DetallePagoServicio(DetallePagoRepositorio detallePagoRepositorio, DetallePagoMapper detallePagoMapper, MensualidadRepositorio mensualidadRepositorio, PagoRepositorio pagoRepositorio,
-                               MatriculaRepositorio matriculaRepositorio, SubConceptoRepositorio subConceptoRepo, ConceptoRepositorio conceptoRepo) {
+                               MatriculaRepositorio matriculaRepositorio, SubConceptoRepositorio subConceptoRepo, ConceptoRepositorio conceptoRepo, StockServicio stockServicio) {
         this.detallePagoRepositorio = detallePagoRepositorio;
         this.detallePagoMapper = detallePagoMapper;
         this.mensualidadRepositorio = mensualidadRepositorio;
@@ -48,6 +50,7 @@ public class DetallePagoServicio {
         this.matriculaRepositorio = matriculaRepositorio;
         this.subConceptoRepo = subConceptoRepo;
         this.conceptoRepo = conceptoRepo;
+        this.stockServicio = stockServicio;
     }
 
     /**
@@ -443,6 +446,13 @@ public class DetallePagoServicio {
         // 3. Anulo el original y limpio sus asociaciones
         anularDetalleOriginal(original);
         eliminarAsociados(original);
+
+        // 3a. Si era un detalle de STOCK, restauro el stock
+        if (original.getTipo() == TipoDetallePago.STOCK) {
+            // Suponemos que original.getCuotaOCantidad() guarda la cantidad de unidades
+            int cantidad = Integer.parseInt(original.getCuotaOCantidad());
+            stockServicio.incrementarStock(descripcion, cantidad);
+        }
 
         // 4. Ajusto los montos en el Pago, incluyendo el saldoRestante
         actualizarPago(pago, montoAnular);

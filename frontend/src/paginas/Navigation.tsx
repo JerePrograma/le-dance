@@ -1,4 +1,4 @@
-// NavigationMenu.tsx
+// Navigation.tsx
 import React from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../hooks/context/authContext";

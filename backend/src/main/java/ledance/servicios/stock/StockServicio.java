@@ -6,7 +6,6 @@ import ledance.dto.stock.StockMapper;
 import ledance.entidades.Stock;
 import ledance.infra.errores.SinStockException;
 import ledance.repositorios.StockRepositorio;
-import ledance.servicios.pago.PaymentProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -18,7 +17,7 @@ import java.util.stream.Collectors;
 @Service
 public class StockServicio {
 
-    private static final Logger log = LoggerFactory.getLogger(PaymentProcessor.class);
+    private static final Logger log = LoggerFactory.getLogger(StockServicio.class);
 
     private final StockRepositorio stockRepositorio;
     private final StockMapper stockMapper;
@@ -115,6 +114,26 @@ public class StockServicio {
         stock.setStock(stock.getStock() - cantidad);
         stockRepositorio.save(stock);
         log.info("[reducirStock] Stock actualizado para '{}'. Nueva cantidad: {}", nombreNormalizado, stock.getStock());
+    }
+
+    @Transactional
+    public void incrementarStock(String nombre, int cantidad) {
+        String nombreNormalizado = nombre.trim();
+        log.info("[incrementarStock] Producto: '{}', cantidad a restaurar: {}", nombreNormalizado, cantidad);
+
+        Stock stock = stockRepositorio.findByNombreIgnoreCase(nombreNormalizado)
+                .orElseThrow(() -> {
+                    log.error("[incrementarStock] No se encontro stock con nombre: '{}'", nombreNormalizado);
+                    return new SinStockException("No se encontro stock con nombre: " + nombreNormalizado);
+                });
+
+        log.info("[incrementarStock] Stock actual para '{}': {}", nombreNormalizado, stock.getStock());
+
+        stock.setStock(stock.getStock() + cantidad);
+        stockRepositorio.save(stock);
+
+        log.info("[incrementarStock] Stock actualizado para '{}'. Nueva cantidad: {}",
+                nombreNormalizado, stock.getStock());
     }
 
 }
