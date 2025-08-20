@@ -329,93 +329,55 @@ public class DetallePagoServicio {
 
     @Transactional
     public void eliminarDetallePago(Long id) {
-        log.info("[eliminarDetallePago] Iniciando eliminación de DetallePago con id={}", id);
+        var detalle = detallePagoRepositorio.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("DetallePago " + id + " no existe"));
 
-        // 1. Buscar el DetallePago
-        Optional<DetallePago> optionalDetalle = detallePagoRepositorio.findById(id);
-        if (optionalDetalle.isEmpty()) {
-            log.warn("[eliminarDetallePago] DetallePago id={} no encontrado. Abortando.", id);
-            return;
-        }
-        DetallePago detalle = optionalDetalle.get();
-        log.info("[eliminarDetallePago] DetallePago encontrado: {}", detalle);
+        var pago = detalle.getPago();
+        if (pago == null) return;
 
-        // 2. Obtener el Pago asociado
-        Pago pago = detalle.getPago();
-        if (pago != null) {
-            log.info("[eliminarDetallePago] Pago asociado id={}", pago.getId());
+        // Cache ids antes de romper vínculos
+        Double valorACobrar = detalle.getACobrar() != null ? detalle.getACobrar() : 0.0;
+        String descripcion = detalle.getDescripcionConcepto();
+        Long mensualidadId = (detalle.getMensualidad() != null) ? detalle.getMensualidad().getId() : null;
+        Long matriculaId = (detalle.getMatricula() != null) ? detalle.getMatricula().getId() : null;
 
-            // 3. Remover el detalle de la colección (orphanRemoval eliminará la entidad)
-            pago.removerDetalle(detalle);
-            log.info("[eliminarDetallePago] Detalle removido de la colección del pago.");
+        // 1) Romper referencias to-one del detalle ANTES de removerlo del pago
+        detalle.setMensualidad(null);
+        detalle.setMatricula(null);
 
-            // 4. Recalcular montos
-            double valorACobrar = detalle.getACobrar();
-            double nuevoMonto = pago.getMonto() - valorACobrar;
-            double nuevoMontoPagado = pago.getMontoPagado() - valorACobrar;
-            if (nuevoMonto <= 0) {
-                nuevoMonto = 0.0;
-                nuevoMontoPagado = 0.0;
-            }
-            pago.setMonto(nuevoMonto);
-            pago.setMontoPagado(nuevoMontoPagado);
-            log.info("[eliminarDetallePago] Montos actualizados - monto={}, pagado={}",
-                    nuevoMonto, nuevoMontoPagado);
+        // 2) Remover del pago (activa orphanRemoval)
+        pago.removerDetalle(detalle);
 
-            // 5. Guardar el pago para aplicar orphanRemoval
-            pagoRepositorio.save(pago);
+        // 3) Recalcular montos y observaciones
+        double nuevoMonto = Math.max(0.0, (pago.getMonto() != null ? pago.getMonto() : 0.0) - valorACobrar);
+        double nuevoMontoPagado = Math.max(0.0, (pago.getMontoPagado() != null ? pago.getMontoPagado() : 0.0) - valorACobrar);
+        pago.setMonto(nuevoMonto);
+        pago.setMontoPagado(nuevoMontoPagado);
 
-            // 6. Eliminar de observaciones la entrada de este detalle
-            String descripcion = detalle.getDescripcionConcepto();
-            String obs = pago.getObservaciones();
-            if (obs != null && descripcion != null) {
-                // Regex case-insensitive para cualquier etiqueta anterior sobre esta descripción
-                String regex = "(?i)\\b(?:CTA|DEUDA|SALDA|ANULADO)\\s+"
-                        + Pattern.quote(descripcion) + "\\b";
-
-                // 1) Quitar todas las ocurrencias previas
-                String limpio = obs
-                        .replaceAll(regex, "")
-                        .replaceAll("\\s{2,}", " ")  // colapsar espacios dobles
-                        .trim();
-
-                // 2) Usar sólo el resto (sin prefijo "ANULADO")
-                String nuevaObs = limpio.isEmpty() ? "" : limpio + "\n";
-
-                // 3) Guardar cambios
-                pago.setObservaciones(nuevaObs.trim());
-                pagoRepositorio.save(pago);
-                log.info("[eliminarDetallePago] Observaciones actualizadas: {}", nuevaObs);
-            }
-
-            // 7. Si ya no quedan más DetallePago para este pago, eliminar el Pago
-            long restantes = detallePagoRepositorio.countByPagoId(pago.getId());
-            if (restantes == 0) {
-                pagoRepositorio.delete(pago);
-                log.info("[eliminarDetallePago] Pago id={} eliminado (sin detalles restantes)", pago.getId());
-            }
-        } else {
-            log.warn("[eliminarDetallePago] No se encontró pago asociado. Solo se eliminará el detalle.");
+        String obs = pago.getObservaciones();
+        if (obs != null && descripcion != null && !descripcion.isBlank()) {
+            String pattern = "(?im)^(?:CTA|DEUDA|SALDA|ANULADO)\\s+" + java.util.regex.Pattern.quote(descripcion) + "\\s*$\\R?";
+            pago.setObservaciones(obs.replaceAll(pattern, "").strip());
         }
 
-        // 8. Eliminar mensualidad si corresponde
-        Mensualidad mensualidad = obtenerMensualidadSiExiste(detalle);
-        if (mensualidad != null) {
-            mensualidadRepositorio.delete(mensualidad);
-            log.info("[eliminarDetallePago] Mensualidad eliminada id={}", mensualidad.getId());
+        // 4) Persistir y FLUSH para materializar el delete del detalle
+        pagoRepositorio.saveAndFlush(pago);
+
+        // 5) Efectos colaterales, sólo si ya no hay otros detalles que apunten
+        if (mensualidadId != null && detallePagoRepositorio.countByMensualidadId(mensualidadId) == 0) {
+            mensualidadRepositorio.deleteById(mensualidadId);
+        }
+        if (matriculaId != null) {
+            var m = matriculaRepositorio.getReferenceById(matriculaId);
+            m.setPagada(false);
+            m.setFechaPago(null);
+            matriculaRepositorio.save(m);
         }
 
-        // 9. “Eliminar” matrícula si corresponde
-        Matricula matricula = obtenerMatriculaSiExiste(detalle);
-        if (matricula != null && matricula.getId() != null) {
-            matricula.setPagada(false);
-            matricula.setFechaPago(null);
-            // si tienes que guardar la matrícula:
-            matriculaRepositorio.save(matricula);
-            log.info("[eliminarDetallePago] Matrícula desmarcada como no pagada id={}", matricula.getId());
+        // 6) Si el pago quedó sin detalles, eliminarlo
+        if (detallePagoRepositorio.countByPagoId(pago.getId()) == 0) {
+            pagoRepositorio.delete(pago);
         }
-
-        log.info("[eliminarDetallePago] Proceso completado para DetallePago id={}", id);
     }
 
     /**
