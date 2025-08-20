@@ -7,6 +7,7 @@
 /* ============================= */
 @layer base {
   :root {
+    color-scheme: light dark; /* ayuda a inputs nativos/UA */
     /* Colores del sistema - Modo Claro */
     --background: 20 50% 97%;
     --foreground: 20 10% 20%;
@@ -87,6 +88,17 @@
     --input: 240 10% 16%;
     --ring: 267 100% 65%;
   }
+  /* Alto contraste del sistema */
+  @media (forced-colors: active) {
+    :focus-visible {
+      outline-color: CanvasText;
+    }
+    .card,
+    .header,
+    .sidebar {
+      border: 1px solid CanvasText;
+    }
+  }
 }
 
 /* ============================= */
@@ -119,6 +131,10 @@
   h1 {
     @apply leading-tight;
     font-size: var(--text-3xl);
+  }
+  /* Que cualquier ancla quede visible bajo el header fijo */
+  [id] {
+    scroll-margin-top: calc(var(--header-height) + 0.5rem);
   }
   h2 {
     @apply leading-snug;
@@ -162,14 +178,22 @@
   /*  Ocultar flechitas en number  */
   /* ============================= */
   /* Chrome, Safari, Edge, Opera */
-  input[type=number]::-webkit-inner-spin-button,
-  input[type=number]::-webkit-outer-spin-button {
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
     -webkit-appearance: none;
     margin: 0;
   }
   /* Firefox */
-  input[type=number] {
+  input[type="number"] {
     -moz-appearance: textfield;
+  }
+  /* Respeta usuarios que prefieren menos movimiento */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation: none !important;
+      transition: none !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
 
@@ -280,6 +304,7 @@
   .page-container {
     @apply w-full min-h-screen;
     min-height: 100dvh;
+    padding-top: var(--header-height); /* evita superposición del header fijo */
   }
 
   /* Dashboard */
@@ -483,6 +508,20 @@
   .aspect-ratio-21-9::before {
     padding-top: 42.86%; /* 21:9 ultrawide */
   }
+
+  /* Skip link (requiere <a class="skip-link" href="#main">Saltar al contenido</a> en el DOM) */
+  .skip-link {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    padding: 0.5rem 1rem;
+    background: Canvas;
+    color: CanvasText;
+    z-index: 10000;
+  }
+  .skip-link:focus {
+    left: 0.5rem;
+  }
 }
 
 /* Para Chrome, Safari, Opera */
@@ -657,5 +696,17 @@
   .truncate-3-lines {
     @apply truncate-lines;
     -webkit-line-clamp: 3;
+  }
+  @media (prefers-contrast: more) {
+    :root {
+      --border: 20 10% 25%;
+      --muted-foreground: 20 10% 30%;
+    }
+    .form-input,
+    .card,
+    .header,
+    .sidebar {
+      border-width: 2px;
+    }
   }
 }
