@@ -1,10 +1,11 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+// Login.tsx
+import { useEffect, useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../hooks/context/authContext";
 import Boton from "../componentes/comunes/Boton";
 import { Form, Formik, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
-import { toast } from "react-toastify";
+import { prefetch } from "../rutas/routes";
 
 const loginSchema = Yup.object().shape({
   nombreUsuario: Yup.string().required("Nombre de Usuario es requerido"),
@@ -16,15 +17,25 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
   const [error, setError] = useState("");
 
+  // Prefetch “en idle” del Dashboard (posible siguiente pantalla)
+  useEffect(() => {
+    const id = (window as any).requestIdleCallback
+      ? (window as any).requestIdleCallback(() => prefetch.dashboard())
+      : setTimeout(() => prefetch.dashboard(), 500);
+    return () => (window as any).cancelIdleCallback?.(id) ?? clearTimeout(id);
+  }, []);
+
   const handleLogin = async (values: {
     nombreUsuario: string;
     contrasena: string;
   }) => {
     try {
       await login(values.nombreUsuario, values.contrasena);
-      navigate("/"); // Redirección con useNavigate
-    } catch (err) {
+      navigate("/");
+    } catch {
       setError("Credenciales incorrectas. Intenta nuevamente.");
+      // carga perezosa del bundle de notificaciones
+      const { toast } = await import("react-toastify");
       toast.error("Error al iniciar sesión.");
     }
   };
@@ -44,7 +55,6 @@ const Login: React.FC = () => {
                 Nombre de Usuario:
               </label>
               <Field
-                type="text"
                 id="nombreUsuario"
                 name="nombreUsuario"
                 className="form-input"
@@ -56,7 +66,6 @@ const Login: React.FC = () => {
                 className="auth-error"
               />
             </div>
-
             <div className="mb-4">
               <label htmlFor="contrasena" className="auth-label">
                 Contraseña:
@@ -74,9 +83,7 @@ const Login: React.FC = () => {
                 className="auth-error"
               />
             </div>
-
             {error && <div className="auth-error mb-4">{error}</div>}
-
             <div className="form-acciones">
               <Boton
                 type="submit"
@@ -89,10 +96,16 @@ const Login: React.FC = () => {
           </Form>
         )}
       </Formik>
+
       <div className="text-center mt-4">
-        <a href="/registro" className="text-primary hover:underline">
+        <Link
+          to="/registro"
+          className="text-primary hover:underline"
+          onMouseEnter={prefetch.registro} // prefetch en hover
+          onFocus={prefetch.registro} // accesibilidad
+        >
           ¿No tienes cuenta? Regístrate aquí
-        </a>
+        </Link>
       </div>
     </div>
   );

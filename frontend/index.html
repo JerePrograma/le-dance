@@ -31,6 +31,20 @@
     object-src 'none';
   "
     />
+    <script>
+      // módulo mínimo; no afecta modernos
+      (function () {
+        try {
+          new Function("import('data:text/javascript,')");
+        } catch (e) {
+          var p = document.createElement("script");
+          p.src =
+            "https://unpkg.com/modulepreload-polyfill/dist/modulepreload-polyfill.min.js";
+          p.defer = true;
+          document.head.appendChild(p);
+        }
+      })();
+    </script>
   </head>
   <body>
     <!-- Accesibilidad: salto al contenido -->
