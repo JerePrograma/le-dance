@@ -16,6 +16,7 @@ import ledance.dto.recargo.response.RecargoResponse;
 import ledance.dto.stock.response.StockResponse;
 import ledance.entidades.Egreso;
 import ledance.entidades.Pago;
+import ledance.entidades.MetodoPago;
 import ledance.repositorios.EgresoRepositorio;
 import ledance.repositorios.PagoRepositorio;
 import ledance.servicios.alumno.AlumnoServicio;
@@ -29,10 +30,13 @@ import ledance.servicios.stock.StockServicio;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.text.Normalizer;
 import java.time.LocalDate;
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.summingDouble;
 
 @Service
 public class CajaServicio {
@@ -54,7 +58,14 @@ public class CajaServicio {
                         EgresoRepositorio egresoRepositorio,
                         PagoMapper pagoMapper,
                         EgresoMapper egresoMapper,
-                        AlumnoServicio alumnoServicio, DisciplinaServicio disciplinaServicio, ConceptoServicio conceptoServicio, StockServicio stockServicio, MetodoPagoServicio metodoPagoServicio, BonificacionServicio bonificacionServicio, RecargoServicio recargoServicio, PdfService pdfService) {
+                        AlumnoServicio alumnoServicio,
+                        DisciplinaServicio disciplinaServicio,
+                        ConceptoServicio conceptoServicio,
+                        StockServicio stockServicio,
+                        MetodoPagoServicio metodoPagoServicio,
+                        BonificacionServicio bonificacionServicio,
+                        RecargoServicio recargoServicio,
+                        PdfService pdfService) {
         this.pagoRepositorio = pagoRepositorio;
         this.egresoRepositorio = egresoRepositorio;
         this.pagoMapper = pagoMapper;
@@ -70,16 +81,35 @@ public class CajaServicio {
     }
 
     // -------------------------------------------------------------------------
+    // Helpers de normalización y null-safety para métodos de pago
+    // -------------------------------------------------------------------------
+    private static String norm(String s) {
+        if (s == null) return "SIN_METODO";
+        String n = Normalizer.normalize(s, Normalizer.Form.NFD);
+        // quita tildes y normaliza a MAYÚSCULAS sin espacios extremos
+        return n.replaceAll("\\p{M}+", "").toUpperCase(Locale.ROOT).trim();
+    }
+
+    private static String metodoDesc(Pago p) {
+        MetodoPago mp = p.getMetodoPago();
+        return (mp == null || mp.getDescripcion() == null) ? "SIN_METODO" : norm(mp.getDescripcion());
+    }
+
+    private static String metodoDesc(MetodoPago mp) {
+        return (mp == null || mp.getDescripcion() == null) ? "SIN_METODO" : norm(mp.getDescripcion());
+    }
+
+    // -------------------------------------------------------------------------
     // 1. Planilla General de Caja: Lista diaria con totales de ingresos y egresos.
+    //    (Se mantiene el comportamiento original: columnas EFECTIVO/DEBITO)
+    //    Se agregó null-safety y normalización para evitar NPEs y tildes.
     // -------------------------------------------------------------------------
     public List<CajaPlanillaDTO> obtenerPlanillaGeneral(LocalDate start, LocalDate end) {
         var pagos = pagoRepositorio.findPagosConAlumnoPorFecha(start, end);
         var egresos = egresoRepositorio.findByFechaBetween(start, end);
 
-        var pagosPorDia = pagos.stream()
-                .collect(Collectors.groupingBy(Pago::getFecha));
-        var egresosPorDia = egresos.stream()
-                .collect(Collectors.groupingBy(Egreso::getFecha));
+        var pagosPorDia = pagos.stream().collect(Collectors.groupingBy(Pago::getFecha));
+        var egresosPorDia = egresos.stream().collect(Collectors.groupingBy(Egreso::getFecha));
 
         var todasFechas = new HashSet<LocalDate>();
         todasFechas.addAll(pagosPorDia.keySet());
@@ -90,13 +120,12 @@ public class CajaServicio {
             var pDia = pagosPorDia.getOrDefault(dia, List.of());
             var eDia = egresosPorDia.getOrDefault(dia, List.of());
 
-            double ef = pDia.stream()
-                    .filter(p -> "EFECTIVO".equalsIgnoreCase(p.getMetodoPago().getDescripcion()))
-                    .mapToDouble(Pago::getMonto).sum();
+            // Agrupo por descripción normalizada para evitar NPE y variantes con tildes
+            var totalesPorMetodo = pDia.stream()
+                    .collect(Collectors.groupingBy(CajaServicio::metodoDesc, Collectors.summingDouble(Pago::getMonto)));
 
-            double db = pDia.stream()
-                    .filter(p -> "DEBITO".equalsIgnoreCase(p.getMetodoPago().getDescripcion()))
-                    .mapToDouble(Pago::getMonto).sum();
+            double ef = totalesPorMetodo.getOrDefault("EFECTIVO", 0.0);
+            double db = totalesPorMetodo.getOrDefault("DEBITO", 0.0);
 
             double egTot = eDia.stream().mapToDouble(Egreso::getMonto).sum();
             double neto = (ef + db) - egTot;
@@ -117,35 +146,106 @@ public class CajaServicio {
         return resultado;
     }
 
+    // -------------------------------------------------------------------------
+    // 1.b FLEX: Planilla General por día y por CADA método de pago (dinámica)
+    // -------------------------------------------------------------------------
+    public List<CajaPlanillaFlexDTO> obtenerPlanillaGeneralFlex(LocalDate start, LocalDate end) {
+        var pagos = pagoRepositorio.findPagosConAlumnoPorFecha(start, end);
+        var egresos = egresoRepositorio.findByFechaBetween(start, end);
+
+        // Ingresos agrupados por fecha y método
+        var ingresosPorDiaYMetodo = pagos.stream().collect(
+                groupingBy(Pago::getFecha,
+                        groupingBy(p -> new MetodoKey(
+                                        p.getMetodoPago() == null ? null : p.getMetodoPago().getId(),
+                                        metodoDesc(p)
+                                ),
+                                summingDouble(Pago::getMonto))));
+
+        // Egresos agrupados por fecha y método (si Egreso tiene MetodoPago)
+        var egresosPorDiaYMetodo = egresos.stream().collect(
+                groupingBy(Egreso::getFecha,
+                        groupingBy(e -> new MetodoKey(
+                                        e.getMetodoPago() == null ? null : e.getMetodoPago().getId(),
+                                        metodoDesc(e.getMetodoPago())
+                                ),
+                                summingDouble(Egreso::getMonto))));
+
+        // Fechas presentes
+        var fechas = new HashSet<LocalDate>();
+        fechas.addAll(ingresosPorDiaYMetodo.keySet());
+        fechas.addAll(egresosPorDiaYMetodo.keySet());
+
+        var resultado = new ArrayList<CajaPlanillaFlexDTO>();
+
+        for (var dia : fechas) {
+            var mapIng = ingresosPorDiaYMetodo.getOrDefault(dia, Map.of());
+            var mapEgr = egresosPorDiaYMetodo.getOrDefault(dia, Map.of());
+
+            var ingresosPorMetodo = mapIng.entrySet().stream()
+                    .sorted(Comparator.comparing(e -> e.getKey().nombre))
+                    .map(e -> new MetodoTotalDTO(e.getKey().id, e.getKey().nombre, e.getValue()))
+                    .toList();
+
+            var egresosPorMetodo = mapEgr.entrySet().stream()
+                    .sorted(Comparator.comparing(e -> e.getKey().nombre))
+                    .map(e -> new MetodoTotalDTO(e.getKey().id, e.getKey().nombre, e.getValue()))
+                    .toList();
+
+            double totalIngresos = ingresosPorMetodo.stream().mapToDouble(MetodoTotalDTO::total).sum();
+            double totalEgresos = egresosPorMetodo.stream().mapToDouble(MetodoTotalDTO::total).sum();
+            double neto = totalIngresos - totalEgresos;
+
+            // Rango de IDs de pagos del día
+            var idsDelDia = pagos.stream()
+                    .filter(p -> p.getFecha().equals(dia))
+                    .map(Pago::getId)
+                    .sorted()
+                    .toList();
+            String rango = idsDelDia.isEmpty() ? "" : (idsDelDia.get(0) + "-" + idsDelDia.get(idsDelDia.size() - 1));
+
+            resultado.add(new CajaPlanillaFlexDTO(
+                    dia,
+                    rango,
+                    ingresosPorMetodo,
+                    totalIngresos,
+                    egresosPorMetodo,
+                    totalEgresos,
+                    neto
+            ));
+        }
+
+        resultado.sort(Comparator.comparing(CajaPlanillaFlexDTO::fecha));
+        return resultado;
+    }
+
     public CobranzasDataResponse obtenerDatosCobranzas() {
-        // 1. Obtener listado simplificado de alumnos.
+        // 1. Listado simplificado de alumnos
         List<AlumnoResponse> alumnos = alumnoServicio.listarAlumnosSimplificado();
 
-        // 2. Obtener listado basico de disciplinas.
+        // 2. Disciplinas básicas
         List<DisciplinaResponse> disciplinas = disciplinaServicio.listarDisciplinasSimplificadas();
 
-        // 3. Obtener listado de stocks.
+        // 3. Stocks
         List<StockResponse> stocks = stockServicio.listarStocksActivos();
 
-        // 4. Obtener listado de metodos de pago.
+        // 4. Métodos de pago
         List<MetodoPagoResponse> metodosPago = metodoPagoServicio.listar();
 
-        // 5. Obtener listado de conceptos.
+        // 5. Conceptos
         List<ConceptoResponse> conceptos = conceptoServicio.listarConceptos();
 
+        // 6. Bonificaciones / Recargos
         List<BonificacionResponse> bonificaciones = bonificacionServicio.listarBonificaciones();
-
         List<RecargoResponse> recargos = recargoServicio.listarRecargos();
 
-        // 6. Armar y retornar el DTO unificado de cobranzas.
+        // 7. DTO unificado
         return new CobranzasDataResponse(alumnos, disciplinas, stocks, metodosPago, conceptos, bonificaciones, recargos);
     }
 
     public CajaDetalleDTO obtenerCajaMensual(LocalDate start, LocalDate end) {
         List<Pago> pagosMes = pagoRepositorio.findPagosConAlumnoPorFecha(start, end);
         List<Egreso> egresosMes = egresoRepositorio.findByFechaBetween(start, end);
-
-        // Se mapean las entidades a DTOs (si tienes mappers)
         return new CajaDetalleDTO(pagoMapper.toDTOList(pagosMes), egresoMapper.toDTOList(egresosMes));
     }
 
@@ -153,29 +253,28 @@ public class CajaServicio {
         return pdfService.generarRendicionMensualPdf(caja);
     }
 
-
     /**
      * Devuelve la descripción del método de pago en mayúsculas,
      * o "EFECTIVO" si el método es null o su descripción es null.
+     * (Se mantiene lógica original para Rendición)
      */
     private String descripcionMetodoSeguro(PagoResponse p) {
         var mp = p.metodoPago();
         return (mp == null || mp.descripcion() == null)
                 ? "EFECTIVO"
-                : mp.descripcion().toUpperCase();
+                : norm(mp.descripcion());
     }
 
     public CajaRendicionDTO obtenerCajaRendicionMensual(LocalDate start, LocalDate end) {
         CajaDetalleDTO base = obtenerCajaMensual(start, end);
 
-        // 1) Filtrar pagos: quitamos aquellos con monto == 0 y observaciones vacías o null
+        // 1) Filtrar pagos inválidos: monto == 0 y observaciones vacías/null
         List<PagoResponse> pagosValidos = base.pagosDelDia().stream()
                 .filter(p -> !(p.monto() == 0
-                        && (p.observaciones() == null || p.observaciones().isBlank()))
-                )
+                        && (p.observaciones() == null || p.observaciones().isBlank())))
                 .toList();
 
-        // 2) Totales de pagos sobre la lista filtrada
+        // 2) Totales de pagos (EFECTIVO/DEBITO) según lógica existente
         double totalEfectivo = pagosValidos.stream()
                 .filter(p -> descripcionMetodoSeguro(p).equals("EFECTIVO"))
                 .mapToDouble(PagoResponse::monto)
@@ -208,7 +307,7 @@ public class CajaServicio {
         double totalEgresos = totalEgresosEfectivo + totalEgresosDebito;
         double totalNeto = totalCobrado - totalEgresos;
 
-        // 4) Devolvemos la DTO usando la lista de pagos filtrados
+        // 4) DTO de salida
         return new CajaRendicionDTO(
                 pagosValidos,
                 base.egresosDelDia(),
@@ -225,17 +324,17 @@ public class CajaServicio {
     /**
      * Devuelve la descripción del método de pago en mayúsculas,
      * o "EFECTIVO" si no existe método o su descripción es null.
+     * (Se mantiene lógica original para CajaDiaria)
      */
     private String descripcionMetodoPagoSeguro(PagoResponse p) {
         var mp = p.metodoPago();
         return (mp == null || mp.descripcion() == null)
                 ? "EFECTIVO"
-                : mp.descripcion().toUpperCase();
+                : norm(mp.descripcion());
     }
 
     /**
-     * Obtiene la caja diaria para una fecha dada, mapea los pagos y egresos
-     * y calcula todos los totales para devolver un CajaDiariaImp completo.
+     * Caja diaria (comportamiento actual: totales EFECTIVO/DEBITO).
      */
     public CajaDiariaImp obtenerCajaDiaria(LocalDate fecha) {
         // 1) Traer entidades
@@ -246,7 +345,7 @@ public class CajaServicio {
                 egresoRepositorio.findByFecha(fecha)
         );
 
-        // 2) Totales de pagos (filtrando método seguro)
+        // 2) Totales de pagos (EFECTIVO/DEBITO)
         double totalEfectivo = pagos.stream()
                 .filter(p -> descripcionMetodoPagoSeguro(p).equals("EFECTIVO"))
                 .mapToDouble(PagoResponse::monto)
@@ -281,7 +380,7 @@ public class CajaServicio {
         // 4) Neto
         double totalNeto = totalCobrado - totalEgresos;
 
-        // 5) Devolver DTO completo
+        // 5) DTO final
         return new CajaDiariaImp(
                 pagos,
                 egresos,
@@ -295,7 +394,83 @@ public class CajaServicio {
         );
     }
 
+    // -------------------------------------------------------------------------
+    // 2.b FLEX: Caja diaria por CADA método de pago (dinámica)
+    // -------------------------------------------------------------------------
+    public CajaDiariaFlexDTO obtenerCajaDiariaFlex(LocalDate fecha) {
+        var pagos = pagoMapper.toDTOList(pagoRepositorio.findPagosConAlumnoPorFecha(fecha, fecha));
+        var egresos = egresoMapper.toDTOList(egresoRepositorio.findByFecha(fecha));
+
+        // Ingresos por método
+        var ingMap = pagos.stream().collect(
+                groupingBy(p -> {
+                    var mp = p.metodoPago();
+                    Long id = (mp == null) ? null : mp.id();
+                    String nombre = (mp == null || mp.descripcion() == null) ? "SIN_METODO" : norm(mp.descripcion());
+                    return new MetodoKey(id, nombre);
+                }, summingDouble(PagoResponse::monto)));
+
+        var ingresosPorMetodo = ingMap.entrySet().stream()
+                .sorted(Comparator.comparing(e -> e.getKey().nombre))
+                .map(e -> new MetodoTotalDTO(e.getKey().id, e.getKey().nombre, e.getValue()))
+                .toList();
+
+        // Egresos por método
+        var egrMap = egresos.stream().collect(
+                groupingBy(e -> {
+                    var mp = e.metodoPago();
+                    Long id = (mp == null) ? null : mp.id();
+                    String nombre = (mp == null || mp.descripcion() == null) ? "SIN_METODO" : norm(mp.descripcion());
+                    return new MetodoKey(id, nombre);
+                }, summingDouble(EgresoResponse::monto)));
+
+        var egresosPorMetodo = egrMap.entrySet().stream()
+                .sorted(Comparator.comparing(e -> e.getKey().nombre))
+                .map(e -> new MetodoTotalDTO(e.getKey().id, e.getKey().nombre, e.getValue()))
+                .toList();
+
+        double totalIngresos = ingresosPorMetodo.stream().mapToDouble(MetodoTotalDTO::total).sum();
+        double totalEgresos = egresosPorMetodo.stream().mapToDouble(MetodoTotalDTO::total).sum();
+        double neto = totalIngresos - totalEgresos;
+
+        return new CajaDiariaFlexDTO(
+                pagos,
+                egresos,
+                ingresosPorMetodo,
+                totalIngresos,
+                egresosPorMetodo,
+                totalEgresos,
+                neto
+        );
+    }
+
     public byte[] generarCajaDiariaPdf(CajaDiariaImp cajaDetalleImp) {
         return pdfService.generarCajaDiariaPdf(cajaDetalleImp);
+    }
+
+    // -------------------------------------------------------------------------
+    // Key para agrupar por método (id + nombre normalizado)
+    // -------------------------------------------------------------------------
+    private static final class MetodoKey {
+        final Long id;
+        final String nombre;
+
+        MetodoKey(Long id, String nombre) {
+            this.id = id;
+            this.nombre = nombre;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof MetodoKey)) return false;
+            MetodoKey key = (MetodoKey) o;
+            return Objects.equals(id, key.id) && Objects.equals(nombre, key.nombre);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(id, nombre);
+        }
     }
 }

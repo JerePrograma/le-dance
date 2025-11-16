@@ -77,7 +77,7 @@ public class Pago {
 
     private String observaciones;
 
-    @OneToMany(mappedBy = "pago", cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE, CascadeType.REFRESH}, orphanRemoval = true)
+    @OneToMany(mappedBy = "pago", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     private List<DetallePago> detallePagos = new ArrayList<>();
 

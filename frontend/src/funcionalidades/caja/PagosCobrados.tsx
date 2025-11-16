@@ -13,7 +13,15 @@ import type { DetallePagoResponse } from "../../types/types";
 import { useCobranzasData } from "../../hooks/useCobranzasData";
 
 const tarifaOptions = ["CUOTA", "CLASE DE PRUEBA", "CLASE SUELTA"];
+const fmtARS = new Intl.NumberFormat("es-AR", {
+  style: "currency",
+  currency: "ARS",
+});
 
+/**
+ * Componente para mostrar los pagos cobrados con filtros y total.
+ * Permite filtrar por fecha, disciplina, stock o concepto.
+ */
 const DetallePagoList: React.FC = () => {
   const [detalles, setDetalles] = useState<DetallePagoResponse[]>([]);
   const [loading, setLoading] = useState(false);
@@ -59,7 +67,7 @@ const DetallePagoList: React.FC = () => {
   }, [fetchDetalles]);
 
   useEffect(() => {
-    if (filtroTipo === "DISCIPLINIAS") {
+    if (filtroTipo === "DISCIPLINAS") {
       disciplinasApi
         .listarDisciplinas()
         .then(setDisciplinas)
@@ -98,14 +106,19 @@ const DetallePagoList: React.FC = () => {
     () =>
       detalles.filter(
         (d) =>
-          (d.ACobrar ?? 0) > 0 && (d.cobrado || d.estadoPago === "HISTORICO")
+          d.cobrado === true ||
+          d.estadoPago === "HISTORICO" ||
+          Number(d.ACobrar ?? 0) === 0
       ),
     [detalles]
   );
 
-  const totalACobrar = useMemo(
+  const totalCobrado = useMemo(
     () =>
-      detallesCobrado.reduce((acc, item) => acc + Number(item.ACobrar || 0), 0),
+      detallesCobrado.reduce((acc, item) => {
+        const monto = Number(item.importeInicial ?? item.valorBase ?? 0);
+        return acc + (isNaN(monto) ? 0 : monto);
+      }, 0),
     [detallesCobrado]
   );
 
@@ -116,13 +129,13 @@ const DetallePagoList: React.FC = () => {
     if (fechaFin) params.fechaRegistroHasta = fechaFin;
     if (filtroTipo) {
       params.categoria = filtroTipo;
-      if (filtroTipo === "DISCIPLINIAS") {
+      if (filtroTipo === "DISCIPLINAS") {
         if (selectedDisciplina) params.disciplina = selectedDisciplina;
         if (selectedTarifa) params.tarifa = selectedTarifa;
       } else if (filtroTipo === "STOCK") {
         if (selectedStock) params.stock = selectedStock;
       } else if (filtroTipo === "CONCEPTOS") {
-        if (selectedSubConcepto) params.subConcepto = selectedSubConcepto;
+        if (selectedSubConcepto) params.subConcepto = selectedSubConcepto; // aquí ya es codigo/id
         if (selectedConcepto) params.detalleConcepto = selectedConcepto;
       }
     }
@@ -173,14 +186,14 @@ const DetallePagoList: React.FC = () => {
               onChange={(e) => setFiltroTipo(e.target.value)}
             >
               <option value="">Seleccionar...</option>
-              <option value="DISCIPLINIAS">DISCIPLINIAS</option>
+              <option value="DISCIPLINAS">DISCIPLINAS</option>
               <option value="STOCK">STOCK</option>
               <option value="CONCEPTOS">CONCEPTOS</option>
               <option value="MATRICULA">MATRICULA</option>
             </select>
           </div>
 
-          {filtroTipo === "DISCIPLINIAS" && (
+          {filtroTipo === "DISCIPLINAS" && (
             <>
               <div>
                 <label className="block font-medium">Disciplina</label>
@@ -244,7 +257,7 @@ const DetallePagoList: React.FC = () => {
                 >
                   <option value="">Seleccionar sub concepto...</option>
                   {subConceptos.map((sc) => (
-                    <option key={sc.id} value={sc.descripcion}>
+                    <option key={sc.id} value={sc.codigo ?? String(sc.id)}>
                       {sc.descripcion}
                     </option>
                   ))}
@@ -269,8 +282,14 @@ const DetallePagoList: React.FC = () => {
             </>
           )}
 
-          <Boton type="submit" className="bg-green-500 text-white p-2 rounded">
-            Ver
+          <Boton
+            type="submit"
+            disabled={loading}
+            className={`bg-green-500 text-white p-2 rounded ${
+              loading ? "opacity-60 cursor-not-allowed" : ""
+            }`}
+          >
+            {loading ? "Cargando..." : "Ver"}
           </Boton>
         </form>
       </div>
@@ -281,9 +300,11 @@ const DetallePagoList: React.FC = () => {
           data={sortedItems}
           customRender={(fila) => [
             fila.pagoId || fila.id,
-            `${fila.alumno.nombre} ${fila.alumno.apellido}`,
+            [fila.alumno?.nombre, fila.alumno?.apellido]
+              .filter(Boolean)
+              .join(" ") || "—",
             fila.descripcionConcepto,
-            fila.ACobrar,
+            fmtARS.format(Number(fila.importeInicial ?? fila.valorBase ?? 0)),
           ]}
           emptyMessage="No hay pagos cobrados"
         />
@@ -293,7 +314,11 @@ const DetallePagoList: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div className="bg-gray-50 rounded-lg shadow p-4">
           <p className="text-right text-xl font-bold text-gray-900">
-            Total cobrado: {totalACobrar}
+            Total cobrado:{" "}
+            {Intl.NumberFormat("es-AR", {
+              style: "currency",
+              currency: "ARS",
+            }).format(totalCobrado)}
           </p>
         </div>
       </div>

@@ -171,14 +171,14 @@ const DetallePagoList: React.FC = () => {
                 onChange={(e) => setFiltroTipo(e.target.value)}
               >
                 <option value="">Seleccionar...</option>
-                <option value="DISCIPLINIAS">DISCIPLINAS</option>
+                <option value="DISCIPLINAS">DISCIPLINAS</option>
                 <option value="STOCK">STOCK</option>
                 <option value="CONCEPTOS">CONCEPTOS</option>
                 <option value="MATRICULA">MATRICULA</option>
               </select>
             </div>
 
-            {filtroTipo === "DISCIPLINIAS" && (
+            {filtroTipo === "DISCIPLINAS" && (
               <>
                 <div>
                   <label className="block font-medium">Disciplina</label>

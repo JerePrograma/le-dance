@@ -67,4 +67,7 @@ public interface DetallePagoRepositorio extends JpaRepository<DetallePago, Long>
     List<DetallePago> findPorAlumnoConACobrarMayorQue(
             @Param("alumnoId") Long alumnoId,
             @Param("valor") Double valor
-    );}
+    );
+
+    long countByMensualidadId(Long mensualidadId);
+}
