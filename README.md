@@ -1,4 +1,4 @@
-# Gym & Academy Manager
+# Le Dance
 
 Sistema de gestión de membresías, inscripciones, facturación y caja para gimnasios, academias y espacios de formación.
 
