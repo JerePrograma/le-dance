@@ -201,8 +201,8 @@ Dependiendo del stack que utilices, una configuración típica podría requerir:
 1. Clonar el repositorio:
 
    ```bash
-   git clone https://github.com/TU_USUARIO/gym-academy-manager.git
-   cd gym-academy-manager/backend
+   git clone [https://github.com/JerePrograma/le-dance](https://github.com/JerePrograma/le-dance)
+   cd le-dance
    ```
 
 2. Configurar variables de entorno o `application.yml`:
