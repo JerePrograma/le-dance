@@ -9,6 +9,7 @@ import ListaConInfiniteScroll from "../../componentes/comunes/ListaConInfiniteSc
 import egresosApi from "../../api/egresosApi";
 import pagosApi from "../../api/pagosApi";
 import detallesPagoApi from "../../api/detallesPagoApi";
+import { APP_TIME_ZONE } from "../../config/environment";
 import type {
   EgresoResponse,
   EgresoRegistroRequest,
@@ -32,7 +33,7 @@ export default function EgresosDebitoPagina() {
 
   // Fecha por defecto en AR (YYYY-MM-DD)
   const defaultDate = new Date().toLocaleDateString("en-CA", {
-    timeZone: "America/Argentina/Buenos_Aires",
+    timeZone: APP_TIME_ZONE,
   });
 
   /* ----------------- Estados EGRESOS ----------------- */

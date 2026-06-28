@@ -1,0 +1,59 @@
+spring:
+  application:
+    name: LeDance
+  profiles:
+    default: dev
+  datasource:
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:validate}
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: ${APP_TIME_ZONE:America/Argentina/Buenos_Aires}
+  flyway:
+    enabled: ${SPRING_FLYWAY_ENABLED:true}
+    baseline-on-migrate: ${SPRING_FLYWAY_BASELINE_ON_MIGRATE:false}
+    baseline-version: ${SPRING_FLYWAY_BASELINE_VERSION:1}
+  jackson:
+    time-zone: ${APP_TIME_ZONE:America/Argentina/Buenos_Aires}
+  web:
+    resources:
+      chain:
+        enabled: true
+        strategy:
+          content:
+            enabled: true
+            paths: /**
+      cache:
+        cachecontrol:
+          cache-public: true
+          max-age: 365d
+
+server:
+  port: ${SERVER_PORT:8080}
+  compression:
+    enabled: true
+    mime-types: text/html,text/css,application/javascript,application/json,image/svg+xml,application/font-woff2
+
+jwt:
+  issuer: ${JWT_ISSUER:le-dance-local}
+  access-token-hours: ${JWT_ACCESS_TOKEN_HOURS:2}
+  refresh-token-hours: ${JWT_REFRESH_TOKEN_HOURS:168}
+
+app:
+  time-zone: ${APP_TIME_ZONE:America/Argentina/Buenos_Aires}
+  cors-allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:8081}
+  scheduling-enabled: ${APP_SCHEDULING_ENABLED:false}
+
+logging:
+  level:
+    root: ${LOGGING_LEVEL_ROOT:INFO}
+    org.springframework.web: INFO
+    org.springframework.security: INFO
+    org.springframework.mail: ERROR
+    jakarta.mail: ERROR
+    org.eclipse.angus.mail: ERROR
+    com.sun.mail: ERROR

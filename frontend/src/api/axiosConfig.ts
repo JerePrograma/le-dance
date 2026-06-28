@@ -1,14 +1,10 @@
 // axiosConfig.ts
 import axios from "axios";
 import { toast } from "react-toastify";
-
-const isDevelopment = process.env.NODE_ENV === "development";
-const baseURL = isDevelopment
-  ? "http://localhost:8080/api"
-  : "http://82.25.68.219/api";
+import { API_BASE_URL } from "../config/environment";
 
 const api = axios.create({
-  baseURL,
+  baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
   },
@@ -42,7 +38,7 @@ api.interceptors.response.use(
         const refreshToken = localStorage.getItem("refreshToken");
         if (!refreshToken) throw new Error("No hay refreshToken almacenado.");
         const { data } = await axios.post(
-          `${baseURL}/login/refresh`,
+          `${API_BASE_URL}/login/refresh`,
           {},
           {
             headers: {

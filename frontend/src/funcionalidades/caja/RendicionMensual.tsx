@@ -6,6 +6,7 @@ import Tabla from "../../componentes/comunes/Tabla";
 import Boton from "../../componentes/comunes/Boton";
 import { toast } from "react-toastify";
 import { useAuth } from "../../hooks/context/authContext";
+import { APP_TIME_ZONE } from "../../config/environment";
 
 interface MetodoPago {
   id: number;
@@ -60,7 +61,7 @@ const RendicionMensual: React.FC = () => {
   const currentUserId = user?.id || 0;
 
   const mesAuto = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Argentina/Buenos_Aires",
+    timeZone: APP_TIME_ZONE,
     year: "numeric",
     month: "2-digit",
   }).format(new Date()); // Ejemplo: "2025-04"

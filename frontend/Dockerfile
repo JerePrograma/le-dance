@@ -1,31 +1,24 @@
-# Usa una imagen con Node.js para construir
-FROM node:22 AS build-stage
+FROM node:22.14.0-alpine3.21 AS build
 
-# Directorio de trabajo
 WORKDIR /app
-
-# Copia los archivos y aprovecha el cache de dependencias
 COPY package.json package-lock.json ./
-RUN npm install
+RUN npm ci
 
-# Copia el resto del codigo
 COPY . .
 
-# Compila la app
+ARG VITE_API_BASE_URL
+ARG VITE_APP_TIME_ZONE=America/Argentina/Buenos_Aires
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL \
+    VITE_APP_TIME_ZONE=$VITE_APP_TIME_ZONE
 RUN npm run build
 
-# Usa una imagen Nginx ligera para servir el frontend
-FROM nginx:alpine AS production-stage
+FROM nginx:1.27.4-alpine3.21
 
-# Copia la build del frontend a Nginx
-COPY --from=build-stage /app/dist /usr/share/nginx/html
-
-# Copia la configuracion personalizada de Nginx
+COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx/default.conf /etc/nginx/conf.d/default.conf
 
-# Exponer el puerto 80
 EXPOSE 80
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD wget -q --spider http://127.0.0.1/ || exit 1
 
-# Arranca Nginx
 CMD ["nginx", "-g", "daemon off;"]
-

@@ -1,7 +1,7 @@
 package ledance.servicios.pdfs;
 
 import ledance.entidades.Pago;
-import ledance.util.FilePathResolver;
+import ledance.infra.configuracion.AppProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
@@ -17,10 +17,12 @@ public class ReciboStorageService {
     private static final Logger LOGGER = LoggerFactory.getLogger(ReciboStorageService.class);
 
     private final PdfService pdfService;
+    private final AppProperties appProperties;
 
     // Se inyecta PdfService (que a su vez usa EmailService para enviar el email)
-    public ReciboStorageService(PdfService pdfService) {
+    public ReciboStorageService(PdfService pdfService, AppProperties appProperties) {
         this.pdfService = pdfService;
+        this.appProperties = appProperties;
     }
 
     /**
@@ -37,7 +39,7 @@ public class ReciboStorageService {
 
             // 2. Almacenar el PDF en disco en la ruta configurada.
             String fileName = "recibo_" + pago.getId() + ".pdf";
-            Path outputPath = FilePathResolver.of("pdfs", fileName);
+            Path outputPath = appProperties.receiptsPath().resolve(fileName);
             Files.createDirectories(outputPath.getParent());
             Files.write(outputPath, pdfBytes);
 

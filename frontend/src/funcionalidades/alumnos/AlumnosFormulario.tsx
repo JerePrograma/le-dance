@@ -13,6 +13,7 @@ import Tabla from "../../componentes/comunes/Tabla";
 import { Search, X } from "lucide-react";
 import { Button } from "../../componentes/ui/button";
 import ResponsiveContainer from "../../componentes/comunes/ResponsiveContainer";
+import { APP_TIME_ZONE } from "../../config/environment";
 
 // IMPORTACIONES PARA EL FORMULARIO DE INSCRIPCIONES (Modal)
 import disciplinasApi from "../../api/disciplinasApi";
@@ -64,7 +65,7 @@ const initialInscripcion: InscripcionRegistroRequest = {
   },
   bonificacionId: undefined,
   fechaInscripcion: new Date().toLocaleDateString("en-CA", {
-    timeZone: "America/Argentina/Buenos_Aires",
+    timeZone: APP_TIME_ZONE,
   }),
 };
 

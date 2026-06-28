@@ -31,7 +31,7 @@ public class FilePathResolverTest {
         Path result = FilePathResolver.of("imgs");
         assertNotNull(result);
         assertTrue(result.toString().contains("imgs"));
-        assertEquals(LEDANCE_HOME + "/imgs", result.toString());
+        assertEquals(Path.of(LEDANCE_HOME, "imgs").toString(), result.toString());
     }
 
     @Test
@@ -41,7 +41,7 @@ public class FilePathResolverTest {
         assertNotNull(result);
         assertTrue(result.toString().contains("imgs"));
         assertTrue(result.toString().contains("firma.png"));
-        assertEquals(LEDANCE_HOME + "/imgs/firma.png", result.toString());
+        assertEquals(Path.of(LEDANCE_HOME, "imgs", "firma.png").toString(), result.toString());
     }
 
     @Test
@@ -52,7 +52,7 @@ public class FilePathResolverTest {
         assertTrue(result.toString().contains("data"));
         assertTrue(result.toString().contains("reports"));
         assertTrue(result.toString().contains("2024.pdf"));
-        assertEquals(LEDANCE_HOME + "/data/reports/2024.pdf", result.toString());
+        assertEquals(Path.of(LEDANCE_HOME, "data", "reports", "2024.pdf").toString(), result.toString());
     }
 
     @Test

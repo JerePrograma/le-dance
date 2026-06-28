@@ -5,32 +5,33 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import ledance.entidades.Usuario;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 
 @Service
 public class TokenService {
 
-    @Value("${jwt.secret}")
-    private String secret;
+    private final JwtProperties properties;
+
+    public TokenService(JwtProperties properties) {
+        this.properties = properties;
+    }
 
     public String generarAccessToken(Usuario usuario) {
-        return generarToken(usuario, 2, "ACCESS");
+        return generarToken(usuario, properties.accessTokenHours(), "ACCESS");
     }
 
     public String generarRefreshToken(Usuario usuario) {
-        return generarToken(usuario, 24 * 7, "REFRESH");
+        return generarToken(usuario, properties.refreshTokenHours(), "REFRESH");
     }
 
-    private String generarToken(Usuario usuario, int horas, String tipo) {
+    private String generarToken(Usuario usuario, long horas, String tipo) {
         try {
-            Algorithm algorithm = Algorithm.HMAC256(secret);
+            Algorithm algorithm = Algorithm.HMAC256(properties.secret());
             return JWT.create()
-                    .withIssuer("ledance")
+                    .withIssuer(properties.issuer())
                     .withSubject(usuario.getNombreUsuario())
                     .withClaim("id", usuario.getId())
                     .withClaim("type", tipo)
@@ -47,9 +48,9 @@ public class TokenService {
             throw new RuntimeException("El token es nulo o vacio");
         }
         try {
-            Algorithm algorithm = Algorithm.HMAC256(secret);
+            Algorithm algorithm = Algorithm.HMAC256(properties.secret());
             DecodedJWT verifier = JWT.require(algorithm)
-                    .withIssuer("ledance")
+                    .withIssuer(properties.issuer())
                     .build()
                     .verify(token);
             return verifier.getSubject();
@@ -60,9 +61,9 @@ public class TokenService {
 
     public String getRolFromToken(String token) {
         try {
-            Algorithm algorithm = Algorithm.HMAC256(secret);
+            Algorithm algorithm = Algorithm.HMAC256(properties.secret());
             DecodedJWT verifier = JWT.require(algorithm)
-                    .withIssuer("ledance")
+                    .withIssuer(properties.issuer())
                     .build()
                     .verify(token);
             return verifier.getClaim("rol").asString();
@@ -71,15 +72,15 @@ public class TokenService {
         }
     }
 
-    private Instant generarFechaExpiracion(int horas) {
-        return LocalDateTime.now().plusHours(horas).toInstant(ZoneOffset.of("-03:00"));
+    private Instant generarFechaExpiracion(long horas) {
+        return Instant.now().plus(horas, ChronoUnit.HOURS);
     }
 
     public String getTokenType(String token) {
         try {
-            Algorithm algorithm = Algorithm.HMAC256(secret);
+            Algorithm algorithm = Algorithm.HMAC256(properties.secret());
             DecodedJWT verifier = JWT.require(algorithm)
-                    .withIssuer("ledance")
+                    .withIssuer(properties.issuer())
                     .build()
                     .verify(token);
             return verifier.getClaim("type").asString(); // ✅ Extraer tipo de token

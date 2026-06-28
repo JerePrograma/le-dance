@@ -1,0 +1,59 @@
+spring:
+  config:
+    activate:
+      on-profile: prod
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: ${SPRING_FLYWAY_ENABLED:true}
+  mail:
+    protocol: smtp
+    host: ${SPRING_MAIL_HOST}
+    port: ${SPRING_MAIL_PORT}
+    username: ${SPRING_MAIL_USERNAME}
+    password: ${SPRING_MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          ssl:
+            protocols: TLSv1.2
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+        debug: false
+    imap:
+      host: ${SPRING_MAIL_IMAP_HOST}
+      port: ${SPRING_MAIL_IMAP_PORT}
+      username: ${SPRING_MAIL_IMAP_USERNAME}
+      password: ${SPRING_MAIL_IMAP_PASSWORD}
+      sent-folder: ${SPRING_MAIL_IMAP_SENT_FOLDER:INBOX.Sent}
+      properties:
+        mail:
+          imap:
+            ssl:
+              enable: true
+
+jwt:
+  secret: ${JWT_SECRET}
+  issuer: ${JWT_ISSUER}
+  access-token-hours: ${JWT_ACCESS_TOKEN_HOURS}
+  refresh-token-hours: ${JWT_REFRESH_TOKEN_HOURS}
+
+app:
+  time-zone: ${APP_TIME_ZONE}
+  receipts-path: ${APP_RECEIPTS_PATH}
+  cors-allowed-origins: ${APP_CORS_ALLOWED_ORIGINS}
+  scheduling-enabled: ${APP_SCHEDULING_ENABLED:true}
+
+logging:
+  level:
+    root: ${LOGGING_LEVEL_ROOT:INFO}

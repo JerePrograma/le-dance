@@ -6,10 +6,11 @@ import Tabla from "../../componentes/comunes/Tabla";
 import Boton from "../../componentes/comunes/Boton";
 import type { EgresoResponse, EgresoRegistroRequest } from "../../types/types";
 import egresoApi from "../../api/egresosApi";
+import { APP_TIME_ZONE } from "../../config/environment";
 
 export default function EgresosPagina() {
   const defaultDate = new Date().toLocaleDateString("en-CA", {
-    timeZone: "America/Argentina/Buenos_Aires",
+    timeZone: APP_TIME_ZONE,
   });
 
   /* ESTADOS */

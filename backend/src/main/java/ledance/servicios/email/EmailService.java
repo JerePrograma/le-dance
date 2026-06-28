@@ -9,6 +9,7 @@ import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -20,6 +21,7 @@ import java.util.Properties;
  * Servicio de envío de emails que guarda cada mensaje en la carpeta "Sent" vía IMAPS.
  */
 @Service
+@Profile("prod")
 public class EmailService implements IEmailService {
 
     private static final Logger log = LoggerFactory.getLogger(EmailService.class);

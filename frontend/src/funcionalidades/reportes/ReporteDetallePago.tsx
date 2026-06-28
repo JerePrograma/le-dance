@@ -12,12 +12,13 @@ import Tabla from "../../componentes/comunes/Tabla";
 import { toast } from "react-toastify";
 import alumnosApi from "../../api/alumnosApi";
 import NumberInputWithoutScroll from "../pagos/NumberInputWithoutScroll";
+import { APP_TIME_ZONE } from "../../config/environment";
 
 // Utilidades de fecha
 const getCurrentMonth = () => {
   const now = new Date();
   return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Argentina/Buenos_Aires",
+    timeZone: APP_TIME_ZONE,
     year: "numeric",
     month: "2-digit",
   }).format(now);
@@ -25,7 +26,7 @@ const getCurrentMonth = () => {
 
 const formatDate = (d: Date) =>
   new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Argentina/Buenos_Aires",
+    timeZone: APP_TIME_ZONE,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",

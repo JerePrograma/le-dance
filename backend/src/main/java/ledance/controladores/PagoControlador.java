@@ -10,12 +10,12 @@ import ledance.dto.pago.request.PagoRegistroRequest;
 import ledance.dto.pago.response.DetallePagoResponse;
 import ledance.dto.pago.response.PagoResponse;
 import ledance.dto.response.DatosUnificadosAlumnoResponse;
+import ledance.infra.configuracion.AppProperties;
 import ledance.servicios.caja.CajaServicio;
 import ledance.servicios.detallepago.DetallePagoServicio;
 import ledance.servicios.inscripcion.InscripcionServicio;
 import ledance.servicios.matricula.MatriculaServicio;
 import ledance.servicios.pago.PagoServicio;
-import ledance.util.FilePathResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -52,20 +52,22 @@ public class PagoControlador {
     private final MatriculaServicio matriculaServicio;
     private final CajaServicio cajaServicio;
     private final InscripcionServicio inscripcionServicio;
+    private final AppProperties appProperties;
 
-    public PagoControlador(PagoServicio pagoServicio, DetallePagoServicio detallePagoServicio, DetallePagoMapper detallePagoMapper, MatriculaServicio matriculaServicio, CajaServicio cajaServicio, InscripcionServicio inscripcionServicio) {
+    public PagoControlador(PagoServicio pagoServicio, DetallePagoServicio detallePagoServicio, DetallePagoMapper detallePagoMapper, MatriculaServicio matriculaServicio, CajaServicio cajaServicio, InscripcionServicio inscripcionServicio, AppProperties appProperties) {
         this.pagoServicio = pagoServicio;
         this.detallePagoServicio = detallePagoServicio;
         this.detallePagoMapper = detallePagoMapper;
         this.matriculaServicio = matriculaServicio;
         this.cajaServicio = cajaServicio;
         this.inscripcionServicio = inscripcionServicio;
+        this.appProperties = appProperties;
     }
 
     @GetMapping("/recibo/{pagoId}")
     public ResponseEntity<Resource> descargarRecibo(@PathVariable Long pagoId) {
         try {
-            Path pdfPath = FilePathResolver.of("pdfs", "recibo_" + pagoId + ".pdf");
+            Path pdfPath = appProperties.receiptsPath().resolve("recibo_" + pagoId + ".pdf");
 
             if (!Files.exists(pdfPath)) {
                 return ResponseEntity.notFound().build();
@@ -265,7 +267,7 @@ public class PagoControlador {
     @GetMapping("/factura/{facturaId}")
     public ResponseEntity<Resource> descargarFactura(@PathVariable Long facturaId) {
         try {
-            Path pdfPath = FilePathResolver.of("pdfs", "factura_" + facturaId + ".pdf");
+            Path pdfPath = appProperties.receiptsPath().resolve("factura_" + facturaId + ".pdf");
 
             if (!Files.exists(pdfPath)) {
                 return ResponseEntity.notFound().build();

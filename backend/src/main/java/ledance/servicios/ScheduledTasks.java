@@ -7,6 +7,7 @@ import ledance.servicios.mensualidad.MensualidadServicio;
 import ledance.servicios.notificaciones.NotificacionService;
 import ledance.servicios.recargo.RecargoServicio;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -14,6 +15,7 @@ import java.io.IOException;
 import java.util.List;
 
 @Component
+@ConditionalOnProperty(name = "app.scheduling-enabled", havingValue = "true")
 public class ScheduledTasks {
 
     private final MensualidadServicio mensualidadServicio;
@@ -39,7 +41,7 @@ public class ScheduledTasks {
      * Genera las mensualidades para el mes vigente
      * Todos los dias 1 a medianoche.
      */
-    @Scheduled(cron = "0 0 0 1 * *")
+    @Scheduled(cron = "0 0 0 1 * *", zone = "${app.time-zone}")
     public void generarMensualidadesMesVigente() {
         mensualidadServicio.generarMensualidadesParaMesVigente();
     }
@@ -48,7 +50,7 @@ public class ScheduledTasks {
      * Genera las matriculas para el año vigente
      * Cada 1 de enero a medianoche.
      */
-    @Scheduled(cron = "0 0 0 1 1 *")
+    @Scheduled(cron = "0 0 0 1 1 *", zone = "${app.time-zone}")
     public void generarMatriculasAnioVigente() {
         matriculaServicio.generarMatriculasAnioVigente();
     }
@@ -57,7 +59,7 @@ public class ScheduledTasks {
      * Aplica recargos automaticos
      * Todos los dias a la 1:00AM.
      */
-    @Scheduled(cron = "0 0 1 * * *")
+    @Scheduled(cron = "0 0 1 * * *", zone = "${app.time-zone}")
     public void aplicarRecargosAutomaticos() {
         recargoServicio.aplicarRecargosAutomaticos();
     }
@@ -66,7 +68,7 @@ public class ScheduledTasks {
      * Crea asistencias detalladas para las inscripciones activas
      * Todos los dias a las 2:00AM.
      */
-    @Scheduled(cron = "0 0 2 * * *")
+    @Scheduled(cron = "0 0 2 * * *", zone = "${app.time-zone}")
     public void crearAsistenciasParaInscripcionesActivas() {
         asistenciaMensualServicio.crearAsistenciasParaInscripcionesActivasDetallado();
     }
@@ -75,7 +77,7 @@ public class ScheduledTasks {
      * Genera y envia las notificaciones de cumpleaños del dia
      * Todos los dias a las 8:00AM.
      */
-    @Scheduled(cron = "0 0 10 * * *")
+    @Scheduled(cron = "0 0 10 * * *", zone = "${app.time-zone}")
     public void enviarNotificacionesCumpleanios() {
         try {
             List<String> mensajes = notificacionService.generarYObtenerCumpleanerosDelDia();

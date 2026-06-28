@@ -3,12 +3,13 @@ module.exports = {
     {
       name: "le-dance-backend",
       script: "java",
-      args: "-jar /home/jeremias/le-dance/backend/target/backend-1.0.jar",
+      args: `-jar ${process.env.LEDANCE_HOME}/backend/target/backend-1.0.jar`,
       env: {
-        SPRING_DATASOURCE_URL: "jdbc:postgresql://localhost:5432/ledance_db",
-        SPRING_DATASOURCE_USERNAME: "postgres",
-        SPRING_DATASOURCE_PASSWORD: "root",
-        JWT_SECRET: "TuValorSecretoMuyFuerte"
+        SPRING_PROFILES_ACTIVE: "prod",
+        SPRING_DATASOURCE_URL: process.env.SPRING_DATASOURCE_URL,
+        SPRING_DATASOURCE_USERNAME: process.env.SPRING_DATASOURCE_USERNAME,
+        SPRING_DATASOURCE_PASSWORD: process.env.SPRING_DATASOURCE_PASSWORD,
+        JWT_SECRET: process.env.JWT_SECRET,
       }
     }
   ]

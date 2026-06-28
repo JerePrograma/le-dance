@@ -12,18 +12,17 @@ import java.util.List;
 @Configuration
 public class ConfiguracionCors implements WebMvcConfigurer {
 
+    private final AppProperties properties;
+
+    public ConfiguracionCors(AppProperties properties) {
+        this.properties = properties;
+    }
+
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Especificar los origenes permitidos
-        configuration.setAllowedOriginPatterns(List.of(
-                "http://localhost:5173",
-                "http://82.25.68.21",
-                "https://jereprograma.com",
-                "http://82.29.61.150",
-                "https://ledance.com.ar"
-        ));
+        configuration.setAllowedOrigins(properties.corsAllowedOrigins());
 
         configuration.setAllowedMethods(List.of("GET", "POST", "OPTIONS", "PUT", "DELETE", "PATCH"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));

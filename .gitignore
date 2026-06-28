@@ -20,7 +20,7 @@ yarn-error.log*
 .pnpm-debug.log*
 .vite/
 *.log
-package-lock.json
+!frontend/package-lock.json
 
 # IDE Configurations
 .idea/
@@ -66,9 +66,10 @@ logs/
 .env.production
 .env.test
 .env.*.local
+!.env.example
+!.env.local.example
 
 # Miscellaneous
-*.lock
 *.bak
 *.tmp
 *.temp

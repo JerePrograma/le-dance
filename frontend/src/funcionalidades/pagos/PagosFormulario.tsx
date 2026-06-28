@@ -16,6 +16,7 @@ import inscripcionesApi from "../../api/inscripcionesApi";
 import { useCobranzasData } from "../../hooks/useCobranzasData";
 import { useAlumnoData } from "../../hooks/useAlumnoData";
 import useDebounce from "../../hooks/useDebounce";
+import { APP_TIME_ZONE } from "../../config/environment";
 import type {
   CobranzasFormValues,
   ConceptoResponse,
@@ -42,14 +43,14 @@ const getMesVigente = (): string => {
     .toLocaleString("default", {
       month: "long",
       year: "numeric",
-      timeZone: "America/Argentina/Buenos_Aires",
+      timeZone: APP_TIME_ZONE,
     })
     .toUpperCase();
 };
 
 const getCurrentDateGMT3 = (): string => {
   return new Date().toLocaleDateString("en-CA", {
-    timeZone: "America/Argentina/Buenos_Aires",
+    timeZone: APP_TIME_ZONE,
   });
 };
 
@@ -57,7 +58,7 @@ const generatePeriodos = (numMeses = 12): string[] => {
   const periodos: string[] = [];
   const currentDate = new Date(
     new Date().toLocaleString("en-US", {
-      timeZone: "America/Argentina/Buenos_Aires",
+      timeZone: APP_TIME_ZONE,
     })
   );
   for (let i = 0; i < numMeses; i++) {
@@ -902,7 +903,7 @@ const CobranzasForm: React.FC = () => {
   // Función para obtener la fecha actual en GMT‑3 (se usa la zona "America/Argentina/Buenos_Aires").
   const obtenerFechaGMT3 = (): Date => {
     const dateString = new Date().toLocaleString("en-US", {
-      timeZone: "America/Argentina/Buenos_Aires",
+      timeZone: APP_TIME_ZONE,
     });
     return new Date(dateString);
   };

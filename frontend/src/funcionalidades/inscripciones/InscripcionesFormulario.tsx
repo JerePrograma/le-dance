@@ -5,6 +5,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import { toast } from "react-toastify";
 import Boton from "../../componentes/comunes/Boton";
+import { APP_TIME_ZONE } from "../../config/environment";
 
 // APIs
 import inscripcionesApi from "../../api/inscripcionesApi";
@@ -30,7 +31,7 @@ interface InscripcionFormData extends InscripcionRegistroRequest {
 // Función para obtener la fecha en formato YYYY-MM-DD con GMT-3
 const obtenerFechaGTM3 = (): string => {
   return new Date().toLocaleDateString("en-CA", {
-    timeZone: "America/Argentina/Buenos_Aires",
+    timeZone: APP_TIME_ZONE,
   });
 };
 

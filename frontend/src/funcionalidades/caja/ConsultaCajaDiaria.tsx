@@ -8,6 +8,7 @@ import Boton from "../../componentes/comunes/Boton";
 import { toast } from "react-toastify";
 import { useAuth } from "../../hooks/context/authContext";
 import { EgresoResponse, PagoDelDia } from "../../types/types";
+import { APP_TIME_ZONE } from "../../config/environment";
 
 export interface CajaDetalleDTO {
   pagosDelDia: PagoDelDia[];
@@ -28,7 +29,7 @@ const ConsultaCajaDiaria: React.FC = () => {
   const currentUserId = user?.id || 0;
 
   const fechaAuto = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Argentina/Buenos_Aires",
+    timeZone: APP_TIME_ZONE,
   }).format(new Date());
   const [fecha, setFecha] = useState<string>(fechaAuto);
   const [data, setData] = useState<CajaDetalleDTO | null>(null);
