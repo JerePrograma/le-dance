@@ -83,12 +83,6 @@ const InscripcionesFormulario: React.FC = () => {
   const autoAddedRef = useRef(false);
   const cerrarRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
-  useEffect(() => {
-    if (alumnoId !== 0 && !autoAddedRef.current) {
-      agregarInscripcion();
-      autoAddedRef.current = true;
-    }
-  }, [alumnoId]);
   // Cargar catálogos de disciplinas y bonificaciones
   useEffect(() => {
     const fetchCatalogos = async () => {
@@ -99,7 +93,9 @@ const InscripcionesFormulario: React.FC = () => {
         ]);
         setDisciplinas(discData || []);
         setBonificaciones(bonData || []);
-      } catch (error) {}
+      } catch {
+        toast.error("Error al cargar disciplinas y bonificaciones");
+      }
     };
     fetchCatalogos();
   }, []);
@@ -107,25 +103,23 @@ const InscripcionesFormulario: React.FC = () => {
   // Leer "alumnoId" de la URL y asignarlo al objeto alumno de cada inscripción
   useEffect(() => {
     const alumnoParam = searchParams.get("alumnoId");
-    if (alumnoParam) {
-      const aId = Number(alumnoParam);
-      if (!isNaN(aId) && aId !== 0) {
-        setAlumnoId(aId);
-        // Actualizamos el alumno.id en los formularios existentes
-        setInscripcionesList((prev) =>
-          prev.map((insc) => ({
-            ...insc,
-            alumno: { ...insc.alumno, id: aId },
-          }))
-        );
-      } else {
-      }
-    } else {
+    if (!alumnoParam) return;
+    const aId = Number(alumnoParam);
+    if (isNaN(aId) || aId === 0) {
+      toast.error("El identificador de alumno no es válido");
+      return;
     }
+    setAlumnoId(aId);
+    setInscripcionesList((prev) =>
+      prev.map((insc) => ({
+        ...insc,
+        alumno: { ...insc.alumno, id: aId },
+      }))
+    );
   }, [searchParams]);
 
   // Agregar un formulario vacío para una nueva inscripción
-  const agregarInscripcion = () => {
+  const agregarInscripcion = useCallback(() => {
     setInscripcionesList((prev) => [
       ...prev,
       {
@@ -133,7 +127,14 @@ const InscripcionesFormulario: React.FC = () => {
         alumno: { ...initialInscripcion.alumno, id: alumnoId },
       },
     ]);
-  };
+  }, [alumnoId]);
+
+  useEffect(() => {
+    if (alumnoId !== 0 && !autoAddedRef.current) {
+      agregarInscripcion();
+      autoAddedRef.current = true;
+    }
+  }, [alumnoId, agregarInscripcion]);
 
   // Función para cargar las inscripciones previas del alumno
   const fetchPrevInscripciones = useCallback(async () => {
@@ -143,8 +144,9 @@ const InscripcionesFormulario: React.FC = () => {
           alumnoId
         );
         setPrevInscripciones(lista);
-      } catch (error) {}
-    } else {
+      } catch {
+        toast.error("Error al cargar las inscripciones");
+      }
     }
   }, [alumnoId]);
 
@@ -185,7 +187,9 @@ const InscripcionesFormulario: React.FC = () => {
       await inscripcionesApi.eliminar(ins.id);
       toast.success("Inscripción eliminada correctamente.");
       setPrevInscripciones((prev) => prev.filter((item) => item.id !== ins.id));
-    } catch (error) {}
+    } catch {
+      toast.error("Error al eliminar la inscripción");
+    }
   };
 
   // Cargar inscripción previa en el formulario para editar
@@ -231,9 +235,7 @@ const InscripcionesFormulario: React.FC = () => {
 
   // Guardar (crear o actualizar) inscripción
   const handleGuardarInscripcion = async (
-    values: InscripcionFormData,
-    _resetForm: () => void,
-    _index?: number
+    values: InscripcionFormData
   ) => {
     if (
       !values.alumno?.id ||
@@ -261,7 +263,7 @@ const InscripcionesFormulario: React.FC = () => {
         await inscripcionesApi.crear(values);
       }
       await fetchPrevInscripciones();
-    } catch (err) {
+    } catch {
       toast.error("Error al guardar la inscripción.");
     }
   };
@@ -392,7 +394,7 @@ const InscripcionesFormulario: React.FC = () => {
             enableReinitialize
             validationSchema={inscripcionEsquema}
             onSubmit={async (values, actions) => {
-              await handleGuardarInscripcion(values, actions.resetForm, index);
+              await handleGuardarInscripcion(values);
               actions.setSubmitting(false);
             }}
           >

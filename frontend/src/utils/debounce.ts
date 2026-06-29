@@ -1,13 +1,13 @@
 // src/utils/debounce.ts
-export function debounce<T extends (...args: any[]) => void>(
-  fn: T,
+export function debounce<TArgs extends unknown[]>(
+  fn: (...args: TArgs) => void,
   delay: number
-): T {
+): (...args: TArgs) => void {
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
-  return function (...args: any[]) {
+  return function (...args: TArgs) {
     if (timeoutId) clearTimeout(timeoutId);
     timeoutId = setTimeout(() => {
       fn(...args);
     }, delay);
-  } as T;
+  };
 }

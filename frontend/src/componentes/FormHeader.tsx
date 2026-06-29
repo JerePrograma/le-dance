@@ -1,4 +1,4 @@
-import { Field, FormikErrors, useFormikContext } from "formik";
+import { Field, type FormikHelpers, useFormikContext } from "formik";
 import { AlumnoResponse, CobranzasFormValues } from "../types/types";
 
 const FormHeader: React.FC<{
@@ -6,11 +6,7 @@ const FormHeader: React.FC<{
   handleAlumnoChange: (
     alumnoIdStr: string,
     currentValues: CobranzasFormValues,
-    setFieldValue: (
-      field: string,
-      value: any,
-      shouldValidate?: boolean
-    ) => Promise<void | FormikErrors<CobranzasFormValues>>
+    setFieldValue: FormikHelpers<CobranzasFormValues>["setFieldValue"]
   ) => void;
 }> = ({ alumnos, handleAlumnoChange }) => {
   const { values, setFieldValue } = useFormikContext<CobranzasFormValues>();

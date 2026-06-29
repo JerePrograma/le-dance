@@ -9,9 +9,8 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import com.auth0.jwt.exceptions.JWTVerificationException;
-
 import java.io.IOException;
+import java.util.Objects;
 
 @Component
 public class SecurityFilter extends OncePerRequestFilter {
@@ -31,25 +30,29 @@ public class SecurityFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         String authHeader = request.getHeader("Authorization");
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.replace("Bearer ", "");
+            String token = authHeader.substring("Bearer ".length());
             try {
-                String nombreUsuario = tokenService.getSubject(token);
-                String tipo = tokenService.getTokenType(token);
-                if (!"ACCESS".equals(tipo)) {
-                    throw new JWTVerificationException("Token no es de tipo ACCESS");
-                }
-                var usuarioOpt = usuarioRepositorio.findByNombreUsuario(nombreUsuario);
-                if (usuarioOpt.isPresent()) {
-                    var userEntity = usuarioOpt.get();
-                    var authentication = new UsernamePasswordAuthenticationToken(
-                            userEntity, null, userEntity.getAuthorities());
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
-                }
-            } catch (JWTVerificationException ex) {
+                VerifiedToken verified = tokenService.verify(token, TokenType.ACCESS);
+                var userEntity = usuarioRepositorio.findById(verified.userId())
+                        .filter(user -> Objects.equals(user.getNombreUsuario(), verified.subject()))
+                        .filter(user -> Boolean.TRUE.equals(user.getActivo()))
+                        .filter(user -> user.getRol() != null && Boolean.TRUE.equals(user.getRol().getActivo()))
+                        .filter(user -> Objects.equals(user.getRol().getDescripcion(), verified.role()))
+                        .orElseThrow(InvalidTokenException::new);
+                var authentication = new UsernamePasswordAuthenticationToken(
+                        userEntity, null, userEntity.getAuthorities());
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+            } catch (InvalidTokenException ex) {
+                SecurityContextHolder.clearContext();
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 return;
             }
         }
         filterChain.doFilter(request, response);
+    }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        return request.getRequestURI().startsWith("/api/login");
     }
 }

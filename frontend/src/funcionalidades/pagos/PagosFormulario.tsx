@@ -7,8 +7,10 @@ import {
   Field,
   FieldArray,
   useFormikContext,
-  FormikErrors,
+  type FieldProps,
+  type FormikHelpers,
 } from "formik";
+import axios from "axios";
 import { toast } from "react-toastify";
 import pagosApi from "../../api/pagosApi";
 import alumnosApi from "../../api/alumnosApi";
@@ -23,7 +25,6 @@ import type {
   DisciplinaDetalleResponse,
   MetodoPagoResponse,
   StockResponse,
-  AlumnoRegistroRequest,
   AlumnoResponse,
   PagoRegistroRequest,
   AlumnoDataResponse,
@@ -34,8 +35,10 @@ import type {
 } from "../../types/types";
 import ResponsiveContainer from "../../componentes/comunes/ResponsiveContainer";
 import { useSyncDetalles } from "../../hooks/context/useSyncDetalles";
-import { normalizeInscripcion } from "./normalizeInscripcion";
+import { normalizeAlumno } from "./normalizeInscripcion";
 import NumberInputWithoutScroll from "./NumberInputWithoutScroll";
+
+type SetPaymentFieldValue = FormikHelpers<CobranzasFormValues>["setFieldValue"];
 
 // ----- Utilidades -----
 const getMesVigente = (): string => {
@@ -86,6 +89,7 @@ const defaultValues: CobranzasFormValues = {
     apellido: "",
     fechaNacimiento: new Date().toISOString().split("T")[0],
     fechaIncorporacion: new Date().toISOString().split("T")[0],
+    edad: 0,
     celular1: "",
     celular2: "",
     email: "",
@@ -96,8 +100,10 @@ const defaultValues: CobranzasFormValues = {
     autorizadoParaSalirSolo: false,
     otrasNotas: "",
     cuotaTotal: 0,
+    creditoAcumulado: 0,
+    activo: true,
     inscripciones: [],
-  } as unknown as AlumnoRegistroRequest,
+  },
   alumnoId: 0,
   fecha: getCurrentDateGMT3(),
   detallePagos: [],
@@ -121,34 +127,6 @@ const defaultValues: CobranzasFormValues = {
   removido: false,
 };
 
-// ----- Normalización del alumno -----
-function normalizeAlumno(alumno: AlumnoResponse): AlumnoRegistroRequest {
-  return {
-    id: alumno.id,
-    nombre: alumno.nombre,
-    apellido: alumno.apellido,
-    fechaNacimiento: alumno.fechaNacimiento,
-    fechaIncorporacion: alumno.fechaIncorporacion,
-    edad: alumno.edad,
-    celular1: alumno.celular1,
-    celular2: alumno.celular2,
-    email: alumno.email,
-    email2: alumno.email2,
-    documento: alumno.documento,
-    fechaDeBaja: alumno.fechaDeBaja,
-    deudaPendiente: alumno.deudaPendiente,
-    nombrePadres: alumno.nombrePadres,
-    autorizadoParaSalirSolo: alumno.autorizadoParaSalirSolo,
-    activo: alumno.activo,
-    otrasNotas: alumno.otrasNotas,
-    cuotaTotal: alumno.cuotaTotal,
-    creditoAcumulado: alumno.creditoAcumulado,
-    inscripciones: alumno.inscripciones
-      ? alumno.inscripciones.map(normalizeInscripcion)
-      : [],
-  };
-}
-
 const splitConceptAndCuota = (
   text: string
 ): { concept: string; cuota: string } => {
@@ -168,10 +146,7 @@ interface CobranzasFormHeaderProps {
   handleAlumnoChange: (
     alumnoIdStr: string,
     currentValues: CobranzasFormValues,
-    setFieldValue: (
-      field: string,
-      value: any
-    ) => Promise<void | FormikErrors<CobranzasFormValues>>
+    setFieldValue: SetPaymentFieldValue
   ) => Promise<void>;
 }
 
@@ -195,7 +170,7 @@ const CobranzasFormHeader: React.FC<CobranzasFormHeaderProps> = ({
           const resultados = await alumnosApi.buscarPorNombre(query);
           setSugerencias(resultados);
           setActiveSuggestionIndex(-1);
-        } catch (error) {
+        } catch {
           // Manejo de error (opcional)
         }
       } else {
@@ -325,17 +300,26 @@ const TotalsUpdater: React.FC<{ metodosPago: MetodoPagoResponse[] }> = ({
   const { values, setFieldValue } = useFormikContext<CobranzasFormValues>();
 
   useEffect(() => {
+    if (!values.metodoPagoId && metodosPago.length > 0) {
+      const efectivo = metodosPago.find(
+        (metodo) => metodo.descripcion.toUpperCase() === "EFECTIVO"
+      );
+      if (efectivo) setFieldValue("metodoPagoId", efectivo.id);
+    }
+  }, [values.metodoPagoId, metodosPago, setFieldValue]);
+
+  useEffect(() => {
     // Sólo los que NO estén marcados como eliminados
     const visibleDetalles = values.detallePagos.filter(
-      (detalle: any) => !detalle.removido && !detalle.autoRemoved
+      (detalle) => !detalle.removido && !detalle.autoRemoved
     );
 
     const computedTotalImporte = visibleDetalles.reduce(
-      (sum: number, det: any) => sum + Number(det.importePendiente || 0),
+      (sum, det) => sum + Number(det.importePendiente || 0),
       0
     );
     const computedTotalCobrado = visibleDetalles.reduce(
-      (sum: number, det: any) => sum + Number(det.ACobrar || 0),
+      (sum, det) => sum + Number(det.ACobrar || 0),
       0
     );
 
@@ -359,6 +343,8 @@ const TotalsUpdater: React.FC<{ metodosPago: MetodoPagoResponse[] }> = ({
     values.metodoPagoId,
     metodosPago,
     values.aplicarRecargo,
+    values.totalACobrar,
+    values.totalCobrado,
     setFieldValue,
   ]);
 
@@ -373,11 +359,11 @@ interface ConceptosSectionProps {
   stocks: StockResponse[];
   conceptos: ConceptoResponse[];
   values: CobranzasFormValues;
-  setFieldValue: (field: string, value: any) => void;
+  setFieldValue: SetPaymentFieldValue;
   handleAgregarDetalle: (
     values: CobranzasFormValues,
-    setFieldValue: (field: string, value: any) => void
-  ) => void;
+    setFieldValue: SetPaymentFieldValue
+  ) => Promise<void>;
 }
 
 const ConceptosSection: React.FC<ConceptosSectionProps> = ({
@@ -534,13 +520,16 @@ const DetallesTable: React.FC = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {form.values.detallePagos &&
               form.values.detallePagos.length > 0 ? (
-                form.values.detallePagos.map((detalle: any, index: number) => {
+                form.values.detallePagos.map((
+                  detalle: DetallePagoRegistroRequestExt,
+                  index: number
+                ) => {
                   if (detalle.autoGenerated && detalle.autoRemoved) return null;
                   const bonificacionNombre =
                     bonificaciones.find(
                       (b: BonificacionResponse) =>
                         b.id ===
-                        (detalle.bonificacionId ?? detalle.bonificacion?.id)
+                        detalle.bonificacionId
                     )?.descripcion || "";
                   const recargoNombre = detalle.tieneRecargo
                     ? recargos.find(
@@ -567,15 +556,15 @@ const DetallesTable: React.FC = () => {
                       </td>
                       <td className="border p-2 text-center text-sm">
                         <Field name={`detallePagos.${index}.cuotaOCantidad`}>
-                          {({ field, form }: any) => (
+                          {({ field, form }: FieldProps<string, CobranzasFormValues>) => (
                             <input
                               type={
                                 detalle.tipo === "MENSUALIDAD"
                                   ? "text"
                                   : "number"
                               }
-                              value={field.value}
                               {...field}
+                              value={field.value}
                               {...(detalle.tipo !== "MENSUALIDAD" && {
                                 min: "1",
                               })}
@@ -632,7 +621,7 @@ const DetallesTable: React.FC = () => {
                       </td>
                       <td className="border p-2 text-center text-sm">
                         <Field name={`detallePagos.${index}.importePendiente`}>
-                          {({ field, form }: any) => (
+                          {({ field, form }: FieldProps<number, CobranzasFormValues>) => (
                             <NumberInputWithoutScroll
                               {...field}
                               onChange={(e) => {
@@ -653,7 +642,7 @@ const DetallesTable: React.FC = () => {
                       </td>
                       <td className="border p-2 text-center text-sm">
                         <Field name={`detallePagos.${index}.ACobrar`}>
-                          {({ field, form }: any) => (
+                          {({ field, form }: FieldProps<number, CobranzasFormValues>) => (
                             <div>
                               <NumberInputWithoutScroll
                                 {...field}
@@ -736,18 +725,7 @@ const CobranzasForm: React.FC = () => {
   const { disciplinas, stocks, metodosPago, conceptos } = useCobranzasData();
   const { data: alumnoData } = useAlumnoData(selectedAlumnoId);
 
-  const mappedDisciplinas: DisciplinaDetalleResponse[] = disciplinas.map(
-    (disc) => ({
-      ...disc,
-      salon: (disc as any).salon ?? "",
-      salonId: (disc as any).salonId ?? 0,
-      matricula: (disc as any).matricula ?? 0,
-      profesorApellido: (disc as any).profesorApellido ?? "",
-      profesorId: (disc as any).profesorId ?? 0,
-      inscritos: (disc as any).inscritos ?? 0,
-      horarios: (disc as any).horarios ?? [],
-    })
-  );
+  const mappedDisciplinas: DisciplinaDetalleResponse[] = disciplinas;
 
   const filteredDisciplinas =
     activeInscripciones.length > 0
@@ -767,10 +745,7 @@ const CobranzasForm: React.FC = () => {
     async (
       alumnoIdStr: string,
       _currentValues: CobranzasFormValues,
-      setFieldValue: (
-        field: string,
-        value: any
-      ) => Promise<void | FormikErrors<CobranzasFormValues>>
+      setFieldValue: SetPaymentFieldValue
     ) => {
       const id = Number(alumnoIdStr);
       await setFieldValue("alumnoId", id);
@@ -779,7 +754,7 @@ const CobranzasForm: React.FC = () => {
       let alumnoInfo;
       try {
         alumnoInfo = await alumnosApi.obtenerPorId(id);
-      } catch (error) {
+      } catch {
         alumnoInfo = null;
       }
       if (alumnoInfo) {
@@ -808,7 +783,7 @@ const CobranzasForm: React.FC = () => {
         const inscripcionesActivas =
           await inscripcionesApi.obtenerInscripcionesActivas(id);
         setActiveInscripciones(inscripcionesActivas);
-      } catch (error) {
+      } catch {
         setActiveInscripciones([]);
       }
     },
@@ -830,7 +805,7 @@ const CobranzasForm: React.FC = () => {
               : defaultValues.alumno,
             alumnoId: pagoData.alumno ? pagoData.alumno.id : 0,
             fecha: pagoData.fecha || new Date().toISOString().split("T")[0],
-            detallePagos: pagoData.detallePagos.map((detalle: any) => ({
+            detallePagos: pagoData.detallePagos.map((detalle) => ({
               id: detalle.id,
               descripcionConcepto: detalle.descripcionConcepto ?? "",
               conceptoId: detalle.conceptoId ?? null,
@@ -847,14 +822,10 @@ const CobranzasForm: React.FC = () => {
                 Number(detalle.importePendiente) === 0
                   ? detalle.valorBase
                   : detalle.importePendiente,
-              bonificacionId: detalle.bonificacion
-                ? detalle.bonificacion.id
-                : null,
-              bonificacionNombre: detalle.bonificacion
-                ? detalle.bonificacion.descripcion
-                : "",
-              recargoId: detalle.recargo ? detalle.recargo.id : null,
-              recargoNombre: detalle.recargo ? detalle.recargo.descripcion : "",
+              bonificacionId: detalle.bonificacionId ?? null,
+              bonificacionNombre: detalle.bonificacionNombre ?? "",
+              recargoId: detalle.recargoId ?? null,
+              recargoNombre: detalle.recargoNombre ?? "",
               ACobrar:
                 detalle.importePendiente == null ||
                 Number(detalle.importePendiente) === 0
@@ -864,16 +835,16 @@ const CobranzasForm: React.FC = () => {
               mensualidadId: detalle.mensualidadId ?? null,
               matriculaId: detalle.matriculaId ?? null,
               stockId: detalle.stockId ?? null,
-              version: detalle.version ?? null,
+              version: detalle.version ?? 0,
               pagoId: detalle.pagoId ?? null,
-              tieneRecargo: detalle.tieneRecargo,
+              tieneRecargo: detalle.tieneRecargo ?? false,
               autoGenerated: true,
               estadoPago: detalle.estadoPago,
-              removido: detalle.removido,
-              tipo: detalle.tipo ?? null,
+              removido: detalle.removido ?? false,
+              tipo: detalle.tipo ?? "",
             })),
             totalACobrar: pagoData.detallePagos.reduce(
-              (sum: number, detalle: any) =>
+              (sum, detalle) =>
                 sum +
                 (Number(detalle.importePendiente) === 0 ||
                 detalle.importePendiente == null
@@ -882,7 +853,7 @@ const CobranzasForm: React.FC = () => {
               0
             ),
             totalCobrado: pagoData.detallePagos.reduce(
-              (sum: number, detalle: any) =>
+              (sum, detalle) =>
                 sum +
                 (Number(detalle.importePendiente) === 0 ||
                 detalle.importePendiente == null
@@ -1016,11 +987,10 @@ const CobranzasForm: React.FC = () => {
       : (bonificacion.valorFijo ?? 0) +
         base * ((bonificacion.porcentajeDescuento ?? 0) / 100);
 
-  const handleAgregarDetalle = useCallback(
-    async (
-      values: CobranzasFormValues,
-      setFieldValue: (field: string, value: any) => void
-    ) => {
+  const handleAgregarDetalle = async (
+    values: CobranzasFormValues,
+    setFieldValue: SetPaymentFieldValue
+  ) => {
       const newDetails = [...values.detallePagos];
       let added = false;
 
@@ -1059,9 +1029,10 @@ const CobranzasForm: React.FC = () => {
                 cuotaOCantidad: total.toString(),
                 valorBase: total,
                 importeInicial: total,
+                importePendiente: total,
                 ACobrar: total,
                 cobrado: false,
-              } as unknown as DetallePagoRegistroRequestExt);
+              });
 
               // Actualiza crédito y agrega detalle
               setFieldValue("alumno.creditoAcumulado", credit - used);
@@ -1201,7 +1172,7 @@ const CobranzasForm: React.FC = () => {
               importePendiente: importeConRecargo,
               ACobrar: importeConRecargo,
               cobrado: false,
-            } as unknown as DetallePagoRegistroRequestExt);
+            });
           } catch {
             toast.error("MENSUALIDAD YA COBRADA");
             return;
@@ -1312,11 +1283,12 @@ const CobranzasForm: React.FC = () => {
       } else {
         toast.error("Seleccione una opción válida para agregar");
       }
-    },
-    [conceptos, mappedDisciplinas, stocks, activeInscripciones, recargos]
-  );
+  };
 
-  const onSubmit = async (values: CobranzasFormValues, actions: any) => {
+  const onSubmit = async (
+    values: CobranzasFormValues,
+    actions: FormikHelpers<CobranzasFormValues>
+  ) => {
     if (!values.detallePagos || values.detallePagos.length === 0) {
       toast.error("No hay nada que cobrar");
       return;
@@ -1399,11 +1371,14 @@ const CobranzasForm: React.FC = () => {
       toast.success("Cobranza registrada correctamente");
       actions.resetForm();
       navigate(`/pagos/alumno/${alumnoId}`);
-    } catch (error: any) {
+    } catch (error) {
+      const response = axios.isAxiosError<{ detalle?: string; message?: string }>(error)
+        ? error.response
+        : undefined;
       const errorMsg =
-        error.response?.data?.detalle ||
-        error.response?.data?.message ||
-        error.message ||
+        response?.data?.detalle ||
+        response?.data?.message ||
+        (error instanceof Error ? error.message : undefined) ||
         "Error al registrar la cobranza";
       toast.error(errorMsg);
     }
@@ -1421,42 +1396,14 @@ const CobranzasForm: React.FC = () => {
         enableReinitialize
       >
         {({ values, setFieldValue }) => {
-          useEffect(() => {
-            if (!values.metodoPagoId && metodosPago.length > 0) {
-              const efectivo = metodosPago.find(
-                (mp: MetodoPagoResponse) =>
-                  mp.descripcion.toUpperCase() === "EFECTIVO"
-              );
-              if (efectivo) {
-                setFieldValue("metodoPagoId", efectivo.id);
-              }
-            }
-          }, [values.metodoPagoId, metodosPago, setFieldValue]);
-
-          useEffect(() => {
-            const nuevoTotalCobrado = values.detallePagos.reduce(
-              (sum: number, detalle: any) => sum + Number(detalle.ACobrar || 0),
-              0
-            );
-            if (nuevoTotalCobrado !== values.totalCobrado) {
-              setFieldValue("totalCobrado", nuevoTotalCobrado);
-            }
-          }, [values.detallePagos, setFieldValue, values.totalCobrado]);
-
           const selectedMetodoPago = metodosPago.find(
             (mp: MetodoPagoResponse) => mp.id === Number(values.metodoPagoId)
           );
 
-          useEffect(() => {
-            if (values.metodoPagoId) {
-              setFieldValue("totalCobrado", values.totalACobrar);
-            }
-          }, [values.metodoPagoId, values.totalACobrar, setFieldValue]);
-
-          const handleQuitarRecargo = useCallback(() => {
+          const handleQuitarRecargo = () => {
             setFieldValue("aplicarRecargo", false);
 
-            const updatedDetalles = values.detallePagos.map((detalle: any) => {
+            const updatedDetalles = values.detallePagos.map((detalle) => {
               // ignorar eliminados y los que no tienen recargo individual
               if (
                 detalle.removido ||
@@ -1476,11 +1423,11 @@ const CobranzasForm: React.FC = () => {
             });
 
             setFieldValue("detallePagos", updatedDetalles);
-          }, [values.detallePagos, setFieldValue]);
+          };
 
-          const handleQuitarRecargoDebito = useCallback(() => {
+          const handleQuitarRecargoDebito = () => {
             setFieldValue("aplicarRecargo", false);
-          }, [setFieldValue]);
+          };
 
           return (
             <Form className="w-full">
@@ -1541,7 +1488,7 @@ const CobranzasForm: React.FC = () => {
                             ? Number(selectedMetodo.recargo)
                             : 0;
                         const updatedDetalles = values.detallePagos.map(
-                          (detalle: any) => {
+                          (detalle) => {
                             if (detalle.autoGenerated && detalle.autoRemoved) {
                               return { ...detalle, ACobrar: 0 };
                             }
@@ -1559,7 +1506,7 @@ const CobranzasForm: React.FC = () => {
                         );
                         setFieldValue("detallePagos", updatedDetalles);
                         const computedImporte = updatedDetalles.reduce(
-                          (sum: number, detalle: any) =>
+                          (sum, detalle) =>
                             sum + Number(detalle.ACobrar || 0),
                           0
                         );

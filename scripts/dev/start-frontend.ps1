@@ -8,7 +8,12 @@ if (-not (Test-Path -LiteralPath (Join-Path $repoRoot "frontend\node_modules")))
 
 Push-Location (Join-Path $repoRoot "frontend")
 try {
-    & npm run dev
+    if ([string]::IsNullOrWhiteSpace($env:FRONTEND_PORT)) {
+        & npm run dev
+    }
+    else {
+        & npm run dev -- --port $env:FRONTEND_PORT
+    }
     exit $LASTEXITCODE
 }
 finally {

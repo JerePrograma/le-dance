@@ -59,7 +59,7 @@ const AlumnosPorDisciplina: React.FC = () => {
     try {
       const response = await api.get<Disciplina[]>("/disciplinas");
       setDisciplinas(response.data);
-    } catch (err) {
+    } catch {
       toast.error("Error al cargar disciplinas");
     }
   }, []);
@@ -94,7 +94,7 @@ const AlumnosPorDisciplina: React.FC = () => {
         `/disciplinas/${disciplinaId}/alumnos`
       );
       setAlumnos(response.data);
-    } catch (err) {
+    } catch {
       toast.error("Error al cargar alumnos");
       setError(
         "Ocurrió un error al cargar los alumnos. Por favor, intenta de nuevo."

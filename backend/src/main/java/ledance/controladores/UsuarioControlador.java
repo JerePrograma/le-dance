@@ -55,7 +55,7 @@ public class UsuarioControlador {
     @DeleteMapping("/{id}")
     public ResponseEntity<String> eliminarUsuario(@PathVariable Long id) {
         usuarioService.eliminarUsuario(id);
-        return ResponseEntity.ok("Usuario eliminado.");
+        return ResponseEntity.ok("Usuario desactivado.");
     }
 
     @GetMapping("/perfil")

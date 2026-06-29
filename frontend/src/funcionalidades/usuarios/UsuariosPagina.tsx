@@ -26,7 +26,7 @@ const UsuariosPagina = () => {
       setError(null);
       const usuariosData = await usuariosApi.listarUsuarios();
       setUsuarios(usuariosData);
-    } catch (err) {
+    } catch {
       toast.error("Error al cargar usuarios:");
       setError("Error al cargar usuarios.");
     } finally {
@@ -62,7 +62,7 @@ const UsuariosPagina = () => {
       try {
         await usuariosApi.eliminarUsuario(id);
         setUsuarios((prev) => prev.filter((u) => u.id !== id));
-      } catch (err) {
+      } catch {
         toast.error("Error al eliminar usuario:");
       }
     }

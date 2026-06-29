@@ -11,6 +11,14 @@ if (-not (Test-Path -LiteralPath $javac) -or $javacVersion -notmatch '^javac 21(
     throw "Le Dance requiere un JDK 21 válido en JAVA_HOME."
 }
 
+$env:SPRING_PROFILES_ACTIVE = if ([string]::IsNullOrWhiteSpace($env:SPRING_PROFILES_ACTIVE)) {
+    "dev"
+} else {
+    $env:SPRING_PROFILES_ACTIVE
+}
+if ([string]::IsNullOrWhiteSpace($env:SERVER_PORT) -and -not [string]::IsNullOrWhiteSpace($env:BACKEND_PORT)) {
+    $env:SERVER_PORT = $env:BACKEND_PORT
+}
 $env:LEDANCE_HOME = $repoRoot
 Push-Location (Join-Path $repoRoot "backend")
 try {

@@ -6,14 +6,21 @@ import egresoApi from "../../api/egresosApi";
 import Tabla from "../../componentes/comunes/Tabla";
 import Boton from "../../componentes/comunes/Boton";
 import { toast } from "react-toastify";
-import { useAuth } from "../../hooks/context/authContext";
-import { EgresoResponse, PagoDelDia } from "../../types/types";
+import { useAuth } from "../../hooks/context/useAuth";
+import type {
+  CajaDetalleDTO,
+  PagoResponse,
+} from "../../types/types";
 import { APP_TIME_ZONE } from "../../config/environment";
 
-export interface CajaDetalleDTO {
-  pagosDelDia: PagoDelDia[];
-  egresosDelDia: EgresoResponse[];
-}
+type PagoCajaView = Omit<PagoResponse, "alumno" | "observaciones"> & {
+  alumno: Pick<PagoResponse["alumno"], "id" | "nombre" | "apellido">;
+  observaciones: string;
+};
+
+type CajaDiariaView = Omit<CajaDetalleDTO, "pagosDelDia"> & {
+  pagosDelDia: PagoCajaView[];
+};
 
 export interface EgresoRegistroRequest {
   id?: number;
@@ -32,7 +39,7 @@ const ConsultaCajaDiaria: React.FC = () => {
     timeZone: APP_TIME_ZONE,
   }).format(new Date());
   const [fecha, setFecha] = useState<string>(fechaAuto);
-  const [data, setData] = useState<CajaDetalleDTO | null>(null);
+  const [data, setData] = useState<CajaDiariaView | null>(null);
   const [loading, setLoading] = useState(false);
   const [filtroPago, setFiltroPago] = useState<"mis" | "todos">("mis");
 
@@ -45,11 +52,12 @@ const ConsultaCajaDiaria: React.FC = () => {
     try {
       setLoading(true);
       const detalle = await cajaApi.obtenerCajaDiaria(fecha);
-      const mapped: CajaDetalleDTO = {
+      const mapped: CajaDiariaView = {
         ...detalle,
-        pagosDelDia: detalle.pagosDelDia.map((p: any) => ({
+        pagosDelDia: detalle.pagosDelDia.map((p) => ({
           ...p,
           alumno: p.alumno ?? { id: 0, nombre: "", apellido: "" },
+          observaciones: p.observaciones ?? "",
         })),
         egresosDelDia: detalle.egresosDelDia.map((e) => ({
           ...e,
@@ -208,7 +216,7 @@ const ConsultaCajaDiaria: React.FC = () => {
             className="table-fixed w-full"
             headers={["Recibo", "Código", "Alumno", "Observaciones", "Importe"]}
             data={pagosFiltradosPorUsuario}
-            customRender={(p: PagoDelDia) => [
+            customRender={(p: PagoCajaView) => [
               p.id,
               p.alumno?.id || "",
               `${p.alumno.nombre} ${p.alumno.apellido}`,

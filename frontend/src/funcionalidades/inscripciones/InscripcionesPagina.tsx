@@ -27,7 +27,8 @@ const InscripcionesPagina = () => {
       setError(null);
       const data = await inscripcionesApi.listar();
       setInscripciones(data);
-    } catch (error) {
+    } catch {
+      setError("Error al cargar las inscripciones");
     } finally {
       setLoading(false);
     }

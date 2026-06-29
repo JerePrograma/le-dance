@@ -3,19 +3,26 @@ name: CI and deploy Le Dance
 on:
   pull_request:
   push:
-    branches:
-      - main
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: le-dance-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Set up Java 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
         with:
           distribution: temurin
           java-version: "21"
@@ -29,7 +36,7 @@ jobs:
         run: bash ./mvnw -B -ntp clean verify
 
       - name: Set up Node 22.14.0
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22.14.0
           cache: npm
@@ -39,79 +46,189 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      - name: Lint frontend
-        working-directory: frontend
-        run: npm run lint
-
-      - name: Build frontend
+      - name: Validate frontend
         working-directory: frontend
         env:
           VITE_API_BASE_URL: https://example.invalid/api
           VITE_APP_TIME_ZONE: America/Argentina/Buenos_Aires
-        run: npm run build
+        run: |
+          npm run lint
+          npm test -- --run
+          npm run build
+
+      - name: Validate local Compose
+        run: docker compose config --quiet
+
+      - name: Validate production Compose
+        env:
+          POSTGRES_DB: ledance_ci
+          POSTGRES_USER: ledance_ci
+          POSTGRES_PASSWORD: ci-not-a-production-secret
+          BACKEND_IMAGE: example.invalid/le-dance-backend:${{ github.sha }}
+          FRONTEND_IMAGE: example.invalid/le-dance-frontend:${{ github.sha }}
+          JWT_SECRET: ci-only-jwt-secret-with-at-least-32-characters
+          JWT_ISSUER: le-dance-ci
+          JWT_ACCESS_TOKEN_HOURS: "2"
+          JWT_REFRESH_TOKEN_HOURS: "168"
+          SPRING_MAIL_HOST: smtp.example.invalid
+          SPRING_MAIL_PORT: "587"
+          SPRING_MAIL_USERNAME: ci
+          SPRING_MAIL_PASSWORD: ci-not-a-production-secret
+          SPRING_MAIL_IMAP_HOST: imap.example.invalid
+          SPRING_MAIL_IMAP_PORT: "993"
+          SPRING_MAIL_IMAP_USERNAME: ci
+          SPRING_MAIL_IMAP_PASSWORD: ci-not-a-production-secret
+          APP_TIME_ZONE: America/Argentina/Buenos_Aires
+          APP_CORS_ALLOWED_ORIGINS: https://app.example.invalid
+          VITE_API_BASE_URL: https://api.example.invalid/api
+          VITE_APP_TIME_ZONE: America/Argentina/Buenos_Aires
+        run: docker compose -f docker-compose.yml -f docker-compose.prod.yml config --quiet
+
+      - name: Build backend image gate
+        run: docker build --pull -t le-dance-backend:${{ github.sha }} ./backend
+
+      - name: Build frontend image gate
+        run: |
+          docker build --pull \
+            --build-arg VITE_API_BASE_URL=https://example.invalid/api \
+            --build-arg VITE_APP_TIME_ZONE=America/Argentina/Buenos_Aires \
+            -t le-dance-frontend:${{ github.sha }} \
+            ./frontend
 
   build-and-deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: validate
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
-      - name: Require production frontend URL
+      - name: Require deployment configuration
         env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
           VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
-        run: test -n "$VITE_API_BASE_URL"
+        run: |
+          for name in DOCKER_USERNAME DOCKER_PASSWORD VPS_HOST VPS_USER VPS_PORT VPS_SSH_KEY VPS_KNOWN_HOSTS VITE_API_BASE_URL; do
+            test -n "${!name:-}" || { echo "Missing required deployment value: $name" >&2; exit 1; }
+          done
 
       - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Build and push backend
         env:
-          IMAGE: ${{ secrets.DOCKER_USERNAME }}/le-dance-backend
-        run: |
-          docker build -t "$IMAGE:${{ github.sha }}" -t "$IMAGE:latest" ./backend
-          docker push "$IMAGE:${{ github.sha }}"
-          docker push "$IMAGE:latest"
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: printf '%s' "$DOCKER_PASSWORD" | docker login --username "$DOCKER_USERNAME" --password-stdin
 
-      - name: Build and push frontend
+      - name: Build and push SHA images
         env:
-          IMAGE: ${{ secrets.DOCKER_USERNAME }}/le-dance-frontend
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
         run: |
-          docker build \
+          backend_image="$DOCKER_USERNAME/le-dance-backend:${{ github.sha }}"
+          frontend_image="$DOCKER_USERNAME/le-dance-frontend:${{ github.sha }}"
+          docker build --pull -t "$backend_image" ./backend
+          docker build --pull \
             --build-arg "VITE_API_BASE_URL=$VITE_API_BASE_URL" \
-            --build-arg "VITE_APP_TIME_ZONE=America/Argentina/Buenos_Aires" \
-            -t "$IMAGE:${{ github.sha }}" \
-            -t "$IMAGE:latest" \
+            --build-arg VITE_APP_TIME_ZONE=America/Argentina/Buenos_Aires \
+            -t "$frontend_image" \
             ./frontend
-          docker push "$IMAGE:${{ github.sha }}"
-          docker push "$IMAGE:latest"
+          docker push "$backend_image"
+          docker push "$frontend_image"
 
-      - name: Copy Compose file to VPS
-        uses: appleboy/scp-action@v0.1.0
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: ${{ secrets.VPS_PORT }}
-          source: docker-compose.yml,docker-compose.prod.yml
-          target: /home/jeremias/le-dance/
+      - name: Configure SSH
+        env:
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
 
-      - name: Deploy validated images
-        uses: appleboy/ssh-action@v0.1.9
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: ${{ secrets.VPS_PORT }}
-          script: |
-            cd /home/jeremias/le-dance
-            export BACKEND_IMAGE="${{ secrets.DOCKER_USERNAME }}/le-dance-backend:${{ github.sha }}"
-            export FRONTEND_IMAGE="${{ secrets.DOCKER_USERNAME }}/le-dance-frontend:${{ github.sha }}"
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml pull backend frontend
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --no-build
+      - name: Copy Compose files to VPS
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+        run: |
+          ssh -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" 'mkdir -p /home/jeremias/le-dance'
+          scp -P "$VPS_PORT" docker-compose.yml docker-compose.prod.yml "$VPS_USER@$VPS_HOST:/home/jeremias/le-dance/"
+
+      - name: Deploy SHA images with healthcheck and rollback
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+        run: |
+          backend_image="$DOCKER_USERNAME/le-dance-backend:${{ github.sha }}"
+          frontend_image="$DOCKER_USERNAME/le-dance-frontend:${{ github.sha }}"
+          ssh -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" \
+            "bash -s -- '$backend_image' '$frontend_image'" <<'REMOTE'
+          set -Eeuo pipefail
+          cd /home/jeremias/le-dance
+          test -f .env || { echo 'Missing production .env on VPS' >&2; exit 1; }
+
+          compose() {
+            docker compose --env-file .env -f docker-compose.yml -f docker-compose.prod.yml "$@"
+          }
+
+          previous_backend="$(compose ps -q backend | xargs -r docker inspect --format '{{.Config.Image}}')"
+          previous_frontend="$(compose ps -q frontend | xargs -r docker inspect --format '{{.Config.Image}}')"
+          export BACKEND_IMAGE="$1" FRONTEND_IMAGE="$2"
+
+          rollback() {
+            echo 'Deployment unhealthy; restoring previous application images.' >&2
+            if [ -n "$previous_backend" ] && [ -n "$previous_frontend" ]; then
+              export BACKEND_IMAGE="$previous_backend" FRONTEND_IMAGE="$previous_frontend"
+              compose pull backend frontend
+              compose up -d --no-build backend frontend
+            else
+              compose stop backend frontend
+            fi
+          }
+
+          compose config --quiet
+          compose pull backend frontend
+          compose up -d --no-build db backend frontend
+
+          deadline=$((SECONDS + 120))
+          while [ "$SECONDS" -lt "$deadline" ]; do
+            backend_id="$(compose ps -q backend)"
+            frontend_id="$(compose ps -q frontend)"
+            backend_status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$backend_id" 2>/dev/null || true)"
+            frontend_status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$frontend_id" 2>/dev/null || true)"
+            if [ "$backend_status" = healthy ] && [ "$frontend_status" = healthy ]; then
+              compose ps
+              exit 0
+            fi
+            if [ "$backend_status" = unhealthy ] || [ "$frontend_status" = unhealthy ]; then
+              break
+            fi
+            sleep 5
+          done
+
+          compose ps >&2
+          compose logs --tail=200 backend frontend >&2
+          rollback
+          exit 1
+          REMOTE
+
+      - name: Publish latest only after healthy SHA deployment
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+        run: |
+          for app in backend frontend; do
+            image="$DOCKER_USERNAME/le-dance-$app"
+            docker tag "$image:${{ github.sha }}" "$image:latest"
+            docker push "$image:latest"
+          done

@@ -11,8 +11,22 @@ export interface ExportLiquidacionPayload {
   detalles: DetallePagoResponse[];
 }
 
+export interface ReporteMensualidadParams {
+  fechaDesde?: string;
+  fechaHasta?: string;
+  fechaInicio?: string;
+  fechaFin?: string;
+  disciplinaNombre?: string;
+  profesorNombre?: string;
+  alumnoId?: number;
+  disciplinaId?: number;
+  profesorId?: number;
+  estado?: string;
+  page?: number;
+}
+
 const reporteMensualidadApi = {
-  listarReporte: async (params: any): Promise<DetallePagoResponse[]> => {
+  listarReporte: async (params: ReporteMensualidadParams): Promise<DetallePagoResponse[]> => {
     const resp = await api.get("/reportes/mensualidades/buscar", { params });
     return resp.data;
   },

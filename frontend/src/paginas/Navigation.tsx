@@ -1,7 +1,7 @@
 // Navigation.tsx
 import React from "react";
 import { Link } from "react-router-dom";
-import { useAuth } from "../hooks/context/authContext";
+import { useAuth } from "../hooks/context/useAuth";
 import { NavigationItem, navigationItems } from "../config/navigation";
 
 const NavigationMenu: React.FC = () => {
@@ -75,4 +75,4 @@ const NavigationMenu: React.FC = () => {
   );
 };
 
-export default NavigationMenu; 
+export default NavigationMenu;

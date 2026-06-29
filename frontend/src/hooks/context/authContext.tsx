@@ -1,43 +1,13 @@
 // authContext.tsx
 import React, {
-  createContext,
-  useContext,
   useEffect,
   useState,
   type ReactNode,
 } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../../api/axiosConfig";
+import api, { clearAuthStorage } from "../../api/axiosConfig";
 import { toast } from "react-toastify";
-
-// Definimos la interfaz del perfil de usuario
-export interface UserProfile {
-  id: number;
-  nombreUsuario: string;
-  email?: string;
-  rol: string;
-}
-
-interface AuthContextProps {
-  isAuth: boolean;
-  loading: boolean;
-  login: (nombreUsuario: string, contrasena: string) => Promise<void>;
-  logout: () => void;
-  accessToken: string | null;
-  refreshToken: string | null;
-  user: UserProfile | null;
-  hasRole: (role: string) => boolean;
-}
-
-const AuthContext = createContext<AuthContextProps | undefined>(undefined);
-
-export const useAuth = (): AuthContextProps => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
-};
+import { AuthContext, type UserProfile } from "./auth-context";
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   children,
@@ -71,8 +41,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
           .then((response) => {
             setUser(response.data);
           })
-          .catch((error) => {
-            toast.error("Error al obtener el perfil", error);
+          .catch(() => {
+            toast.error("Error al obtener el perfil");
           })
           .finally(() => {
             setLoading(false);
@@ -86,7 +56,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   // Redirigir a login si no está autenticado (excepto en rutas públicas)
   useEffect(() => {
     if (loading) return;
-    const publicPaths = ["/login", "/registro"];
+    const publicPaths = ["/login"];
     if (!isAuth && !publicPaths.includes(window.location.pathname)) {
       navigate("/login");
     }
@@ -113,7 +83,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   };
 
   const logout = (): void => {
-    localStorage.clear();
+    clearAuthStorage();
     setAccessToken(null);
     setRefreshToken(null);
     setIsAuth(false);

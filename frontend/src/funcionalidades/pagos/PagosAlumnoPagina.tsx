@@ -36,7 +36,7 @@ const DetallePagoListByAlumno: React.FC = () => {
       const data = await detallesPagoApi.listarPorAlumno(parsedAlumnoId);
       setDetalles(data);
       setVisibleCount(itemsPerLoad);
-    } catch (err) {
+    } catch {
       toast.error("Error al cargar detalles de pago.");
       setError("Error al cargar detalles de pago.");
     } finally {

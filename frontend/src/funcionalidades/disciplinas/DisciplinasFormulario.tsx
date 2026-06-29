@@ -1,7 +1,7 @@
 // src/funcionalidades/disciplinas/DisciplinasFormulario.tsx
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Formik, Form, Field, FieldArray, ErrorMessage } from "formik";
+import { Formik, Form, Field, FieldArray, ErrorMessage, type FieldProps } from "formik";
 import * as Yup from "yup";
 import { toast } from "react-toastify";
 import { Search } from "lucide-react";
@@ -82,7 +82,7 @@ const DisciplinasFormulario: React.FC = () => {
     try {
       const response = await salonesApi.listarSalones();
       setSalones(response.content);
-    } catch (error) {
+    } catch {
       toast.error("Error al cargar salones");
     }
   }, []);
@@ -91,7 +91,7 @@ const DisciplinasFormulario: React.FC = () => {
     try {
       const response = await profesoresApi.listarProfesoresActivos();
       setProfesores(response);
-    } catch (error) {
+    } catch {
       toast.error("Error al cargar profesores");
     }
   }, []);
@@ -112,7 +112,7 @@ const DisciplinasFormulario: React.FC = () => {
       } else {
         setMatricula(0);
       }
-    } catch (error) {
+    } catch {
       toast.error("Error al obtener el concepto 'MATRICULA':");
     }
   }, []);
@@ -151,7 +151,7 @@ const DisciplinasFormulario: React.FC = () => {
           setDisciplinaId(detalle.id);
           setIdBusqueda(String(detalle.id));
           setMensaje("Disciplina encontrada.");
-        } catch (error) {
+        } catch {
           toast.error("Error al buscar la disciplina:");
           setMensaje("Disciplina no encontrada.");
           setFormValues(initialDisciplinaValues);
@@ -185,7 +185,7 @@ const DisciplinasFormulario: React.FC = () => {
         }
         setMensaje("Disciplina guardada exitosamente.");
         navigate("/disciplinas");
-      } catch (error) {
+      } catch {
         toast.error("Error al guardar la disciplina.");
         setMensaje("Error al guardar la disciplina.");
       }
@@ -297,7 +297,7 @@ const DisciplinasFormulario: React.FC = () => {
                   Valor de Cuota:
                 </label>
                 <Field name="valorCuota">
-                  {({ field }: any) => (
+                  {({ field }: FieldProps<number>) => (
                     <NumberInputWithoutScroll
                       {...field}
                       id="valorCuota"
@@ -319,7 +319,7 @@ const DisciplinasFormulario: React.FC = () => {
                   Clase Suelta:
                 </label>
                 <Field name="claseSuelta">
-                  {({ field }: any) => (
+                  {({ field }: FieldProps<number>) => (
                     <NumberInputWithoutScroll
                       {...field}
                       id="claseSuelta"
@@ -341,7 +341,7 @@ const DisciplinasFormulario: React.FC = () => {
                   Clase de Prueba:
                 </label>
                 <Field name="clasePrueba">
-                  {({ field }: any) => (
+                  {({ field }: FieldProps<number>) => (
                     <NumberInputWithoutScroll
                       {...field}
                       id="clasePrueba"

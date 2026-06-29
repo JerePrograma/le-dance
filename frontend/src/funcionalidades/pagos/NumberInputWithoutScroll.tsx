@@ -1,9 +1,6 @@
 import React, { useRef, useEffect } from "react";
 
-interface NumberInputWithoutScrollProps
-  extends React.InputHTMLAttributes<HTMLInputElement> {
-  // Puedes extender las propiedades de un input normal si lo requieres
-}
+type NumberInputWithoutScrollProps = React.InputHTMLAttributes<HTMLInputElement>;
 
 const NumberInputWithoutScroll: React.FC<NumberInputWithoutScrollProps> = (
   props

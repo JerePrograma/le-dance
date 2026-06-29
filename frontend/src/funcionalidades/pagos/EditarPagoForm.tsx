@@ -17,7 +17,14 @@ import stocksApi from "../../api/stocksApi";
 import subConceptosApi from "../../api/subConceptosApi";
 import conceptosApi from "../../api/conceptosApi";
 import alumnosApi from "../../api/alumnosApi";
-import type { DetallePagoResponse, AlumnoResponse } from "../../types/types";
+import type {
+  AlumnoResponse,
+  ConceptoResponse,
+  DetallePagoResponse,
+  DisciplinaDetalleResponse,
+  StockResponse,
+  SubConceptoResponse,
+} from "../../types/types";
 import ListaConInfiniteScroll from "../../componentes/comunes/ListaConInfiniteScroll";
 import useDebounce from "../../hooks/useDebounce";
 import { X } from "lucide-react";
@@ -53,16 +60,16 @@ const DetallePagoList: React.FC<DetallePagoListProps> = ({
   const [filtroTipo, setFiltroTipo] = useState("");
 
   // Estados para filtros secundarios
-  const [disciplinas, setDisciplinas] = useState<any[]>([]);
+  const [disciplinas, setDisciplinas] = useState<DisciplinaDetalleResponse[]>([]);
   const [selectedDisciplina, setSelectedDisciplina] = useState("");
   const [selectedTarifa, setSelectedTarifa] = useState("");
 
-  const [stocks, setStocks] = useState<any[]>([]);
+  const [stocks, setStocks] = useState<StockResponse[]>([]);
   const [selectedStock, setSelectedStock] = useState("");
 
-  const [subConceptos, setSubConceptos] = useState<any[]>([]);
+  const [subConceptos, setSubConceptos] = useState<SubConceptoResponse[]>([]);
   const [selectedSubConcepto, setSelectedSubConcepto] = useState("");
-  const [conceptos, setConceptos] = useState<any[]>([]);
+  const [conceptos, setConceptos] = useState<ConceptoResponse[]>([]);
   const [selectedConcepto, setSelectedConcepto] = useState("");
 
   // Estados para búsqueda y autocompletar alumnos
@@ -96,8 +103,9 @@ const DetallePagoList: React.FC<DetallePagoListProps> = ({
         setDetalles(Array.isArray(data) ? data : []);
         // Reiniciamos visibleCount al recargar datos
         setVisibleCount(itemsPerPage);
-      } catch (error) {
-        // Podrías manejar el error aquí
+      } catch {
+        setError("Error al cargar los detalles de pago");
+        toast.error("Error al cargar los detalles de pago");
       } finally {
         setLoading(false);
       }
@@ -164,7 +172,7 @@ const DetallePagoList: React.FC<DetallePagoListProps> = ({
         try {
           const sugerencias = await alumnosApi.buscarPorNombre(query);
           setSugerenciasAlumnos(sugerencias);
-        } catch (error) {
+        } catch {
           setSugerenciasAlumnos([]);
         }
       } else {
@@ -309,7 +317,7 @@ const DetallePagoList: React.FC<DetallePagoListProps> = ({
         try {
           await detallesPagoApi.eliminarDetallePago(detalle.id);
           toast.success("Detalle eliminado correctamente");
-        } catch (error) {
+        } catch {
           toast.error("Error al eliminar el detalle");
           return;
         }
@@ -350,7 +358,7 @@ const DetallePagoList: React.FC<DetallePagoListProps> = ({
             : d
         )
       );
-    } catch (error) {
+    } catch {
       toast.error("Error al anular el detalle");
     } finally {
       setIsSubmitting(false);
@@ -521,8 +529,8 @@ const DetallePagoList: React.FC<DetallePagoListProps> = ({
                       >
                         <option value="">Seleccionar disciplina...</option>
                         {disciplinas.map((d) => (
-                          <option key={d.id} value={d.nombre || d.descripcion}>
-                            {d.nombre || d.descripcion}
+                          <option key={d.id} value={d.nombre}>
+                            {d.nombre}
                           </option>
                         ))}
                       </select>
@@ -554,8 +562,8 @@ const DetallePagoList: React.FC<DetallePagoListProps> = ({
                     >
                       <option value="">Seleccionar stock...</option>
                       {stocks.map((s) => (
-                        <option key={s.id} value={s.nombre || s.descripcion}>
-                          {s.nombre || s.descripcion}
+                        <option key={s.id} value={s.nombre}>
+                          {s.nombre}
                         </option>
                       ))}
                     </select>

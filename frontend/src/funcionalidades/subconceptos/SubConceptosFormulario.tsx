@@ -19,6 +19,13 @@ const SubConceptosFormulario: React.FC = () => {
     const [mensaje, setMensaje] = useState("");
     const [idBusqueda, setIdBusqueda] = useState("");
 
+    const resetearFormulario = useCallback(() => {
+        setFormValues(initialSubConceptoValues);
+        setSubConceptoId(null);
+        setMensaje("");
+        setIdBusqueda("");
+    }, []);
+
     const convertToSubConceptoFormValues = useCallback(
         (sub: SubConceptoResponse): SubConceptoRegistroRequest & Partial<SubConceptoModificacionRequest> => ({
             descripcion: sub.descripcion,
@@ -37,19 +44,12 @@ const SubConceptosFormulario: React.FC = () => {
             setFormValues(converted);
             setSubConceptoId(sub.id);
             setMensaje("Subconcepto encontrado.");
-        } catch (error) {
+        } catch {
             toast.error("Error al buscar el subconcepto:");
             setMensaje("Subconcepto no encontrado.");
             resetearFormulario();
         }
-    }, [idBusqueda, convertToSubConceptoFormValues]);
-
-    const resetearFormulario = useCallback(() => {
-        setFormValues(initialSubConceptoValues);
-        setSubConceptoId(null);
-        setMensaje("");
-        setIdBusqueda("");
-    }, []);
+    }, [idBusqueda, convertToSubConceptoFormValues, resetearFormulario]);
 
     useEffect(() => {
         const idParam = searchParams.get("id");
@@ -71,7 +71,7 @@ const SubConceptosFormulario: React.FC = () => {
                     toast.success("Subconcepto creado correctamente.");
                 }
                 setMensaje("Subconcepto guardado exitosamente.");
-            } catch (error) {
+            } catch {
                 toast.error("Error al guardar el subconcepto.");
                 setMensaje("Error al guardar el subconcepto.");
             }

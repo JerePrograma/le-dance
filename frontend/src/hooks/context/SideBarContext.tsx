@@ -1,14 +1,5 @@
-import { createContext, useContext, useState, type ReactNode } from "react";
-
-interface SidebarContextType {
-    isExpanded: boolean;
-    toggleSidebar: () => void;
-    closeSidebar: () => void;
-    mobileSidebarOpen: boolean;
-    setMobileSidebarOpen: (open: boolean) => void;
-}
-
-const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
+import { useState, type ReactNode } from "react";
+import { SidebarContext } from "./sidebar-context";
 
 export function SidebarProvider({ children }: { children: ReactNode }) {
     const [isExpanded, setIsExpanded] = useState(true);
@@ -29,12 +20,4 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
             {children}
         </SidebarContext.Provider>
     );
-}
-
-export function useSidebar() {
-    const context = useContext(SidebarContext);
-    if (context === undefined) {
-        throw new Error("useSidebar must be used within a SidebarProvider");
-    }
-    return context;
 }

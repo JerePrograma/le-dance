@@ -4,7 +4,12 @@ import * as Yup from "yup";
 import useDebounce from "../../hooks/useDebounce";
 import disciplinasApi from "../../api/disciplinasApi";
 import profesoresApi from "../../api/profesoresApi";
-import type { AlumnoResponse, DetallePagoResponse } from "../../types/types";
+import type {
+  AlumnoResponse,
+  DetallePagoResponse,
+  DisciplinaListadoResponse,
+  ProfesorListadoResponse,
+} from "../../types/types";
 import reporteMensualidadApi, {
   ExportLiquidacionPayload,
 } from "../../api/reporteMensualidadApi";
@@ -50,11 +55,9 @@ const ReporteDetallePago: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [porcentaje, setPorcentaje] = useState(0);
 
-  const [sugerenciasDisciplinas, setSugerenciasDisciplinas] = useState<any[]>(
-    []
-  );
-  const [sugerenciasProfesores, setSugerenciasProfesores] = useState<any[]>([]);
-  const [sugerenciasAlumnos, setSugerenciasAlumnos] = useState<any[]>([]);
+  const [sugerenciasDisciplinas, setSugerenciasDisciplinas] = useState<DisciplinaListadoResponse[]>([]);
+  const [sugerenciasProfesores, setSugerenciasProfesores] = useState<ProfesorListadoResponse[]>([]);
+  const [sugerenciasAlumnos, setSugerenciasAlumnos] = useState<AlumnoResponse[]>([]);
 
   const [selectedDisciplinaId, setSelectedDisciplinaId] = useState<
     number | null
@@ -95,19 +98,21 @@ const ReporteDetallePago: React.FC = () => {
         };
         const resp = await reporteMensualidadApi.listarReporte(params);
         setResultados(resp);
-      } catch (err: any) {
-        toast.error("Error al obtener el reporte: " + err);
+      } catch (error) {
+        toast.error(
+          `Error al obtener el reporte: ${error instanceof Error ? error.message : "error desconocido"}`
+        );
         setError("Error al cargar los datos del reporte");
       } finally {
         setLoading(false);
       }
     },
   });
+  const { submitForm } = formik;
 
   useEffect(() => {
-    formik.submitForm();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    submitForm();
+  }, [submitForm]);
 
   useEffect(() => {
     if (!debouncedBusquedaDisciplina) {
@@ -260,8 +265,10 @@ const ReporteDetallePago: React.FC = () => {
       link.click();
       link.remove();
       URL.revokeObjectURL(url);
-    } catch (err: any) {
-      toast.error("Error al exportar PDF: " + (err.message || err));
+    } catch (error) {
+      toast.error(
+        `Error al exportar PDF: ${error instanceof Error ? error.message : "error desconocido"}`
+      );
     } finally {
       setLoading(false);
     }

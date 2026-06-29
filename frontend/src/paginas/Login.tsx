@@ -1,7 +1,7 @@
 // Login.tsx
 import { useEffect, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "../hooks/context/authContext";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../hooks/context/useAuth";
 import Boton from "../componentes/comunes/Boton";
 import { Form, Formik, Field, ErrorMessage } from "formik";
 import * as yup from "yup";
@@ -19,11 +19,13 @@ const Login: React.FC = () => {
 
     // Prefetch “en idle” del Dashboard (posible siguiente pantalla)
     useEffect(() => {
-        const id = (window as any).requestIdleCallback
-            ? (window as any).requestIdleCallback(() => prefetch.dashboard())
+        const id = window.requestIdleCallback
+            ? window.requestIdleCallback(() => prefetch.dashboard())
             : setTimeout(() => prefetch.dashboard(), 500);
-        return () =>
-            (window as any).cancelIdleCallback?.(id) ?? clearTimeout(id);
+        return () => {
+            if (window.cancelIdleCallback) window.cancelIdleCallback(id);
+            else clearTimeout(id);
+        };
     }, []);
 
     const handleLogin = async (values: {
@@ -105,17 +107,6 @@ const Login: React.FC = () => {
                     </Form>
                 )}
             </Formik>
-
-            <div className="text-center mt-4">
-                <Link
-                    to="/registro"
-                    className="text-primary hover:underline"
-                    onMouseEnter={prefetch.registro} // prefetch en hover
-                    onFocus={prefetch.registro} // accesibilidad
-                >
-                    ¿No tienes cuenta? Regístrate aquí
-                </Link>
-            </div>
         </div>
     );
 };

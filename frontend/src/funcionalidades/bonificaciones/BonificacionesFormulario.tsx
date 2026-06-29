@@ -32,6 +32,13 @@ const BonificacionesFormulario: React.FC = () => {
   const [mensaje, setMensaje] = useState("");
   const [idBusqueda, setIdBusqueda] = useState("");
 
+  const resetearFormulario = useCallback(() => {
+    setFormValues(initialBonificacionValues);
+    setBonificacionId(null);
+    setMensaje("");
+    setIdBusqueda("");
+  }, []);
+
   const convertToBonificacionFormValues = useCallback(
     (
       bonificacion: BonificacionResponse
@@ -65,19 +72,12 @@ const BonificacionesFormulario: React.FC = () => {
       setFormValues(convertedBonificacion);
       setBonificacionId(bonificacion.id);
       setMensaje("Bonificacion encontrada.");
-    } catch (error) {
+    } catch {
       toast.error("Error al buscar la bonificacion:");
       setMensaje("Bonificacion no encontrada.");
       resetearFormulario();
     }
-  }, [idBusqueda, convertToBonificacionFormValues]);
-
-  const resetearFormulario = useCallback(() => {
-    setFormValues(initialBonificacionValues);
-    setBonificacionId(null);
-    setMensaje("");
-    setIdBusqueda("");
-  }, []);
+  }, [idBusqueda, convertToBonificacionFormValues, resetearFormulario]);
 
   useEffect(() => {
     const idParam = searchParams.get("id");
@@ -112,7 +112,7 @@ const BonificacionesFormulario: React.FC = () => {
           toast.success("Bonificacion creada correctamente.");
         }
         setMensaje("Bonificacion guardada exitosamente.");
-      } catch (error) {
+      } catch {
         toast.error("Error al guardar la bonificacion.");
         setMensaje("Error al guardar la bonificacion.");
       } finally {

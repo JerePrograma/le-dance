@@ -46,7 +46,7 @@ const ConceptosFormulario: React.FC = () => {
       try {
         const subs = await subConceptosApi.listarSubConceptos();
         setSubConceptos(subs);
-      } catch (error) {
+      } catch {
         toast.error("Error al cargar la lista de subconceptos");
       }
     };
@@ -68,7 +68,7 @@ const ConceptosFormulario: React.FC = () => {
         });
         setConceptoId(concepto.id);
         setMensaje("Concepto encontrado.");
-      } catch (error) {
+      } catch {
         toast.error("Error al buscar el concepto:");
         setMensaje("Concepto no encontrado.");
         setFormValues(initialConceptoValues);
@@ -101,7 +101,7 @@ const ConceptosFormulario: React.FC = () => {
         }
         setMensaje("Concepto guardado exitosamente.");
         navigate("/conceptos");
-      } catch (error) {
+      } catch {
         toast.error("Error al guardar el concepto.");
         setMensaje("Error al guardar el concepto.");
       }

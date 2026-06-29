@@ -26,7 +26,7 @@ const ConceptosPagina = () => {
       setError(null);
       const response = await conceptosApi.listarConceptos();
       setConceptos(response);
-    } catch (error) {
+    } catch {
       toast.error("Error al cargar conceptos:");
       setError("Error al cargar conceptos.");
     } finally {
@@ -62,7 +62,7 @@ const ConceptosPagina = () => {
       await conceptosApi.eliminarConcepto(id);
       toast.success("Concepto eliminado correctamente.");
       fetchConceptos();
-    } catch (error) {
+    } catch {
       toast.error("Error al eliminar el concepto.");
     }
   };

@@ -4,6 +4,24 @@ Set-StrictMode -Version Latest
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\.."))
 $failed = $false
 
+function Get-ConfiguredPort {
+    param(
+        [Parameter(Mandatory)][string] $Name,
+        [Parameter(Mandatory)][int] $Default
+    )
+
+    $raw = [Environment]::GetEnvironmentVariable($Name)
+    if ([string]::IsNullOrWhiteSpace($raw)) { return $Default }
+
+    $port = 0
+    if (-not [int]::TryParse($raw, [ref] $port) -or $port -lt 1 -or $port -gt 65535) {
+        Write-Host "${Name}: INVALID ($raw)"
+        $script:failed = $true
+        return $Default
+    }
+    return $port
+}
+
 function Show-CommandVersion {
     param(
         [Parameter(Mandatory)][string] $Name,
@@ -79,14 +97,20 @@ try {
     }
 
     Write-Host "Puertos:"
-    foreach ($port in 5432, 8080, 8081) {
+    $ports = [ordered]@{
+        POSTGRES_PORT = Get-ConfiguredPort "POSTGRES_PORT" 5432
+        BACKEND_PORT = Get-ConfiguredPort "BACKEND_PORT" 8080
+        FRONTEND_PORT = Get-ConfiguredPort "FRONTEND_PORT" 8081
+    }
+    foreach ($entry in $ports.GetEnumerator()) {
+        $port = $entry.Value
         $listener = Get-NetTCPConnection -State Listen -LocalPort $port -ErrorAction SilentlyContinue |
             Select-Object -First 1
         if ($listener) {
-            Write-Host "- ${port}: LISTENING (PID $($listener.OwningProcess))"
+            Write-Host "- $($entry.Key)=${port}: LISTENING (PID $($listener.OwningProcess))"
         }
         else {
-            Write-Host "- ${port}: AVAILABLE"
+            Write-Host "- $($entry.Key)=${port}: AVAILABLE"
         }
     }
 

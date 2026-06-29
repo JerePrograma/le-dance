@@ -24,7 +24,7 @@ No hay componente Python requerido.
    Copy-Item .env.local.example .env
    ```
 
-3. Ajustá puertos o credenciales locales en `.env` si difieren de los ejemplos. Compose carga este archivo automáticamente; Maven y Vite usan las variables de la terminal/Codex o sus defaults de desarrollo.
+3. Ajustá puertos o credenciales locales en `.env` si difieren de los ejemplos. Sólo Compose carga `.env`; Maven y Vite reciben variables de la terminal, scripts o IDE.
 4. Resolvé dependencias sin iniciar servicios ni ejecutar tests completos:
 
    ```powershell
@@ -35,11 +35,24 @@ No hay componente Python requerido.
 
 ## Perfiles Spring
 
-- `dev`: perfil predeterminado; PostgreSQL local, email no-op y schedulers deshabilitados salvo `APP_SCHEDULING_ENABLED=true`.
+- `dev`: perfil local explícito; PostgreSQL local, email no-op y schedulers deshabilitados salvo `APP_SCHEDULING_ENABLED=true`.
 - `test`: email no-op, schedulers deshabilitados, recibos en temporales y Flyway deshabilitado por defecto. Las pruebas PostgreSQL deben proporcionar su datasource aislado.
 - `prod`: datasource, JWT, SMTP/IMAP, CORS, zona horaria y almacenamiento obligatorios; `ddl-auto=validate`; Flyway activo por defecto; email real; schedulers activos.
 
-La configuración común vive en `backend/src/main/resources/application.yml`. Los perfiles no contienen secretos reales.
+La configuración común vive en `backend/src/main/resources/application.yml`. No existe un perfil predeterminado: fuera de Compose, el script local o el IDE deben declarar `SPRING_PROFILES_ACTIVE=dev`. Los perfiles no contienen secretos reales.
+
+Los scripts no importan `.env`. Para ejecutar Maven/Vite con puertos distintos, exportá las variables en la misma terminal; las rutas con espacios se asignan como strings normales de PowerShell:
+
+```powershell
+$env:SPRING_PROFILES_ACTIVE = "dev"
+$env:SPRING_DATASOURCE_URL = "jdbc:postgresql://localhost:5433/ledance_db"
+$env:BACKEND_PORT = "8090"
+$env:SERVER_PORT = $env:BACKEND_PORT
+$env:FRONTEND_PORT = "5190"
+$env:LEDANCE_HOME = "C:\ruta con espacios\le-dance"
+```
+
+`start-backend.ps1` declara `dev` sólo para la ejecución local cuando la terminal no eligió otro perfil y traduce `BACKEND_PORT` a `SERVER_PORT`. `start-frontend.ps1` pasa `FRONTEND_PORT` a Vite. Compose usa su propio `.env` y mantiene PostgreSQL en 5432 dentro de la red Docker aunque publique otro puerto al host.
 
 ## Ejecución local
 
@@ -79,13 +92,32 @@ docker compose up -d db
 docker compose ps
 ```
 
-`docker-compose.prod.yml` es un override de despliegue. Exige secretos y URLs explícitos y no debe iniciarse para desarrollo:
+`docker-compose.prod.yml` es el único mecanismo de despliegue soportado. Exige secretos y URLs explícitos, elimina la publicación de PostgreSQL heredada del archivo local y no debe iniciarse para desarrollo:
 
 ```powershell
 docker compose -f docker-compose.yml -f docker-compose.prod.yml config
 ```
 
+## Bootstrap único del administrador
+
+Sólo para una base sin usuarios, exportá temporalmente las tres variables antes
+de iniciar el backend:
+
+```powershell
+$env:APP_BOOTSTRAP_ADMIN_ENABLED = "true"
+$env:APP_BOOTSTRAP_ADMIN_USERNAME = "admin-inicial"
+$bootstrapSecret = Read-Host "Clave inicial" -AsSecureString
+$env:APP_BOOTSTRAP_ADMIN_PASSWORD = [System.Net.NetworkCredential]::new("", $bootstrapSecret).Password
+Remove-Variable bootstrapSecret
+```
+
+En producción preferí el mecanismo de secretos del entorno. Una vez creado el
+usuario, detené el proceso y eliminá las variables del proceso o del secret
+store. Si la bandera continúa activa al reiniciar, la aplicación falla cerrado.
+
 Los volúmenes `postgres_data` y `receipts_data` son persistentes. No se eliminan en setup, cleanup ni stop.
+
+PM2 no está soportado. Se retiró su configuración incompleta para no mantener dos mecanismos productivos divergentes.
 
 ## Validación
 

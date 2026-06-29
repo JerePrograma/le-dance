@@ -48,7 +48,7 @@ const Alumnos: React.FC = () => {
       const response = await alumnosApi.listar();
       setAlumnos(response);
       setVisibleCount(itemsPerPage);
-    } catch (error) {
+    } catch {
       toast.error("Error al cargar alumnos.");
       setError("Error al cargar alumnos.");
     } finally {
@@ -128,7 +128,7 @@ const Alumnos: React.FC = () => {
       await alumnosApi.eliminar(id);
       toast.success("Alumno eliminado correctamente.");
       fetchAlumnos();
-    } catch (error) {
+    } catch {
       toast.error("Error al eliminar alumno.");
     }
   };

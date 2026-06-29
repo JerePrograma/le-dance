@@ -20,9 +20,9 @@ public class AutenticacionService implements UserDetailsService {
     public UserDetails loadUserByUsername(String nombreUsuario) throws UsernameNotFoundException {
         // El repositorio retorna Optional<Usuario>
         return repositorio.findByNombreUsuario(nombreUsuario)
-                // El repositorio da la entidad
+                .filter(usuario -> usuario.getRol() != null)
+                .filter(usuario -> Boolean.TRUE.equals(usuario.getRol().getActivo()))
                 .map(usuario -> (UserDetails) usuario)
-                // Casteas a UserDetails (porque Usuario implementa UserDetails)
                 .orElseThrow(() -> new UsernameNotFoundException("No se encontro un usuario con el nombreUsuario: " + nombreUsuario));
     }
 }

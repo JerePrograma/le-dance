@@ -27,7 +27,7 @@ const Stocks = () => {
       const response = await stocksApi.listarStocks();
       setStocks(response);
       setVisibleCount(ITEMS_PER_LOAD);
-    } catch (error) {
+    } catch {
       toast.error("Error al cargar stocks:");
       setError("Error al cargar stocks.");
     } finally {
@@ -58,7 +58,7 @@ const Stocks = () => {
       await stocksApi.eliminarStock(id);
       toast.success("Stock eliminado correctamente.");
       fetchStocks();
-    } catch (error) {
+    } catch {
       toast.error("Error al eliminar el stock.");
     }
   };

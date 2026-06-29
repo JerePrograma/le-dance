@@ -18,11 +18,12 @@ COPY --from=build --chown=ledance:ledance /workspace/target/backend-1.0.jar app.
 COPY --from=build --chown=ledance:ledance /workspace/src/main/resources/firma_mesa-de-trabajo-1.png /app/imgs/firma_mesa-de-trabajo-1.png
 
 ENV LEDANCE_HOME=/app \
-    APP_RECEIPTS_PATH=/app/data/receipts
+    APP_RECEIPTS_PATH=/app/data/receipts \
+    SERVER_PORT=8080
 
 USER ledance
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-  CMD nc -z 127.0.0.1 8080 || exit 1
+  CMD nc -z 127.0.0.1 "$SERVER_PORT" || exit 1
 
 ENTRYPOINT ["java", "-jar", "app.jar"]

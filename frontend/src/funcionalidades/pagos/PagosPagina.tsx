@@ -36,7 +36,7 @@ const PaymentList: React.FC = () => {
       if (nuevosPagos.length < itemsPerPage) {
         setHasMore(false);
       }
-    } catch (error) {
+    } catch {
       toast.error("Error al cargar pagos");
       setError("Error al cargar pagos.");
     } finally {

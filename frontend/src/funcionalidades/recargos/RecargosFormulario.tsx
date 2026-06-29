@@ -44,7 +44,7 @@ const RecargosFormulario: React.FC = () => {
       });
       setRecargoId(recargo.id);
       toast.success("Recargo cargado correctamente.");
-    } catch (error) {
+    } catch {
       toast.error("Recargo no encontrado.");
       setFormValues(initialRecargoValues);
     } finally {
@@ -70,7 +70,7 @@ const RecargosFormulario: React.FC = () => {
         setRecargoId(nuevoRecargo.id);
         toast.success("Recargo creado correctamente.");
       }
-    } catch (error) {
+    } catch {
       toast.error("Error al guardar el recargo.");
     } finally {
       setSubmitting(false);

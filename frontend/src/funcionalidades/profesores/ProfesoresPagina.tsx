@@ -28,7 +28,7 @@ const Profesores = () => {
       setError(null)
       const response = await profesoresApi.listarProfesoresActivos()
       setProfesores(response)
-    } catch (error) {
+    } catch {
       toast.error("Error al cargar profesores:")
       setError("Error al cargar profesores.")
     } finally {
@@ -92,7 +92,7 @@ const Profesores = () => {
       await profesoresApi.eliminarProfesor(id)
       toast.success("Profesor eliminado correctamente.")
       fetchProfesores()
-    } catch (error) {
+    } catch {
       toast.error("Error al eliminar el profesor.")
     }
   }

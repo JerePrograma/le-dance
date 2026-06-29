@@ -8,11 +8,14 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.http.HttpStatus;
 
 @Configuration
 @EnableWebSecurity
@@ -28,14 +31,25 @@ public class SecurityConfigurations {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)  // ✅ Desactiva CSRF
+                .cors(Customizer.withDefaults())
+                .formLogin(AbstractHttpConfigurer::disable)
+                .httpBasic(AbstractHttpConfigurer::disable)
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(errors -> errors
+                        .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
+                        .accessDeniedHandler((request, response, exception) ->
+                                response.setStatus(HttpStatus.FORBIDDEN.value())))
                 .authorizeHttpRequests(req -> {
                     req.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll();
                     req.requestMatchers(HttpMethod.POST, "/api/login").permitAll();
-                    req.requestMatchers(HttpMethod.POST, "/api/usuarios/registro").permitAll();
-                    req.requestMatchers("/api/roles").permitAll();
-                    req.requestMatchers(HttpMethod.GET, "/api/pagos/recibo/**").permitAll();
-                    req.requestMatchers(HttpMethod.GET, "api/api/pagos/recibo/**").permitAll();
+                    req.requestMatchers(HttpMethod.POST, "/api/login/refresh").permitAll();
+                    req.requestMatchers(HttpMethod.GET, "/api/usuarios/perfil").authenticated();
+                    req.requestMatchers("/api/usuarios/**", "/api/roles/**")
+                            .hasRole("ADMINISTRADOR");
+                    req.requestMatchers(HttpMethod.GET,
+                                    "/api/pagos/recibo/**",
+                                    "/api/pagos/factura/**")
+                            .hasRole("ADMINISTRADOR");
                     req.anyRequest().authenticated();
                 })
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)

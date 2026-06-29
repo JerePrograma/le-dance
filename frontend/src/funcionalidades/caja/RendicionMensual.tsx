@@ -5,47 +5,23 @@ import cajaApi from "../../api/cajaApi";
 import Tabla from "../../componentes/comunes/Tabla";
 import Boton from "../../componentes/comunes/Boton";
 import { toast } from "react-toastify";
-import { useAuth } from "../../hooks/context/authContext";
+import { useAuth } from "../../hooks/context/useAuth";
 import { APP_TIME_ZONE } from "../../config/environment";
+import type {
+  CajaDetalleDTO,
+  EgresoResponse,
+  PagoResponse,
+} from "../../types/types";
 
-interface MetodoPago {
-  id: number;
-  descripcion: string;
-}
-
-interface DetallePago {
-  estadoPago: string; // Ejemplo: "ANULADO" u otro valor
-}
-
-interface PagoDelDia {
-  id: number;
-  alumno: {
-    id: number;
-    nombre: string;
-    apellido: string;
-  };
+type PagoRendicionView = Omit<PagoResponse, "alumno" | "observaciones"> & {
+  alumno: Pick<PagoResponse["alumno"], "id" | "nombre" | "apellido">;
   observaciones: string;
-  monto: number;
-  importeInicial: number;
-  importePendiente: number;
-  metodoPago?: MetodoPago | null;
-  usuarioId: number;
-  // Propiedad opcional que permite conocer los detalles del pago.
-  detallePagos?: DetallePago[];
-}
+  importePendiente?: number;
+};
 
-interface EgresoDelDia {
-  id: number;
-  fecha: string;
-  monto: number;
-  observaciones?: string;
-  metodoPago?: { id: number; descripcion: string } | null;
-}
-
-export interface CajaDetalleDTO {
-  pagosDelDia: PagoDelDia[];
-  egresosDelDia: EgresoDelDia[];
-}
+type CajaRendicionView = Omit<CajaDetalleDTO, "pagosDelDia"> & {
+  pagosDelDia: PagoRendicionView[];
+};
 
 export interface EgresoRegistroRequest {
   id?: number;
@@ -67,7 +43,7 @@ const RendicionMensual: React.FC = () => {
   }).format(new Date()); // Ejemplo: "2025-04"
   const [mes, setMes] = useState<string>(mesAuto);
 
-  const [data, setData] = useState<CajaDetalleDTO | null>(null);
+  const [data, setData] = useState<CajaRendicionView | null>(null);
   const [loading, setLoading] = useState(false);
   const [filtroPago, setFiltroPago] = useState<"mis" | "todos">("mis");
 
@@ -87,24 +63,23 @@ const RendicionMensual: React.FC = () => {
       const endDate = mes + "-" + lastDay;
 
       const detalle = await cajaApi.obtenerCajaMes(startDate, endDate);
-      const mappedDetalle: CajaDetalleDTO = {
+      const mappedDetalle: CajaRendicionView = {
         ...detalle,
-        pagosDelDia: detalle.pagosDelDia.map((p: any) => ({
+        pagosDelDia: detalle.pagosDelDia.map((p) => ({
           ...p,
           alumno: p.alumno ?? { id: 0, nombre: "", apellido: "" },
-          importeInicial: p.importeInicial ?? 0,
-          importePendiente: p.importePendiente ?? 0,
+          observaciones: p.observaciones ?? "",
           // Aseguramos que la propiedad detallePagos exista (si el backend la envía)
           detallePagos: p.detallePagos || [],
         })),
-        egresosDelDia: detalle.egresosDelDia.map((egreso: any) => ({
+        egresosDelDia: detalle.egresosDelDia.map((egreso) => ({
           ...egreso,
           observaciones: egreso.observaciones ?? "",
           metodoPago: egreso.metodoPago ?? null,
         })),
       };
       setData(mappedDetalle);
-    } catch (err) {
+    } catch {
       toast.error("Error al consultar la caja del mes.");
     } finally {
       setLoading(false);
@@ -112,7 +87,7 @@ const RendicionMensual: React.FC = () => {
   };
 
   // Filtrar pagos
-  const pagos: PagoDelDia[] = data?.pagosDelDia || [];
+  const pagos: PagoRendicionView[] = data?.pagosDelDia || [];
 
   const pagosValidos = pagos.filter((p) => {
     // Los valores numéricos se consideran 0 si son exactamente 0.
@@ -148,7 +123,7 @@ const RendicionMensual: React.FC = () => {
 
   const totalCobrado = totalEfectivo + totalDebito;
 
-  const egresos: EgresoDelDia[] = data?.egresosDelDia || [];
+  const egresos: EgresoResponse[] = data?.egresosDelDia || [];
   const sortedEgresos = [...egresos].sort((a, b) => b.id - a.id);
 
   const handleImprimir = async () => {
@@ -167,7 +142,7 @@ const RendicionMensual: React.FC = () => {
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
-    } catch (error) {
+    } catch {
       toast.error("Error al imprimir la rendición.");
     }
   };
@@ -224,7 +199,7 @@ const RendicionMensual: React.FC = () => {
             className="table-fixed w-full"
             headers={["Recibo", "Código", "Alumno", "Observaciones", "Importe"]}
             data={pagosFiltradosPorUsuario}
-            customRender={(p: PagoDelDia) => [
+            customRender={(p: PagoRendicionView) => [
               p.id,
               p.alumno?.id || "",
               p.alumno ? `${p.alumno.nombre} ${p.alumno.apellido}` : "",
@@ -252,7 +227,7 @@ const RendicionMensual: React.FC = () => {
           <Tabla
             headers={["ID", "Observaciones", "Monto"]}
             data={sortedEgresos}
-            customRender={(e: EgresoDelDia) => [
+            customRender={(e: EgresoResponse) => [
               e.id,
               e.observaciones,
               e.monto.toLocaleString(),

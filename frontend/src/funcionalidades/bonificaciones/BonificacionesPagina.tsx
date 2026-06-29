@@ -29,7 +29,7 @@ const Bonificaciones = () => {
       setBonificaciones(response.data);
       // Se muestran inicialmente los primeros itemsPerLoad elementos
       setVisibleCount(itemsPerLoad);
-    } catch (error) {
+    } catch {
       toast.error("Error al cargar bonificaciones:");
       setError("Error al cargar bonificaciones.");
     } finally {

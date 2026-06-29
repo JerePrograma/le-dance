@@ -37,7 +37,7 @@ const Salones = () => {
               content: [...prevSalones.content, ...response.content],
             },
       )
-    } catch (error) {
+    } catch {
       toast.error("Error al cargar salones:")
       setError("Error al cargar salones.")
     } finally {

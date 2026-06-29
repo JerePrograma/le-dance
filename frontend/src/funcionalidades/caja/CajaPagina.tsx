@@ -28,7 +28,7 @@ const CajaPagina: React.FC = () => {
       setCajas((prev) => [...prev, ...data.content]);
       setTotalPages(data.totalPages);
       setPage((prev) => prev + 1);
-    } catch (err) {
+    } catch {
       toast.error("Error al cargar los registros de caja:");
       setError("Error al cargar los registros de caja.");
     } finally {

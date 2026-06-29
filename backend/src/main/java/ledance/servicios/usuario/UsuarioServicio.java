@@ -6,8 +6,6 @@ import ledance.dto.usuario.response.UsuarioResponse;
 import ledance.dto.usuario.UsuarioMapper;
 import ledance.entidades.Usuario;
 import ledance.entidades.Rol;
-import ledance.repositorios.DetallePagoRepositorio;
-import ledance.repositorios.PagoRepositorio;
 import ledance.repositorios.UsuarioRepositorio;
 import ledance.repositorios.RolRepositorio;
 import jakarta.transaction.Transactional;
@@ -27,19 +25,15 @@ public class UsuarioServicio implements IUsuarioServicio {
     private final PasswordEncoder passwordEncoder;
     private final RolRepositorio rolRepositorio;
     private final UsuarioMapper usuarioMapper;
-    private final DetallePagoRepositorio detallePagoRepositorio;
-    private final PagoRepositorio pagoRepositorio;
 
     public UsuarioServicio(UsuarioRepositorio usuarioRepositorio,
                            PasswordEncoder passwordEncoder,
                            RolRepositorio rolRepositorio,
-                           UsuarioMapper usuarioMapper, DetallePagoRepositorio detallePagoRepositorio, PagoRepositorio pagoRepositorio) {
+                           UsuarioMapper usuarioMapper) {
         this.usuarioRepositorio = usuarioRepositorio;
         this.passwordEncoder = passwordEncoder;
         this.rolRepositorio = rolRepositorio;
         this.usuarioMapper = usuarioMapper;
-        this.detallePagoRepositorio = detallePagoRepositorio;
-        this.pagoRepositorio = pagoRepositorio;
     }
 
     @Override
@@ -51,6 +45,7 @@ public class UsuarioServicio implements IUsuarioServicio {
         }
         // Buscar el rol y lanzar error si no existe
         Rol rol = rolRepositorio.findByDescripcionIgnoreCase(datosRegistro.rol())
+                .filter(existingRole -> Boolean.TRUE.equals(existingRole.getActivo()))
                 .orElseThrow(() -> new IllegalArgumentException("Rol no valido: " + datosRegistro.rol()));
         Usuario usuario = usuarioMapper.toEntity(datosRegistro);
         usuario.setContrasena(passwordEncoder.encode(datosRegistro.contrasena()));
@@ -74,6 +69,7 @@ public class UsuarioServicio implements IUsuarioServicio {
         // Actualizar rol si se envia y no es vacio
         if (modificacionRequest.rol() != null && !modificacionRequest.rol().isBlank()) {
             Rol rol = rolRepositorio.findByDescripcion(modificacionRequest.rol().toUpperCase())
+                    .filter(existingRole -> Boolean.TRUE.equals(existingRole.getActivo()))
                     .orElseThrow(() -> new IllegalArgumentException("Rol no valido: " + modificacionRequest.rol()));
             usuario.setRol(rol);
         }
@@ -114,11 +110,9 @@ public class UsuarioServicio implements IUsuarioServicio {
 
     @Transactional
     public void eliminarUsuario(Long idUsuario) {
-        // 1) Poner a null las FKs en DetallePago y Pago
-        detallePagoRepositorio.clearUsuarioFromDetallePagos(idUsuario);
-        pagoRepositorio.clearUsuarioFromPagos(idUsuario);
-
-        // 2) Ahora sí, eliminar el usuario sin conflictos
-        usuarioRepositorio.deleteById(idUsuario);
+        Usuario usuario = usuarioRepositorio.findById(idUsuario)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
+        usuario.setActivo(false);
+        usuarioRepositorio.save(usuario);
     }
 }

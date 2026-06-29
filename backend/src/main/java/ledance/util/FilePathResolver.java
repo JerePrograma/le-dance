@@ -16,9 +16,14 @@ public final class FilePathResolver {
     }
 
     private static String initBaseDir() {
-        String baseDir = System.getenv("LEDANCE_HOME");
+        String baseDir = System.getProperty("ledance.home");
         if (baseDir == null || baseDir.isBlank()) {
-            throw new IllegalStateException("Variable de entorno LEDANCE_HOME no definida");
+            baseDir = System.getenv("LEDANCE_HOME");
+        }
+        if (baseDir == null || baseDir.isBlank()) {
+            throw new IllegalStateException(
+                    "LEDANCE_HOME no definida (variable de entorno o propiedad ledance.home)"
+            );
         }
         return baseDir;
     }

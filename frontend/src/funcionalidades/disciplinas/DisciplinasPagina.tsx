@@ -34,7 +34,7 @@ const Disciplinas = () => {
       setError(null);
       const response = await api.get<Disciplina[]>("/disciplinas");
       setDisciplinas(response.data);
-    } catch (error) {
+    } catch {
       toast.error("Error al cargar disciplinas:");
       setError("Error al cargar disciplinas.");
     } finally {
@@ -97,7 +97,7 @@ const Disciplinas = () => {
       try {
         await disciplinasApi.eliminarDisciplina(id);
         setDisciplinas((prev) => prev.filter((d) => d.id !== id));
-      } catch (err) {
+      } catch {
         toast.error("Error al eliminar disciplina:");
       }
     }

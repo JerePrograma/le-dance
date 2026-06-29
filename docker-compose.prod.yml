@@ -1,11 +1,13 @@
 services:
   db:
+    ports: !reset []
     environment:
       POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
       POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
 
   backend:
+    build: !reset null
     image: ${BACKEND_IMAGE:?BACKEND_IMAGE is required}
     environment:
       SPRING_PROFILES_ACTIVE: prod
@@ -32,12 +34,10 @@ services:
       APP_TIME_ZONE: ${APP_TIME_ZONE:?APP_TIME_ZONE is required}
       APP_RECEIPTS_PATH: /app/data/receipts
       APP_CORS_ALLOWED_ORIGINS: ${APP_CORS_ALLOWED_ORIGINS:?APP_CORS_ALLOWED_ORIGINS is required}
-      APP_SCHEDULING_ENABLED: "true"
+      APP_SCHEDULING_ENABLED: ${APP_SCHEDULING_ENABLED:-true}
+      SERVER_PORT: ${SERVER_PORT:-8080}
       LOGGING_LEVEL_ROOT: ${LOGGING_LEVEL_ROOT:-INFO}
 
   frontend:
+    build: !reset null
     image: ${FRONTEND_IMAGE:?FRONTEND_IMAGE is required}
-    build:
-      args:
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL:?VITE_API_BASE_URL is required}
-        VITE_APP_TIME_ZONE: ${VITE_APP_TIME_ZONE:?VITE_APP_TIME_ZONE is required}

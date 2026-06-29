@@ -3,18 +3,15 @@ import { lazy } from "react";
 
 // Helpers de prefetch (no ejecutan en SSR)
 export const prefetch = {
-  registro: () => import("../funcionalidades/usuarios/UsuariosFormulario"),
   dashboard: () => import("../paginas/Dashboard"),
 };
 
 // Rutas públicas
 const Login = lazy(() => import("../paginas/Login"));
-const Registro = lazy(() => import("../funcionalidades/usuarios/UsuariosFormulario"));
 const Unauthorized = lazy(() => import("../paginas/Unauthorized"));
 
 export const publicRoutes = [
   { path: "/login", Component: Login },
-  { path: "/registro", Component: Registro },
   { path: "/unauthorized", Component: Unauthorized },
 ];
 

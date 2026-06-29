@@ -6,6 +6,7 @@ import type {
   DetallePagoResponse,
   AlumnoDataResponse,
 } from "../../types/types";
+import { normalizeAlumno } from "../../funcionalidades/pagos/normalizeInscripcion";
 
 /*
   En este hook queremos:
@@ -16,7 +17,7 @@ const mapDetallePagos = (
   detallesPendientes: DetallePagoResponse[],
   alumnoData: AlumnoDataResponse
 ): DetallePagoRegistroRequestExt[] => {
-  let creditoRestante = Number(alumnoData.alumno?.creditoAcumulado || 0);
+  const creditoRestante = Number(alumnoData.alumno?.creditoAcumulado || 0);
   return detallesPendientes.map((det) => {
     let baseValue = det.importePendiente ?? 0;
     if (
@@ -54,8 +55,8 @@ const mapDetallePagos = (
       pagoId: det.pagoId ?? null,
       tieneRecargo: det.tieneRecargo,
       estadoPago: det.estadoPago,
-      removido: det.removido,
-      alumno: alumnoData.alumno,
+      removido: det.removido ?? false,
+      alumno: normalizeAlumno(alumnoData.alumno),
       tipo: det.tipo || "MENSUALIDAD",
     };
   });

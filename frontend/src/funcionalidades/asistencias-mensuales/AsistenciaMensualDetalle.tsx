@@ -80,7 +80,9 @@ const AsistenciaMensualDetalle: React.FC = () => {
     try {
       const data = await asistenciasApi.listarDisciplinasSimplificadas();
       setDisciplinas(data);
-    } catch (err) {}
+    } catch {
+      toast.error("Error al cargar disciplinas");
+    }
   }, []);
 
   useEffect(() => {
@@ -178,7 +180,8 @@ const AsistenciaMensualDetalle: React.FC = () => {
       } else {
         setAsistenciaMensual(null);
       }
-    } catch (err) {
+    } catch {
+      toast.error("Error al cargar la asistencia mensual");
     } finally {
       setLoading(false);
     }
@@ -296,7 +299,9 @@ const AsistenciaMensualDetalle: React.FC = () => {
           ),
         };
       });
-    } catch (err) {}
+    } catch {
+      toast.error("Error al guardar las observaciones");
+    }
   };
 
   return (

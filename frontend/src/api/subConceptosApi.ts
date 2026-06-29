@@ -37,7 +37,7 @@ const obtenerSubConceptoPorDescripcion = async (
       `/sub-conceptos?descripcion=${encodeURIComponent(descripcion)}`
     );
     return data.length > 0 ? data[0] : null;
-  } catch (error) {
+  } catch {
     toast.error("Error al obtener subconcepto por descripcion:");
     return null;
   }

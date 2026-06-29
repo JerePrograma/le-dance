@@ -28,6 +28,13 @@ const ProfesoresFormulario: React.FC = () => {
   const [mensaje, setMensaje] = useState("")
   const [idBusqueda, setIdBusqueda] = useState("")
 
+  const resetearFormulario = useCallback(() => {
+    setFormValues(initialProfesorValues)
+    setProfesorId(null)
+    setMensaje("")
+    setIdBusqueda("")
+  }, [])
+
   const convertToProfesorFormValues = useCallback(
     (profesor: ProfesorDetalleResponse): ProfesorRegistroRequest & Partial<ProfesorModificacionRequest> => {
       return {
@@ -55,19 +62,12 @@ const ProfesoresFormulario: React.FC = () => {
       setFormValues(convertedProfesor)
       setProfesorId(profesor.id)
       setMensaje("Profesor encontrado.")
-    } catch (error) {
+    } catch {
       toast.error("Error al buscar el profesor:")
       setMensaje("Profesor no encontrado.")
       resetearFormulario()
     }
-  }, [idBusqueda, convertToProfesorFormValues])
-
-  const resetearFormulario = useCallback(() => {
-    setFormValues(initialProfesorValues)
-    setProfesorId(null)
-    setMensaje("")
-    setIdBusqueda("")
-  }, [])
+  }, [idBusqueda, convertToProfesorFormValues, resetearFormulario])
 
   useEffect(() => {
     const idParam = searchParams.get("id")
@@ -96,7 +96,7 @@ const ProfesoresFormulario: React.FC = () => {
           toast.success("Profesor creado correctamente.")
         }
         setMensaje("Profesor guardado exitosamente.")
-      } catch (error) {
+      } catch {
         toast.error("Error al guardar el profesor.")
         setMensaje("Error al guardar el profesor.")
       }

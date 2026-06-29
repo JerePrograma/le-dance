@@ -21,7 +21,7 @@ const Recargos = () => {
             setLoading(true);
             const response = await recargosApi.listarRecargos();
             setRecargos(response);
-        } catch (error) {
+        } catch {
             toast.error("Error al cargar los recargos:");
         } finally {
             setLoading(false);

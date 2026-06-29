@@ -2,7 +2,15 @@
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Formik, Form, Field, ErrorMessage, type FormikHelpers } from "formik";
+import {
+  Formik,
+  Form,
+  Field,
+  ErrorMessage,
+  type FieldProps,
+  type FormikHelpers,
+} from "formik";
+import axios from "axios";
 import { toast } from "react-toastify";
 import alumnosApi from "../../api/alumnosApi";
 import inscripcionesApi from "../../api/inscripcionesApi";
@@ -74,6 +82,12 @@ interface InscripcionesModalProps {
   editingInscripcion?: InscripcionResponse | null;
   onClose: () => void;
   onInscripcionesChange: (alumnoId: number) => void;
+}
+
+type InscripcionTableRow = InscripcionResponse | { _totals: true };
+
+function isTotalsRow(row: InscripcionTableRow): row is { _totals: true } {
+  return "_totals" in row;
 }
 
 const InscripcionesModal: React.FC<InscripcionesModalProps> = ({
@@ -160,8 +174,8 @@ const InscripcionesModal: React.FC<InscripcionesModalProps> = ({
       fechaInscripcion: values.fechaInscripcion,
     };
     try {
-      if ((values as any).id) {
-        await inscripcionesApi.actualizar((values as any).id, payload);
+      if (values.id) {
+        await inscripcionesApi.actualizar(values.id, payload);
       } else {
         await inscripcionesApi.crear(values);
       }
@@ -197,9 +211,9 @@ const InscripcionesModal: React.FC<InscripcionesModalProps> = ({
                 "Total",
                 "Acciones",
               ]}
-              data={[...prevInscripciones, { _totals: true } as any]}
-              customRender={(fila: any) => {
-                if (fila._totals) {
+              data={[...prevInscripciones, { _totals: true }] as InscripcionTableRow[]}
+              customRender={(fila) => {
+                if (isTotalsRow(fila)) {
                   const sums = prevInscripciones.reduce(
                     (acc, ins) => {
                       const cuota = ins.disciplina.valorCuota;
@@ -242,8 +256,8 @@ const InscripcionesModal: React.FC<InscripcionesModalProps> = ({
                   total.toFixed(2),
                 ];
               }}
-              actions={(fila: any) =>
-                fila._totals ? null : (
+              actions={(fila) =>
+                isTotalsRow(fila) ? null : (
                   <div className="flex gap-2">
                     <Boton onClick={() => handleEditarPrev(fila)}>Editar</Boton>
                     <Boton
@@ -367,7 +381,7 @@ const InscripcionesModal: React.FC<InscripcionesModalProps> = ({
                           as="select"
                           name="bonificacionId"
                           className="w-full px-3 py-2 border border-border rounded-md bg-background"
-                          onChange={(e: { target: { value: any } }) =>
+                          onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
                             setFieldValue(
                               "bonificacionId",
                               e.target.value
@@ -543,7 +557,7 @@ const AlumnosFormulario: React.FC = () => {
     return edad;
   };
 
-  const resetearFormulario = () => {
+  const resetearFormulario = useCallback(() => {
     setFormValues(initialAlumnoValues);
     setAlumnoId(null);
     setInscripciones([]);
@@ -552,7 +566,7 @@ const AlumnosFormulario: React.FC = () => {
     setSugerenciasAlumnos([]);
     setShowSuggestions(false);
     setSearchParams({});
-  };
+  }, [setSearchParams]);
 
   const cargarInscripciones = useCallback(async (alumnoId: number | null) => {
     if (alumnoId) {
@@ -591,12 +605,12 @@ const AlumnosFormulario: React.FC = () => {
           setMensaje("Por favor, ingrese un ID de alumno.");
           resetearFormulario();
         }
-      } catch (error) {
+      } catch {
         setMensaje("Alumno no encontrado.");
         resetearFormulario();
       }
     },
-    [cargarInscripciones]
+    [cargarInscripciones, resetearFormulario]
   );
 
   const handleSeleccionarAlumno = async (
@@ -617,7 +631,7 @@ const AlumnosFormulario: React.FC = () => {
       cargarInscripciones(alumno.id);
       setMensaje("");
       setShowSuggestions(false);
-    } catch (error) {
+    } catch {
       setMensaje("Alumno no encontrado.");
       resetearFormulario();
     }
@@ -653,10 +667,13 @@ const AlumnosFormulario: React.FC = () => {
         setAlumnoId(nuevoAlumno.id);
         setIdBusqueda(String(nuevoAlumno.id));
       }
-    } catch (error: any) {
+    } catch (error) {
+      const response = axios.isAxiosError<{ message?: string }>(error)
+        ? error.response
+        : undefined;
       const errorMessage =
-        error.response?.data?.message ||
-        (error.response?.status === 404
+        response?.data?.message ||
+        (response?.status === 404
           ? "Alumno no encontrado"
           : "Error al guardar el alumno");
       setMensaje(errorMessage);
@@ -673,7 +690,9 @@ const AlumnosFormulario: React.FC = () => {
       if (alumnoId) {
         await cargarInscripciones(alumnoId);
       }
-    } catch (error) {}
+    } catch {
+      toast.error("Error al eliminar la inscripción.");
+    }
   };
 
   useEffect(() => {
@@ -938,16 +957,19 @@ const AlumnosFormulario: React.FC = () => {
                   <div className="mb-4 col-span-full">
                     <label className="flex items-center space-x-2">
                       <Field name="activo">
-                        {({ field }: { field: any }) => (
-                          <input
-                            type="checkbox"
-                            {...field}
-                            checked={field.value === true}
-                            onChange={(e) =>
-                              setFieldValue(field.name, e.target.checked)
-                            }
-                          />
-                        )}
+                        {({ field }: FieldProps<boolean>) => {
+                          const { value, ...inputProps } = field;
+                          return (
+                            <input
+                              type="checkbox"
+                              {...inputProps}
+                              checked={value === true}
+                              onChange={(e) =>
+                                setFieldValue(field.name, e.target.checked)
+                              }
+                            />
+                          );
+                        }}
                       </Field>
                       <span>Activo</span>
                     </label>
@@ -1030,9 +1052,9 @@ const AlumnosFormulario: React.FC = () => {
                           "Bonificación (monto)",
                           "Total",
                         ]}
-                        data={[...inscripciones, { _totals: true } as any]}
-                        customRender={(fila: any) => {
-                          if (fila._totals) {
+                        data={[...inscripciones, { _totals: true }] as InscripcionTableRow[]}
+                        customRender={(fila) => {
+                          if (isTotalsRow(fila)) {
                             const totales = inscripciones.reduce(
                               (acc, ins) => {
                                 const cuota = ins.disciplina?.valorCuota || 0;
@@ -1079,8 +1101,8 @@ const AlumnosFormulario: React.FC = () => {
                             ];
                           }
                         }}
-                        actions={(fila: any) => {
-                          if (fila._totals) return null;
+                        actions={(fila) => {
+                          if (isTotalsRow(fila)) return null;
                           return (
                             <div className="flex gap-2">
                               <Boton

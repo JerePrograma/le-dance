@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTheme } from "next-themes";
-import { useSidebar } from "../hooks/context/SideBarContext";
+import { useSidebar } from "../hooks/context/useSidebar";
 import { Search, Bell, Menu, Moon, Sun } from "lucide-react";
 import { cn } from "../componentes/lib/utils";
 import NotificacionesModal from "./NotificacionesModal";

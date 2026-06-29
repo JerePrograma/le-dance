@@ -1,9 +1,9 @@
 "use client";
 import { useEffect } from "react";
-import { Client, IMessage, IFrame } from "@stomp/stompjs";
+import { Client, IMessage } from "@stomp/stompjs";
 
 export default function useNotificacionesWebSocket(
-  onMessage: (msg: any) => void
+  onMessage: (msg: unknown) => void
 ) {
   useEffect(() => {
     const client = new Client({
@@ -11,7 +11,7 @@ export default function useNotificacionesWebSocket(
       reconnectDelay: 5000,
     });
 
-    client.onConnect = (_frame: IFrame) => {
+    client.onConnect = () => {
       client.subscribe("/topic/notificaciones", (message: IMessage) => {
         const body = JSON.parse(message.body);
         onMessage(body);

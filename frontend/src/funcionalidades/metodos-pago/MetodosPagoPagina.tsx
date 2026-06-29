@@ -25,7 +25,7 @@ const MetodosPagoPagina = () => {
       setError(null);
       const response = await metodosPagoApi.listarMetodosPago();
       setMetodos(response);
-    } catch (error) {
+    } catch {
       toast.error("Error al cargar métodos de pago:");
       setError("Error al cargar métodos de pago.");
     } finally {
@@ -61,7 +61,7 @@ const MetodosPagoPagina = () => {
       await metodosPagoApi.eliminarMetodoPago(id);
       toast.success("Método de pago eliminado correctamente.");
       fetchMetodos();
-    } catch (error) {
+    } catch {
       toast.error("Error al eliminar el método de pago.");
     }
   };

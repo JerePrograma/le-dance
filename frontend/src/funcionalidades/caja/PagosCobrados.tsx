@@ -9,7 +9,13 @@ import disciplinasApi from "../../api/disciplinasApi";
 import stocksApi from "../../api/stocksApi";
 import subConceptosApi from "../../api/subConceptosApi";
 import conceptosApi from "../../api/conceptosApi";
-import type { DetallePagoResponse } from "../../types/types";
+import type {
+  ConceptoResponse,
+  DetallePagoResponse,
+  DisciplinaDetalleResponse,
+  StockResponse,
+  SubConceptoResponse,
+} from "../../types/types";
 import { useCobranzasData } from "../../hooks/useCobranzasData";
 
 const tarifaOptions = ["CUOTA", "CLASE DE PRUEBA", "CLASE SUELTA"];
@@ -31,16 +37,16 @@ const DetallePagoList: React.FC = () => {
   const [fechaFin, setFechaFin] = useState("");
   const [filtroTipo, setFiltroTipo] = useState("");
 
-  const [disciplinas, setDisciplinas] = useState<any[]>([]);
+  const [disciplinas, setDisciplinas] = useState<DisciplinaDetalleResponse[]>([]);
   const [selectedDisciplina, setSelectedDisciplina] = useState("");
   const [selectedTarifa, setSelectedTarifa] = useState("");
 
-  const [stocks, setStocks] = useState<any[]>([]);
+  const [stocks, setStocks] = useState<StockResponse[]>([]);
   const [selectedStock, setSelectedStock] = useState("");
 
-  const [subConceptos, setSubConceptos] = useState<any[]>([]);
+  const [subConceptos, setSubConceptos] = useState<SubConceptoResponse[]>([]);
   const [selectedSubConcepto, setSelectedSubConcepto] = useState("");
-  const [conceptos, setConceptos] = useState<any[]>([]);
+  const [conceptos, setConceptos] = useState<ConceptoResponse[]>([]);
   const [selectedConcepto, setSelectedConcepto] = useState("");
 
   useCobranzasData();
@@ -204,8 +210,8 @@ const DetallePagoList: React.FC = () => {
                 >
                   <option value="">Seleccionar disciplina...</option>
                   {disciplinas.map((d) => (
-                    <option key={d.id} value={d.nombre || d.descripcion}>
-                      {d.nombre || d.descripcion}
+                    <option key={d.id} value={d.nombre}>
+                      {d.nombre}
                     </option>
                   ))}
                 </select>
@@ -238,8 +244,8 @@ const DetallePagoList: React.FC = () => {
               >
                 <option value="">Seleccionar stock...</option>
                 {stocks.map((s) => (
-                  <option key={s.id} value={s.nombre || s.descripcion}>
-                    {s.nombre || s.descripcion}
+                  <option key={s.id} value={s.nombre}>
+                    {s.nombre}
                   </option>
                 ))}
               </select>
@@ -257,7 +263,7 @@ const DetallePagoList: React.FC = () => {
                 >
                   <option value="">Seleccionar sub concepto...</option>
                   {subConceptos.map((sc) => (
-                    <option key={sc.id} value={sc.codigo ?? String(sc.id)}>
+                    <option key={sc.id} value={String(sc.id)}>
                       {sc.descripcion}
                     </option>
                   ))}

@@ -48,7 +48,7 @@ const ConsultaObservacionesProfesores: React.FC = () => {
       try {
         const data = await profesoresApi.listarProfesoresActivos();
         setProfesores(data);
-      } catch (error) {
+      } catch {
         toast.error("Error al cargar profesores.");
       }
     };
@@ -73,7 +73,7 @@ const ConsultaObservacionesProfesores: React.FC = () => {
         return obs.fecha >= fechaInicio && obs.fecha <= fechaFin;
       });
       setObservaciones(filtradas);
-    } catch (error) {
+    } catch {
       toast.error("Error al cargar observaciones.");
     } finally {
       setLoading(false);
@@ -114,7 +114,7 @@ const ConsultaObservacionesProfesores: React.FC = () => {
       setShowModal(false);
       // Refrescar la lista de observaciones
       handleFiltrar();
-    } catch (error) {
+    } catch {
       toast.error("Error al agregar la observación.");
     }
   };

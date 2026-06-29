@@ -11,7 +11,7 @@ import {
   TableFooter,
 } from "../ui/table";
 
-interface TablaProps<T extends Record<string, any>> {
+interface TablaProps<T extends object> {
   headers: string[];
   data: T[];
   actions?: (row: T) => ReactNode;
@@ -21,7 +21,7 @@ interface TablaProps<T extends Record<string, any>> {
   className?: string;
 }
 
-const Tabla = <T extends Record<string, any>>({
+const Tabla = <T extends object>({
   headers,
   data,
   actions,

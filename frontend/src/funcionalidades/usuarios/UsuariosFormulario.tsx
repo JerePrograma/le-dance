@@ -44,7 +44,7 @@ const UsuariosFormulario: React.FC = () => {
       try {
         const response = await api.get<Rol[]>("/roles");
         setRoles(response.data);
-      } catch (err) {
+      } catch {
         toast.error("Error al cargar los roles.");
       }
     };
@@ -65,7 +65,7 @@ const UsuariosFormulario: React.FC = () => {
             activo: response.activo,
           });
           setIsEditMode(true);
-        } catch (err) {
+        } catch {
           toast.error("Error al cargar los datos del usuario.");
         } finally {
           setLoading(false);
@@ -81,17 +81,20 @@ const UsuariosFormulario: React.FC = () => {
         await usuariosApi.actualizarUsuario(Number(userId), values);
         toast.success("Usuario actualizado correctamente.");
         navigate("/usuarios");
-      } catch (error: any) {
+      } catch {
         toast.error("Error al actualizar el usuario. Verifica los datos.");
       }
     } else {
       try {
-        // En registro se ignora 'activo'
-        const { activo, ...registroValues } = values;
+        const registroValues = {
+          nombreUsuario: values.nombreUsuario,
+          contrasena: values.contrasena,
+          rol: values.rol,
+        };
         await usuariosApi.registrarUsuario(registroValues);
         toast.success("Usuario registrado correctamente.");
         navigate("/login");
-      } catch (error: any) {
+      } catch {
         toast.error("Error al registrar el usuario. Verifica los datos.");
       }
     }

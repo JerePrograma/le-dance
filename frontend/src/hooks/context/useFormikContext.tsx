@@ -62,7 +62,14 @@ export const MatriculaAutoAdd: React.FC<MatriculaAutoAddProps> = ({ matricula, c
         setFieldValue("matriculaRemoved", false);
       }
     }
-  }, [values.alumno, values.detallePagos, matricula, setFieldValue, conceptos]);
+  }, [
+    values.alumno,
+    values.detallePagos,
+    values.matriculaRemoved,
+    matricula,
+    setFieldValue,
+    conceptos,
+  ]);
 
   return null;
 };

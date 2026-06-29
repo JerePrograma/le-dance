@@ -19,7 +19,7 @@ import {
 import { Button } from "../componentes/ui/button";
 import { ScrollArea } from "../componentes/ui/scroll-area";
 import { cn } from "../componentes/lib/utils";
-import { useAuth } from "../hooks/context/authContext";
+import { useAuth } from "../hooks/context/useAuth";
 
 // Función utilitaria para filtrar los ítems de navegación de forma inmutable.
 const filterNavigationItems = (

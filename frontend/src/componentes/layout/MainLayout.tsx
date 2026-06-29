@@ -3,7 +3,7 @@
 import type { ReactNode } from "react"
 import Header from "../Header"
 import Sidebar from "../Sidebar"
-import { useSidebar } from "../../hooks/context/SideBarContext"
+import { useSidebar } from "../../hooks/context/useSidebar"
 import { ThemeProvider } from "next-themes"
 
 interface MainLayoutProps {

@@ -19,7 +19,7 @@ const MensualidadesPagina = () => {
         `Se generaron/actualizaron ${respuestas.length} cuota(s) para el mes vigente.`
       );
       fetchInscripciones();
-    } catch (error) {
+    } catch {
       toast.error("Error al generar cuotas del mes.");
     }
   };

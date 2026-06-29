@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -61,7 +62,7 @@ public class TratadorDeErrores {
     public ResponseEntity<DatosErrorGeneral> tratarError403(AccessDeniedException e) {
         log.warn("Error 403 - Acceso denegado: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(new DatosErrorGeneral("403_FORBIDDEN", "Acceso denegado", e.getMessage(), LocalDateTime.now()));
+                .body(new DatosErrorGeneral("403_FORBIDDEN", "Acceso denegado", "Permisos insuficientes", LocalDateTime.now()));
     }
 
     // ✅ 401: Error de autenticacion (caso especial)
@@ -69,7 +70,14 @@ public class TratadorDeErrores {
     public ResponseEntity<DatosErrorGeneral> manejarErrorDeAutenticacion(ErrorDeAutenticacionException e) {
         log.warn("Error 401 - Autenticacion fallida: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(new DatosErrorGeneral("401_UNAUTHORIZED", "Autenticacion fallida", e.getMessage(), LocalDateTime.now()));
+                .body(new DatosErrorGeneral("401_UNAUTHORIZED", "Autenticacion fallida", "Credenciales inválidas", LocalDateTime.now()));
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<DatosErrorGeneral> manejarAuthenticationException(AuthenticationException e) {
+        log.warn("Error 401 - Autenticacion rechazada: {}", e.getClass().getSimpleName());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(new DatosErrorGeneral("401_UNAUTHORIZED", "Autenticacion fallida", "Credenciales inválidas", LocalDateTime.now()));
     }
 
     // ✅ 405: Metodo HTTP no permitido
@@ -101,7 +109,7 @@ public class TratadorDeErrores {
     public ResponseEntity<DatosErrorGeneral> manejarErrorInterno(Exception e) {
         log.error("Error 500 - Error interno del servidor: {}", e.getMessage(), e);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new DatosErrorGeneral("500_INTERNAL_SERVER_ERROR", "Error interno del servidor", e.getMessage(), LocalDateTime.now()));
+                .body(new DatosErrorGeneral("500_INTERNAL_SERVER_ERROR", "Error interno del servidor", "Ocurrió un error inesperado", LocalDateTime.now()));
     }
 
     // ✅ 502: Error en la comunicacion con otro servidor (APIs externas)

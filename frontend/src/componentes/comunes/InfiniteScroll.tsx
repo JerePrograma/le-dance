@@ -60,6 +60,7 @@ const InfiniteScroll: React.FC<InfiniteScrollProps> = ({
   useEffect(() => {
     if (!sentinelRef.current) return;
 
+    const sentinel = sentinelRef.current;
     const observer = new IntersectionObserver(
       (entries) => {
         const entry = entries[0];
@@ -75,10 +76,10 @@ const InfiniteScroll: React.FC<InfiniteScrollProps> = ({
       }
     );
 
-    observer.observe(sentinelRef.current);
+    observer.observe(sentinel);
 
     return () => {
-      if (sentinelRef.current) observer.unobserve(sentinelRef.current);
+      observer.unobserve(sentinel);
     };
   }, [loading, hasMore, onLoadMore, threshold, rootMargin, fillAvailable]);
 

@@ -3,6 +3,8 @@ package ledance.util;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
 
@@ -11,18 +13,22 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Unit tests for FilePathResolver utility class.
  *
- * Note: These tests require the LEDANCE_HOME environment variable to be set.
- * Ensure this variable is configured in your test environment, IDE, or CI/CD pipeline.
+ * Uses a temporary application home so the test is independent from the host.
  */
 @DisplayName("FilePathResolver Tests")
 public class FilePathResolverTest {
 
-    private static String LEDANCE_HOME;
+    @TempDir
+    private static Path ledanceHome;
 
     @BeforeAll
     public static void setUpEnvironment() {
-        LEDANCE_HOME = System.getenv("LEDANCE_HOME");
-        assertNotNull(LEDANCE_HOME, "LEDANCE_HOME environment variable must be set for tests to run");
+        System.setProperty("ledance.home", ledanceHome.toString());
+    }
+
+    @AfterAll
+    public static void clearEnvironment() {
+        System.clearProperty("ledance.home");
     }
 
     @Test
@@ -31,7 +37,7 @@ public class FilePathResolverTest {
         Path result = FilePathResolver.of("imgs");
         assertNotNull(result);
         assertTrue(result.toString().contains("imgs"));
-        assertEquals(Path.of(LEDANCE_HOME, "imgs").toString(), result.toString());
+        assertEquals(ledanceHome.resolve("imgs").toString(), result.toString());
     }
 
     @Test
@@ -41,7 +47,7 @@ public class FilePathResolverTest {
         assertNotNull(result);
         assertTrue(result.toString().contains("imgs"));
         assertTrue(result.toString().contains("firma.png"));
-        assertEquals(Path.of(LEDANCE_HOME, "imgs", "firma.png").toString(), result.toString());
+        assertEquals(ledanceHome.resolve(Path.of("imgs", "firma.png")).toString(), result.toString());
     }
 
     @Test
@@ -52,7 +58,7 @@ public class FilePathResolverTest {
         assertTrue(result.toString().contains("data"));
         assertTrue(result.toString().contains("reports"));
         assertTrue(result.toString().contains("2024.pdf"));
-        assertEquals(Path.of(LEDANCE_HOME, "data", "reports", "2024.pdf").toString(), result.toString());
+        assertEquals(ledanceHome.resolve(Path.of("data", "reports", "2024.pdf")).toString(), result.toString());
     }
 
     @Test
@@ -102,13 +108,13 @@ public class FilePathResolverTest {
     }
 
     @Test
-    @DisplayName("Should start with LEDANCE_HOME base directory")
+    @DisplayName("Should start with configured base directory")
     public void testPathStartsWithBaseDirectory() {
         Path result = FilePathResolver.of("test");
         String resultString = result.toString();
-        String expectedPrefix = LEDANCE_HOME;
+        String expectedPrefix = ledanceHome.toString();
         assertTrue(resultString.startsWith(expectedPrefix),
-                "Path should start with LEDANCE_HOME: " + expectedPrefix);
+                "Path should start with the configured home: " + expectedPrefix);
     }
 
     @Test

@@ -18,6 +18,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\codex\setup.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\start-db.ps1
 ```
 
+`.env` configura únicamente Docker Compose. Para ejecutar Maven o Vite fuera de Compose, exportá las variables en la terminal, el script o el IDE.
+
 En terminales separadas:
 
 ```powershell

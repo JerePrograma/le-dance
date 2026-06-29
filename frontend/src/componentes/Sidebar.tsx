@@ -1,10 +1,10 @@
 "use client";
 
 import { Link } from "react-router-dom";
-import { useSidebar } from "../hooks/context/SideBarContext";
+import { useSidebar } from "../hooks/context/useSidebar";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "../componentes/lib/utils";
-import { useAuth } from "../hooks/context/authContext";
+import { useAuth } from "../hooks/context/useAuth";
 import { navigationItems, type NavigationItem } from "../config/navigation";
 import NavGroup from "./NavGroup";
 

@@ -28,7 +28,7 @@ const SubConceptos = () => {
       setSubConceptos(response);
       // Al cargar los datos se inicializan los elementos visibles
       setVisibleCount(ITEMS_PER_LOAD);
-    } catch (error) {
+    } catch {
       toast.error("Error al cargar subconceptos:");
       setError("Error al cargar subconceptos.");
     } finally {
@@ -61,7 +61,7 @@ const SubConceptos = () => {
       await subConceptosApi.eliminarSubConcepto(id);
       toast.success("Subconcepto eliminado correctamente.");
       fetchSubConceptos();
-    } catch (error) {
+    } catch {
       toast.error("Error al eliminar el subconcepto.");
     }
   };

@@ -56,7 +56,7 @@ const Reportes = () => {
       try {
         const response = await api.get<Disciplina[]>("/disciplinas");
         setDisciplinas(response.data);
-      } catch (error) {
+      } catch {
         toast.error("Error al cargar disciplinas:");
       }
     };
@@ -64,7 +64,7 @@ const Reportes = () => {
       try {
         const response = await api.get<Alumno[]>("/alumnos");
         setAlumnos(response.data);
-      } catch (error) {
+      } catch {
         toast.error("Error al cargar alumnos:");
       }
     };
@@ -83,7 +83,7 @@ const Reportes = () => {
       setLoading(true);
       setErrorMsg("");
       let endpoint = "";
-      let params: Record<string, any> = { page: pagina };
+      const params: Record<string, string | number> = { page: pagina };
       switch (tipoReporte) {
         case "Recaudacion por Disciplina":
           endpoint = "/reportes/recaudacion-disciplina";
@@ -129,7 +129,7 @@ const Reportes = () => {
         }
         setTotalPaginas(response.data.totalPages);
         setPaginaActual(pagina);
-      } catch (error) {
+      } catch {
         toast.error("Error al obtener el reporte:");
         setErrorMsg(
           "Ocurrió un error al obtener el reporte. Por favor, intenta de nuevo."
@@ -148,7 +148,7 @@ const Reportes = () => {
         responseType: "blob",
       });
       saveAs(response.data, "reportes.xlsx");
-    } catch (error) {
+    } catch {
       toast.error("Error exportando a Excel:");
     }
   };

@@ -29,6 +29,13 @@ const SalonesFormulario: React.FC = () => {
   const [mensaje, setMensaje] = useState("");
   const [idBusqueda, setIdBusqueda] = useState("");
 
+  const resetearFormulario = useCallback(() => {
+    setFormValues(initialSalonValues);
+    setSalonId(null);
+    setMensaje("");
+    setIdBusqueda("");
+  }, []);
+
   const convertToSalonFormValues = useCallback(
     (
       salon: SalonResponse
@@ -55,19 +62,12 @@ const SalonesFormulario: React.FC = () => {
       setFormValues(convertedSalon);
       setSalonId(salon.id);
       setMensaje("Salon encontrado.");
-    } catch (error) {
+    } catch {
       toast.error("Error al buscar el salon:");
       setMensaje("Salon no encontrado.");
       resetearFormulario();
     }
-  }, [idBusqueda, convertToSalonFormValues]);
-
-  const resetearFormulario = useCallback(() => {
-    setFormValues(initialSalonValues);
-    setSalonId(null);
-    setMensaje("");
-    setIdBusqueda("");
-  }, []);
+  }, [idBusqueda, convertToSalonFormValues, resetearFormulario]);
 
   useEffect(() => {
     const idParam = searchParams.get("id");
@@ -98,7 +98,7 @@ const SalonesFormulario: React.FC = () => {
           toast.success("Salon creado correctamente.");
         }
         setMensaje("Salon guardado exitosamente.");
-      } catch (error) {
+      } catch {
         toast.error("Error al guardar el salon.");
         setMensaje("Error al guardar el salon.");
       }

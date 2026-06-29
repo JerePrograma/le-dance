@@ -151,29 +151,6 @@ export default function EgresosDebitoPagina() {
     });
   }, [detallesDebito, pagos]);
 
-  const defaultAlumno: AlumnoResponse = {
-    id: 0,
-    nombre: "",
-    apellido: "",
-    fechaNacimiento: defaultDate,
-    fechaIncorporacion: defaultDate,
-    edad: 0,
-    celular1: "",
-    celular2: "",
-    email: "",
-    email2: "",
-    documento: "",
-    fechaDeBaja: null,
-    deudaPendiente: false,
-    nombrePadres: "",
-    autorizadoParaSalirSolo: false,
-    activo: false,
-    otrasNotas: "",
-    cuotaTotal: 0,
-    inscripciones: [],
-    creditoAcumulado: 0,
-  };
-
   /* ----------------- AGRUPACIÓN por pagoId ----------------- */
   const debitosAgrupados: DebitoGroupRow[] = useMemo(() => {
     const groups = new Map<
@@ -186,12 +163,34 @@ export default function EgresosDebitoPagina() {
         fecha?: string;
       }
     >();
+    const defaultAlumno: AlumnoResponse = {
+      id: 0,
+      nombre: "",
+      apellido: "",
+      fechaNacimiento: defaultDate,
+      fechaIncorporacion: defaultDate,
+      edad: 0,
+      celular1: "",
+      celular2: "",
+      email: "",
+      email2: "",
+      documento: "",
+      fechaDeBaja: null,
+      deudaPendiente: false,
+      nombrePadres: "",
+      autorizadoParaSalirSolo: false,
+      activo: false,
+      otrasNotas: "",
+      cuotaTotal: 0,
+      inscripciones: [],
+      creditoAcumulado: 0,
+    };
 
     filteredDetallesDebito.forEach((detalle) => {
       if (!detalle.pagoId) return;
 
       const pago = pagos.find((p) => p.id === detalle.pagoId);
-      const rawRecargo = (pago?.metodoPago as any)?.recargo;
+      const rawRecargo = pago?.metodoPago?.recargo;
       const recargo =
         typeof rawRecargo === "number" ? rawRecargo : Number(rawRecargo ?? 0);
 
@@ -227,7 +226,7 @@ export default function EgresosDebitoPagina() {
         fecha: g.fecha ?? new Date().toISOString(),
       }))
       .sort((a, b) => b.codigo - a.codigo); // orden por código desc
-  }, [filteredDetallesDebito, pagos]);
+  }, [filteredDetallesDebito, pagos, defaultDate]);
 
   // Paginación sobre agrupados
   const currentPagos = useMemo(

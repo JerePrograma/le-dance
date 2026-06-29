@@ -1,6 +1,6 @@
 # Variables de entorno
 
-Los archivos versionados `.env.example` y `.env.local.example` contienen plantillas comentadas. `.env` y variantes locales permanecen ignorados por Git.
+Los archivos versionados `.env.example` y `.env.local.example` contienen plantillas comentadas. `.env` y variantes locales permanecen ignorados por Git. Sólo Docker Compose los carga automáticamente; Maven, Vite y los scripts leen el entorno del proceso.
 
 ## Backend
 
@@ -32,6 +32,9 @@ Los archivos versionados `.env.example` y `.env.local.example` contienen plantil
 | `APP_CORS_ALLOWED_ORIGINS` | todos | prod: sí | lista separada por comas; HTTPS en prod |
 | `APP_SCHEDULING_ENABLED` | todos | no | `false` en dev/test, `true` en prod |
 | `LEDANCE_HOME` | todos | sí para assets heredados | raíz del repositorio o `/app` en Docker |
+| `APP_BOOTSTRAP_ADMIN_ENABLED` | bootstrap único | no | `false`; habilitar sólo en el primer arranque controlado. |
+| `APP_BOOTSTRAP_ADMIN_USERNAME` | bootstrap único | si se habilita | nombre explícito del primer administrador. |
+| `APP_BOOTSTRAP_ADMIN_PASSWORD` | bootstrap único | si se habilita | secreto externo de 12 a 72 bytes UTF-8. |
 | `SERVER_PORT` | todos | no | `8080` |
 | `LOGGING_LEVEL_ROOT` | todos | no | `INFO` |
 
@@ -81,6 +84,10 @@ La interfaz de Codex debe usar valores de desarrollo, nunca secretos productivos
 | `APP_SCHEDULING_ENABLED` | `false` |
 | `LEDANCE_HOME` | `C:\laburo\le-dance` |
 | `VITE_API_BASE_URL` | `http://localhost:8080/api` |
+
+Para tests aislados de `FilePathResolver` existe el override de JVM
+`-Dledance.home=<ruta>`. La ejecución normal continúa usando `LEDANCE_HOME`; no
+se recomienda el override de JVM para producción.
 | `VITE_APP_TIME_ZONE` | `America/Argentina/Buenos_Aires` |
 | `POSTGRES_DB` | `ledance_db` |
 | `POSTGRES_USER` | `postgres` |

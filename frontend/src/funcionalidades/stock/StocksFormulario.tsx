@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Formik, Form, Field, ErrorMessage, type FormikHelpers } from "formik";
+import { Formik, Form, Field, ErrorMessage, type FieldProps, type FormikHelpers } from "formik";
 import { stockEsquema } from "../../validaciones/stockEsquema";
 import stocksApi from "../../api/stocksApi";
 import Boton from "../../componentes/comunes/Boton";
@@ -31,6 +31,13 @@ const StocksFormulario: React.FC = () => {
     const [mensaje, setMensaje] = useState("");
     const [idBusqueda, setIdBusqueda] = useState("");
 
+    const resetearFormulario = useCallback(() => {
+        setFormValues(initialStockValues);
+        setStockId(null);
+        setMensaje("");
+        setIdBusqueda("");
+    }, []);
+
     const convertToStockFormValues = useCallback(
         (stock: StockResponse): StockRegistroRequest & Partial<StockModificacionRequest> => {
             return {
@@ -59,19 +66,12 @@ const StocksFormulario: React.FC = () => {
             setFormValues(converted);
             setStockId(stock.id);
             setMensaje("Stock encontrado.");
-        } catch (error) {
+        } catch {
             toast.error("Error al buscar el stock:");
             setMensaje("Stock no encontrado.");
             resetearFormulario();
         }
-    }, [idBusqueda, convertToStockFormValues]);
-
-    const resetearFormulario = useCallback(() => {
-        setFormValues(initialStockValues);
-        setStockId(null);
-        setMensaje("");
-        setIdBusqueda("");
-    }, []);
+    }, [idBusqueda, convertToStockFormValues, resetearFormulario]);
 
     useEffect(() => {
         const idParam = searchParams.get("id");
@@ -118,7 +118,7 @@ const StocksFormulario: React.FC = () => {
                     toast.success("Stock creado correctamente.");
                 }
                 setMensaje("Stock guardado exitosamente.");
-            } catch (error) {
+            } catch {
                 toast.error("Error al guardar el stock.");
                 setMensaje("Error al guardar el stock.");
             } finally {
@@ -183,18 +183,22 @@ const StocksFormulario: React.FC = () => {
                                     Requiere Control de Stock:
                                 </label>
                                 <Field name="requiereControlDeStock">
-                                    {({ field, form }: any) => (
-                                        <select
-                                            {...field}
-                                            className="form-input"
-                                            onChange={(e) =>
-                                                form.setFieldValue("requiereControlDeStock", e.target.value === "true")
-                                            }
-                                        >
-                                            <option value="false">No</option>
-                                            <option value="true">Si</option>
-                                        </select>
-                                    )}
+                                    {({ field, form }: FieldProps<boolean>) => {
+                                        const { value, ...selectProps } = field;
+                                        return (
+                                            <select
+                                                {...selectProps}
+                                                value={String(value)}
+                                                className="form-input"
+                                                onChange={(e) =>
+                                                    form.setFieldValue("requiereControlDeStock", e.target.value === "true")
+                                                }
+                                            >
+                                                <option value="false">No</option>
+                                                <option value="true">Si</option>
+                                            </select>
+                                        );
+                                    }}
                                 </Field>
                                 <ErrorMessage name="requiereControlDeStock" component="div" className="auth-error" />
                             </div>

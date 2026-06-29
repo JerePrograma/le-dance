@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Formik, Form, Field } from "formik"
+import { Formik, Form, Field, type FieldProps } from "formik"
 import { toast } from "react-toastify"
 import api from "../../api/axiosConfig"
 import { Button } from "../../componentes/ui/button"
@@ -54,7 +54,7 @@ export default function PettyCash() {
                             <div className="flex items-center gap-2">
                                 <span className="text-sm text-gray-600">Fecha desde:</span>
                                 <Field name="startDate">
-                                    {({ field }: any) => (
+                                    {({ field }: FieldProps<string>) => (
                                         <Input
                                             type="date"
                                             className="w-40"
@@ -68,7 +68,7 @@ export default function PettyCash() {
                             <div className="flex items-center gap-2">
                                 <span className="text-sm text-gray-600">Fecha Hasta:</span>
                                 <Field name="endDate">
-                                    {({ field }: any) => (
+                                    {({ field }: FieldProps<string>) => (
                                         <Input
                                             type="date"
                                             className="w-40"

@@ -1,6 +1,6 @@
 import React from "react";
 import { Navigate, Outlet } from "react-router-dom";
-import { useAuth } from "../hooks/context/authContext";
+import { useAuth } from "../hooks/context/useAuth";
 
 interface ProtectedRouteProps {
   redirectPath?: string;

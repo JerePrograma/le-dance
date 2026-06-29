@@ -13,13 +13,11 @@ interface Rol {
   descripcion: string;
 }
 
+const initialValues: Rol = { descripcion: "" };
+
 const RolesFormulario: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-
-  const initialValues: Rol = {
-    descripcion: "",
-  };
 
   const handleBuscar = useCallback(
     async (idStr: string, setValues: (vals: Rol) => void) => {

@@ -33,7 +33,9 @@ import {
   AsistenciaDiariaResponse,
   AsistenciaMensualDetalleResponse,
   EstadoAsistencia,
+  DisciplinaDetalleResponse,
 } from "../../types/types";
+import { debounce } from "../../utils/debounce";
 
 interface Disciplina {
   id: number;
@@ -66,12 +68,15 @@ const AsistenciaDiariaFormAdaptado: React.FC = () => {
   const fetchDisciplinas = useCallback(async () => {
     try {
       const data = await asistenciasApi.listarDisciplinasSimplificadas();
-      const disciplinasConDias = data.map((d: any) => ({
-        ...d,
-        diasSemana: d.diasSemana || [],
+      const disciplinasConDias = data.map((disciplina) => ({
+        id: disciplina.id,
+        nombre: disciplina.nombre,
+        diasSemana: disciplina.horarios?.map((horario) => horario.diaSemana) ?? [],
       }));
       setDisciplinas(disciplinasConDias);
-    } catch (err) {}
+    } catch {
+      setError("Error al cargar disciplinas");
+    }
   }, []);
 
   useEffect(() => {
@@ -89,12 +94,12 @@ const AsistenciaDiariaFormAdaptado: React.FC = () => {
   const fetchDiasClase = useCallback(async (): Promise<string[]> => {
     if (!selectedDisciplineId) return [];
     try {
-      const response = await api.get(`/disciplinas/${selectedDisciplineId}`);
+      const response = await api.get<DisciplinaDetalleResponse>(`/disciplinas/${selectedDisciplineId}`);
       const horarios = response.data?.horarios || [];
-      const dias = horarios.map((h: any) => h.diaSemana);
+      const dias = horarios.map((horario) => horario.diaSemana);
       setDiasClase(dias);
       return dias;
-    } catch (error) {
+    } catch {
       return [];
     }
   }, [selectedDisciplineId]);
@@ -187,7 +192,8 @@ const AsistenciaDiariaFormAdaptado: React.FC = () => {
             anio
           );
         setMonthlyDetail(detail);
-      } catch (err) {
+      } catch {
+        setError("Error al cargar las asistencias");
       } finally {
         setLoading(false);
       }
@@ -272,7 +278,9 @@ const AsistenciaDiariaFormAdaptado: React.FC = () => {
           return alumno;
         });
         setMonthlyDetail({ ...monthlyDetail, alumnos: updatedAlumnos });
-      } catch (err) {}
+      } catch {
+        toast.error("No se pudo registrar la asistencia");
+      }
       return;
     }
     try {
@@ -299,19 +307,13 @@ const AsistenciaDiariaFormAdaptado: React.FC = () => {
         return alumno;
       });
       setMonthlyDetail({ ...monthlyDetail, alumnos: updatedAlumnos });
-    } catch (err) {}
+    } catch {
+      toast.error("No se pudo actualizar la asistencia");
+    }
   };
 
-  const debounce = (func: (...args: any[]) => void, delay: number) => {
-    let timer: NodeJS.Timeout;
-    return (...args: any[]) => {
-      if (timer) clearTimeout(timer);
-      timer = setTimeout(() => func(...args), delay);
-    };
-  };
-
-  const debouncedActualizarObservacion = useCallback(
-    debounce(async (alumnoId: number, obs: string) => {
+  const debouncedActualizarObservacion = useMemo(
+    () => debounce(async (alumnoId: number, obs: string) => {
       if (!monthlyDetail) return;
       const alumno = monthlyDetail.alumnos.find((a) => a.id === alumnoId);
       if (!alumno) return;
@@ -325,7 +327,9 @@ const AsistenciaDiariaFormAdaptado: React.FC = () => {
           monthlyDetail.id,
           payload
         );
-      } catch (err) {}
+      } catch {
+        toast.error("No se pudo guardar la observación");
+      }
     }, 500),
     [monthlyDetail]
   );
