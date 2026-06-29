@@ -27,8 +27,14 @@ public interface PagoRepositorio extends JpaRepository<Pago, Long> {
 
     // --- Se han eliminado los metodos basados en Inscripcion, ya que la relacion Pago → Inscripcion fue removida ---
 
-    // Retorna los pagos vencidos (fechaVencimiento menor a la indicada) y que estan activos.
-    @Query("SELECT p FROM Pago p WHERE p.fechaVencimiento < :hoy AND p.estadoPago = :estadoActivo")
+    @Query("""
+            SELECT p FROM Pago p
+            WHERE p.estadoPago = :estadoActivo
+              AND p.fechaVencimiento IS NOT NULL
+              AND p.fechaVencimiento < :hoy
+              AND p.saldoRestante IS NOT NULL
+              AND p.saldoRestante > 0
+            """)
     List<Pago> findPagosVencidos(@Param("hoy") LocalDate hoy,
                                  @Param("estadoActivo") EstadoPago estadoActivo);
 

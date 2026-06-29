@@ -17,13 +17,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.Period;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-public class AlumnoServicio implements IAlumnoServicio {
+public class AlumnoServicio {
 
     private static final Logger log = LoggerFactory.getLogger(AlumnoServicio.class);
 
@@ -32,19 +33,20 @@ public class AlumnoServicio implements IAlumnoServicio {
     private final DisciplinaMapper disciplinaMapper;
     private final DetallePagoRepositorio detallePagoRepositorio;
     private final DetallePagoMapper detallePagoMapper;
+    private final Clock clock;
 
     public AlumnoServicio(AlumnoRepositorio alumnoRepositorio, AlumnoMapper alumnoMapper,
                           DisciplinaMapper disciplinaMapper,
                           DetallePagoRepositorio detallePagoRepositorio,
-                          DetallePagoMapper detallePagoMapper) {
+                          DetallePagoMapper detallePagoMapper, Clock clock) {
         this.alumnoRepositorio = alumnoRepositorio;
         this.alumnoMapper = alumnoMapper;
         this.disciplinaMapper = disciplinaMapper;
         this.detallePagoRepositorio = detallePagoRepositorio;
         this.detallePagoMapper = detallePagoMapper;
+        this.clock = clock;
     }
 
-    @Override
     @Transactional
     public AlumnoResponse registrarAlumno(AlumnoRegistroRequest requestDTO) {
         log.info("Registrando alumno: {}", requestDTO.nombre());
@@ -72,7 +74,6 @@ public class AlumnoServicio implements IAlumnoServicio {
         return alumnoMapper.toResponse(alumnoGuardado);
     }
 
-    @Override
     public AlumnoResponse obtenerAlumnoPorId(Long id) {
         Alumno alumno = alumnoRepositorio
                 .findByIdAndActivoTrue(id)
@@ -80,7 +81,6 @@ public class AlumnoServicio implements IAlumnoServicio {
         return alumnoMapper.toResponse(alumno);
     }
 
-    @Override
     public List<AlumnoResponse> listarAlumnos() {
         return alumnoRepositorio.findAll().stream()
                 .map(alumnoMapper::toResponse)
@@ -88,7 +88,6 @@ public class AlumnoServicio implements IAlumnoServicio {
     }
 
 
-    @Override
     @Transactional
     public AlumnoResponse actualizarAlumno(Long id, AlumnoRegistroRequest dto) {
         Alumno alumno = alumnoRepositorio
@@ -101,32 +100,31 @@ public class AlumnoServicio implements IAlumnoServicio {
         return alumnoMapper.toResponse(alumnoRepositorio.save(alumno));
     }
 
-    @Override
     @Transactional
     public void darBajaAlumno(Long id) {
         Alumno alumno = alumnoRepositorio
-                .findByIdAndActivoTrue(id)
+                .findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Alumno no encontrado."));
+        if (Boolean.FALSE.equals(alumno.getActivo())) {
+            return;
+        }
         alumno.setActivo(false);
-        alumno.setFechaDeBaja(LocalDate.now());
+        alumno.setFechaDeBaja(LocalDate.now(clock));
         alumnoRepositorio.save(alumno);
     }
 
-    @Override
     public List<AlumnoResponse> listarAlumnosSimplificado() {
         return alumnoRepositorio.findByActivoTrue().stream()
                 .map(alumnoMapper::toResponse)
                 .collect(Collectors.toList());
     }
 
-    @Override
     public List<AlumnoResponse> buscarPorNombre(String nombre) {
         return alumnoRepositorio.buscarPorNombreCompleto(nombre).stream()
                 .map(alumnoMapper::toResponse)
                 .collect(Collectors.toList());
     }
 
-    @Override
     public List<DisciplinaResponse> obtenerDisciplinasDeAlumno(Long alumnoId) {
         Alumno alumno = alumnoRepositorio
                 .findByIdAndActivoTrue(alumnoId)
@@ -142,41 +140,6 @@ public class AlumnoServicio implements IAlumnoServicio {
         }
         return 0;
     }
-
-
-    /**
-     * Baja lógica del alumno:
-     * 1) Para cada inscripción, elimina sus asistencias (no su estado).
-     * 2) Limpia la lista de inscripciones (orphanRemoval si lo tienes configurado).
-     * 3) Limpia las matrículas si querés ocultarlas.
-     * 4) Marca al alumno inactivo.
-     */
-    @Transactional
-    public void eliminarAlumno(Long id) {
-        Alumno alumno = alumnoRepositorio.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Alumno no encontrado."));
-
-        // 1) Baja lógica del alumno
-        alumno.setActivo(false);
-        alumno.setFechaDeBaja(LocalDate.now());
-
-        // 2) Para cada inscripción:
-        for (Inscripcion ins : alumno.getInscripciones()) {
-            // 2.a) Eliminar todas las asistencias mensuales (orphanRemoval)
-            ins.getAsistenciasAlumnoMensual().clear();
-
-            // 2.b) Marcar la inscripción como de BAJA
-            ins.setEstado(EstadoInscripcion.INACTIVA);
-            ins.setFechaBaja(LocalDate.now());
-        }
-
-        // 3) (Opcional) Marcar las matrículas como inactivas
-        // alumno.getMatriculas().forEach(m -> m.setPagada(false));
-
-        // 4) Guardar cambios en cascada
-        alumnoRepositorio.save(alumno);
-    }
-
     @Transactional
     public AlumnoDataResponse obtenerAlumnoData(Long alumnoId) {
         Alumno alumno = alumnoRepositorio

@@ -22,24 +22,34 @@ import ledance.servicios.detallepago.DetallePagoServicio;
 import ledance.servicios.pdfs.ReciboStorageService;
 import org.junit.jupiter.api.Test;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class PagoServicioTest {
 
+    private static final LocalDate FECHA_NEGOCIO = LocalDate.of(2026, 6, 29);
     private final AlumnoRepositorio alumnoRepositorio = mock(AlumnoRepositorio.class);
     private final PagoRepositorio pagoRepositorio = mock(PagoRepositorio.class);
     private final PagoMapper pagoMapper = mock(PagoMapper.class);
     private final PaymentProcessor paymentProcessor = mock(PaymentProcessor.class);
+    private final Clock clock = Clock.fixed(
+            Instant.parse("2026-06-29T15:00:00Z"),
+            ZoneId.of("America/Argentina/Buenos_Aires"));
     private final PagoServicio service = new PagoServicio(
             alumnoRepositorio,
             pagoRepositorio,
@@ -53,23 +63,26 @@ class PagoServicioTest {
             mock(SubConceptoRepositorio.class),
             mock(ConceptoRepositorio.class),
             mock(ReciboStorageService.class),
-            mock(UsuarioRepositorio.class)
+            mock(UsuarioRepositorio.class),
+            clock
     );
 
     @Test
-    void listarVencidosConsultaSoloPagosActivos() {
+    void listarVencidosUsaFechaDeNegocioYConsultaSoloPagosActivos() {
         when(pagoRepositorio.findPagosVencidos(any(), any())).thenReturn(List.of());
 
         service.listarPagosVencidos();
 
-        verify(pagoRepositorio).findPagosVencidos(any(LocalDate.class), eq(EstadoPago.ACTIVO));
+        verify(pagoRepositorio).findPagosVencidos(eq(FECHA_NEGOCIO), eq(EstadoPago.ACTIVO));
     }
 
     @Test
     void registrarPagoNoMutaInscripcionesParaMapearLaRespuesta() {
         Alumno alumno = new Alumno();
         alumno.setId(7L);
-        alumno.setInscripciones(new ArrayList<>(List.of(new Inscripcion())));
+        Inscripcion inscripcion = new Inscripcion();
+        List<Inscripcion> inscripciones = new ArrayList<>(List.of(inscripcion));
+        alumno.setInscripciones(inscripciones);
         MetodoPago metodoPago = new MetodoPago();
         metodoPago.setDescripcion("DEBITO");
         Pago pago = new Pago();
@@ -78,13 +91,24 @@ class PagoServicioTest {
         pago.setMetodoPago(metodoPago);
         pago.setMonto(0.0);
         pago.setSaldoRestante(0.0);
-        when(alumnoRepositorio.findById(7L)).thenReturn(Optional.of(alumno));
+        when(alumnoRepositorio.findByIdAndActivoTrue(7L)).thenReturn(Optional.of(alumno));
         when(paymentProcessor.obtenerUltimoPagoPendienteEntidad(7L)).thenReturn(pago);
 
         service.registrarPago(request(7L));
 
         assertEquals(1, alumno.getInscripciones().size());
+        assertSame(inscripciones, alumno.getInscripciones());
+        assertSame(inscripcion, alumno.getInscripciones().getFirst());
         verify(pagoMapper).toDTO(pago);
+    }
+
+    @Test
+    void registrarPagoRechazaAlumnoInactivoAntesDeProcesar() {
+        when(alumnoRepositorio.findByIdAndActivoTrue(7L)).thenReturn(Optional.empty());
+
+        assertThrows(IllegalStateException.class, () -> service.registrarPago(request(7L)));
+
+        verifyNoInteractions(paymentProcessor, pagoMapper);
     }
 
     private PagoRegistroRequest request(Long alumnoId) {

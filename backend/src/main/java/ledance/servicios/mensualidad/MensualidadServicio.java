@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.TextStyle;
@@ -48,6 +49,7 @@ public class MensualidadServicio {
     private final PagoRepositorio pagoRepositorio;
     private final AlumnoMapper alumnoMapper;
     private final AlumnoRepositorio alumnoRepositorio;
+    private final Clock clock;
 
     private static final Locale ESPANOL = new Locale("es");
     private final ProfesorRepositorio profesorRepositorio;
@@ -59,7 +61,8 @@ public class MensualidadServicio {
                                BonificacionRepositorio bonificacionRepositorio,
                                ProcesoEjecutadoRepositorio procesoEjecutadoRepositorio, RecargoServicio recargoServicio, DisciplinaRepositorio disciplinaRepositorio,
                                PagoRepositorio pagoRepositorio,
-                               AlumnoMapper alumnoMapper, AlumnoRepositorio alumnoRepositorio, ProfesorRepositorio profesorRepositorio) {
+                               AlumnoMapper alumnoMapper, AlumnoRepositorio alumnoRepositorio,
+                               ProfesorRepositorio profesorRepositorio, Clock clock) {
         this.detallePagoRepositorio = detallePagoRepositorio;
         this.mensualidadRepositorio = mensualidadRepositorio;
         this.inscripcionRepositorio = inscripcionRepositorio;
@@ -73,6 +76,7 @@ public class MensualidadServicio {
         this.alumnoMapper = alumnoMapper;
         this.alumnoRepositorio = alumnoRepositorio;
         this.profesorRepositorio = profesorRepositorio;
+        this.clock = clock;
     }
 
     public MensualidadResponse crearMensualidad(MensualidadRegistroRequest request) {
@@ -168,23 +172,29 @@ public class MensualidadServicio {
         return recargoFijo + recargoPorcentaje;
     }
 
-    /**
-     * Recalcula el importe pendiente (saldo) en base al importeInicial fijo y al montoAbonado acumulado.
-     * Actualiza el estado: si importePendiente es 0 (redondeado), se marca como PAGADO, en caso contrario PENDIENTE.
-     */
     public void recalcularImportePendiente(Mensualidad mensualidad) {
-        double totalPagar = mensualidad.getImporteInicial();
-        double montoAbonado = mensualidad.getMontoAbonado();
-        double importePendiente = totalPagar - montoAbonado;
-        importePendiente = redondear(importePendiente);
-        mensualidad.setImporteInicial(importePendiente); // aqui se usa importeInicial para reflejar el saldo restante
-        if (importePendiente == 0.0) {
+        BigDecimal importeInicial = BigDecimal.valueOf(mensualidad.getImporteInicial());
+        BigDecimal montoAbonado = BigDecimal.valueOf(mensualidad.getMontoAbonado());
+
+        if (importeInicial.signum() < 0) {
+            throw new IllegalArgumentException("El importe inicial no puede ser negativo.");
+        }
+        if (montoAbonado.signum() < 0) {
+            throw new IllegalArgumentException("El monto abonado no puede ser negativo.");
+        }
+        if (montoAbonado.compareTo(importeInicial) > 0) {
+            throw new IllegalArgumentException("El monto abonado no puede superar el importe inicial.");
+        }
+
+        BigDecimal saldo = importeInicial.subtract(montoAbonado).setScale(2, RoundingMode.HALF_UP);
+        mensualidad.setImportePendiente(saldo.doubleValue());
+        if (saldo.signum() == 0) {
             mensualidad.setEstado(EstadoMensualidad.PAGADO);
-            mensualidad.setFechaPago(LocalDate.now());
+            mensualidad.setFechaPago(LocalDate.now(clock));
         } else {
             mensualidad.setEstado(EstadoMensualidad.PENDIENTE);
+            mensualidad.setFechaPago(null);
         }
-        log.info("Importe pendiente recalculado: {}. Estado: {}", importePendiente, mensualidad.getEstado());
     }
 
     /**

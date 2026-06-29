@@ -13,13 +13,13 @@ Escala: impacto/probabilidad alta, media o baja. Un riesgo crítico abierto bloq
 | R07 | Perfil común abre como dev | Alta | Alta | `spring.profiles.default=dev` | Eliminar default; context tests dev/test/prod/ausente |
 | R08 | PostgreSQL sigue publicado en producción | Alta | Alta | override hereda `ports` de Compose base | Compose productivo autónomo o override inequívoco |
 | R09 | Deploy sin healthcheck/rollback/concurrency | Alta | Alta | workflow termina en `compose up -d` | Gate imágenes SHA, salud, timeout, diagnóstico y rollback |
-| R10 | `importeInicial` mutable / cálculo con Double | Alta | Alta | entidades/servicios financieros | Caracterización, fórmula explícita, luego BigDecimal |
-| R11 | Pagos vencidos pueden incluir históricos/anulados | Alta | Media | consulta/servicio por caracterizar | Clock, filtros de estado/saldo y regresión |
-| R12 | `clear()` puede borrar historial por orphan removal | Alta | Alta | alumno, inscripción, pago y payment processor | DTOs sin mutación; pruebas de persistencia y baja lógica |
-| R13 | Baja física/cascade elimina historia | Alta | Alta | cascades JPA y FKs | Estados/fechas, constraints RESTRICT y migración compatible |
+| R10 | Corregida en Fase 3 la mutación de `importeInicial` durante el recálculo; el uso financiero de `Double` sigue abierto | Alta | Media | `MensualidadServicioTest`: saldo, inválidos, sobrepago, fecha y repetición | Mantener `importeInicial` inmutable; migrar tipos sólo con reconciliación posterior |
+| R11 | Cerrado en Fase 3: vencidos usa fecha de negocio y consulta sólo ACTIVO, fecha anterior y saldo positivo no nulo | Alta | Baja | `PagoRepositorio.findPagosVencidos` y `PagoServicioTest` con `Clock` fijo | Mantener el predicado en repositorio y el gate de regresión |
+| R12 | Mitigado parcialmente: eliminados los `clear()` de serialización y de bajas de alumno/inscripción; quedan seis reemplazos de colecciones clasificados | Alta | Media | inventario de `09-phase-3-financial-p0.md`; `AlumnoServicioTest`, `InscripcionServicioTest`, `PagoServicioTest` | Caracterizar los cuatro reemplazos de horarios y los dos de detalles antes de cambiarlos |
+| R13 | Sigue abierto: las bajas tocadas preservan historia, pero continúan `cascade`, `orphanRemoval`, FKs y rutas destructivas fuera de este alcance | Alta | Alta | entidades `Alumno`, `Inscripcion`, `Pago`, `Mensualidad`, `Disciplina` y migraciones existentes | Auditar constraints y rutas restantes; migración compatible antes de cerrar |
 | R14 | Pagos parciales mediante clones | Alta | Alta | campos `es_clon`, tipos/resumen | Caracterizar y migrar a aplicaciones |
 | R15 | Relaciones financieras inferidas por descripción | Alta | Alta | snapshots y resolvers heredados | IDs explícitos; ambigüedad a reporte, no auto-fix |
-| R16 | Dinero con Double y tipos DB mixtos | Alta | Alta | entidades/DTOs/cálculos; bigint/numeric/double | Inventario, migración por vertical, reconciliación exacta |
+| R16 | Sigue abierto: dinero con `Double` y tipos DB mixtos; Fase 3 sólo usa `BigDecimal` localmente para normalizar el saldo | Alta | Alta | entidades/DTOs/cálculos; bigint/numeric/double | Inventario, migración por vertical, reconciliación exacta |
 | R17 | V39 fue destructiva | Alta | Desconocida | `DROP TABLE pagos/detalle_pagos CASCADE` | No editar; auditar backup/historial real |
 | R18 | V44 borró duplicados automáticamente | Alta | Desconocida | DELETE previo a unique | Auditar efectos históricos; no repetir patrón |
 | R19 | V060 usa SQL dinámico amplio | Alta | Media | todas las PK int visibles | Probar V060 y upgrades en copia aislada antes de V061 |

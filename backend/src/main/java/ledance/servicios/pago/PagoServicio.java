@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.function.Function;
@@ -41,6 +42,7 @@ public class PagoServicio {
     private final ConceptoRepositorio conceptoRepositorio;
     private final ReciboStorageService reciboStorageService;
     private final UsuarioRepositorio usuarioRepositorio;
+    private final Clock clock;
 
     public PagoServicio(AlumnoRepositorio alumnoRepositorio,
                         PagoRepositorio pagoRepositorio,
@@ -53,7 +55,7 @@ public class PagoServicio {
                         PaymentProcessor paymentProcessor,
                         SubConceptoRepositorio subConceptoRepositorio,
                         ConceptoRepositorio conceptoRepositorio, ReciboStorageService reciboStorageService,
-                        UsuarioRepositorio usuarioRepositorio) {
+                        UsuarioRepositorio usuarioRepositorio, Clock clock) {
         this.alumnoRepositorio = alumnoRepositorio;
         this.pagoRepositorio = pagoRepositorio;
         this.metodoPagoRepositorio = metodoPagoRepositorio;
@@ -67,6 +69,7 @@ public class PagoServicio {
         this.conceptoRepositorio = conceptoRepositorio;
         this.reciboStorageService = reciboStorageService;
         this.usuarioRepositorio = usuarioRepositorio;
+        this.clock = clock;
     }
 
     /**
@@ -74,56 +77,34 @@ public class PagoServicio {
      * Selecciona entre crear un pago nuevo, procesar abono parcial o reutilizar el pago activo.
      */
     public PagoResponse registrarPago(PagoRegistroRequest request) {
-        log.info("[registrarPago] Iniciando registro de pago. Payload recibido: {}", request);
-
-        Alumno alumnoPersistido = alumnoRepositorio.findById(request.alumno().id())
+        Alumno alumnoPersistido = alumnoRepositorio.findByIdAndActivoTrue(request.alumno().id())
                 .orElseThrow(() -> new IllegalStateException(
-                        "Alumno no encontrado para ID: " + request.alumno().id()));
-        log.info("[registrarPago] Alumno encontrado: {}", alumnoPersistido);
-
-        // 1) Obtener el ultimo pago activo pendiente
+                        "Alumno activo no encontrado para ID: " + request.alumno().id()));
         Pago ultimoPagoActivo = paymentProcessor.obtenerUltimoPagoPendienteEntidad(alumnoPersistido.getId());
-        log.info("[registrarPago] Ultimo pago activo obtenido: {}", ultimoPagoActivo);
 
         Pago pagoFinal;
         if (ultimoPagoActivo == null) {
-            // 2a) No hay pago: crear uno nuevo y actualizarle los campos desde el request
             pagoFinal = crearNuevoPago(alumnoPersistido, request);
-            log.info("[registrarPago] No se encontro pago activo. Se creo un nuevo pago: {}", pagoFinal);
             actualizarDatosPagoDesdeRequest(pagoFinal, request);
         } else if (esAbonoParcial(ultimoPagoActivo)) {
-            // 2b) Hay pago activo y es abono parcial: procesarlo y actualizar solo el nuevo
             pagoFinal = paymentProcessor.procesarAbonoParcial(ultimoPagoActivo, request);
-            log.info("[registrarPago] Pago procesado por abono parcial: {}", pagoFinal);
             actualizarDatosPagoDesdeRequest(pagoFinal, request);
-
         } else {
-            // 2c) Se reutiliza el pago activo: NO le cambiamos observaciones ni fecha
             pagoFinal = ultimoPagoActivo;
-            log.info("[registrarPago] Se utiliza el pago activo existente: {}", pagoFinal);
         }
 
-        // 3) Asignar metodo de pago y persistir
         paymentProcessor.asignarMetodoYPersistir(
                 pagoFinal,
                 request.metodoPagoId(),
                 request.recargoMetodoPagoAplicado()
         );
 
-        log.info("[registrarPago] Metodo de pago asignado al pago final id={}", pagoFinal.getId());
-
-        // 4) Limpiar asociaciones para la respuesta
-        limpiarAsociacionesParaRespuesta(pagoFinal);
-        log.info("[registrarPago] Asociaciones limpiadas para respuesta del pago id={}", pagoFinal.getId());
-
         PagoResponse response = pagoMapper.toDTO(pagoFinal);
-        log.info("[registrarPago] Pago registrado con exito. Respuesta final: {}", response);
-
-        // 5) Generar recibo si corresponde
         if (!pagoFinal.getMetodoPago().getDescripcion().equalsIgnoreCase("DEBITO") && pagoFinal.getMonto() > 0) {
             reciboStorageService.generarYAlmacenarYEnviarRecibo(pagoFinal);
         }
 
+        log.info("Pago registrado id={} para alumnoId={}", pagoFinal.getId(), alumnoPersistido.getId());
         return response;
     }
 
@@ -140,25 +121,8 @@ public class PagoServicio {
         pago.setUsuario(cobrador);
     }
 
-    /**
-     * Limpia asociaciones innecesarias para la respuesta, por ejemplo, las inscripciones del alumno.
-     */
-    private void limpiarAsociacionesParaRespuesta(Pago pago) {
-        log.info("[limpiarAsociacionesParaRespuesta] Limpiando asociaciones del alumno en el Pago id={}", pago.getId());
-        if (pago.getAlumno() != null && pago.getAlumno().getInscripciones() != null) {
-            pago.getAlumno().getInscripciones().clear();
-            log.info("[limpiarAsociacionesParaRespuesta] Inscripciones del alumno limpiadas.");
-        }
-    }
-
-    /**
-     * Determina si el ultimo pago activo es un abono parcial (saldoRestante > 0).
-     */
     private boolean esAbonoParcial(Pago ultimoPagoActivo) {
-        log.info("[esAbonoParcial] Evaluando si se trata de un abono parcial para el ultimo pago activo.");
-        boolean parcial = (ultimoPagoActivo != null && ultimoPagoActivo.getSaldoRestante() > 0);
-        log.info("[esAbonoParcial] Resultado: {}", parcial);
-        return parcial;
+        return ultimoPagoActivo != null && ultimoPagoActivo.getSaldoRestante() > 0;
     }
 
     /**
@@ -470,16 +434,11 @@ public class PagoServicio {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Lista los pagos vencidos.
-     */
     public List<PagoResponse> listarPagosVencidos() {
-        LocalDate hoy = LocalDate.now();
-        return pagoRepositorio.findPagosVencidos(hoy, EstadoPago.HISTORICO)
+        return pagoRepositorio.findPagosVencidos(LocalDate.now(clock), EstadoPago.ACTIVO)
                 .stream()
-                .filter(p -> p.getEstadoPago() != EstadoPago.ANULADO)
                 .map(pagoMapper::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**

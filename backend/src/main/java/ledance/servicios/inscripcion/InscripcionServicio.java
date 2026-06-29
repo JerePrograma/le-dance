@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import jakarta.transaction.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -42,6 +43,7 @@ public class InscripcionServicio implements IInscripcionServicio {
     private final AsistenciaDiariaServicio asistenciaDiariaServicio;
     private final MensualidadRepositorio mensualidadRepositorio;
     private final AsistenciaDiariaRepositorio asistenciaDiariaRepositorio;
+    private final Clock clock;
 
     public InscripcionServicio(InscripcionRepositorio inscripcionRepositorio,
                                AlumnoRepositorio alumnoRepositorio,
@@ -53,7 +55,8 @@ public class InscripcionServicio implements IInscripcionServicio {
                                AsistenciaAlumnoMensualRepositorio asistenciaAlumnoMensualRepositorio,
                                MatriculaServicio matriculaServicio, PaymentProcessor paymentProcessor,
                                PagoRepositorio pagoRepositorio,
-                               AsistenciaDiariaServicio asistenciaDiariaServicio, MensualidadRepositorio mensualidadRepositorio, AsistenciaDiariaRepositorio asistenciaDiariaRepositorio) {
+                               AsistenciaDiariaServicio asistenciaDiariaServicio, MensualidadRepositorio mensualidadRepositorio,
+                               AsistenciaDiariaRepositorio asistenciaDiariaRepositorio, Clock clock) {
         this.inscripcionRepositorio = inscripcionRepositorio;
         this.alumnoRepositorio = alumnoRepositorio;
         this.disciplinaRepositorio = disciplinaRepositorio;
@@ -68,6 +71,7 @@ public class InscripcionServicio implements IInscripcionServicio {
         this.asistenciaDiariaServicio = asistenciaDiariaServicio;
         this.mensualidadRepositorio = mensualidadRepositorio;
         this.asistenciaDiariaRepositorio = asistenciaDiariaRepositorio;
+        this.clock = clock;
     }
 
     /**
@@ -236,23 +240,12 @@ public class InscripcionServicio implements IInscripcionServicio {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Elimina físicamente SOLO las asistencias mensuales (y por cascade sus diarias).
-     * NO marca la inscripción ni actualiza su estado.
-     */
     @Transactional
     public void eliminarInscripcion(Long id) {
         Inscripcion ins = inscripcionRepositorio.findById(id)
                 .orElseThrow(() -> new TratadorDeErrores.RecursoNoEncontradoException("Inscripción no encontrada"));
-
-        // 1) marcar el alta como "dada de baja"…
         ins.setEstado(EstadoInscripcion.INACTIVA);
-        ins.setFechaBaja(LocalDate.now());           // <— aquí
-
-        // 2) borrar físicamente las asistencias mensuales (cascade + orphanRemoval)
-        ins.getAsistenciasAlumnoMensual().clear();
-
-        // 3) persistir
+        ins.setFechaBaja(LocalDate.now(clock));
         inscripcionRepositorio.save(ins);
     }
 
