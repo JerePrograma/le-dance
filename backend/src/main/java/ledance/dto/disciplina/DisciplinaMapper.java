@@ -19,7 +19,7 @@ public interface DisciplinaMapper {
     @Mapping(target = "profesorNombre", source = "profesor.nombre")
     @Mapping(target = "profesorApellido", source = "profesor.apellido")
     @Mapping(target = "profesorId", source = "profesor.id")
-    @Mapping(target = "inscritos", expression = "java(disciplina.getInscripciones() != null ? disciplina.getInscripciones().size() : 0)")
+    @Mapping(target = "inscritos", constant = "0")
     @Mapping(target = "activo", source = "activo")
     @Mapping(target = "horarios", source = "horarios", qualifiedByName = "toResponseList")
     DisciplinaResponse toResponse(Disciplina disciplina);

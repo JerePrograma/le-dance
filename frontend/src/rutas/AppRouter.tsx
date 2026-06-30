@@ -33,8 +33,8 @@ const AppRouter: React.FC = () => {
           ))}
         </Route>
 
-        {/* Otras rutas protegidas */}
-        <Route element={<ProtectedRoute />}>
+        {/* El backend canónico expone operaciones de negocio sólo a administradores. */}
+        <Route element={<ProtectedRoute requiredRole="ADMINISTRADOR" />}>
           {otherProtectedRoutes.map(({ path, Component }) => (
             <Route key={path} path={path} element={<Component />} />
           ))}

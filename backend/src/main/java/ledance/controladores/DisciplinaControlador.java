@@ -153,7 +153,7 @@ public class DisciplinaControlador {
             return ResponseEntity.ok()
                     .headers(headers)
                     .body(pdfBytes);
-        } catch (IOException | DocumentException e) {
+        } catch (RuntimeException e) {
             // loguear y devolver 500
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }

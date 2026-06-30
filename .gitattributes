@@ -1,0 +1,23 @@
+* text=auto eol=lf
+
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.docx binary
+*.jar binary
+*.zip binary
+*.dump binary
+*.backup binary
+*.backup3 binary
+*.backup6 binary
+*.backup7 binary
+*.backuphoy binary
+*.backupult binary
+*.woff binary
+*.woff2 binary

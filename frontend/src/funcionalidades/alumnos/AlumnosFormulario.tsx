@@ -52,12 +52,10 @@ const initialAlumnoValues: AlumnoRegistro = {
   email: "",
   email2: "",
   documento: "",
-  deudaPendiente: false,
   nombrePadres: "",
   autorizadoParaSalirSolo: false,
   activo: true,
   otrasNotas: "",
-  cuotaTotal: 0,
 };
 
 const initialInscripcion: InscripcionRegistroRequest = {

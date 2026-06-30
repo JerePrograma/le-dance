@@ -1,67 +1,69 @@
 package ledance.entidades;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "alumnos")
-@ToString(exclude = {"inscripciones", "matriculas"})
 public class Alumno {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @NotNull
+    @Column(length = 100, nullable = false)
     private String nombre;
 
+    @Column(length = 100)
     private String apellido;
     private LocalDate fechaNacimiento;
-    private Integer edad;
+
+    @Column(length = 30)
     private String celular1;
+    @Column(length = 30)
     private String celular2;
 
     @Email
+    @Column(length = 254)
     private String email;
 
+    @Column(length = 30)
     private String documento;
+    @Column(length = 20)
     private String cuit;
 
     @NotNull
+    @Column(nullable = false)
     private LocalDate fechaIncorporacion;
     private LocalDate fechaDeBaja;
 
-    private Boolean deudaPendiente = false;
+    @Column(length = 200)
     private String nombrePadres;
     private Boolean autorizadoParaSalirSolo;
+    @Column(columnDefinition = "text")
     private String otrasNotas;
-    private Double cuotaTotal;
 
     @Column(nullable = false)
     private Boolean activo = true;
 
-    // Nuevo atributo para acumular credito de CLASE SUELTA
-    @Column(name = "credito_acumulado", nullable = false)
-    private Double creditoAcumulado = 0.0;
-
-    @OneToMany(mappedBy = "alumno",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true)      // ← para que clear() elimine las inscripciones
-    @JsonIgnore
-    private List<Inscripcion> inscripciones = new ArrayList<>();
-
-    @OneToMany(mappedBy = "alumno",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true)      // ← agregamos orphanRemoval
-    @JsonIgnore
-    private List<Matricula> matriculas = new ArrayList<>();
+    @Version
+    @Column(nullable = false)
+    private Long version;
 }

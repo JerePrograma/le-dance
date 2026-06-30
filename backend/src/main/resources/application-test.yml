@@ -3,7 +3,7 @@ spring:
     activate:
       on-profile: test
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/ledance_test}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://invalid.invalid/explicit-test-datasource-required}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
     password: ${SPRING_DATASOURCE_PASSWORD:local-only-test}
   flyway:

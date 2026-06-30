@@ -1,10 +1,16 @@
 package ledance.dto.recargo.request;
 
-import jakarta.validation.constraints.*;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+
+import java.math.BigDecimal;
 
 public record RecargoRegistroRequest(
         @NotBlank String descripcion,
-        @NotNull Double porcentaje,
-        Double valorFijo,
-        @NotNull @Min(1) @Max(31) Integer diaDelMesAplicacion // ✅ Dia especifico del mes
-) {}
+        @NotNull @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal porcentaje,
+        @NotNull @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal valorFijo,
+        Integer diaDelMesAplicacion,
+        Boolean activo
+) {
+}

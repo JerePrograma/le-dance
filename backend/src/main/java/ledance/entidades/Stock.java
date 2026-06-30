@@ -1,45 +1,42 @@
 package ledance.entidades;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-import java.time.LocalDate;
+import java.math.BigDecimal;
 
 @Entity
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "stocks")
 public class Stock {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @NotNull
+    @Column(length = 150, nullable = false)
     private String nombre;
-
-    @NotNull
-    private Double precio;
-
-    @NotNull
-    private Integer stock;
-
-    private Boolean requiereControlDeStock;
-
+    @Column(precision = 19, scale = 2, nullable = false)
+    private BigDecimal precio;
+    @Column(name = "cantidad_actual", nullable = false)
+    private Integer stock = 0;
+    @Column(nullable = false)
+    private Boolean requiereControlDeStock = true;
+    @Column(length = 100)
     private String codigoBarras;
-
     @Column(nullable = false)
     private Boolean activo = true;
-
-    // Fecha en la que se ingresa el stock
-    private LocalDate fechaIngreso;
-
-    // Fecha en la que se egresa (sale) el stock
-    private LocalDate fechaEgreso;
-
-    private Boolean esMismoStock = false;
+    @Version
+    @Column(nullable = false)
+    private Long version;
 }

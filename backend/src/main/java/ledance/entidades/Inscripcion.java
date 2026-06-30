@@ -1,40 +1,42 @@
 package ledance.entidades;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import jakarta.validation.constraints.NotNull;
-import lombok.*;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
 
+@Entity
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode(onlyExplicitlyIncluded = true)
-@ToString(onlyExplicitlyIncluded = true)
-@Entity
 @Table(name = "inscripciones")
 public class Inscripcion {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
+    @ManyToOne(optional = false)
     @JoinColumn(name = "alumno_id", nullable = false)
-    @EqualsAndHashCode.Exclude
-    @ToString.Exclude
     private Alumno alumno;
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "disciplina_id", nullable = false)
-    @OnDelete(action = OnDeleteAction.CASCADE)
     private Disciplina disciplina;
 
     @ManyToOne
@@ -42,21 +44,19 @@ public class Inscripcion {
     private Bonificacion bonificacion;
 
     @NotNull
+    @Column(nullable = false)
     private LocalDate fechaInscripcion;
-
     private LocalDate fechaBaja;
 
-    @Enumerated(EnumType.STRING)
     @NotNull
+    @Enumerated(EnumType.STRING)
+    @Column(length = 12, nullable = false)
     private EstadoInscripcion estado = EstadoInscripcion.ACTIVA;
 
-    @OneToMany(mappedBy = "inscripcion", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonIgnore
-    @EqualsAndHashCode.Exclude
-    private List<Mensualidad> mensualidades;
+    @Column(precision = 19, scale = 2)
+    private BigDecimal costoParticular;
 
-    @OneToMany(mappedBy="inscripcion",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true)
-    private List<AsistenciaAlumnoMensual> asistenciasAlumnoMensual = new ArrayList<>();
+    @Version
+    @Column(nullable = false)
+    private Long version;
 }

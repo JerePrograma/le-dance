@@ -1,33 +1,36 @@
 package ledance.entidades;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.math.BigDecimal;
 
 @Entity
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "bonificaciones")
 public class Bonificacion {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @NotNull
-    private String descripcion; // p.ej., "1/2 BECA"
-
-    @NotNull
-    private Integer porcentajeDescuento; // p.ej., 50%
-
-    // Nuevo atributo: valor fijo de descuento (opcional)
-    private Double valorFijo;
-
+    @Column(length = 150, nullable = false)
+    private String descripcion;
+    @Column(precision = 7, scale = 4, nullable = false)
+    private BigDecimal porcentajeDescuento = BigDecimal.ZERO;
+    @Column(precision = 19, scale = 2, nullable = false)
+    private BigDecimal valorFijo = BigDecimal.ZERO;
     @Column(nullable = false)
     private Boolean activo = true;
-
-    private String observaciones; // Campo opcional
+    @Column(length = 500)
+    private String observaciones;
 }

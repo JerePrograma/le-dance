@@ -1,53 +1,44 @@
 package ledance.entidades;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
-import lombok.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.Version;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDate;
-import java.util.List;
 
+@Entity
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode(onlyExplicitlyIncluded = true)
-@ToString(onlyExplicitlyIncluded = true)
-@Entity
 @Table(name = "profesores")
 public class Profesor {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @NotNull
+    @Column(length = 100, nullable = false)
     private String nombre;
-
-    @NotNull
+    @Column(length = 100, nullable = false)
     private String apellido;
-
-    /**
-     * ✅ Nueva informacion personal
-     */
-    private LocalDate fechaNacimiento; // ✅ Fecha de nacimiento del profesor.
-
-    private String telefono; // ✅ Numero de contacto principal.
-
-    /**
-     * ✅ Se almacenara en la BD y se actualizara automaticamente
-     */
-    private Integer edad;
-
-    @OneToMany(mappedBy = "profesor")
-    private List<Disciplina> disciplinas;
-
+    private LocalDate fechaNacimiento;
+    @Column(length = 30)
+    private String telefono;
     @OneToOne
-    @JoinColumn(name = "usuario_id", nullable = true) // ✅ Relacion OPCIONAL
-    private Usuario usuario; // Ahora puede ser nulo.
-
+    @JoinColumn(name = "usuario_id")
+    private Usuario usuario;
     @Column(nullable = false)
     private Boolean activo = true;
-
-    //Agregar fecha cobro
+    @Version
+    @Column(nullable = false)
+    private Long version;
 }

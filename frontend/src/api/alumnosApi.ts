@@ -2,7 +2,6 @@
 import api from "./axiosConfig";
 import type {
   AlumnoRegistro,
-  AlumnoDataResponse,
   DisciplinaListadoResponse,
   AlumnoResponse,
 } from "../types/types";
@@ -15,12 +14,6 @@ const alumnosApi = {
 
   obtenerPorId: async (id: number): Promise<AlumnoResponse> => {
     const response = await api.get(`/alumnos/${id}`);
-    return response.data;
-  },
-
-  // Nuevo método para obtener datos unificados del alumno.
-  obtenerDatosAlumno: async (id: number): Promise<AlumnoDataResponse> => {
-    const response = await api.get(`/alumnos/${id}/datos`);
     return response.data;
   },
 

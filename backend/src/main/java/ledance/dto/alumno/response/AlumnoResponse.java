@@ -17,13 +17,10 @@ public record AlumnoResponse(
         String email,
         String documento,
         LocalDate fechaDeBaja,
-        Boolean deudaPendiente,
         String nombrePadres,
         Boolean autorizadoParaSalirSolo,
-        Boolean activo,  // <-- Agregado aqui
+        Boolean activo,
         String otrasNotas,
-        Double cuotaTotal,
-        List<InscripcionResponse> inscripciones,
-        Double creditoAcumulado
+        List<InscripcionResponse> inscripciones
 ) {
 }

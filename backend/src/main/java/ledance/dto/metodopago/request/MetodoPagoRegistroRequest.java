@@ -1,11 +1,15 @@
-// src/main/java/ledance/dto/metodopago/request/MetodoPagoRegistroRequest.java
 package ledance.dto.metodopago.request;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+
+import java.math.BigDecimal;
 
 public record MetodoPagoRegistroRequest(
-        @NotBlank(message = "La descripcion es obligatoria")
-        String descripcion,
+        Long id,
+        @NotBlank String descripcion,
         Boolean activo,
-        Double recargo
-) { }
+        @NotNull @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal recargo
+) {
+}

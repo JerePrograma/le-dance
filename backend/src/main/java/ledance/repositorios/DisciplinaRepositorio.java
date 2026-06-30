@@ -4,6 +4,8 @@ import ledance.entidades.Alumno;
 import ledance.entidades.Disciplina;
 import ledance.entidades.Profesor;
 import org.springframework.data.jpa.repository.JpaRepository;
+import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -31,5 +33,9 @@ public interface DisciplinaRepositorio extends JpaRepository<Disciplina, Long> {
 
     @Query("SELECT d FROM Disciplina d WHERE d.profesor.id = :profesorId")
     List<Disciplina> findDisciplinasPorProfesor(@Param("profesorId") Long profesorId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select d from Disciplina d where d.id = :id")
+    Optional<Disciplina> findByIdForUpdate(@Param("id") Long id);
 
 }

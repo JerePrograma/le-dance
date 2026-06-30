@@ -1,270 +1,187 @@
 package ledance.servicios.asistencia;
 
+import ledance.dto.asistencia.AsistenciaMensualMapper;
 import ledance.dto.asistencia.request.AsistenciaMensualModificacionRequest;
 import ledance.dto.asistencia.response.AsistenciaMensualDetalleResponse;
 import ledance.dto.asistencia.response.AsistenciaMensualListadoResponse;
-import ledance.dto.asistencia.AsistenciaMensualMapper;
 import ledance.dto.asistencia.response.AsistenciasActivasResponse;
-import ledance.entidades.*;
-import ledance.infra.errores.TratadorDeErrores;
-import ledance.repositorios.*;
-import ledance.servicios.disciplina.DisciplinaServicio;
-import org.springframework.context.annotation.Lazy;
+import ledance.entidades.AsistenciaAlumnoMensual;
+import ledance.entidades.AsistenciaDiaria;
+import ledance.entidades.AsistenciaMensual;
+import ledance.entidades.Disciplina;
+import ledance.entidades.DisciplinaHorario;
+import ledance.entidades.EstadoAsistencia;
+import ledance.entidades.EstadoInscripcion;
+import ledance.entidades.Inscripcion;
+import ledance.repositorios.AsistenciaAlumnoMensualRepositorio;
+import ledance.repositorios.AsistenciaDiariaRepositorio;
+import ledance.repositorios.AsistenciaMensualRepositorio;
+import ledance.repositorios.DisciplinaHorarioRepositorio;
+import ledance.repositorios.DisciplinaRepositorio;
+import ledance.repositorios.InscripcionRepositorio;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.time.YearMonth;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Set;
 
 @Service
-@Transactional
 public class AsistenciaMensualServicio {
+    private static final Logger log = LoggerFactory.getLogger(AsistenciaMensualServicio.class);
+    private final AsistenciaMensualRepositorio planillas;
+    private final AsistenciaAlumnoMensualRepositorio alumnosMensuales;
+    private final AsistenciaDiariaRepositorio diarias;
+    private final InscripcionRepositorio inscripciones;
+    private final DisciplinaRepositorio disciplinas;
+    private final DisciplinaHorarioRepositorio horarios;
+    private final AsistenciaMensualMapper mapper;
+    private final Clock clock;
 
-    private final AsistenciaMensualRepositorio asistenciaMensualRepositorio;
-    private final InscripcionRepositorio inscripcionRepositorio;
-    private final DisciplinaRepositorio disciplinaRepositorio;
-    private final AsistenciaMensualMapper asistenciaMensualMapper;
-    private final DisciplinaServicio disciplinaServicio;
-    private final AsistenciaDiariaRepositorio asistenciaDiariaRepositorio;
-    private final AsistenciaAlumnoMensualRepositorio asistenciaAlumnoMensualRepositorio;
-    private final ProcesoEjecutadoRepositorio procesoEjecutadoRepositorio;
-
-    public AsistenciaMensualServicio(
-            AsistenciaMensualRepositorio asistenciaMensualRepositorio,
-            InscripcionRepositorio inscripcionRepositorio,
-            DisciplinaRepositorio disciplinaRepositorio,
-            AsistenciaMensualMapper asistenciaMensualMapper,
-            @Lazy DisciplinaServicio disciplinaServicio,
-            AsistenciaDiariaRepositorio asistenciaDiariaRepositorio, AsistenciaAlumnoMensualRepositorio asistenciaAlumnoMensualRepositorio, ProcesoEjecutadoRepositorio procesoEjecutadoRepositorio) {
-        this.asistenciaMensualRepositorio = asistenciaMensualRepositorio;
-        this.inscripcionRepositorio = inscripcionRepositorio;
-        this.disciplinaRepositorio = disciplinaRepositorio;
-        this.asistenciaMensualMapper = asistenciaMensualMapper;
-        this.disciplinaServicio = disciplinaServicio;
-        this.asistenciaDiariaRepositorio = asistenciaDiariaRepositorio;
-        this.asistenciaAlumnoMensualRepositorio = asistenciaAlumnoMensualRepositorio;
-        this.procesoEjecutadoRepositorio = procesoEjecutadoRepositorio;
+    public AsistenciaMensualServicio(AsistenciaMensualRepositorio planillas,
+                                     AsistenciaAlumnoMensualRepositorio alumnosMensuales,
+                                     AsistenciaDiariaRepositorio diarias,
+                                     InscripcionRepositorio inscripciones,
+                                     DisciplinaRepositorio disciplinas,
+                                     DisciplinaHorarioRepositorio horarios,
+                                     AsistenciaMensualMapper mapper,
+                                     Clock clock) {
+        this.planillas = planillas;
+        this.alumnosMensuales = alumnosMensuales;
+        this.diarias = diarias;
+        this.inscripciones = inscripciones;
+        this.disciplinas = disciplinas;
+        this.horarios = horarios;
+        this.mapper = mapper;
+        this.clock = clock;
     }
 
-    /**
-     * Crea o recupera la planilla de asistencia para una disciplina en un mes y año dados.
-     */
     @Transactional
     public AsistenciaMensualDetalleResponse crearPlanilla(Long disciplinaId, int mes, int anio) {
-        // Se busca la disciplina
-        Disciplina disciplina = disciplinaRepositorio.findById(disciplinaId)
-                .orElseThrow(() -> new IllegalArgumentException("Disciplina no encontrada con ID: " + disciplinaId));
-        // Buscar planilla existente para (disciplina, mes, anio)
-        Optional<AsistenciaMensual> planillaOpt = asistenciaMensualRepositorio.findByDisciplina_IdAndMesAndAnio(disciplinaId, mes, anio);
-        AsistenciaMensual planilla;
-        if (planillaOpt.isPresent()) {
-            planilla = planillaOpt.get();
-        } else {
-            // Crear nueva planilla asociada a la disciplina
-            planilla = new AsistenciaMensual();
-            planilla.setMes(mes);
-            planilla.setAnio(anio);
-            planilla.setDisciplina(disciplina);
-            planilla = asistenciaMensualRepositorio.save(planilla);
-        }
-        return asistenciaMensualMapper.toDetalleDTO(planilla);
+        Disciplina disciplina = disciplinas.findByIdForUpdate(disciplinaId)
+                .orElseThrow(() -> new IllegalArgumentException("Disciplina no encontrada"));
+        AsistenciaMensual planilla = planillas.findByDisciplina_IdAndMesAndAnio(disciplinaId, mes, anio)
+                .orElseGet(() -> {
+                    AsistenciaMensual nueva = new AsistenciaMensual();
+                    nueva.setDisciplina(disciplina);
+                    nueva.setMes(mes);
+                    nueva.setAnio(anio);
+                    return planillas.save(nueva);
+                });
+        return mapper.toDetalleDTO(planilla);
     }
 
-    /**
-     * Incorpora un alumno (a traves de su inscripcion) a la planilla de asistencia de su disciplina.
-     */
     @Transactional
     public void agregarAlumnoAPlanilla(Long inscripcionId, int mes, int anio) {
-        // Buscar inscripcion
-        Inscripcion inscripcion = inscripcionRepositorio.findById(inscripcionId)
-                .orElseThrow(() -> new IllegalArgumentException("Inscripcion no encontrada con ID: " + inscripcionId));
+        Inscripcion inscripcion = inscripciones.findById(inscripcionId)
+                .orElseThrow(() -> new IllegalArgumentException("Inscripción no encontrada"));
         Long disciplinaId = inscripcion.getDisciplina().getId();
-
-        // Buscar o crear la planilla mensual para la disciplina en el mes y año indicados
-        AsistenciaMensualDetalleResponse planillaDTO = crearPlanilla(disciplinaId, mes, anio);
-        AsistenciaMensual planilla = asistenciaMensualRepositorio.findById(planillaDTO.id())
-                .orElseThrow(() -> new IllegalArgumentException("Planilla no encontrada con ID: " + planillaDTO.id()));
-
-        // Verificar si ya existe un registro para esta inscripcion en la planilla
-        boolean yaExiste = planilla.getAsistenciasAlumnoMensual().stream()
-                .anyMatch(aam -> aam.getInscripcion().getId().equals(inscripcionId));
-        if (yaExiste) {
-            // Si ya esta incorporado, se omite la creacion
-            return;
-        }
-
-        // Crear el registro mensual del alumno
-        AsistenciaAlumnoMensual alumnoMensual = new AsistenciaAlumnoMensual();
-        alumnoMensual.setInscripcion(inscripcion);
-        alumnoMensual.setAsistenciaMensual(planilla);
-        alumnoMensual.setObservacion(null); // Se inicia sin observacion
-
-        // Agregar el registro a la planilla y guardarlo para asignarle un ID
-        planilla.getAsistenciasAlumnoMensual().add(alumnoMensual);
-        alumnoMensual = asistenciaAlumnoMensualRepositorio.save(alumnoMensual);
-
-        // Generar las asistencias diarias segun los dias de clase
-        List<LocalDate> fechasClase = disciplinaServicio.obtenerDiasClase(disciplinaId, mes, anio);
-        AsistenciaAlumnoMensual finalAlumnoMensual = alumnoMensual;
-        List<AsistenciaDiaria> nuevasAsistencias = fechasClase.stream()
-                .map(fecha -> new AsistenciaDiaria(null, fecha, EstadoAsistencia.AUSENTE, finalAlumnoMensual))
-                .toList();
-        alumnoMensual.getAsistenciasDiarias().addAll(nuevasAsistencias);
-
-        // Guardar nuevamente el registro para que se persistan las asistencias diarias
-        asistenciaAlumnoMensualRepositorio.save(alumnoMensual);
+        crearPlanilla(disciplinaId, mes, anio);
+        AsistenciaMensual planilla = planillas.findByDisciplina_IdAndMesAndAnio(disciplinaId, mes, anio).orElseThrow();
+        AsistenciaAlumnoMensual registro = alumnosMensuales
+                .findByInscripcionIdAndAsistenciaMensualId(inscripcionId, planilla.getId())
+                .orElseGet(() -> {
+                    AsistenciaAlumnoMensual nuevo = new AsistenciaAlumnoMensual();
+                    nuevo.setInscripcion(inscripcion);
+                    nuevo.setAsistenciaMensual(planilla);
+                    nuevo.setActivo(true);
+                    return alumnosMensuales.save(nuevo);
+                });
+        sincronizarFechas(registro, fechasClase(disciplinaId, mes, anio), LocalDate.MIN);
     }
 
     @Transactional(readOnly = true)
     public AsistenciaMensualDetalleResponse obtenerPlanillaPorDisciplinaYMes(Long disciplinaId, int mes, int anio) {
-        Optional<AsistenciaMensual> planillaOpt = asistenciaMensualRepositorio.findByDisciplina_IdAndMesAndAnioFetch(disciplinaId, mes, anio);
-        return planillaOpt.map(asistenciaMensualMapper::toDetalleDTO)
-                .orElseThrow(() -> new NoSuchElementException("No se encontro planilla para (Disciplina ID: "
-                        + disciplinaId + ", mes: " + mes + ", anio: " + anio + ")"));
+        return planillas.findByDisciplina_IdAndMesAndAnioFetch(disciplinaId, mes, anio)
+                .map(mapper::toDetalleDTO)
+                .orElseThrow(() -> new NoSuchElementException("Planilla no encontrada"));
     }
 
     @Transactional
     public AsistenciaMensualDetalleResponse actualizarPlanillaAsistencia(Long id, AsistenciaMensualModificacionRequest request) {
-        AsistenciaMensual existente = asistenciaMensualRepositorio.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("No existe planilla con ID: " + id));
-
-        // Actualizamos las observaciones de cada registro de alumno
-        request.asistenciasAlumnoMensual().forEach(modReq -> {
-            // Buscamos en la planilla el registro que corresponde (por su id)
-            existente.getAsistenciasAlumnoMensual().forEach(aam -> {
-                if (aam.getId().equals(modReq.id())) {
-                    aam.setObservacion(modReq.observacion());
-                    // Si se requiere actualizar asistencias diarias, se puede iterar por modReq.asistenciasDiarias() aqui
-                }
-            });
-        });
-
-        AsistenciaMensual actualizada = asistenciaMensualRepositorio.save(existente);
-        return asistenciaMensualMapper.toDetalleDTO(actualizada);
+        AsistenciaMensual planilla = planillas.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Planilla no encontrada"));
+        request.asistenciasAlumnoMensual().forEach(modificacion -> alumnosMensuales.findById(modificacion.id())
+                .filter(a -> a.getAsistenciaMensual().getId().equals(id))
+                .ifPresent(a -> a.setObservacion(modificacion.observacion())));
+        return mapper.toDetalleDTO(planilla);
     }
 
     @Transactional(readOnly = true)
     public List<AsistenciaMensualListadoResponse> listarPlanillas(Long profesorId, Long disciplinaId, Integer mes, Integer anio) {
-        List<AsistenciaMensual> planillas = asistenciaMensualRepositorio.buscarPlanillas(profesorId, disciplinaId, mes, anio);
-        return planillas.stream()
-                .map(asistenciaMensualMapper::toListadoDTO)
-                .collect(Collectors.toList());
+        return planillas.buscarPlanillas(profesorId, disciplinaId, mes, anio).stream()
+                .map(mapper::toListadoDTO).toList();
     }
 
-    /**
-     * Actualiza la planilla en caso de cambios de horario: elimina las asistencias diarias desde una fecha y genera nuevas fechas para cada alumno.
-     */
     @Transactional
     public void actualizarPlanillaPorCambioHorario(Long disciplinaId, LocalDate fechaCambio) {
-        int mes = fechaCambio.getMonthValue();
-        int anio = fechaCambio.getYear();
-        Optional<AsistenciaMensual> optionalPlanilla = asistenciaMensualRepositorio.findByDisciplina_IdAndMesAndAnio(disciplinaId, mes, anio);
-        if (optionalPlanilla.isPresent()) {
-            AsistenciaMensual planilla = optionalPlanilla.get();
-            // Para cada registro (por alumno) en la planilla
-            planilla.getAsistenciasAlumnoMensual().forEach(registro -> {
-                // Se elimina las asistencias diarias cuya fecha sea >= fechaCambio para este alumno
-                asistenciaDiariaRepositorio.deleteByAsistenciaAlumnoMensualIdAndFechaGreaterThanEqual(registro.getId(), fechaCambio);
-                // Obtener las nuevas fechas de clase a partir de fechaCambio
-                List<LocalDate> nuevasFechas = disciplinaServicio.obtenerDiasClase(disciplinaId, mes, anio)
-                        .stream().filter(f -> !f.isBefore(fechaCambio)).toList();
-                // Crear nuevas asistencias diarias para el registro del alumno
-                List<AsistenciaDiaria> nuevasAsistencias = nuevasFechas.stream()
-                        .map(fecha -> new AsistenciaDiaria(null, fecha, EstadoAsistencia.AUSENTE, registro))
-                        .collect(Collectors.toList());
-                asistenciaDiariaRepositorio.saveAll(nuevasAsistencias);
-            });
-        }
+        planillas.findByDisciplina_IdAndMesAndAnio(disciplinaId, fechaCambio.getMonthValue(), fechaCambio.getYear())
+                .ifPresent(planilla -> alumnosMensuales.findAll().stream()
+                        .filter(a -> a.getAsistenciaMensual().getId().equals(planilla.getId()))
+                        .forEach(a -> sincronizarFechas(a,
+                                fechasClase(disciplinaId, planilla.getMes(), planilla.getAnio()), fechaCambio)));
     }
 
-    @Transactional(readOnly = true)
     public AsistenciaMensualDetalleResponse obtenerAsistenciaMensualPorParametros(Long disciplinaId, int mes, int anio) {
-        Optional<AsistenciaMensual> planillaOpt = asistenciaMensualRepositorio.findByDisciplina_IdAndMesAndAnio(disciplinaId, mes, anio);
-        return planillaOpt.map(asistenciaMensualMapper::toDetalleDTO)
-                .orElseThrow(() -> new NoSuchElementException("No se encontro planilla para (Disciplina ID: "
-                        + disciplinaId + ", mes: " + mes + ", anio: " + anio + ")"));
+        return obtenerPlanillaPorDisciplinaYMes(disciplinaId, mes, anio);
     }
 
     @Transactional
     public AsistenciasActivasResponse crearAsistenciasParaInscripcionesActivasDetallado() {
-        // Registrar el proceso de generacion de asistencias para inscripciones activas
-        ProcesoEjecutado procesoAsistencias = procesoEjecutadoRepositorio
-                .findByProceso("ASISTENCIAS_INSCRIPCIONES_ACTIVAS_DETALLADO")
-                .orElse(new ProcesoEjecutado("ASISTENCIAS_INSCRIPCIONES_ACTIVAS_DETALLADO", null));
-
-        int mes = LocalDate.now().getMonthValue();
-        int anio = LocalDate.now().getYear();
-
-        List<Inscripcion> inscripcionesActivas = inscripcionRepositorio.findByEstado(EstadoInscripcion.ACTIVA);
-        // Agrupar las inscripciones activas por disciplina
-        Map<Disciplina, List<Inscripcion>> inscripcionesPorDisciplina =
-                inscripcionesActivas.stream().collect(Collectors.groupingBy(Inscripcion::getDisciplina));
-
-        int planillasCreadas = 0;
-        int totalAsistenciasGeneradas = 0;
-        List<String> detalles = new ArrayList<>();
-
-        for (Map.Entry<Disciplina, List<Inscripcion>> entry : inscripcionesPorDisciplina.entrySet()) {
-            Disciplina disciplina = entry.getKey();
-            List<Inscripcion> inscripciones = entry.getValue();
-
-            // Buscar o crear la planilla para esta disciplina, mes y año
-            Optional<AsistenciaMensual> planillaOpt = asistenciaMensualRepositorio
-                    .findByDisciplina_IdAndMesAndAnio(disciplina.getId(), mes, anio);
-            AsistenciaMensual planilla;
-            if (planillaOpt.isPresent()) {
-                planilla = planillaOpt.get();
-            } else {
-                planilla = new AsistenciaMensual();
-                planilla.setMes(mes);
-                planilla.setAnio(anio);
-                planilla.setDisciplina(disciplina);
-                planilla = asistenciaMensualRepositorio.save(planilla);
-                planillasCreadas++;
-            }
-
-            // Obtener los dias de clase para la disciplina
-            List<LocalDate> fechasClase = disciplinaServicio.obtenerDiasClase(disciplina.getId(), mes, anio);
-            int asistenciasGeneradasParaDisciplina = 0;
-            // Para cada inscripcion de esta disciplina
-            for (Inscripcion inscripcion : inscripciones) {
-                // Verificar si ya existe un registro de asistencia mensual para esta inscripcion
-                boolean existe = asistenciaAlumnoMensualRepositorio
-                        .existsByInscripcionIdAndAsistenciaMensualId(inscripcion.getId(), planilla.getId());
-                if (!existe) {
-                    // Crear el registro de asistencia mensual para el alumno
-                    AsistenciaAlumnoMensual alumnoMensual = new AsistenciaAlumnoMensual();
-                    alumnoMensual.setInscripcion(inscripcion);
-                    alumnoMensual.setAsistenciaMensual(planilla);
-                    alumnoMensual.setObservacion(null); // O un valor por defecto
-                    alumnoMensual = asistenciaAlumnoMensualRepositorio.save(alumnoMensual);
-
-                    // Generar las asistencias diarias para este alumno
-                    AsistenciaAlumnoMensual finalAlumnoMensual = alumnoMensual;
-                    List<AsistenciaDiaria> nuevasAsistencias = fechasClase.stream()
-                            .map(fecha -> new AsistenciaDiaria(null, fecha, EstadoAsistencia.AUSENTE, finalAlumnoMensual))
-                            .collect(Collectors.toList());
-                    asistenciaDiariaRepositorio.saveAll(nuevasAsistencias);
-                    asistenciasGeneradasParaDisciplina += nuevasAsistencias.size();
-                }
-            }
-            detalles.add("Disciplina " + disciplina.getNombre() + " - Inscripciones: " + inscripciones.size()
-                    + ", Asistencias generadas: " + asistenciasGeneradasParaDisciplina);
-            totalAsistenciasGeneradas += asistenciasGeneradasParaDisciplina;
+        YearMonth periodo = YearMonth.now(clock);
+        List<Inscripcion> activas = inscripciones.findByEstado(EstadoInscripcion.ACTIVA);
+        Set<Long> planillasAntes = new HashSet<>();
+        planillas.findAll().forEach(p -> planillasAntes.add(p.getId()));
+        int antes = (int) diarias.count();
+        for (Inscripcion inscripcion : activas) {
+            agregarAlumnoAPlanilla(inscripcion.getId(), periodo.getMonthValue(), periodo.getYear());
         }
-
-        // Actualizar la ultima ejecucion del proceso
-        procesoAsistencias.setUltimaEjecucion(LocalDate.now());
-        procesoEjecutadoRepositorio.save(procesoAsistencias);
-
-        return new AsistenciasActivasResponse(
-                inscripcionesActivas.size(),
-                planillasCreadas,
-                totalAsistenciasGeneradas,
-                detalles
-        );
+        int creadas = (int) planillas.findAll().stream().filter(p -> !planillasAntes.contains(p.getId())).count();
+        int generadas = (int) diarias.count() - antes;
+        log.info("Asistencias generadas período={} inscripciones={} planillas={} diarias={}",
+                periodo, activas.size(), creadas, generadas);
+        return new AsistenciasActivasResponse(activas.size(), creadas, generadas, List.of());
     }
 
+    private void sincronizarFechas(AsistenciaAlumnoMensual registro, List<LocalDate> fechas, LocalDate desde) {
+        Set<LocalDate> esperadas = new HashSet<>(fechas);
+        List<AsistenciaDiaria> existentes = diarias.findByAsistenciaAlumnoMensual_IdAndFechaGreaterThanEqual(
+                registro.getId(), desde);
+        existentes.forEach(a -> a.setVigente(esperadas.contains(a.getFecha())));
+        Set<LocalDate> actuales = new HashSet<>();
+        diarias.findByAsistenciaAlumnoMensualId(registro.getId()).forEach(a -> actuales.add(a.getFecha()));
+        List<AsistenciaDiaria> nuevas = fechas.stream().filter(f -> !f.isBefore(desde) && !actuales.contains(f))
+                .map(f -> {
+                    AsistenciaDiaria diaria = new AsistenciaDiaria();
+                    diaria.setAsistenciaAlumnoMensual(registro);
+                    diaria.setFecha(f);
+                    diaria.setEstado(EstadoAsistencia.AUSENTE);
+                    diaria.setVigente(true);
+                    return diaria;
+                }).toList();
+        diarias.saveAll(nuevas);
+    }
+
+    private List<LocalDate> fechasClase(Long disciplinaId, int mes, int anio) {
+        Set<DayOfWeek> dias = new HashSet<>();
+        horarios.findByDisciplinaId(disciplinaId).stream()
+                .map(DisciplinaHorario::getDiaSemana).map(d -> d.toDayOfWeek()).forEach(dias::add);
+        YearMonth periodo = YearMonth.of(anio, mes);
+        List<LocalDate> fechas = new ArrayList<>();
+        for (int dia = 1; dia <= periodo.lengthOfMonth(); dia++) {
+            LocalDate fecha = periodo.atDay(dia);
+            if (dias.contains(fecha.getDayOfWeek())) {
+                fechas.add(fecha);
+            }
+        }
+        return fechas;
+    }
 }

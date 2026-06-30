@@ -1,28 +1,35 @@
 package ledance.entidades;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
-import lombok.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.math.BigDecimal;
 
 @Entity
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "recargos")
 public class Recargo {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @NotNull
+    @Column(length = 150, nullable = false)
     private String descripcion;
-
-    @NotNull
-    private Double porcentaje; // Porcentaje del recargo
-
-    private Double valorFijo; // Valor fijo opcional del recargo
-
-    @NotNull
-    private Integer diaDelMesAplicacion; // ✅ Dia especifico del mes donde se aplica
+    @Column(precision = 7, scale = 4, nullable = false)
+    private BigDecimal porcentaje = BigDecimal.ZERO;
+    @Column(precision = 19, scale = 2, nullable = false)
+    private BigDecimal valorFijo = BigDecimal.ZERO;
+    private Integer diaDelMesAplicacion;
+    @Column(nullable = false)
+    private Boolean activo = true;
 }

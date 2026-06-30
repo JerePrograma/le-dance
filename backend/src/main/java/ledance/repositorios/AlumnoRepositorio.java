@@ -1,7 +1,9 @@
 package ledance.repositorios;
 
 import ledance.entidades.Alumno;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -16,6 +18,10 @@ public interface AlumnoRepositorio extends JpaRepository<Alumno, Long> {
 
     // Nuevo método para buscar solo por ID si está activo
     Optional<Alumno> findByIdAndActivoTrue(Long id);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select a from Alumno a where a.id = :id and a.activo = true")
+    Optional<Alumno> findActivoByIdForUpdate(@Param("id") Long id);
 
     // Listar todos los activos
     List<Alumno> findByActivoTrue();

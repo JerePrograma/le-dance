@@ -1,55 +1,46 @@
 package ledance.entidades;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
-import lombok.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+import java.math.BigDecimal;
 import java.time.LocalTime;
 
+@Entity
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode(onlyExplicitlyIncluded = true)
-@ToString(onlyExplicitlyIncluded = true)
-@Entity
 @Table(name = "disciplina_horarios")
 public class DisciplinaHorario {
-
-    private static final Logger log = LoggerFactory.getLogger(DisciplinaHorario.class);
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @EqualsAndHashCode.Include
     private Long id;
-
-    @ManyToOne
+    @ManyToOne(optional = false)
     @JoinColumn(name = "disciplina_id", nullable = false)
-    @EqualsAndHashCode.Exclude  // Excluir para evitar recursion en equals
-    @JsonBackReference        // <-- Añadido para evitar ciclo en la serializacion
+    @JsonBackReference
     @OnDelete(action = OnDeleteAction.CASCADE)
     private Disciplina disciplina;
-
     @Enumerated(EnumType.STRING)
-    @NotNull
-    @Column(name = "dia")
+    @Column(name = "dia_semana", length = 12, nullable = false)
     private DiaSemana diaSemana;
-
-    @NotNull
-    @Column(name = "horario_inicio")
+    @Column(name = "horario_inicio", nullable = false)
     private LocalTime horarioInicio;
-
-    @NotNull
-    @Column(name = "duracion")
-    private Double duracion;
-
-    public void setDisciplina(Disciplina disciplina) {
-        this.disciplina = disciplina;
-        log.info("Set disciplina: {}", (disciplina != null ? disciplina.getId() : "null"));
-    }
+    @Column(precision = 5, scale = 2, nullable = false)
+    private BigDecimal duracion;
 }

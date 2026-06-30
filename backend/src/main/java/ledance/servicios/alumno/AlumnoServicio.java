@@ -8,149 +8,129 @@ import ledance.dto.alumno.response.AlumnoListadoResponse;
 import ledance.dto.alumno.response.AlumnoResponse;
 import ledance.dto.disciplina.DisciplinaMapper;
 import ledance.dto.disciplina.response.DisciplinaResponse;
-import ledance.dto.pago.DetallePagoMapper;
-import ledance.dto.pago.response.DetallePagoResponse;
-import ledance.entidades.*;
-import ledance.repositorios.*;
-import jakarta.transaction.Transactional;
+import ledance.entidades.Alumno;
+import ledance.entidades.EstadoInscripcion;
+import ledance.repositorios.AlumnoRepositorio;
+import ledance.repositorios.InscripcionRepositorio;
+import ledance.servicios.cargo.CargoServicio;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.Period;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class AlumnoServicio {
-
     private static final Logger log = LoggerFactory.getLogger(AlumnoServicio.class);
 
-    private final AlumnoRepositorio alumnoRepositorio;
-    private final AlumnoMapper alumnoMapper;
+    private final AlumnoRepositorio alumnos;
+    private final InscripcionRepositorio inscripciones;
+    private final AlumnoMapper mapper;
     private final DisciplinaMapper disciplinaMapper;
-    private final DetallePagoRepositorio detallePagoRepositorio;
-    private final DetallePagoMapper detallePagoMapper;
+    private final CargoServicio cargos;
     private final Clock clock;
 
-    public AlumnoServicio(AlumnoRepositorio alumnoRepositorio, AlumnoMapper alumnoMapper,
+    public AlumnoServicio(AlumnoRepositorio alumnos,
+                          InscripcionRepositorio inscripciones,
+                          AlumnoMapper mapper,
                           DisciplinaMapper disciplinaMapper,
-                          DetallePagoRepositorio detallePagoRepositorio,
-                          DetallePagoMapper detallePagoMapper, Clock clock) {
-        this.alumnoRepositorio = alumnoRepositorio;
-        this.alumnoMapper = alumnoMapper;
+                          CargoServicio cargos,
+                          Clock clock) {
+        this.alumnos = alumnos;
+        this.inscripciones = inscripciones;
+        this.mapper = mapper;
         this.disciplinaMapper = disciplinaMapper;
-        this.detallePagoRepositorio = detallePagoRepositorio;
-        this.detallePagoMapper = detallePagoMapper;
+        this.cargos = cargos;
         this.clock = clock;
     }
 
     @Transactional
-    public AlumnoResponse registrarAlumno(AlumnoRegistroRequest requestDTO) {
-        log.info("Registrando alumno: {}", requestDTO.nombre());
-
-        // Verificacion de duplicados por nombre + apellido
-        if (alumnoRepositorio.existsByNombreIgnoreCaseAndApellidoIgnoreCase(requestDTO.nombre().trim(), requestDTO.apellido().trim())) {
-            String msg = String.format("Ya existe un alumno con el nombre '%s' y apellido '%s'",
-                    requestDTO.nombre(), requestDTO.apellido());
-            log.warn("[registrarAlumno] {}", msg);
-            throw new IllegalStateException(msg); // o podrias usar una excepcion custom si preferis
+    public AlumnoResponse registrarAlumno(AlumnoRegistroRequest request) {
+        if (alumnos.existsByNombreIgnoreCaseAndApellidoIgnoreCase(request.nombre().trim(), request.apellido().trim())) {
+            throw new IllegalStateException("Ya existe un alumno con ese nombre y apellido");
         }
-
-        Alumno alumno = alumnoMapper.toEntity(requestDTO);
-        if (alumno.getId() == 0) {
-            alumno.setId(null);
-        }
-
-        // Calcular edad automaticamente
-        if (alumno.getFechaNacimiento() != null) {
-            alumno.setEdad(calcularEdad(requestDTO.fechaNacimiento()));
-        }
-
-        // Guardar el alumno
-        Alumno alumnoGuardado = alumnoRepositorio.save(alumno);
-        return alumnoMapper.toResponse(alumnoGuardado);
+        Alumno alumno = mapper.toEntity(request);
+        alumno.setId(null);
+        alumno.setFechaIncorporacion(request.fechaIncorporacion() == null
+                ? LocalDate.now(clock) : request.fechaIncorporacion());
+        alumno = alumnos.save(alumno);
+        log.info("Alumno registrado id={}", alumno.getId());
+        return respuesta(alumno);
     }
 
+    @Transactional(readOnly = true)
     public AlumnoResponse obtenerAlumnoPorId(Long id) {
-        Alumno alumno = alumnoRepositorio
-                .findByIdAndActivoTrue(id)
-                .orElseThrow(() -> new EntityNotFoundException("Alumno no encontrado."));
-        return alumnoMapper.toResponse(alumno);
+        return respuesta(activo(id));
     }
 
+    @Transactional(readOnly = true)
     public List<AlumnoResponse> listarAlumnos() {
-        return alumnoRepositorio.findAll().stream()
-                .map(alumnoMapper::toResponse)
-                .collect(Collectors.toList());
+        return alumnos.findAll().stream().map(this::respuesta).toList();
     }
-
 
     @Transactional
-    public AlumnoResponse actualizarAlumno(Long id, AlumnoRegistroRequest dto) {
-        Alumno alumno = alumnoRepositorio
-                .findByIdAndActivoTrue(id)
-                .orElseThrow(() -> new EntityNotFoundException("Alumno no encontrado."));
-        alumnoMapper.updateEntityFromRequest(dto, alumno);
-        if (alumno.getFechaNacimiento() != null) {
-            alumno.setEdad(calcularEdad(dto.fechaNacimiento()));
-        }
-        return alumnoMapper.toResponse(alumnoRepositorio.save(alumno));
+    public AlumnoResponse actualizarAlumno(Long id, AlumnoRegistroRequest request) {
+        Alumno alumno = activo(id);
+        mapper.updateEntityFromRequest(request, alumno);
+        return respuesta(alumno);
     }
 
     @Transactional
     public void darBajaAlumno(Long id) {
-        Alumno alumno = alumnoRepositorio
-                .findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Alumno no encontrado."));
-        if (Boolean.FALSE.equals(alumno.getActivo())) {
-            return;
+        Alumno alumno = alumnos.findById(id).orElseThrow(() -> new EntityNotFoundException("Alumno no encontrado"));
+        if (Boolean.TRUE.equals(alumno.getActivo())) {
+            alumno.setActivo(false);
+            alumno.setFechaDeBaja(LocalDate.now(clock));
+            log.info("Alumno dado de baja id={}", id);
         }
-        alumno.setActivo(false);
-        alumno.setFechaDeBaja(LocalDate.now(clock));
-        alumnoRepositorio.save(alumno);
     }
 
+    @Transactional(readOnly = true)
     public List<AlumnoResponse> listarAlumnosSimplificado() {
-        return alumnoRepositorio.findByActivoTrue().stream()
-                .map(alumnoMapper::toResponse)
-                .collect(Collectors.toList());
+        return alumnos.findByActivoTrue().stream().map(this::respuesta).toList();
     }
 
+    @Transactional(readOnly = true)
     public List<AlumnoResponse> buscarPorNombre(String nombre) {
-        return alumnoRepositorio.buscarPorNombreCompleto(nombre).stream()
-                .map(alumnoMapper::toResponse)
-                .collect(Collectors.toList());
+        return alumnos.buscarPorNombreCompleto(nombre).stream().map(this::respuesta).toList();
     }
 
+    @Transactional(readOnly = true)
     public List<DisciplinaResponse> obtenerDisciplinasDeAlumno(Long alumnoId) {
-        Alumno alumno = alumnoRepositorio
-                .findByIdAndActivoTrue(alumnoId)
-                .orElseThrow(() -> new EntityNotFoundException("Alumno no encontrado."));
-        return alumno.getInscripciones().stream()
-                .map(ins -> disciplinaMapper.toResponse(ins.getDisciplina()))
-                .collect(Collectors.toList());
+        activo(alumnoId);
+        return inscripciones.findAllByAlumno_IdAndEstado(alumnoId, EstadoInscripcion.ACTIVA).stream()
+                .map(i -> disciplinaMapper.toResponse(i.getDisciplina())).toList();
     }
 
-    private int calcularEdad(LocalDate fechaNacimiento) {
-        if (fechaNacimiento != null) {
-            return Period.between(fechaNacimiento, LocalDate.now()).getYears();
-        }
-        return 0;
-    }
-    @Transactional
+    @Transactional(readOnly = true)
     public AlumnoDataResponse obtenerAlumnoData(Long alumnoId) {
-        Alumno alumno = alumnoRepositorio
-                .findByIdAndActivoTrue(alumnoId)
-                .orElseThrow(() -> new EntityNotFoundException("Alumno no encontrado."));
-        List<DetallePago> pendientes = detallePagoRepositorio
-                .findByAlumnoIdAndImportePendienteGreaterThan(alumnoId, 0.0);
-        List<DetallePagoResponse> dtos = pendientes.stream()
-                .map(detallePagoMapper::toDTO)
-                .toList();
-        AlumnoListadoResponse listado = alumnoMapper.toAlumnoListadoResponse(alumno);
-        return new AlumnoDataResponse(listado, dtos);
+        Alumno alumno = activo(alumnoId);
+        AlumnoListadoResponse base = mapper.toAlumnoListadoResponse(alumno);
+        AlumnoListadoResponse conEdad = new AlumnoListadoResponse(base.id(), base.nombre(), base.apellido(),
+                base.fechaNacimiento(), base.fechaIncorporacion(), edad(base.fechaNacimiento()), base.celular1(),
+                base.celular2(), base.email(), base.documento(), base.fechaDeBaja(), base.nombrePadres(),
+                base.autorizadoParaSalirSolo(), base.activo(), base.otrasNotas());
+        return new AlumnoDataResponse(conEdad, cargos.listarPendientes(alumnoId));
+    }
+
+    private Alumno activo(Long id) {
+        return alumnos.findByIdAndActivoTrue(id)
+                .orElseThrow(() -> new EntityNotFoundException("Alumno no encontrado"));
+    }
+
+    private AlumnoResponse respuesta(Alumno alumno) {
+        AlumnoResponse base = mapper.toResponse(alumno);
+        return new AlumnoResponse(base.id(), base.nombre(), base.apellido(), base.fechaNacimiento(),
+                base.fechaIncorporacion(), edad(base.fechaNacimiento()), base.celular1(), base.celular2(),
+                base.email(), base.documento(), base.fechaDeBaja(), base.nombrePadres(),
+                base.autorizadoParaSalirSolo(), base.activo(), base.otrasNotas(), List.of());
+    }
+
+    private int edad(LocalDate nacimiento) {
+        return nacimiento == null ? 0 : Period.between(nacimiento, LocalDate.now(clock)).getYears();
     }
 }

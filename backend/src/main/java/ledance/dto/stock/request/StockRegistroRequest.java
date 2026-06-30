@@ -1,18 +1,21 @@
 package ledance.dto.stock.request;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Size;
 
-import java.time.LocalDate;
+import java.math.BigDecimal;
 
 public record StockRegistroRequest(
         Long id,
-        @NotNull String nombre,
-        Double precio,
-        Integer stock,
-        Boolean requiereControlDeStock,
+        @NotBlank String nombre,
+        @NotNull @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal precio,
+        @NotNull @PositiveOrZero Integer stock,
+        @NotNull Boolean requiereControlDeStock,
         Boolean activo,
-        LocalDate fechaIngreso,
-        LocalDate fechaEgreso
-        // Este campo es opcional; si se proporciona, se espera un valor del enum TipoEgreso.
+        @Size(max = 100) String codigoBarras,
+        @NotBlank @Size(max = 100) String idempotencyKey
 ) {
 }

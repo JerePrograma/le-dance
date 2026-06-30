@@ -1,12 +1,9 @@
-// DisciplinaHorarioModificacionRequest.java
 package ledance.dto.disciplina.request;
 
 import ledance.entidades.DiaSemana;
+
+import java.math.BigDecimal;
 import java.time.LocalTime;
 
-public record DisciplinaHorarioModificacionRequest(
-        Long id,           // Sera null para nuevos horarios
-        DiaSemana diaSemana,
-        LocalTime horarioInicio,
-        Double duracion
-) { }
+public record DisciplinaHorarioModificacionRequest(Long id, DiaSemana diaSemana, LocalTime horarioInicio, BigDecimal duracion) {
+}

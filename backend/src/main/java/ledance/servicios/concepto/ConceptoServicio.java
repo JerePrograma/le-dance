@@ -99,10 +99,9 @@ public class ConceptoServicio {
 
     @Transactional
     public void eliminarConcepto(Long id) {
-        if (!conceptoRepositorio.existsById(id)) {
-            throw new IllegalArgumentException("Concepto no encontrado con id: " + id);
-        }
-        conceptoRepositorio.deleteById(id);
+        Concepto concepto = conceptoRepositorio.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Concepto no encontrado con id: " + id));
+        concepto.setActivo(false);
     }
 
     public List<ConceptoResponse> listarConceptosPorSubConcepto(Long subConceptoId) {

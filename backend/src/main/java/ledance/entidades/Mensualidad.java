@@ -1,74 +1,62 @@
 package ledance.entidades;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotNull;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.ToString;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
+import lombok.Setter;
 
 import java.time.LocalDate;
-import java.util.List;
 
 @Entity
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "mensualidades")
 public class Mensualidad {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotNull
-    private LocalDate fechaGeneracion;
-
-    @NotNull
-    private LocalDate fechaCuota;
-
-    // Fecha en la que se realizo el pago (null si aun no se paga)
-    private LocalDate fechaPago;
-
-    @NotNull
-    @Min(value = 0, message = "El valor base debe ser mayor o igual a 0")
-    private Double valorBase;
-
-    @ManyToOne
-    @JoinColumn(name = "recargo_id", nullable = true)
-    private Recargo recargo;
-
-    @ManyToOne
-    @JoinColumn(name = "bonificacion_id", nullable = true)
-    private Bonificacion bonificacion;
-
-    @NotNull
-    @Column(name="importe_inicial")
-    private Double importeInicial;
-
-    @NotNull
-    @Enumerated(EnumType.STRING)
-    private EstadoMensualidad estado;
-
-    @ManyToOne
+    @ManyToOne(optional = false)
     @JoinColumn(name = "inscripcion_id", nullable = false)
-    @OnDelete(action = OnDeleteAction.CASCADE)
     private Inscripcion inscripcion;
 
+    @ManyToOne
+    @JoinColumn(name = "bonificacion_id")
+    private Bonificacion bonificacion;
+
+    @ManyToOne
+    @JoinColumn(name = "recargo_id")
+    private Recargo recargo;
+
+    @Column(nullable = false)
+    private Integer anio;
+    @Column(nullable = false)
+    private Integer mes;
+    @Column(nullable = false)
+    private LocalDate fechaGeneracion;
+    @Column(nullable = false)
+    private LocalDate fechaVencimiento;
+    @Column(length = 255, nullable = false)
     private String descripcion;
 
-    // Nuevo campo para registrar el monto acumulado abonado en la mensualidad
-    private Double montoAbonado = 0.0;
+    @Enumerated(EnumType.STRING)
+    @Column(length = 10, nullable = false)
+    private EstadoOrigenCargo estado = EstadoOrigenCargo.EMITIDA;
 
-    @OneToMany(mappedBy = "mensualidad", cascade = CascadeType.ALL, orphanRemoval = true)
-    @ToString.Exclude // Evita la recursividad
-    private List<DetallePago> detallePagos;
-
-    private Double importePendiente;
-
-    @Column(name = "es_clon")
-    private Boolean esClon = false;
+    @Version
+    @Column(nullable = false)
+    private Long version;
 }

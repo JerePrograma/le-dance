@@ -1,12 +1,12 @@
 package ledance.servicios;
 
-import jakarta.mail.MessagingException;
 import ledance.servicios.asistencia.AsistenciaMensualServicio;
 import ledance.servicios.matricula.MatriculaServicio;
 import ledance.servicios.mensualidad.MensualidadServicio;
 import ledance.servicios.notificaciones.NotificacionService;
 import ledance.servicios.recargo.RecargoServicio;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -18,13 +18,14 @@ import java.util.List;
 @ConditionalOnProperty(name = "app.scheduling-enabled", havingValue = "true")
 public class ScheduledTasks {
 
+    private static final Logger log = LoggerFactory.getLogger(ScheduledTasks.class);
+
     private final MensualidadServicio mensualidadServicio;
     private final MatriculaServicio matriculaServicio;
     private final RecargoServicio recargoServicio;
     private final AsistenciaMensualServicio asistenciaMensualServicio;
     private final NotificacionService notificacionService;
 
-    @Autowired
     public ScheduledTasks(MensualidadServicio mensualidadServicio,
                           MatriculaServicio matriculaServicio,
                           RecargoServicio recargoServicio,
@@ -81,14 +82,9 @@ public class ScheduledTasks {
     public void enviarNotificacionesCumpleanios() {
         try {
             List<String> mensajes = notificacionService.generarYObtenerCumpleanerosDelDia();
-            // Si quieres loguear que mensajes se enviaron:
-            mensajes.forEach(msg ->
-                    System.out.println("[ScheduledTasks] Notificacion enviada: " + msg)
-            );
+            log.info("Notificaciones de cumpleaños procesadas cantidad={}", mensajes.size());
         } catch (IOException e) {
-            // Aqui podrias usar tu logger en lugar de printStackTrace
-            System.err.println("[ScheduledTasks] Error al enviar notificaciones de cumpleaños:");
-            e.printStackTrace();
+            log.error("Falló el proceso de notificaciones de cumpleaños", e);
         }
     }
 }

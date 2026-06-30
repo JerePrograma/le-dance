@@ -46,11 +46,7 @@ public class SecurityConfigurations {
                     req.requestMatchers(HttpMethod.GET, "/api/usuarios/perfil").authenticated();
                     req.requestMatchers("/api/usuarios/**", "/api/roles/**")
                             .hasRole("ADMINISTRADOR");
-                    req.requestMatchers(HttpMethod.GET,
-                                    "/api/pagos/recibo/**",
-                                    "/api/pagos/factura/**")
-                            .hasRole("ADMINISTRADOR");
-                    req.anyRequest().authenticated();
+                    req.anyRequest().hasRole("ADMINISTRADOR");
                 })
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();

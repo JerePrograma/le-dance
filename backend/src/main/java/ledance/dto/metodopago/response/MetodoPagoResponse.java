@@ -1,9 +1,13 @@
-// src/main/java/ledance/dto/metodopago/response/MetodoPagoResponse.java
 package ledance.dto.metodopago.response;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
+
+import java.math.BigDecimal;
 
 public record MetodoPagoResponse(
         Long id,
         String descripcion,
         Boolean activo,
-        Double recargo
-) { }
+        @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal recargo
+) {
+}

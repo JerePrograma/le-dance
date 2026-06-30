@@ -1,112 +1,75 @@
 package ledance.entidades;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import jakarta.persistence.*;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotNull;
-import lombok.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.Version;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
 
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
-
-/**
- * Representa un Pago realizado por un Alumno.
- * <p>
- * Las relaciones entre los campos son las siguientes:
- * - importeInicial: monto a cobrar originalmente.
- * - montoPagado: suma de los abonos aplicados en este pago.
- * - saldoRestante: lo que aun falta por abonar; debe cumplirse que:
- * montoPagado + saldoRestante = importeInicial.
- * <p>
- * El estado del pago (estadoPago) se actualiza a HISTORICO cuando el saldoRestante es 0.
- */
 @Entity
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "pagos")
 public class Pago {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotNull
-    private LocalDate fecha;
-
-    private LocalDate fechaVencimiento;
-
-    /**
-     * Monto total a cobrar o total abonado (segun la implementacion).
-     */
-    @NotNull
-    private Double monto;
-
-    /**
-     * Valor base asociado al pago, en caso de que aplique alguna formula o calculo adicional.
-     */
-    private Double valorBase;
-
-    @NotNull
-    @Min(value = 0, message = "El monto base no puede ser negativo")
-    private Double importeInicial;
-
-    @ManyToOne
+    @ManyToOne(optional = false)
     @JoinColumn(name = "alumno_id", nullable = false)
     private Alumno alumno;
 
-    @ManyToOne
-    @JoinColumn(name = "metodo_pago_id", nullable = true)
-    @OnDelete(action = OnDeleteAction.SET_NULL)
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "metodo_pago_id", nullable = false)
     private MetodoPago metodoPago;
 
-    /**
-     * Saldo restante por abonar en este pago.
-     */
-    @NotNull
-    private Double saldoRestante = 0.0;
-
-    @NotNull
-    @Enumerated(EnumType.STRING)
-    @Column(name = "estado_pago", nullable = false)
-    private EstadoPago estadoPago = EstadoPago.ACTIVO;
-
-    private String observaciones;
-
-    @OneToMany(mappedBy = "pago", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonIgnore
-    private List<DetallePago> detallePagos = new ArrayList<>();
-
-    /**
-     * Monto efectivamente abonado en este pago.
-     */
-    @NotNull
-    @Column(name = "monto_pagado", nullable = false)
-    @Min(value = 0, message = "El monto pagado no puede ser negativo")
-    private Double montoPagado = 0.0;
-
-    @ManyToOne
-    @JoinColumn(name = "usuario_id", nullable = true)
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "usuario_id", nullable = false)
     private Usuario usuario;
 
-    @Column(name = "recargo_aplicado")
-    private Boolean recargoMetodoPagoAplicado = false;
+    @Column(nullable = false)
+    private LocalDate fecha;
 
-    @PrePersist
-    public void prePersist() {
-        if (this.saldoRestante == null) {
-            this.saldoRestante = 0.0;
-        }
-    }
+    @Column(name = "monto_recibido", precision = 19, scale = 2, nullable = false, updatable = false)
+    private BigDecimal montoRecibido;
 
-    // Supongamos que tienes un metodo en Pago para remover un detalle:
-    public void removerDetalle(DetallePago detalle) {
-        this.detallePagos.remove(detalle);
-        detalle.setPago(null);
-    }
+    @Enumerated(EnumType.STRING)
+    @Column(length = 10, nullable = false)
+    private EstadoPago estado = EstadoPago.REGISTRADO;
 
+    @Column(name = "idempotency_key", length = 100, nullable = false, updatable = false)
+    private String idempotencyKey;
+    @Column(name = "request_hash", length = 64, nullable = false, updatable = false)
+    private String requestHash;
+    @Column(name = "reversal_idempotency_key", length = 100)
+    private String reversalIdempotencyKey;
+
+    @Column(length = 500)
+    private String observaciones;
+    @Column(length = 500)
+    private String motivoAnulacion;
+    private Instant fechaAnulacion;
+
+    @Version
+    @Column(nullable = false)
+    private Long version;
+
+    @Column(nullable = false, updatable = false)
+    private Instant createdAt = Instant.now();
 }

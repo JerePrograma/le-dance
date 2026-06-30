@@ -1,139 +1,244 @@
 package ledance.servicios.stock;
 
-import ledance.dto.stock.request.StockRegistroRequest;
-import ledance.dto.stock.response.StockResponse;
+import jakarta.persistence.EntityNotFoundException;
+import ledance.dto.cargo.response.CargoResponse;
 import ledance.dto.stock.StockMapper;
+import ledance.dto.stock.request.ReversionStockRequest;
+import ledance.dto.stock.request.StockRegistroRequest;
+import ledance.dto.stock.request.VentaStockRequest;
+import ledance.dto.stock.response.StockResponse;
+import ledance.entidades.Alumno;
+import ledance.entidades.Cargo;
+import ledance.entidades.EstadoCargo;
+import ledance.entidades.EstadoVentaStock;
+import ledance.entidades.MovimientoStock;
 import ledance.entidades.Stock;
+import ledance.entidades.TipoMovimientoStock;
+import ledance.entidades.Usuario;
+import ledance.entidades.VentaStock;
 import ledance.infra.errores.SinStockException;
+import ledance.infra.errores.TratadorDeErrores.OperacionNoPermitidaException;
+import ledance.repositorios.AlumnoRepositorio;
+import ledance.repositorios.CargoRepositorio;
+import ledance.repositorios.MovimientoStockRepositorio;
 import ledance.repositorios.StockRepositorio;
+import ledance.repositorios.UsuarioRepositorio;
+import ledance.repositorios.VentaStockRepositorio;
+import ledance.servicios.cargo.CargoServicio;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.Clock;
+import java.time.LocalDate;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Locale;
 
 @Service
 public class StockServicio {
-
     private static final Logger log = LoggerFactory.getLogger(StockServicio.class);
+    private final StockRepositorio stocks;
+    private final VentaStockRepositorio ventas;
+    private final MovimientoStockRepositorio movimientos;
+    private final AlumnoRepositorio alumnos;
+    private final UsuarioRepositorio usuarios;
+    private final CargoRepositorio cargos;
+    private final CargoServicio cargoServicio;
+    private final StockMapper mapper;
+    private final Clock clock;
 
-    private final StockRepositorio stockRepositorio;
-    private final StockMapper stockMapper;
-
-    public StockServicio(StockRepositorio stockRepositorio,
-                         StockMapper stockMapper) {
-        this.stockRepositorio = stockRepositorio;
-        this.stockMapper = stockMapper;
+    public StockServicio(StockRepositorio stocks,
+                         VentaStockRepositorio ventas,
+                         MovimientoStockRepositorio movimientos,
+                         AlumnoRepositorio alumnos,
+                         UsuarioRepositorio usuarios,
+                         CargoRepositorio cargos,
+                         CargoServicio cargoServicio,
+                         StockMapper mapper,
+                         Clock clock) {
+        this.stocks = stocks;
+        this.ventas = ventas;
+        this.movimientos = movimientos;
+        this.alumnos = alumnos;
+        this.usuarios = usuarios;
+        this.cargos = cargos;
+        this.cargoServicio = cargoServicio;
+        this.mapper = mapper;
+        this.clock = clock;
     }
 
     @Transactional
-    public StockResponse crearStock(StockRegistroRequest request) {
-        Stock stock = stockMapper.toEntity(request);
-        stock.setNombre(stock.getNombre().toUpperCase());
-        stock.setFechaIngreso(request.fechaIngreso());
-        stock.setFechaEgreso(request.fechaEgreso());
-        Stock saved = stockRepositorio.save(stock);
-        return stockMapper.toDTO(saved);
+    public StockResponse crearStock(StockRegistroRequest request, Usuario principal) {
+        if (stocks.findByNombreIgnoreCase(request.nombre().trim()).isPresent()) {
+            throw new OperacionNoPermitidaException("Ya existe un producto con ese nombre");
+        }
+        Usuario usuario = usuarioActivo(principal);
+        Stock stock = mapper.toEntity(request);
+        stock.setNombre(request.nombre().trim().toUpperCase(Locale.ROOT));
+        stock.setPrecio(monedaNoNegativa(request.precio()));
+        stock.setStock(request.stock());
+        stocks.save(stock);
+        if (request.stock() > 0) {
+            MovimientoStock ingreso = new MovimientoStock();
+            ingreso.setStock(stock);
+            ingreso.setTipo(TipoMovimientoStock.INGRESO);
+            ingreso.setCantidad(request.stock());
+            ingreso.setUsuario(usuario);
+            ingreso.setIdempotencyKey("stock-inicial:" + request.idempotencyKey());
+            ingreso.setMotivo("STOCK_INICIAL");
+            movimientos.save(ingreso);
+        }
+        log.info("Producto de stock creado id={} cantidad={}", stock.getId(), stock.getStock());
+        return respuesta(stock);
     }
 
     @Transactional(readOnly = true)
     public List<StockResponse> listarStocks() {
-        return stockRepositorio.findAll().stream()
-                .map(stockMapper::toDTO)
-                .collect(Collectors.toList());
+        return stocks.findAll().stream().map(this::respuesta).toList();
     }
 
     @Transactional(readOnly = true)
     public List<StockResponse> listarStocksActivos() {
-        return stockRepositorio.findByActivoTrue().stream()
-                .map(stockMapper::toDTO)
-                .collect(Collectors.toList());
+        return stocks.findByActivoTrue().stream().map(this::respuesta).toList();
     }
 
     @Transactional(readOnly = true)
     public StockResponse obtenerStockPorId(Long id) {
-        Stock stock = stockRepositorio.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Stock no encontrado con id: " + id));
-        return stockMapper.toDTO(stock);
+        return respuesta(stocks.findById(id).orElseThrow(() -> new EntityNotFoundException("Stock no encontrado")));
     }
 
     @Transactional
     public StockResponse actualizarStock(Long id, StockRegistroRequest request) {
-        Stock stock = stockRepositorio.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Stock no encontrado con id: " + id));
-        // Actualiza la entidad usando el mapper, que convierte el tipoEgreso y mapea el id del tipo
-        stockMapper.updateEntityFromRequest(request, stock);
-
-        stock.setNombre(stock.getNombre().toUpperCase());
-        stock.setFechaIngreso(request.fechaIngreso());
-        stock.setFechaEgreso(request.fechaEgreso());
-        Stock updated = stockRepositorio.save(stock);
-        return stockMapper.toDTO(updated);
+        Stock stock = stocks.findActivoByIdForUpdate(id)
+                .orElseThrow(() -> new EntityNotFoundException("Stock no encontrado"));
+        if (!stock.getStock().equals(request.stock())) {
+            throw new OperacionNoPermitidaException("La cantidad se modifica mediante movimientos de stock");
+        }
+        mapper.updateEntityFromRequest(request, stock);
+        stock.setNombre(request.nombre().trim().toUpperCase(Locale.ROOT));
+        stock.setPrecio(monedaNoNegativa(request.precio()));
+        return respuesta(stock);
     }
 
     @Transactional
     public void eliminarStock(Long id) {
-        Stock stock = stockRepositorio.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Stock no encontrado con id: " + id));
-        // Baja logica: marcar como inactivo
+        Stock stock = stocks.findById(id).orElseThrow(() -> new EntityNotFoundException("Stock no encontrado"));
         stock.setActivo(false);
-        stockRepositorio.save(stock);
+    }
+
+    @Transactional
+    public CargoResponse vender(VentaStockRequest request, Usuario principal) {
+        VentaStock previa = ventas.findByIdempotencyKey(request.idempotencyKey()).orElse(null);
+        if (previa != null) {
+            return cargoServicio.obtener(cargos.findByVentaStockId(previa.getId()).orElseThrow().getId());
+        }
+        Usuario usuario = usuarioActivo(principal);
+        Alumno alumno = alumnos.findActivoByIdForUpdate(request.alumnoId())
+                .orElseThrow(() -> new OperacionNoPermitidaException("El alumno no existe o está inactivo"));
+        Stock stock = stocks.findActivoByIdForUpdate(request.stockId())
+                .orElseThrow(() -> new EntityNotFoundException("Stock no encontrado"));
+        if (Boolean.TRUE.equals(stock.getRequiereControlDeStock()) && stock.getStock() < request.cantidad()) {
+            throw new SinStockException("Stock insuficiente para el producto " + stock.getNombre());
+        }
+        VentaStock venta = new VentaStock();
+        venta.setAlumno(alumno);
+        venta.setStock(stock);
+        venta.setCantidad(request.cantidad());
+        venta.setPrecioUnitario(stock.getPrecio());
+        venta.setFecha(LocalDate.now(clock));
+        venta.setEstado(EstadoVentaStock.REGISTRADA);
+        venta.setIdempotencyKey(request.idempotencyKey());
+        ventas.save(venta);
+
+        if (Boolean.TRUE.equals(stock.getRequiereControlDeStock())) {
+            stock.setStock(stock.getStock() - request.cantidad());
+        }
+        MovimientoStock salida = new MovimientoStock();
+        salida.setStock(stock);
+        salida.setTipo(TipoMovimientoStock.VENTA);
+        salida.setCantidad(request.cantidad());
+        salida.setVentaStock(venta);
+        salida.setUsuario(usuario);
+        salida.setIdempotencyKey("venta:" + request.idempotencyKey());
+        movimientos.save(salida);
+
+        Cargo cargo = cargoServicio.crearParaVenta(venta,
+                stock.getPrecio().multiply(BigDecimal.valueOf(request.cantidad())), request.fechaVencimiento());
+        log.info("Venta de stock registrada id={} stockId={} cantidad={}", venta.getId(), stock.getId(), venta.getCantidad());
+        return cargoServicio.obtener(cargo.getId());
+    }
+
+    @Transactional
+    public CargoResponse revertirVenta(Long ventaId, ReversionStockRequest request, Usuario principal) {
+        VentaStock venta = ventas.findById(ventaId).orElseThrow(() -> new EntityNotFoundException("Venta no encontrada"));
+        if (venta.getEstado() == EstadoVentaStock.ANULADA) {
+            if (request.idempotencyKey().equals(venta.getReversalIdempotencyKey())) {
+                return cargoServicio.obtener(cargos.findByVentaStockId(ventaId).orElseThrow().getId());
+            }
+            throw new OperacionNoPermitidaException("La venta ya fue anulada");
+        }
+        Usuario usuario = usuarioActivo(principal);
+        Stock stock = stocks.findActivoByIdForUpdate(venta.getStock().getId())
+                .orElseThrow(() -> new EntityNotFoundException("Stock no encontrado"));
+        Cargo cargo = cargos.findByVentaStockId(ventaId).orElseThrow(() -> new IllegalStateException("Venta sin cargo"));
+        if (cargo.getEstado() != EstadoCargo.PENDIENTE) {
+            throw new OperacionNoPermitidaException("Primero debe anularse el pago aplicado a la venta");
+        }
+        MovimientoStock original = movimientos.findByVentaStockIdAndTipo(ventaId, TipoMovimientoStock.VENTA)
+                .orElseThrow(() -> new IllegalStateException("Venta sin movimiento de stock"));
+        MovimientoStock reverso = new MovimientoStock();
+        reverso.setStock(stock);
+        reverso.setTipo(TipoMovimientoStock.REVERSO);
+        reverso.setCantidad(venta.getCantidad());
+        reverso.setVentaStock(venta);
+        reverso.setMovimientoRevertido(original);
+        reverso.setUsuario(usuario);
+        reverso.setIdempotencyKey("reversion-venta:" + request.idempotencyKey());
+        reverso.setMotivo(request.motivo());
+        movimientos.save(reverso);
+        if (Boolean.TRUE.equals(stock.getRequiereControlDeStock())) {
+            stock.setStock(stock.getStock() + venta.getCantidad());
+        }
+        venta.setEstado(EstadoVentaStock.ANULADA);
+        venta.setReversalIdempotencyKey(request.idempotencyKey());
+        cargo.setEstado(EstadoCargo.ANULADO);
+        return cargoServicio.obtener(cargo.getId());
     }
 
     @Transactional(readOnly = true)
     public boolean obtenerStockPorNombre(String nombre) {
-        String nombreNormalizado = nombre.trim();
-        log.info("[obtenerStockPorNombre] Valor recibido: '{}', normalizado a: '{}'", nombre, nombreNormalizado);
-        boolean existe = stockRepositorio.findByNombreIgnoreCase(nombreNormalizado).isPresent();
-        log.info("[obtenerStockPorNombre] Resultado: {}", existe);
-        return existe;
+        return stocks.findByNombreIgnoreCase(nombre.trim()).isPresent();
     }
 
-    @Transactional
-    public void reducirStock(String nombre, int cantidad) {
-        String nombreNormalizado = nombre.trim();
-        log.info("[reducirStock] Valor recibido: '{}', normalizado a: '{}'", nombre, nombreNormalizado);
-
-        Stock stock = stockRepositorio.findByNombreIgnoreCase(nombreNormalizado)
-                .orElseThrow(() -> {
-                    log.error("[reducirStock] No se encontro stock con nombre: '{}'", nombreNormalizado);
-                    return new SinStockException("No se encontro stock con nombre: " + nombreNormalizado);
-                });
-
-        log.info("[reducirStock] Stock actual para '{}': {} unidades", nombreNormalizado, stock.getStock());
-
-        if (stock.getStock() < cantidad) {
-            log.error("[reducirStock] No hay suficiente stock para '{}'. Requerido: {}, disponible: {}",
-                    nombreNormalizado, cantidad, stock.getStock());
-            throw new SinStockException("No hay suficiente stock para el producto: " + nombreNormalizado +
-                    ". Requerido: " + cantidad + ", disponible: " + stock.getStock());
+    private Usuario usuarioActivo(Usuario principal) {
+        if (principal == null || principal.getId() == null) {
+            throw new OperacionNoPermitidaException("Usuario autenticado requerido");
         }
-
-        stock.setStock(stock.getStock() - cantidad);
-        stockRepositorio.save(stock);
-        log.info("[reducirStock] Stock actualizado para '{}'. Nueva cantidad: {}", nombreNormalizado, stock.getStock());
+        return usuarios.findById(principal.getId()).filter(u -> Boolean.TRUE.equals(u.getActivo()))
+                .orElseThrow(() -> new OperacionNoPermitidaException("El usuario está inactivo"));
     }
 
-    @Transactional
-    public void incrementarStock(String nombre, int cantidad) {
-        String nombreNormalizado = nombre.trim();
-        log.info("[incrementarStock] Producto: '{}', cantidad a restaurar: {}", nombreNormalizado, cantidad);
-
-        Stock stock = stockRepositorio.findByNombreIgnoreCase(nombreNormalizado)
-                .orElseThrow(() -> {
-                    log.error("[incrementarStock] No se encontro stock con nombre: '{}'", nombreNormalizado);
-                    return new SinStockException("No se encontro stock con nombre: " + nombreNormalizado);
-                });
-
-        log.info("[incrementarStock] Stock actual para '{}': {}", nombreNormalizado, stock.getStock());
-
-        stock.setStock(stock.getStock() + cantidad);
-        stockRepositorio.save(stock);
-
-        log.info("[incrementarStock] Stock actualizado para '{}'. Nueva cantidad: {}",
-                nombreNormalizado, stock.getStock());
+    private StockResponse respuesta(Stock stock) {
+        return new StockResponse(stock.getId(), stock.getNombre(), decimal(stock.getPrecio()), stock.getStock(),
+                stock.getRequiereControlDeStock(), stock.getActivo(), stock.getCodigoBarras());
     }
 
+    private static BigDecimal monedaNoNegativa(BigDecimal valor) {
+        try {
+            BigDecimal normalizado = valor.setScale(2, RoundingMode.UNNECESSARY);
+            if (normalizado.signum() < 0) {
+                throw new IllegalArgumentException("El precio no puede ser negativo");
+            }
+            return normalizado;
+        } catch (ArithmeticException e) {
+            throw new IllegalArgumentException("El precio debe tener como máximo dos decimales");
+        }
+    }
+
+    private static String decimal(BigDecimal importe) {
+        return importe.setScale(2, RoundingMode.UNNECESSARY).toPlainString();
+    }
 }

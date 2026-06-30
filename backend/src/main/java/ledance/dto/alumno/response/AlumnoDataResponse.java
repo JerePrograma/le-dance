@@ -1,11 +1,8 @@
-// package ledance.dto.alumno.response;
 package ledance.dto.alumno.response;
 
-import ledance.dto.pago.response.DetallePagoResponse;
+import ledance.dto.cargo.response.CargoResponse;
 
 import java.util.List;
 
-public record AlumnoDataResponse(
-        AlumnoListadoResponse alumno,
-        List<DetallePagoResponse> detallePagos
-) { }
+public record AlumnoDataResponse(AlumnoListadoResponse alumno, List<CargoResponse> cargosPendientes) {
+}

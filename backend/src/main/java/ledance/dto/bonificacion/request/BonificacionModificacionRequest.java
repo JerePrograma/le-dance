@@ -1,18 +1,16 @@
 package ledance.dto.bonificacion.request;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 
-/**
- * Peticion para modificar una bonificacion existente.
- * - Permite cambiar "activo" (activar o desactivar la bonificacion).
- */
+import java.math.BigDecimal;
+
 public record BonificacionModificacionRequest(
         @NotBlank String descripcion,
-        Integer porcentajeDescuento,
-        Boolean activo, // ✅ Ahora se puede modificar el estado
-        String observaciones,
-        // Nuevo campo: valor fijo (opcional)
-        Double valorFijo
-) {}
+        @NotNull @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal porcentajeDescuento,
+        @NotNull @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal valorFijo,
+        Boolean activo,
+        String observaciones
+) {
+}

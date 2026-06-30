@@ -1,38 +1,35 @@
 package ledance.controladores;
 
-import ledance.dto.matricula.MatriculaMapper;
-import ledance.dto.matricula.request.MatriculaRegistroRequest;
 import ledance.dto.matricula.response.MatriculaResponse;
-import ledance.entidades.Matricula;
 import ledance.servicios.matricula.MatriculaServicio;
-import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/matriculas")
-@Validated
 public class MatriculaControlador {
+    private final MatriculaServicio matriculas;
 
-    private final MatriculaServicio matriculaServicio;
-    private final MatriculaMapper matriculaMapper;
-
-    public MatriculaControlador(MatriculaServicio matriculaServicio, MatriculaMapper matriculaMapper) {
-        this.matriculaServicio = matriculaServicio;
-        this.matriculaMapper = matriculaMapper;
+    public MatriculaControlador(MatriculaServicio matriculas) {
+        this.matriculas = matriculas;
     }
 
-    @GetMapping("/{alumnoId}")
-    public ResponseEntity<MatriculaResponse> obtenerMatricula(@PathVariable Long alumnoId, int anio) {
-        Matricula matricula = matriculaServicio.obtenerOMarcarPendienteMatricula(alumnoId, anio);
-        return ResponseEntity.ok(matriculaMapper.toResponse(matricula));
+    @PostMapping("/alumno/{alumnoId}")
+    public MatriculaResponse generar(@PathVariable Long alumnoId, @RequestParam int anio) {
+        return matriculas.obtenerOMarcarPendienteMatricula(alumnoId, anio);
     }
 
-    @PutMapping("/{matriculaId}")
-    public ResponseEntity<MatriculaResponse> actualizarMatricula(
-            @PathVariable Long matriculaId,
-            @RequestBody MatriculaRegistroRequest request) {
-        MatriculaResponse updated = matriculaServicio.actualizarEstadoMatricula(matriculaId, request);
-        return ResponseEntity.ok(updated);
+    @GetMapping("/alumno/{alumnoId}")
+    public MatriculaResponse obtener(@PathVariable Long alumnoId, @RequestParam int anio) {
+        return matriculas.obtener(alumnoId, anio);
+    }
+
+    @PostMapping("/{id}/anulacion")
+    public MatriculaResponse anular(@PathVariable Long id) {
+        return matriculas.anular(id);
     }
 }

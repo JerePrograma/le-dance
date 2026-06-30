@@ -1,72 +1,51 @@
 package ledance.entidades;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
-import lombok.Data;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+
 import java.util.Collection;
 import java.util.List;
 
 @Entity
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @Table(name = "usuarios")
 public class Usuario implements UserDetails {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @NotNull
+    @Column(length = 100, nullable = false)
     private String nombreUsuario;
-
-    @NotNull
+    @Column(length = 100, nullable = false)
     private String contrasena;
-
-    @ManyToOne
+    @ManyToOne(optional = false)
     @JoinColumn(name = "rol_id", nullable = false)
     private Rol rol;
-
     @Column(nullable = false)
     private Boolean activo = true;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        // Se previene NPE (aunque rol no deberia ser nulo)
-        String rolDesc = (rol != null) ? rol.getDescripcion() : "UNKNOWN";
-        return List.of(new SimpleGrantedAuthority("ROLE_" + rolDesc));
+        return List.of(new SimpleGrantedAuthority("ROLE_" + rol.getDescripcion()));
     }
 
-    @Override
-    public String getPassword() {
-        return contrasena;
-    }
-
-    @Override
-    public String getUsername() {
-        return nombreUsuario;
-    }
-
-    @Override
-    public boolean isAccountNonExpired() {
-        return true;
-    }
-
-    @Override
-    public boolean isAccountNonLocked() {
-        return true;
-    }
-
-    @Override
-    public boolean isCredentialsNonExpired() {
-        return true;
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return activo;
-    }
+    @Override public String getPassword() { return contrasena; }
+    @Override public String getUsername() { return nombreUsuario; }
+    @Override public boolean isAccountNonExpired() { return true; }
+    @Override public boolean isAccountNonLocked() { return true; }
+    @Override public boolean isCredentialsNonExpired() { return true; }
+    @Override public boolean isEnabled() { return Boolean.TRUE.equals(activo); }
 }

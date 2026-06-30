@@ -14,6 +14,7 @@ public interface ConceptoMapper {
 
     // Mapea de registro a entidad; se ignora la asociacion subConcepto, que se asignara en el servicio.
     @Mapping(target = "subConcepto", ignore = true)
+    @Mapping(target = "id", ignore = true)
     Concepto toEntity(ConceptoRegistroRequest request);
 
     ConceptoResponse toResponse(Concepto concepto);

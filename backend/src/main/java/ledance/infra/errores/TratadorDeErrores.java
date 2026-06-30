@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -24,13 +25,22 @@ import java.util.NoSuchElementException;
 public class TratadorDeErrores {
 
     private static final Logger log = LoggerFactory.getLogger(TratadorDeErrores.class);
+    private final Clock clock;
+
+    public TratadorDeErrores(Clock clock) {
+        this.clock = clock;
+    }
+
+    private LocalDateTime ahora() {
+        return LocalDateTime.now(clock);
+    }
 
     // ✅ 404: Recurso no encontrado (entidad de JPA)
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<DatosErrorGeneral> tratarError404(EntityNotFoundException e) {
         log.warn("Error 404 - Recurso no encontrado: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new DatosErrorGeneral("404_NOT_FOUND", "Recurso no encontrado", e.getMessage(), LocalDateTime.now()));
+                .body(new DatosErrorGeneral("404_NOT_FOUND", "Recurso no encontrado", e.getMessage(), ahora()));
     }
 
     // ✅ 404: Recurso no encontrado (cuando se lance una excepcion personalizada)
@@ -38,7 +48,7 @@ public class TratadorDeErrores {
     public ResponseEntity<DatosErrorGeneral> manejarRecursoNoEncontrado(RuntimeException e) {
         log.warn("Error 404 - Elemento no encontrado: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new DatosErrorGeneral("404_NOT_FOUND", "Elemento no encontrado", e.getMessage(), LocalDateTime.now()));
+                .body(new DatosErrorGeneral("404_NOT_FOUND", "Elemento no encontrado", e.getMessage(), ahora()));
     }
 
     // ✅ 400: Validacion de datos de entrada
@@ -54,7 +64,7 @@ public class TratadorDeErrores {
     public ResponseEntity<DatosErrorGeneral> manejarParametroFaltante(MissingServletRequestParameterException e) {
         log.warn("Error 400 - Falta un parametro requerido: {}", e.getParameterName());
         return ResponseEntity.badRequest()
-                .body(new DatosErrorGeneral("400_BAD_REQUEST", "Falta un parametro requerido", e.getParameterName(), LocalDateTime.now()));
+                .body(new DatosErrorGeneral("400_BAD_REQUEST", "Falta un parametro requerido", e.getParameterName(), ahora()));
     }
 
     // ✅ 403: Acceso denegado
@@ -62,7 +72,7 @@ public class TratadorDeErrores {
     public ResponseEntity<DatosErrorGeneral> tratarError403(AccessDeniedException e) {
         log.warn("Error 403 - Acceso denegado: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(new DatosErrorGeneral("403_FORBIDDEN", "Acceso denegado", "Permisos insuficientes", LocalDateTime.now()));
+                .body(new DatosErrorGeneral("403_FORBIDDEN", "Acceso denegado", "Permisos insuficientes", ahora()));
     }
 
     // ✅ 401: Error de autenticacion (caso especial)
@@ -70,14 +80,14 @@ public class TratadorDeErrores {
     public ResponseEntity<DatosErrorGeneral> manejarErrorDeAutenticacion(ErrorDeAutenticacionException e) {
         log.warn("Error 401 - Autenticacion fallida: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(new DatosErrorGeneral("401_UNAUTHORIZED", "Autenticacion fallida", "Credenciales inválidas", LocalDateTime.now()));
+                .body(new DatosErrorGeneral("401_UNAUTHORIZED", "Autenticacion fallida", "Credenciales inválidas", ahora()));
     }
 
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<DatosErrorGeneral> manejarAuthenticationException(AuthenticationException e) {
         log.warn("Error 401 - Autenticacion rechazada: {}", e.getClass().getSimpleName());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(new DatosErrorGeneral("401_UNAUTHORIZED", "Autenticacion fallida", "Credenciales inválidas", LocalDateTime.now()));
+                .body(new DatosErrorGeneral("401_UNAUTHORIZED", "Autenticacion fallida", "Credenciales inválidas", ahora()));
     }
 
     // ✅ 405: Metodo HTTP no permitido
@@ -85,7 +95,7 @@ public class TratadorDeErrores {
     public ResponseEntity<DatosErrorGeneral> manejarMetodoNoPermitido(HttpRequestMethodNotSupportedException e) {
         log.warn("Error 405 - Metodo HTTP no permitido: {}", e.getMethod());
         return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
-                .body(new DatosErrorGeneral("405_METHOD_NOT_ALLOWED", "Metodo no permitido", e.getMessage(), LocalDateTime.now()));
+                .body(new DatosErrorGeneral("405_METHOD_NOT_ALLOWED", "Metodo no permitido", e.getMessage(), ahora()));
     }
 
     // ✅ 409: Error de negocio o logica de la aplicacion
@@ -93,7 +103,7 @@ public class TratadorDeErrores {
     public ResponseEntity<DatosErrorGeneral> manejarOperacionNoPermitida(OperacionNoPermitidaException e) {
         log.warn("Error 409 - Operacion no permitida: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(new DatosErrorGeneral("409_CONFLICT", "Operacion no permitida", e.getMessage(), LocalDateTime.now()));
+                .body(new DatosErrorGeneral("409_CONFLICT", "Operacion no permitida", e.getMessage(), ahora()));
     }
 
     // ✅ 400: Argumento invalido en la solicitud
@@ -101,7 +111,7 @@ public class TratadorDeErrores {
     public ResponseEntity<DatosErrorGeneral> manejarErrorDeArgumentoInvalido(IllegalArgumentException e) {
         log.warn("Error 400 - Argumento invalido: {}", e.getMessage());
         return ResponseEntity.badRequest()
-                .body(new DatosErrorGeneral("400_BAD_REQUEST", "Argumento invalido", e.getMessage(), LocalDateTime.now()));
+                .body(new DatosErrorGeneral("400_BAD_REQUEST", "Argumento invalido", e.getMessage(), ahora()));
     }
 
     // ✅ 500: Error interno del servidor
@@ -109,7 +119,7 @@ public class TratadorDeErrores {
     public ResponseEntity<DatosErrorGeneral> manejarErrorInterno(Exception e) {
         log.error("Error 500 - Error interno del servidor: {}", e.getMessage(), e);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new DatosErrorGeneral("500_INTERNAL_SERVER_ERROR", "Error interno del servidor", "Ocurrió un error inesperado", LocalDateTime.now()));
+                .body(new DatosErrorGeneral("500_INTERNAL_SERVER_ERROR", "Error interno del servidor", "Ocurrió un error inesperado", ahora()));
     }
 
     // ✅ 502: Error en la comunicacion con otro servidor (APIs externas)
@@ -117,7 +127,7 @@ public class TratadorDeErrores {
     public ResponseEntity<DatosErrorGeneral> manejarErrorDeCliente(Exception e) {
         log.error("Error 502 - Fallo en comunicacion con API externa: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
-                .body(new DatosErrorGeneral("502_BAD_GATEWAY", "Error en API externa", e.getMessage(), LocalDateTime.now()));
+                .body(new DatosErrorGeneral("502_BAD_GATEWAY", "Error en API externa", e.getMessage(), ahora()));
     }
 
     // 🔹 **📌 Clases para respuestas de error** 🔹
@@ -182,7 +192,7 @@ public class TratadorDeErrores {
     public ResponseEntity<DatosErrorGeneral> manejarSinStock(SinStockException e) {
         log.warn("Error de stock: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(new DatosErrorGeneral("409_SIN_STOCK", "Stock insuficiente", e.getMessage(), LocalDateTime.now()));
+                .body(new DatosErrorGeneral("409_SIN_STOCK", "Stock insuficiente", e.getMessage(), ahora()));
     }
 
 }

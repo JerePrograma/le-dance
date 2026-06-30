@@ -6,7 +6,6 @@ import ledance.controladores.PagoControlador;
 import ledance.controladores.UsuarioControlador;
 import ledance.controladores.AutenticacionControlador;
 import ledance.controladores.RolControlador;
-import ledance.dto.pago.DetallePagoMapper;
 import ledance.dto.usuario.response.UsuarioResponse;
 import ledance.entidades.Rol;
 import ledance.entidades.Usuario;
@@ -14,10 +13,7 @@ import ledance.infra.configuracion.AppProperties;
 import ledance.infra.configuracion.ConfiguracionCors;
 import ledance.infra.errores.TratadorDeErrores;
 import ledance.repositorios.UsuarioRepositorio;
-import ledance.servicios.caja.CajaServicio;
-import ledance.servicios.detallepago.DetallePagoServicio;
-import ledance.servicios.inscripcion.InscripcionServicio;
-import ledance.servicios.matricula.MatriculaServicio;
+import ledance.repositorios.ReciboRepositorio;
 import ledance.servicios.pago.PagoServicio;
 import ledance.servicios.usuario.UsuarioServicio;
 import ledance.servicios.rol.RolServicio;
@@ -87,15 +83,7 @@ class SecurityHttpIntegrationTest {
     @MockitoBean
     private PagoServicio pagoServicio;
     @MockitoBean
-    private DetallePagoServicio detallePagoServicio;
-    @MockitoBean
-    private DetallePagoMapper detallePagoMapper;
-    @MockitoBean
-    private MatriculaServicio matriculaServicio;
-    @MockitoBean
-    private CajaServicio cajaServicio;
-    @MockitoBean
-    private InscripcionServicio inscripcionServicio;
+    private ReciboRepositorio reciboRepositorio;
 
     private final MockMvc mockMvc;
     private final TokenService tokenService;
@@ -274,6 +262,23 @@ class SecurityHttpIntegrationTest {
                 .andExpect(status().isForbidden());
         mockMvc.perform(get("/api/roles")
                         .header(HttpHeaders.AUTHORIZATION, bearer(token)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void operacionFinancieraRequiereAdministrador() throws Exception {
+        String body = """
+                {"alumnoId":1,"metodoPagoId":1,"montoRecibido":"10.00",
+                 "idempotencyKey":"security-test","aplicaciones":[],"generarCredito":true}
+                """;
+        mockMvc.perform(post("/api/pagos").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isUnauthorized());
+
+        Usuario operator = usuario(2L, "operator", "OPERADOR", true);
+        when(usuarioRepositorio.findById(2L)).thenReturn(Optional.of(operator));
+        mockMvc.perform(post("/api/pagos")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenService.generarAccessToken(operator)))
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isForbidden());
     }
 

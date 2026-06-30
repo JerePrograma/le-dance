@@ -1,34 +1,40 @@
 package ledance.entidades;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
-import lombok.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.LocalDate;
 
 @Entity
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "notificaciones")
 public class Notificacion {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @NotNull
     private Long usuarioId;
-
-    @NotNull
-    private String tipo; // Ejemplo: "CUMPLEANOS", "ALERTA", "MENSAJE", etc.
-
-    @NotNull
+    @Column(length = 50, nullable = false)
+    private String tipo;
+    @Column(length = 500, nullable = false)
     private String mensaje;
-
-    @NotNull
-    private LocalDateTime fechaCreacion;
-
-    // Indica si ya fue leida (por defecto false)
-    private boolean leida = false;
+    @Column(nullable = false)
+    private Instant fechaCreacion;
+    @Column(nullable = false)
+    private LocalDate fechaNegocio;
+    @Column(name = "dedup_key", length = 100, nullable = false, updatable = false)
+    private String dedupKey;
+    @Column(nullable = false)
+    private boolean leida;
 }

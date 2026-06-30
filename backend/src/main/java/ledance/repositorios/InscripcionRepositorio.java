@@ -5,6 +5,8 @@ import ledance.entidades.Inscripcion;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Lock;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import java.util.List;
@@ -42,4 +44,8 @@ public interface InscripcionRepositorio extends JpaRepository<Inscripcion, Long>
     Optional<Inscripcion> findFirstByAlumno_IdAndEstadoOrderByIdAsc(Long alumnoId, EstadoInscripcion estado);
 
     Optional<Inscripcion> findByAlumnoIdAndDisciplinaIdAndEstado(Long alumnoId, Long disciplinaId, EstadoInscripcion estado);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select i from Inscripcion i where i.id = :id")
+    Optional<Inscripcion> findByIdForUpdate(@Param("id") Long id);
 }

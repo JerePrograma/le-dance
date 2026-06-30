@@ -1,18 +1,18 @@
 package ledance.dto.inscripcion.request;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;
-import ledance.dto.alumno.request.AlumnoRegistroRequest;
-import ledance.dto.disciplina.request.DisciplinaRegistroRequest;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 public record InscripcionRegistroRequest(
         Long id,
-        AlumnoRegistroRequest alumno,
-        DisciplinaRegistroRequest disciplina,
+        @NotNull Long alumnoId,
+        @NotNull Long disciplinaId,
         Long bonificacionId,
-        @PastOrPresent(message = "La fecha de inscripcion no puede ser futura")
-        LocalDate fechaInscripcion,
-        LocalDate fechaBaja, // Permite dar de baja una inscripcion
-        Double costoParticular
-) { }
+        @PastOrPresent LocalDate fechaInscripcion,
+        @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal costoParticular
+) {
+}

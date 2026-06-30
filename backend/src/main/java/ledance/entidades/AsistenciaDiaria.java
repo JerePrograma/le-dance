@@ -1,35 +1,40 @@
 package ledance.entidades;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
+import lombok.Setter;
 
 import java.time.LocalDate;
 
-@Data
+@Entity
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Entity
 @Table(name = "asistencias_diarias")
 public class AsistenciaDiaria {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @NotNull
+    @Column(nullable = false)
     private LocalDate fecha;
-
-    @NotNull
     @Enumerated(EnumType.STRING)
+    @Column(length = 10, nullable = false)
     private EstadoAsistencia estado;
-
-    // Se relaciona con el registro mensual de asistencia del alumno
-    @ManyToOne
+    @Column(nullable = false)
+    private Boolean vigente = true;
+    @ManyToOne(optional = false)
     @JoinColumn(name = "asistencia_alumno_mensual_id", nullable = false)
-    @OnDelete(action = OnDeleteAction.CASCADE)
     private AsistenciaAlumnoMensual asistenciaAlumnoMensual;
 }

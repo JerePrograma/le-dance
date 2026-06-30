@@ -1,105 +1,166 @@
 package ledance.servicios.egreso;
 
+import jakarta.persistence.EntityNotFoundException;
+import ledance.dto.egreso.request.EgresoAnulacionRequest;
 import ledance.dto.egreso.request.EgresoRegistroRequest;
 import ledance.dto.egreso.response.EgresoResponse;
-import ledance.dto.egreso.EgresoMapper;
 import ledance.entidades.Egreso;
+import ledance.entidades.EstadoPago;
 import ledance.entidades.MetodoPago;
+import ledance.entidades.MovimientoCaja;
+import ledance.entidades.TipoMovimientoCaja;
+import ledance.entidades.Usuario;
+import ledance.infra.errores.TratadorDeErrores.OperacionNoPermitidaException;
 import ledance.repositorios.EgresoRepositorio;
 import ledance.repositorios.MetodoPagoRepositorio;
+import ledance.repositorios.MovimientoCajaRepositorio;
+import ledance.repositorios.UsuarioRepositorio;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.time.Clock;
+import java.time.LocalDate;
+import java.util.HexFormat;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class EgresoServicio {
+    private static final Logger log = LoggerFactory.getLogger(EgresoServicio.class);
+    private final EgresoRepositorio egresos;
+    private final MetodoPagoRepositorio metodos;
+    private final UsuarioRepositorio usuarios;
+    private final MovimientoCajaRepositorio caja;
+    private final Clock clock;
 
-    private final EgresoRepositorio egresoRepositorio;
-    private final EgresoMapper egresoMapper;
-    private final MetodoPagoRepositorio metodoPagoRepositorio;
-
-    public EgresoServicio(EgresoRepositorio egresoRepositorio,
-                          EgresoMapper egresoMapper,
-                          MetodoPagoRepositorio metodoPagoRepositorio) {
-        this.egresoRepositorio = egresoRepositorio;
-        this.egresoMapper = egresoMapper;
-        this.metodoPagoRepositorio = metodoPagoRepositorio;
+    public EgresoServicio(EgresoRepositorio egresos, MetodoPagoRepositorio metodos,
+                          UsuarioRepositorio usuarios, MovimientoCajaRepositorio caja, Clock clock) {
+        this.egresos = egresos;
+        this.metodos = metodos;
+        this.usuarios = usuarios;
+        this.caja = caja;
+        this.clock = clock;
     }
 
     @Transactional
-    public EgresoResponse agregarEgreso(EgresoRegistroRequest request) {
-        // Mapear el request a la entidad
-        Egreso egreso = egresoMapper.toEntity(request);
-
-        MetodoPago metodo = metodoPagoRepositorio
-                .findByDescripcionContainingIgnoreCase(request.metodoPagoDescripcion());
-        if (metodo != null) {
-            egreso.setMetodoPago(metodo);
-            // Aseguramos que el egreso este activo
-            egreso.setActivo(true);
-            Egreso saved = egresoRepositorio.save(egreso);
-            return egresoMapper.toDTO(saved);
+    public EgresoResponse agregarEgreso(EgresoRegistroRequest request, Usuario principal) {
+        String hash = hash(request);
+        Egreso previo = egresos.findByIdempotencyKey(request.idempotencyKey()).orElse(null);
+        if (previo != null) {
+            if (!previo.getRequestHash().equals(hash)) {
+                throw new OperacionNoPermitidaException("La idempotency key ya fue usada con otro contenido");
+            }
+            return respuesta(previo);
         }
-        return null;
+        Usuario usuario = usuarioActivo(principal);
+        MetodoPago metodo = metodos.findById(request.metodoPagoId())
+                .filter(m -> Boolean.TRUE.equals(m.getActivo()))
+                .orElseThrow(() -> new OperacionNoPermitidaException("Método de pago inexistente o inactivo"));
+        BigDecimal monto = monedaPositiva(request.monto());
+        Egreso egreso = new Egreso();
+        egreso.setFecha(request.fecha() == null ? LocalDate.now(clock) : request.fecha());
+        egreso.setMonto(monto);
+        egreso.setObservaciones(request.observaciones());
+        egreso.setMetodoPago(metodo);
+        egreso.setEstado(EstadoPago.REGISTRADO);
+        egreso.setUsuario(usuario);
+        egreso.setIdempotencyKey(request.idempotencyKey());
+        egreso.setRequestHash(hash);
+        egresos.save(egreso);
+
+        MovimientoCaja movimiento = new MovimientoCaja();
+        movimiento.setTipo(TipoMovimientoCaja.EGRESO);
+        movimiento.setFecha(egreso.getFecha());
+        movimiento.setImporte(monto);
+        movimiento.setMetodoPago(metodo);
+        movimiento.setEgreso(egreso);
+        movimiento.setUsuario(usuario);
+        movimiento.setIdempotencyKey("egreso:" + request.idempotencyKey());
+        caja.save(movimiento);
+        log.info("Egreso registrado id={} monto={}", egreso.getId(), monto.toPlainString());
+        return respuesta(egreso);
     }
 
     @Transactional
-    public EgresoResponse actualizarEgreso(Long id, EgresoRegistroRequest request) {
-        Egreso egreso = egresoRepositorio.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Egreso no encontrado para id: " + id));
-        // Actualizar campos mediante el mapper
-        egresoMapper.updateEntityFromRequest(request, egreso);
-        // Actualizar el metodo de pago si se envia en el request
-        if (request.metodoPagoId() != null) {
-            MetodoPago metodo = metodoPagoRepositorio.findById(request.metodoPagoId())
-                    .orElseThrow(() -> new IllegalArgumentException("Metodo de pago no encontrado para id: " + request.metodoPagoId()));
-            egreso.setMetodoPago(metodo);
+    public EgresoResponse anular(Long id, EgresoAnulacionRequest request, Usuario principal) {
+        Egreso egreso = egresos.findByIdForUpdate(id).orElseThrow(() -> new EntityNotFoundException("Egreso no encontrado"));
+        if (egreso.getEstado() == EstadoPago.ANULADO) {
+            if (request.idempotencyKey().equals(egreso.getReversalIdempotencyKey())) {
+                return respuesta(egreso);
+            }
+            throw new OperacionNoPermitidaException("El egreso ya fue anulado");
         }
-        Egreso saved = egresoRepositorio.save(egreso);
-        return egresoMapper.toDTO(saved);
+        Usuario usuario = usuarioActivo(principal);
+        MovimientoCaja original = caja.findByEgresoIdAndTipo(id, TipoMovimientoCaja.EGRESO)
+                .orElseThrow(() -> new IllegalStateException("Egreso sin movimiento de caja"));
+        MovimientoCaja reverso = new MovimientoCaja();
+        reverso.setTipo(TipoMovimientoCaja.REVERSO);
+        reverso.setFecha(LocalDate.now(clock));
+        reverso.setImporte(original.getImporte());
+        reverso.setMetodoPago(original.getMetodoPago());
+        reverso.setEgreso(egreso);
+        reverso.setMovimientoRevertido(original);
+        reverso.setUsuario(usuario);
+        reverso.setIdempotencyKey("anulacion-egreso:" + request.idempotencyKey());
+        reverso.setMotivo(request.motivo());
+        caja.save(reverso);
+        egreso.setEstado(EstadoPago.ANULADO);
+        egreso.setMotivoAnulacion(request.motivo());
+        egreso.setFechaAnulacion(clock.instant());
+        egreso.setReversalIdempotencyKey(request.idempotencyKey());
+        log.info("Egreso anulado id={}", id);
+        return respuesta(egreso);
     }
 
-    @Transactional
-    public void eliminarEgreso(Long id) {
-        Egreso egreso = egresoRepositorio.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Egreso no encontrado para id: " + id));
-        // Realizamos una baja logica (marcandolo inactivo)
-        egreso.setActivo(false);
-        egresoRepositorio.save(egreso);
-    }
-
+    @Transactional(readOnly = true)
     public EgresoResponse obtenerEgresoPorId(Long id) {
-        Egreso egreso = egresoRepositorio.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Egreso no encontrado para id: " + id));
-        return egresoMapper.toDTO(egreso);
+        return respuesta(egresos.findById(id).orElseThrow(() -> new EntityNotFoundException("Egreso no encontrado")));
     }
 
+    @Transactional(readOnly = true)
     public List<EgresoResponse> listarEgresos() {
-        return egresoRepositorio.findAll()
-                .stream()
-                .filter(eg -> eg.getActivo() != null && eg.getActivo())
-                .map(egresoMapper::toDTO)
-                .collect(Collectors.toList());
+        return egresos.findAll().stream().map(this::respuesta).toList();
     }
 
-    public List<EgresoResponse> listarEgresosPorMetodo(String metodoDescripcion) {
-        return egresoRepositorio.findAll()
-                .stream()
-                .filter(eg -> eg.getActivo() != null && eg.getActivo()
-                        && eg.getMetodoPago() != null
-                        && eg.getMetodoPago().getDescripcion().equalsIgnoreCase(metodoDescripcion))
-                .map(egresoMapper::toDTO)
-                .collect(Collectors.toList());
+    private Usuario usuarioActivo(Usuario principal) {
+        if (principal == null || principal.getId() == null) {
+            throw new OperacionNoPermitidaException("Usuario autenticado requerido");
+        }
+        return usuarios.findById(principal.getId()).filter(u -> Boolean.TRUE.equals(u.getActivo()))
+                .orElseThrow(() -> new OperacionNoPermitidaException("El usuario está inactivo"));
     }
 
-    public List<EgresoResponse> listarEgresosDebito() {
-        return listarEgresosPorMetodo("DEBITO");
+    private EgresoResponse respuesta(Egreso e) {
+        return new EgresoResponse(e.getId(), e.getFecha(), decimal(e.getMonto()), e.getObservaciones(),
+                e.getMetodoPago().getId(), e.getUsuario().getId(), e.getEstado().name(), e.getIdempotencyKey());
     }
 
-    public List<EgresoResponse> listarEgresosEfectivo() {
-        return listarEgresosPorMetodo("EFECTIVO");
+    private static BigDecimal monedaPositiva(String valor) {
+        BigDecimal importe = new BigDecimal(valor).setScale(2, RoundingMode.UNNECESSARY);
+        if (importe.signum() <= 0) {
+            throw new IllegalArgumentException("El monto debe ser mayor que cero");
+        }
+        return importe;
     }
 
+    private static String decimal(BigDecimal valor) {
+        return valor.setScale(2, RoundingMode.UNNECESSARY).toPlainString();
+    }
+
+    private static String hash(EgresoRegistroRequest request) {
+        String canonico = request.fecha() + "|" + monedaPositiva(request.monto()).toPlainString() + "|"
+                + request.metodoPagoId() + "|" + (request.observaciones() == null ? "" : request.observaciones());
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
+                    .digest(canonico.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 no disponible", e);
+        }
+    }
 }

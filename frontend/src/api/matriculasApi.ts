@@ -1,30 +1,11 @@
 import api from "./axiosConfig";
-import type {
-  MatriculaModificacionRequest,
-  MatriculaResponse,
-} from "../types/types";
+import type { MatriculaResponse } from "../types/types";
 
-const obtenerMatricula = async (
-  alumnoId: number
-): Promise<MatriculaResponse> => {
-  const { data } = await api.get<MatriculaResponse>(`/matriculas/${alumnoId}`);
-  return data;
-};
+const obtenerMatricula = async (alumnoId: number, anio: number): Promise<MatriculaResponse> =>
+  (await api.get<MatriculaResponse>(`/matriculas/alumno/${alumnoId}`, { params: { anio } })).data;
+const generarMatricula = async (alumnoId: number, anio: number): Promise<MatriculaResponse> =>
+  (await api.post<MatriculaResponse>(`/matriculas/alumno/${alumnoId}`, null, { params: { anio } })).data;
+const anularMatricula = async (id: number): Promise<MatriculaResponse> =>
+  (await api.post<MatriculaResponse>(`/matriculas/${id}/anulacion`)).data;
 
-const actualizarMatricula = async (
-  matriculaId: number,
-  request: MatriculaModificacionRequest
-): Promise<MatriculaResponse> => {
-  const { data } = await api.put<MatriculaResponse>(
-    `/matriculas/${matriculaId}`,
-    request
-  );
-  return data;
-};
-
-const matriculasApi = {
-  obtenerMatricula,
-  actualizarMatricula,
-};
-
-export default matriculasApi;
+export default { obtenerMatricula, generarMatricula, anularMatricula };

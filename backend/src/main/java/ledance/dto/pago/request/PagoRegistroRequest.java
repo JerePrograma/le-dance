@@ -1,28 +1,20 @@
 package ledance.dto.pago.request;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import jakarta.validation.constraints.Min;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import ledance.dto.alumno.request.AlumnoRegistroRequest;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 
-import java.time.LocalDate;
 import java.util.List;
 
 public record PagoRegistroRequest(
-        Long id,
-        @NotNull LocalDate fecha,
-        @NotNull LocalDate fechaVencimiento,
-        @NotNull @Min(0) Double monto,
-        @NotNull @Min(0) Double importeInicial,
-        Double valorBase,
-        Long metodoPagoId,
-        @NotNull AlumnoRegistroRequest alumno,
-        String observaciones,
-        @NotNull List<DetallePagoRegistroRequest> detallePagos,
-        Boolean activo,
-        Long usuarioId,
-        String estadoPago,
-        @JsonProperty("aplicarRecargoMetodoPago")
-        Boolean recargoMetodoPagoAplicado
+        @NotNull Long alumnoId,
+        @NotNull Long metodoPagoId,
+        @NotBlank @Pattern(regexp = "^(0|[1-9]\\d*)(\\.\\d{1,2})?$") String montoRecibido,
+        @NotBlank @Size(max = 100) String idempotencyKey,
+        @Size(max = 500) String observaciones,
+        @NotNull List<@Valid AplicacionPagoRequest> aplicaciones,
+        boolean generarCredito
 ) {
 }

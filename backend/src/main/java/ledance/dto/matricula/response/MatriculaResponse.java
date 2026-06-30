@@ -1,10 +1,6 @@
 package ledance.dto.matricula.response;
 
-public record MatriculaResponse(
-        Long id,
-        Integer anio,
-        Boolean pagada,
-        java.time.LocalDate fechaPago,
-        Long alumnoId
-) {
+import java.time.LocalDate;
+
+public record MatriculaResponse(Long id, Integer anio, LocalDate fechaEmision, String estado, Long alumnoId) {
 }

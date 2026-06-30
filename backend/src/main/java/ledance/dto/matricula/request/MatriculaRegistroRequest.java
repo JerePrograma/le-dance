@@ -1,11 +1,6 @@
 package ledance.dto.matricula.request;
 
-import java.time.LocalDate;
+import jakarta.validation.constraints.NotNull;
 
-public record MatriculaRegistroRequest(
-        Long alumnoId,
-        Integer anio,
-        Boolean pagada,
-        LocalDate fechaPago
-) {
+public record MatriculaRegistroRequest(@NotNull Long alumnoId, @NotNull Integer anio) {
 }

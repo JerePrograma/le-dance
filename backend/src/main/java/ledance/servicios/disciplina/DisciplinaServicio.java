@@ -2,412 +2,185 @@ package ledance.servicios.disciplina;
 
 import jakarta.persistence.EntityNotFoundException;
 import ledance.dto.alumno.AlumnoMapper;
-import ledance.dto.disciplina.DisciplinaHorarioMapper;
+import ledance.dto.alumno.response.AlumnoResponse;
 import ledance.dto.disciplina.DisciplinaMapper;
-import ledance.dto.profesor.ProfesorMapper;
 import ledance.dto.disciplina.request.DisciplinaModificacionRequest;
 import ledance.dto.disciplina.request.DisciplinaRegistroRequest;
-import ledance.dto.alumno.response.AlumnoResponse;
-import ledance.dto.disciplina.response.DisciplinaResponse;
 import ledance.dto.disciplina.response.DisciplinaHorarioResponse;
+import ledance.dto.disciplina.response.DisciplinaResponse;
+import ledance.dto.profesor.ProfesorMapper;
 import ledance.dto.profesor.response.ProfesorResponse;
-import ledance.entidades.*;
-import ledance.infra.errores.TratadorDeErrores;
-import ledance.repositorios.*;
-import jakarta.transaction.Transactional;
-import ledance.servicios.inscripcion.InscripcionServicio;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import ledance.entidades.DiaSemana;
+import ledance.entidades.Disciplina;
+import ledance.entidades.DisciplinaHorario;
+import ledance.entidades.Profesor;
+import ledance.entidades.Salon;
+import ledance.infra.errores.TratadorDeErrores.DisciplinaNotFoundException;
+import ledance.infra.errores.TratadorDeErrores.ProfesorNotFoundException;
+import ledance.infra.errores.TratadorDeErrores.ResourceNotFoundException;
+import ledance.repositorios.DisciplinaRepositorio;
+import ledance.repositorios.ProfesorRepositorio;
+import ledance.repositorios.SalonRepositorio;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.YearMonth;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 
 @Service
-public class DisciplinaServicio implements IDisciplinaServicio {
-
-    private static final Logger log = LoggerFactory.getLogger(DisciplinaServicio.class);
-
-    private final DisciplinaRepositorio disciplinaRepositorio;
-    private final ProfesorRepositorio profesorRepositorio;
-    private final DisciplinaMapper disciplinaMapper;
+public class DisciplinaServicio {
+    private final DisciplinaRepositorio disciplinas;
+    private final ProfesorRepositorio profesores;
+    private final SalonRepositorio salones;
+    private final DisciplinaMapper mapper;
     private final AlumnoMapper alumnoMapper;
     private final ProfesorMapper profesorMapper;
-    private final DisciplinaHorarioServicio disciplinaHorarioServicio;
-    private final DisciplinaHorarioRepositorio disciplinaHorarioRepositorio;
-    private final InscripcionRepositorio inscripcionRepositorio;
-    private final AsistenciaAlumnoMensualRepositorio asistenciaAlumnoMensualRepositorio;
-    private final AsistenciaDiariaRepositorio asistenciaDiariaRepositorio;
-    private final SalonRepositorio salonRepositorio;
-    private final MensualidadRepositorio mensualidadRepositorio;
-    private final AsistenciaMensualRepositorio asistenciaMensualRepositorio;
+    private final DisciplinaHorarioServicio horarios;
+    private final Clock clock;
 
-    public DisciplinaServicio(DisciplinaRepositorio disciplinaRepositorio,
-                              ProfesorRepositorio profesorRepositorio,
-                              DisciplinaMapper disciplinaMapper,
+    public DisciplinaServicio(DisciplinaRepositorio disciplinas,
+                              ProfesorRepositorio profesores,
+                              SalonRepositorio salones,
+                              DisciplinaMapper mapper,
                               AlumnoMapper alumnoMapper,
                               ProfesorMapper profesorMapper,
-                              DisciplinaHorarioServicio disciplinaHorarioServicio,
-                              DisciplinaHorarioRepositorio disciplinaHorarioRepositorio, InscripcionRepositorio inscripcionRepositorio, AsistenciaAlumnoMensualRepositorio asistenciaAlumnoMensualRepositorio, AsistenciaDiariaRepositorio asistenciaDiariaRepositorio, SalonRepositorio salonRepositorio, MensualidadRepositorio mensualidadRepositorio, AsistenciaMensualRepositorio asistenciaMensualRepositorio) {
-        this.disciplinaRepositorio = disciplinaRepositorio;
-        this.profesorRepositorio = profesorRepositorio;
-        this.disciplinaMapper = disciplinaMapper;
+                              DisciplinaHorarioServicio horarios,
+                              Clock clock) {
+        this.disciplinas = disciplinas;
+        this.profesores = profesores;
+        this.salones = salones;
+        this.mapper = mapper;
         this.alumnoMapper = alumnoMapper;
         this.profesorMapper = profesorMapper;
-        this.disciplinaHorarioServicio = disciplinaHorarioServicio;
-        this.disciplinaHorarioRepositorio = disciplinaHorarioRepositorio;
-        this.inscripcionRepositorio = inscripcionRepositorio;
-        this.asistenciaAlumnoMensualRepositorio = asistenciaAlumnoMensualRepositorio;
-        this.asistenciaDiariaRepositorio = asistenciaDiariaRepositorio;
-        this.salonRepositorio = salonRepositorio;
-        this.mensualidadRepositorio = mensualidadRepositorio;
-        this.asistenciaMensualRepositorio = asistenciaMensualRepositorio;
+        this.horarios = horarios;
+        this.clock = clock;
     }
 
-    /**
-     * Crea una nueva disciplina y, de ser proporcionados, delega la creacion de sus horarios.
-     */
-    @Override
     @Transactional
     public DisciplinaResponse crearDisciplina(DisciplinaRegistroRequest request) {
-        log.info("Iniciando creacion de disciplina con nombre: {}", request.nombre());
-
-        log.info("Buscando profesor con id: {}", request.profesorId());
-        Profesor profesor = profesorRepositorio.findById(request.profesorId())
-                .orElseThrow(() -> new TratadorDeErrores.ProfesorNotFoundException(request.profesorId()));
-        log.info("Profesor encontrado: {} {}", profesor.getNombre(), profesor.getApellido());
-
-        log.info("Mapeando request a entidad Disciplina");
-        Disciplina nuevaDisciplina = disciplinaMapper.toEntity(request);
-        nuevaDisciplina.setProfesor(profesor);
-
-        log.info("Guardando disciplina en la base de datos");
-        for (DisciplinaHorario horario : nuevaDisciplina.getHorarios()) {
-            horario.setDisciplina(nuevaDisciplina);
+        Disciplina disciplina = mapper.toEntity(request);
+        disciplina.setId(null);
+        disciplina.setProfesor(profesor(request.profesorId()));
+        disciplina.setSalon(salon(request.salonId()));
+        disciplina.setHorarios(new ArrayList<>());
+        disciplinas.save(disciplina);
+        if (request.horarios() != null) {
+            disciplina.getHorarios().addAll(horarios.guardarHorarios(disciplina.getId(), request.horarios()));
         }
-        nuevaDisciplina = disciplinaRepositorio.save(nuevaDisciplina);
-        // Forzamos el flush para asegurarnos de que se genere el ID en la BD
-        disciplinaRepositorio.flush();
-        log.info("Disciplina creada con id: {}", nuevaDisciplina.getId());
-
-        if (request.horarios() != null && !request.horarios().isEmpty()) {
-            log.info("Se han recibido {} horarios para la disciplina id: {}",
-                    request.horarios().size(), nuevaDisciplina.getId());
-            List<DisciplinaHorario> nuevosHorarios =
-                    disciplinaHorarioServicio.guardarHorarios(nuevaDisciplina.getId(), request.horarios());
-            nuevaDisciplina.getHorarios().clear();
-            nuevaDisciplina.getHorarios().addAll(nuevosHorarios);
-
-            log.info("Se han asignado {} horarios a la disciplina id: {}",
-                    nuevosHorarios.size(), nuevaDisciplina.getId());
-        } else {
-            log.info("No se recibieron horarios para la disciplina id: {}", nuevaDisciplina.getId());
-        }
-        DisciplinaResponse response = disciplinaMapper.toResponse(nuevaDisciplina);
-        log.info("Respuesta de creacion de disciplina preparada: {}", response);
-        return response;
+        return mapper.toResponse(disciplina);
     }
 
-    /**
-     * Actualiza una disciplina existente y, si se incluyen horarios en el request, delega su gestion.
-     */
-    // DisciplinaServicio.java (metodo actualizarDisciplina)
-    @Override
     @Transactional
     public DisciplinaResponse actualizarDisciplina(Long id, DisciplinaModificacionRequest request) {
-        log.info("Iniciando actualizacion de disciplina con id: {}", id);
-
-        // Recupera la disciplina existente
-        Disciplina existente = disciplinaRepositorio.findById(id)
-                .orElseThrow(() -> new TratadorDeErrores.DisciplinaNotFoundException(id));
-        log.info("Disciplina encontrada: {}", existente.getNombre());
-
-        // Recupera el profesor indicado en la request
-        Profesor profesor = profesorRepositorio.findById(request.profesorId())
-                .orElseThrow(() -> new TratadorDeErrores.ProfesorNotFoundException(request.profesorId()));
-        log.info("Profesor encontrado: {} {}", profesor.getNombre(), profesor.getApellido());
-
-        // Actualiza los campos basicos (excepto el salon, que se maneja manualmente)
-        disciplinaMapper.updateEntityFromRequest(request, existente);
-        existente.setProfesor(profesor);
-
-        // Recupera el salon administrado usando el id del request y lo asigna
-        Salon salon = salonRepositorio.findById(request.salonId())
-                .orElseThrow(() -> new TratadorDeErrores.ResourceNotFoundException(request.salonId().toString()));
-        log.info("Salon encontrado: {}", salon.getNombre());
-        existente.setSalon(salon);
-
-        // Actualiza o elimina la coleccion de horarios
-        if (request.horarios() == null || request.horarios().isEmpty()) {
-            log.info("Eliminando todos los horarios para la disciplina con id: {}", existente.getId());
-            existente.getHorarios().clear();
-        } else {
-            log.info("Actualizando horarios para la disciplina con id: {}", existente.getId());
-            disciplinaHorarioServicio.actualizarHorarios(existente, request.horarios(), LocalDate.now());
-        }
-
-        // Guarda la disciplina actualizada
-        Disciplina disciplinaActualizada = disciplinaRepositorio.save(existente);
-        log.info("Disciplina actualizada correctamente con id: {}", disciplinaActualizada.getId());
-
-        return disciplinaMapper.toResponse(disciplinaActualizada);
+        Disciplina disciplina = obtener(id);
+        mapper.updateEntityFromRequest(request, disciplina);
+        disciplina.setProfesor(profesor(request.profesorId()));
+        disciplina.setSalon(salon(request.salonId()));
+        horarios.actualizarHorarios(disciplina,
+                request.horarios() == null ? List.of() : request.horarios(), LocalDate.now(clock));
+        return mapper.toResponse(disciplina);
     }
 
-    /**
-     * Realiza una baja logica de la disciplina.
-     */
     @Transactional
     public void eliminarDisciplina(Long id) {
-        // Recupera la disciplina
-        Disciplina disciplina = disciplinaRepositorio.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Disciplina no encontrada"));
-
-        // 1. Procesar las inscripciones de la disciplina
-        if (disciplina.getInscripciones() != null && !disciplina.getInscripciones().isEmpty()) {
-            // Se usa una copia para evitar ConcurrentModificationException
-            List<Inscripcion> inscripciones = new ArrayList<>(disciplina.getInscripciones());
-            for (Inscripcion inscripcion : inscripciones) {
-                // 1.1. Procesar las asistencias de alumno asociadas a la inscripcion
-                List<AsistenciaAlumnoMensual> asistenciasAlumno =
-                        asistenciaAlumnoMensualRepositorio.findByInscripcionId(inscripcion.getId());
-                if (asistenciasAlumno != null && !asistenciasAlumno.isEmpty()) {
-                    List<AsistenciaAlumnoMensual> copiaAsistencias = new ArrayList<>(asistenciasAlumno);
-                    for (AsistenciaAlumnoMensual asistenciaAlumno : copiaAsistencias) {
-                        // 1.1.1. Eliminar las asistencias diarias asociadas
-                        List<AsistenciaDiaria> asistenciasDiarias =
-                                asistenciaDiariaRepositorio.findByAsistenciaAlumnoMensualId(asistenciaAlumno.getId());
-                        if (asistenciasDiarias != null && !asistenciasDiarias.isEmpty()) {
-                            asistenciaDiariaRepositorio.deleteAll(new ArrayList<>(asistenciasDiarias));
-                        }
-                        // 1.1.2. Eliminar el registro de AsistenciaAlumnoMensual
-                        asistenciaAlumnoMensualRepositorio.delete(asistenciaAlumno);
-                    }
-                }
-                // 1.2. Eliminar las mensualidades asociadas a la inscripcion
-                if (inscripcion.getMensualidades() != null && !inscripcion.getMensualidades().isEmpty()) {
-                    List<Mensualidad> mensualidades = new ArrayList<>(inscripcion.getMensualidades());
-                    for (Mensualidad mensualidad : mensualidades) {
-                        // Removemos la referencia en la coleccion para evitar que Hibernate intente actualizarla
-                        inscripcion.getMensualidades().remove(mensualidad);
-                        // Eliminamos directamente la mensualidad
-                        mensualidadRepositorio.delete(mensualidad);
-                    }
-                    mensualidadRepositorio.flush();
-                }
-                // 1.3. Finalmente, eliminar la inscripcion
-                inscripcionRepositorio.delete(inscripcion);
-            }
-            inscripcionRepositorio.flush();
-        }
-
-        // 2. Eliminar las asistencias mensuales asociadas a la disciplina
-        List<AsistenciaMensual> asistenciasMensuales = asistenciaMensualRepositorio.findByDisciplinaId(disciplina.getId());
-        if (asistenciasMensuales != null && !asistenciasMensuales.isEmpty()) {
-            asistenciaMensualRepositorio.deleteAll(new ArrayList<>(asistenciasMensuales));
-            asistenciaMensualRepositorio.flush();
-        }
-
-        // 3. Eliminar los horarios asociados
-        if (disciplina.getHorarios() != null && !disciplina.getHorarios().isEmpty()) {
-            // Creamos una copia para iterar y remover sin modificar la lista original
-            List<DisciplinaHorario> horarios = new ArrayList<>(disciplina.getHorarios());
-            for (DisciplinaHorario horario : horarios) {
-                // Removemos el horario de la coleccion para evitar que se intente actualizar
-                disciplina.getHorarios().remove(horario);
-                // Eliminamos el registro directamente
-                disciplinaHorarioRepositorio.delete(horario);
-            }
-            disciplinaHorarioRepositorio.flush();
-        }
-
-        // 4. Finalmente, eliminar la disciplina
-        disciplinaRepositorio.delete(disciplina);
+        darBajaDisciplina(id);
     }
 
-    /**
-     * Recupera el detalle de una disciplina por su ID.
-     */
-    @Override
-    public DisciplinaResponse obtenerDisciplinaPorId(Long id) {
-        log.info("Obteniendo detalle de la disciplina con id: {}", id);
-        Disciplina disciplina = disciplinaRepositorio.findById(id)
-                .orElseThrow(() -> new TratadorDeErrores.DisciplinaNotFoundException(id));
-        DisciplinaResponse response = disciplinaMapper.toResponse(disciplina);
-        log.info("Detalle obtenido: {}", response);
-        return response;
-    }
-
-    /**
-     * Obtiene las disciplinas que tienen clase en la fecha especificada.
-     */
-    @Override
-    public List<DisciplinaResponse> obtenerDisciplinasPorFecha(String fecha) {
-        log.info("Obteniendo disciplinas para la fecha: {}", fecha);
-        LocalDate targetDate = LocalDate.parse(fecha);
-        DayOfWeek dayOfWeek = targetDate.getDayOfWeek();
-        log.info("DayOfWeek obtenido: {}", dayOfWeek);
-
-        // Conversion de DayOfWeek a nuestro enum DiaSemana
-        var diaSemana = switch (dayOfWeek) {
-            case MONDAY -> ledance.entidades.DiaSemana.LUNES;
-            case TUESDAY -> ledance.entidades.DiaSemana.MARTES;
-            case WEDNESDAY -> ledance.entidades.DiaSemana.MIERCOLES;
-            case THURSDAY -> ledance.entidades.DiaSemana.JUEVES;
-            case FRIDAY -> ledance.entidades.DiaSemana.VIERNES;
-            case SATURDAY -> ledance.entidades.DiaSemana.SABADO;
-            case SUNDAY -> ledance.entidades.DiaSemana.DOMINGO;
-        };
-        log.info("Convertido a DiaSemana: {}", diaSemana);
-
-        List<?> horarios = disciplinaHorarioServicio.obtenerHorariosPorDia(diaSemana);
-        log.info("Se encontraron {} horarios para el dia: {}", horarios.size(), diaSemana);
-
-        List<Disciplina> disciplinas = ((List<ledance.entidades.DisciplinaHorario>) horarios).stream()
-                .map(ledance.entidades.DisciplinaHorario::getDisciplina)
-                .distinct()
-                .collect(Collectors.toList());
-        log.info("Total de disciplinas encontradas: {}", disciplinas.size());
-
-        List<DisciplinaResponse> response = disciplinas.stream()
-                .map(disciplinaMapper::toResponse)
-                .collect(Collectors.toList());
-        log.info("Respuesta obtenida: {}", response);
-        return response;
-    }
-
-    /**
-     * Metodo aun no implementado para obtener disciplinas por un horario de inicio especifico.
-     */
-    @Override
-    public List<DisciplinaResponse> obtenerDisciplinasPorHorario(LocalTime horarioInicio) {
-        log.warn("El metodo obtenerDisciplinasPorHorario no esta implementado.");
-        return List.of();
-    }
-
-    /**
-     * Retorna los alumnos inscritos en una disciplina.
-     */
-    @Override
-    public List<AlumnoResponse> obtenerAlumnosDeDisciplina(Long disciplinaId) {
-        log.info("Obteniendo alumnos inscritos para la disciplina con id: {}", disciplinaId);
-        List<AlumnoResponse> response = disciplinaRepositorio.findAlumnosPorDisciplina(disciplinaId).stream()
-                .map(alumnoMapper::toResponse)
-                .collect(Collectors.toList());
-        log.info("Se encontraron {} alumnos inscritos", response.size());
-        return response;
-    }
-
-    /**
-     * Retorna el profesor asignado a una disciplina.
-     */
-    @Override
-    public ProfesorResponse obtenerProfesorDeDisciplina(Long disciplinaId) {
-        log.info("Obteniendo profesor para la disciplina con id: {}", disciplinaId);
-        Profesor profesor = disciplinaRepositorio.findProfesorPorDisciplina(disciplinaId)
-                .orElseThrow(() -> new TratadorDeErrores.DisciplinaNotFoundException(disciplinaId));
-        ProfesorResponse response = profesorMapper.toResponse(profesor);
-        log.info("Profesor obtenido: {} {}", response.nombre(), response.apellido());
-        return response;
-    }
-
-    /**
-     * Calcula y retorna las fechas en las que se dictan clases para una disciplina en un mes y año dados.
-     */
-    @Override
-    public List<LocalDate> obtenerDiasClase(Long disciplinaId, Integer mes, Integer anio) {
-        log.info("Calculando dias de clase para la disciplina id: {} en {}/{}", disciplinaId, mes, anio);
-
-        // Obtener los horarios como entidades (no DTOs)
-        List<DisciplinaHorario> horarios = disciplinaHorarioServicio.obtenerHorariosEntidad(disciplinaId);
-
-        // Convertir cada horario a un DayOfWeek utilizando el metodo toDayOfWeek() de tu enum
-        Set<DayOfWeek> diasClase = horarios.stream()
-                .map(h -> h.getDiaSemana().toDayOfWeek())
-                .collect(Collectors.toSet());
-
-        log.info("Dias de clase identificados: {}", diasClase);
-
-        YearMonth yearMonth = YearMonth.of(anio, mes);
-        List<LocalDate> fechasClase = new ArrayList<>();
-        for (int dia = 1; dia <= yearMonth.lengthOfMonth(); dia++) {
-            LocalDate fecha = LocalDate.of(anio, mes, dia);
-            if (diasClase.contains(fecha.getDayOfWeek())) {
-                fechasClase.add(fecha);
-            }
-        }
-        log.info("Total de dias de clase encontrados: {}", fechasClase.size());
-        return fechasClase;
-    }
-
-    /**
-     * Lista todas las disciplinas activas con detalle completo.
-     */
-    @Override
-    public List<DisciplinaResponse> listarDisciplinas() {
-        log.info("Listando todas las disciplinas activas (detalle completo)");
-        List<DisciplinaResponse> response = disciplinaRepositorio.findByActivoTrue().stream()
-                .map(disciplinaMapper::toResponse)
-                .collect(Collectors.toList());
-        log.info("Total de disciplinas activas encontradas: {}", response.size());
-        return response;
-    }
-
-    /**
-     * Lista las disciplinas activas de forma simplificada.
-     */
-    @Override
-    public List<DisciplinaResponse> listarDisciplinasSimplificadas() {
-        log.info("Listando todas las disciplinas activas (formato listado)");
-        List<DisciplinaResponse> response = disciplinaRepositorio.findByActivoTrue().stream()
-                .map(disciplinaMapper::toResponse)
-                .collect(Collectors.toList());
-        log.info("Total de disciplinas activas encontradas: {}", response.size());
-        return response;
-    }
-
-    /**
-     * Busca disciplinas por nombre (parcial o completo) y retorna los resultados en formato listado.
-     */
-    @Override
-    public List<DisciplinaResponse> buscarPorNombre(String nombre) {
-        log.info("Buscando disciplinas por nombre: {}", nombre);
-        List<Disciplina> resultado = disciplinaRepositorio.buscarPorNombre(nombre);
-        log.info("Se encontraron {} disciplinas para el termino: {}", resultado.size(), nombre);
-        List<DisciplinaResponse> response = resultado.stream()
-                .map(disciplinaMapper::toResponse)
-                .collect(Collectors.toList());
-        return response;
-    }
-
-    /**
-     * Obtiene los horarios de una disciplina en formato de respuesta.
-     */
-    @Override
-    public List<DisciplinaHorarioResponse> obtenerHorarios(Long disciplinaId) {
-        log.info("Obteniendo horarios para la disciplina id: {}", disciplinaId);
-        List<DisciplinaHorarioResponse> horarios = disciplinaHorarioServicio.obtenerHorarios(disciplinaId).stream()
-                .map(h -> new DisciplinaHorarioResponse(
-                        h.id(),
-                        h.diaSemana(),
-                        h.horarioInicio(),
-                        h.duracion()
-                ))
-                .collect(Collectors.toList());
-        log.info("Se encontraron {} horarios para la disciplina id: {}", horarios.size(), disciplinaId);
-        return horarios;
-    }
-
+    @Transactional
     public void darBajaDisciplina(Long id) {
-        log.info("Iniciando baja logica de la disciplina con id: {}", id);
-        Disciplina disciplina = disciplinaRepositorio.findById(id)
-                .orElseThrow(() -> new TratadorDeErrores.DisciplinaNotFoundException(id));
+        Disciplina disciplina = obtener(id);
         disciplina.setActivo(false);
-        disciplinaRepositorio.save(disciplina);
-        log.info("Disciplina con id: {} marcada como inactiva", id);
+    }
+
+    @Transactional(readOnly = true)
+    public DisciplinaResponse obtenerDisciplinaPorId(Long id) {
+        return mapper.toResponse(obtener(id));
+    }
+
+    @Transactional(readOnly = true)
+    public List<DisciplinaResponse> listarDisciplinas() {
+        return disciplinas.findByActivoTrue().stream().map(mapper::toResponse).toList();
+    }
+
+    public List<DisciplinaResponse> listarDisciplinasSimplificadas() {
+        return listarDisciplinas();
+    }
+
+    @Transactional(readOnly = true)
+    public List<DisciplinaResponse> buscarPorNombre(String nombre) {
+        return disciplinas.buscarPorNombre(nombre).stream().map(mapper::toResponse).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<DisciplinaResponse> obtenerDisciplinasPorFecha(String fecha) {
+        DiaSemana dia = switch (LocalDate.parse(fecha).getDayOfWeek()) {
+            case MONDAY -> DiaSemana.LUNES;
+            case TUESDAY -> DiaSemana.MARTES;
+            case WEDNESDAY -> DiaSemana.MIERCOLES;
+            case THURSDAY -> DiaSemana.JUEVES;
+            case FRIDAY -> DiaSemana.VIERNES;
+            case SATURDAY -> DiaSemana.SABADO;
+            case SUNDAY -> DiaSemana.DOMINGO;
+        };
+        return horarios.obtenerHorariosPorDia(dia).stream()
+                .map(DisciplinaHorario::getDisciplina).distinct().map(mapper::toResponse).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<DisciplinaResponse> obtenerDisciplinasPorHorario(LocalTime inicio) {
+        return disciplinas.findByActivoTrue().stream()
+                .filter(d -> d.getHorarios().stream().anyMatch(h -> h.getHorarioInicio().equals(inicio)))
+                .map(mapper::toResponse).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<AlumnoResponse> obtenerAlumnosDeDisciplina(Long disciplinaId) {
+        return disciplinas.findAlumnosPorDisciplina(disciplinaId).stream().map(alumnoMapper::toResponse).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public ProfesorResponse obtenerProfesorDeDisciplina(Long disciplinaId) {
+        return profesorMapper.toResponse(disciplinas.findProfesorPorDisciplina(disciplinaId)
+                .orElseThrow(() -> new DisciplinaNotFoundException(disciplinaId)));
+    }
+
+    @Transactional(readOnly = true)
+    public List<LocalDate> obtenerDiasClase(Long disciplinaId, Integer mes, Integer anio) {
+        Set<DayOfWeek> dias = new LinkedHashSet<>();
+        horarios.obtenerHorariosEntidad(disciplinaId)
+                .forEach(h -> dias.add(h.getDiaSemana().toDayOfWeek()));
+        YearMonth periodo = YearMonth.of(anio, mes);
+        List<LocalDate> fechas = new ArrayList<>();
+        for (int dia = 1; dia <= periodo.lengthOfMonth(); dia++) {
+            LocalDate fecha = periodo.atDay(dia);
+            if (dias.contains(fecha.getDayOfWeek())) {
+                fechas.add(fecha);
+            }
+        }
+        return fechas;
+    }
+
+    @Transactional(readOnly = true)
+    public List<DisciplinaHorarioResponse> obtenerHorarios(Long disciplinaId) {
+        return horarios.obtenerHorarios(disciplinaId);
+    }
+
+    private Disciplina obtener(Long id) {
+        return disciplinas.findById(id).orElseThrow(() -> new EntityNotFoundException("Disciplina no encontrada"));
+    }
+
+    private Profesor profesor(Long id) {
+        return profesores.findById(id).orElseThrow(() -> new ProfesorNotFoundException(id));
+    }
+
+    private Salon salon(Long id) {
+        return salones.findById(id).orElseThrow(() -> new ResourceNotFoundException("Salón no encontrado"));
     }
 }

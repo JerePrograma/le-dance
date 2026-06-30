@@ -1,5 +1,7 @@
 package ledance.entidades;
 
 public enum EstadoAsistencia {
-    PRESENTE, AUSENTE
+    PRESENTE,
+    AUSENTE,
+    JUSTIFICADO
 }

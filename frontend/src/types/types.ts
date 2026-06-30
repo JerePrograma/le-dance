@@ -54,18 +54,14 @@ export interface AlumnoResponse {
   email2: string;
   documento: string;
   fechaDeBaja: string | null; // puede ser null si no se dio de baja
-  deudaPendiente: boolean;
   nombrePadres: string;
   autorizadoParaSalirSolo: boolean;
   activo: boolean;
   otrasNotas: string;
-  cuotaTotal: number;
   inscripciones: InscripcionResponse[]; // Asegúrate de que InscripcionResponse esté definido según tu DTO
-  creditoAcumulado: number;
 }
 
 export interface AlumnoRegistroRequest {
-  creditoAcumulado: number;
   id?: number;
   nombre: string;
   apellido: string;
@@ -79,12 +75,10 @@ export interface AlumnoRegistroRequest {
   documento?: string;
   cuit?: string;
   fechaDeBaja?: string | null;
-  deudaPendiente?: boolean;
   nombrePadres?: string;
   autorizadoParaSalirSolo?: boolean;
   activo: boolean;
   otrasNotas?: string;
-  cuotaTotal?: number;
   inscripciones: InscripcionRegistroRequest[]; // Asegúrate de que InscripcionRegistroRequest esté definido según tu DTO
 }
 
@@ -101,12 +95,10 @@ export interface AlumnoRegistro {
   email2?: string;
   documento?: string;
   fechaDeBaja?: string | null;
-  deudaPendiente?: boolean;
   nombrePadres?: string;
   autorizadoParaSalirSolo?: boolean;
   activo: boolean;
   otrasNotas?: string;
-  cuotaTotal?: number;
 }
 
 // ==========================================
@@ -396,39 +388,6 @@ export interface BonificacionResponse {
 }
 
 // ==========================================
-// CAJA
-// ==========================================
-export interface CajaRegistroRequest {
-  fecha: LocalDate;
-  totalEfectivo: number;
-  totalDebito: number;
-
-  rangoDesdeHasta?: string;
-  observaciones?: string;
-}
-
-export interface CajaModificacionRequest {
-  fecha: LocalDate;
-  totalEfectivo: number;
-  totalDebito: number;
-
-  rangoDesdeHasta?: string;
-  observaciones?: string;
-  activo: boolean;
-}
-
-export interface CajaResponse {
-  id: number;
-  fecha: LocalDate;
-  totalEfectivo: number;
-  totalDebito: number;
-
-  rangoDesdeHasta: string;
-  observaciones: string;
-  activo: boolean;
-}
-
-// ==========================================
 // RECARGOS - Tipos de datos
 // ==========================================
 
@@ -436,7 +395,7 @@ export interface CajaResponse {
 export interface RecargoRegistroRequest {
   descripcion: string;
   porcentaje: number;
-  valorFijo?: number; // ✅ Opcional porque el backend lo permite
+  valorFijo?: number;
   diaDelMesAplicacion: number; // ✅ Cambiado de fechaAplicacion a diaDelMesAplicacion
 }
 
@@ -607,32 +566,6 @@ export interface MetodoPagoResponse {
   recargo: number;
 }
 
-// DTO para reporte de mensualidades
-export interface ReporteMensualidadDTO {
-  mensualidadId: number;
-  alumno: {
-    id: number;
-    nombre: string;
-  };
-  cuota: string;
-  importePendiente: number;
-  bonificacion: {
-    id: number;
-    descripcion: string;
-    porcentajeDescuento: number;
-    valorFijo: number;
-  };
-  total: number;
-  recargo: number;
-  estado: string;
-  disciplina: {
-    id: number;
-    nombre: string;
-    valorCuota: number;
-  };
-  descripcion: string; // Nuevo campo agregado
-}
-
 export interface SalonRegistroRequest {
   nombre: string;
   descripcion: string;
@@ -649,343 +582,128 @@ export interface SalonResponse {
   descripcion: string;
 }
 
-///CAJAS
-
-export interface AlumnoMin {
-  id: number;
-  nombre: string;
-  apellido: string;
-}
-
-export interface Pago {
-  descripcion: string;
-  id: number;
-  fecha: string; // "2025-02-26"
-  monto: number;
-  observaciones?: string;
-  alumno?: AlumnoMin; // { id, nombre, apellido }
-  // metodo de pago, etc., segun tu back
-}
-
-export interface CajaPlanillaDTO {
-  fecha: string; // "2025-02-26"
-  rangoRecibos: string; // "19270-19282"
-  totalEfectivo: number;
-  totalDebito: number;
-  totalEgresos: number;
-  totalNeto: number;
-}
-
-export interface MetodoPago {
-  id: number;
-  descripcion: string;
-}
-
-export interface DetallePago {
-  id: number;
-  ACobrar: number;
-  estadoPago?: "ACTIVO" | "ANULADO" | "HISTORICO";
-}
-
-export interface PagoDelDia {
-  id: number;
-  fecha: string;
-  fechaVencimiento: string;
-  monto: number;
-  alumno: {
-    id: number;
-    nombre: string;
-    apellido: string;
-  };
-  observaciones: string;
-  metodoPago?: MetodoPago | null;
-  usuarioId: number; // Identificador del usuario que realizó el pago
-  detallePagos?: DetallePago[];
-  estadoPago?: "ACTIVO" | "ANULADO" | "HISTORICO";
-}
-
-export interface CajaDiariaDTO {
-  pagosDelDia: PagoDelDia[];
-  egresosDelDia: EgresoResponse[];
-  totalEfectivo: number;
-  totalDebito: number;
-  totalCobrado: number;
-  totalEgresosEfectivo: number;
-  totalEgresosDebito: number;
-  totalEgresos: number;
-  totalNeto: number;
-}
-
-export interface CajaDetalleDTO {
-  pagosDelDia: PagoResponse[];
-  egresosDelDia: EgresoResponse[];
-}
-
-export interface RendicionDTO {
-  pagos: Pago[];
-  egresos: EgresoResponse[];
-  totalEfectivo: number;
-  totalDebito: number;
-  totalEgresos: number;
-}
-
-// ==========================================
-// PAGO Y MÉTODOS DE PAGO
-// ==========================================
-
-// Normalized Types for Frontend based on Backend DTOs
-
 export interface PagoRegistroRequest {
-  id?: number;
-  fecha: string;
-  fechaVencimiento: string;
-  monto: number;
-  importeInicial: number;
-  valorBase?: number;
+  alumnoId: number;
   metodoPagoId: number;
-  alumno: AlumnoRegistroRequest;
+  montoRecibido: string;
+  idempotencyKey: string;
   observaciones?: string;
-  detallePagos: DetallePagoRegistroRequest[];
-  pagoMedios?: PagoMedioRegistroRequest[];
-  activo: boolean;
-  usuarioId: number;
-  aplicarRecargoMetodoPago?: boolean;
+  aplicaciones: AplicacionPagoRequest[];
+  generarCredito: boolean;
+}
+
+export interface AplicacionPagoRequest {
+  cargoId: number;
+  importe: string;
+}
+
+export interface AplicacionPagoResponse {
+  id: number;
+  cargoId: number;
+  importeAplicado: string;
+  estado: string;
+  saldoCargo: string;
 }
 
 export interface PagoResponse {
   id: number;
-  fecha: string;
-  fechaVencimiento: string;
-  monto: number;
-  valorBase: number;
-  importeInicial: number;
-  montoPagado: number;
-  saldoRestante: number;
-  estadoPago: string;
-  alumno: AlumnoResponse;
-  metodoPago: MetodoPagoResponse | null;
-  observaciones?: string;
-  detallePagos: DetallePagoResponse[];
+  alumnoId: number;
+  metodoPagoId: number;
   usuarioId: number;
-}
-// DetallePagoResponse.ts
-export interface DetallePagoResponse {
-  removido?: boolean;
-  id: number;
-  version: number;
-  descripcionConcepto: string;
-  cuotaOCantidad: string;
-  valorBase: number;
-  bonificacionId?: number | null;
-  bonificacionNombre?: string; // <-- Agregado
-  recargoId?: number | null;
-  recargoNombre?: string; // <-- Agregado
-  ACobrar: number;
-  cobrado: boolean;
-  conceptoId?: number | null;
-  subConceptoId?: number | null;
-  mensualidadId?: number | null;
-  matriculaId?: number | null;
-  stockId?: number | null;
-  importeInicial: number;
-  importePendiente: number;
-  tipo: string;
-  fechaRegistro: string;
-  pagoId: number;
-  alumno: AlumnoResponse;
-  tieneRecargo: boolean;
-  estadoPago: string;
-}
-
-// DetallePagoRegistroRequest.ts
-export interface DetallePagoRegistroRequest {
-  id?: number;
-  version?: number;
-  descripcionConcepto: string;
-  cuotaOCantidad?: string;
-  alumno?: AlumnoRegistroRequest;
-  valorBase: number;
-  ACobrar: number;
-  bonificacionId?: number | null;
-  recargoId?: number | null;
-  cobrado?: boolean;
-  conceptoId?: number | null;
-  subConceptoId?: number | null;
-  importeInicial: number;
-  importePendiente: number | null;
-  mensualidadId?: number | null;
-  matriculaId?: number | null;
-  stockId?: number | null;
-  pagoId?: number | null; // <-- Nuevo atributo
-  tieneRecargo?: boolean;
-  importeOriginal?: number;
-  usuarioId?: number;
-  estadoPago?: string;
-  removido?: boolean;
-}
-
-export type DetallePagoRegistroRequestExt = DetallePagoRegistroRequest & {
-  autoGenerated: boolean;
-  autoRemoved?: boolean;
-  bonificacionNombre?: string;
-  descripcionVisual?: string;
-  recargoNombre?: string;
-  modifiedACobrar?: boolean;
-  removido: boolean;
-  tieneRecargo: boolean;
-  tipo: string;
-  version: number;
-};
-
-// PETICIÓN DE REGISTRO DE PAGO MEDIO (para abonos parciales)
-export interface PagoMedioRegistroRequest {
-  monto: number;
-  metodoPagoId: number;
-}
-
-export interface PagoMedioResponse {
-  id: number;
-  monto: number;
-  metodo: MetodoPagoResponse; // Asegúrate de que MetodoPagoResponse esté definido (al menos con id y descripción)
-}
-
-// --- Valores para el formulario de cobranza ---
-// Estos son los valores que usará el formulario para la UI.
-export interface CobranzasFormValues {
-  estadoPago: string;
-  id?: number;
-  totalACobrar: number;
-  reciboNro: number;
-  alumno: AlumnoRegistroRequest;
-  alumnoId?: number;
   fecha: string;
-  detallePagos: DetallePagoRegistroRequestExt[];
-  mensualidadId?: number;
-  disciplina: string;
-  tarifa: string;
-  claseSuelta?: number;
-  clasePrueba?: number;
-  conceptoSeleccionado: string;
-  stockSeleccionado: string;
-  cantidad: number;
-  totalCobrado: number;
-  metodoPagoId: number;
-  observaciones: string;
-  matriculaRemoved: boolean;
-  periodoMensual: string;
-  autoRemoved: number[];
-  pagoParcial: number;
-  aplicarRecargo: boolean;
-  tieneRecargo: boolean;
-  removido: boolean;
+  montoRecibido: string;
+  estado: string;
+  idempotencyKey: string;
+  observaciones?: string;
+  creditoGenerado: string;
+  aplicaciones: AplicacionPagoResponse[];
 }
 
-// --- Para la cobranza ---
-export interface DetalleCobranzaDTO {
-  concepto: string;
-  pendiente: number;
+export interface PagoAnulacionRequest {
+  idempotencyKey: string;
+  motivo: string;
+}
+
+export interface CargoResponse {
+  id: number;
+  alumnoId: number;
+  tipo: string;
+  descripcion: string;
+  importeOriginal: string;
+  importeAplicado: string;
+  saldo: string;
+  fechaEmision: string;
+  fechaVencimiento: string;
+  estado: string;
 }
 
 export interface MensualidadRegistroRequest {
-  fechaCuota: LocalDate;
-  valorBase: number;
-  recargo: number;
-  bonificacion: number;
   inscripcionId: number;
+  anio: number;
+  mes: number;
 }
 
 export interface MensualidadResponse {
-  descripcion: string;
   id: number;
-  fechaCuota: LocalDate;
-  valorBase: number;
-  recargoId: number;
-  bonificacion: BonificacionResponse;
-  estado: string;
   inscripcionId: number;
-  importeInicial: number;
+  anio: number;
+  mes: number;
+  descripcion: string;
+  estado: string;
+  cargoId: number;
+  importe: string;
 }
 export interface MatriculaRegistroRequest {
   alumnoId: number;
   anio: number;
-  valor: number;
-}
-
-export interface MatriculaModificacionRequest {
-  pagada: boolean;
-  fechaPago: string; // Formato YYYY-MM-DD
 }
 
 export interface MatriculaResponse {
   id: number;
   anio: number;
-  pagada: boolean;
-  fechaPago?: string;
+  fechaEmision: string;
+  estado: string;
   alumnoId: number;
-  valor: number;
 }
 
-export interface PagoParcialRequest {
-  montoAbonado: number;
-  montosPorDetalle: { [detalleId: number]: number };
-  metodoPagoId: number;
-}
-
-// EgresoRegistroRequest.ts
 export interface EgresoRegistroRequest {
-  id?: number; // Opcional, ya que al crear se genera automáticamente
-  fecha: string; // Usamos string en formato ISO (e.g. "2025-03-17")
-  monto: number;
+  fecha?: string;
+  monto: string;
   observaciones?: string;
   metodoPagoId: number;
-  metodoPagoDescripcion: string;
+  idempotencyKey: string;
 }
 
 export interface EgresoResponse {
   id: number;
-  fecha: string; // ISO date
-  monto: number;
+  fecha: string;
+  monto: string;
   observaciones?: string;
-  metodoPago: MetodoPagoResponse;
-  activo: boolean;
-}
-export interface CobranzaDetalleDTO {
-  id?: number;
-  tipo: "INSCRIPCION" | "MENSUALIDAD" | "STOCK" | "CONCEPTO";
-  descripcion?: string;
-  monto: number;
-  inscripcionId?: number;
-  mensualidadId?: number;
-  stockId?: number;
-  conceptoId?: number;
+  metodoPagoId: number;
+  usuarioId: number;
+  estado: string;
+  idempotencyKey: string;
 }
 
-export interface CobranzaDTO {
-  alumnoId: number;
-  alumnoNombre: string;
-  totalPendiente: number;
-  detalles: DetalleCobranzaDTO[];
+export interface MovimientoCajaResponse {
+  id: number;
+  tipo: string;
+  fecha: string;
+  importe: string;
+  metodoPagoId?: number;
+  pagoId?: number;
+  egresoId?: number;
+  motivo?: string;
+  createdAt: string;
 }
 
-export interface AlumnoDataResponse {
-  alumno: AlumnoResponse;
-  detallePagosPendientes: DetallePagoResponse[];
-  detallePagos?: DetallePagoResponse[]; // Propiedad opcional
-}
-
-export interface CobranzasDataResponse {
-  alumnos: AlumnoResponse[];
-  disciplinas: DisciplinaDetalleResponse[];
-  stocks: StockResponse[];
-  metodosPago: MetodoPagoResponse[];
-  conceptos: ConceptoResponse[];
-  bonificaciones: BonificacionResponse[];
-  recargos: RecargoResponse[];
-}
-
-export interface DatosUnificadosAlumnoResponse {
-  cobranzasData: CobranzasDataResponse;
-  inscripcionesActivas: InscripcionResponse[];
+export interface ResumenCajaResponse {
+  desde: string;
+  hasta: string;
+  totalIngresos: string;
+  totalEgresos: string;
+  saldo: string;
+  movimientos: MovimientoCajaResponse[];
 }
 
 export type ObservacionProfesorResponse = {

@@ -1,43 +1,42 @@
 package ledance.entidades;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
+import lombok.Setter;
 
 import java.util.ArrayList;
 import java.util.List;
 
-@Data
+@Entity
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Entity
 @Table(name = "asistencias_alumno_mensual")
 public class AsistenciaAlumnoMensual {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    // Relacion al alumno (a traves de su inscripcion)
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(optional = false)
     @JoinColumn(name = "inscripcion_id", nullable = false)
-    @OnDelete(action = OnDeleteAction.CASCADE)
     private Inscripcion inscripcion;
-
-    // Observacion para este alumno en el mes
+    @Column(length = 500)
     private String observacion;
-
-    // Relacion con la planilla mensual
-    @ManyToOne
+    @Column(nullable = false)
+    private Boolean activo = true;
+    @ManyToOne(optional = false)
     @JoinColumn(name = "asistencia_mensual_id", nullable = false)
-    @OnDelete(action = OnDeleteAction.CASCADE)
     private AsistenciaMensual asistenciaMensual;
-
-    @OneToMany(mappedBy = "asistenciaAlumnoMensual",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true)
+    @OneToMany(mappedBy = "asistenciaAlumnoMensual")
     private List<AsistenciaDiaria> asistenciasDiarias = new ArrayList<>();
-
 }

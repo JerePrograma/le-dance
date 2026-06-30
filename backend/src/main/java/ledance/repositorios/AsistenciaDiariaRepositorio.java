@@ -51,18 +51,14 @@ public interface AsistenciaDiariaRepositorio extends JpaRepository<AsistenciaDia
     // Recupera todas las asistencias asociadas a una planilla (a traves de AsistenciaAlumnoMensual)
     List<AsistenciaDiaria> findByAsistenciaAlumnoMensual_AsistenciaMensual_Id(Long asistenciaMensualId);
 
-    // Elimina asistencias diarias de una planilla cuya fecha sea mayor o igual a la indicada
-    void deleteByAsistenciaAlumnoMensual_AsistenciaMensual_IdAndFechaGreaterThanEqual(Long asistenciaMensualId, LocalDate fecha);
+    List<AsistenciaDiaria> findByAsistenciaAlumnoMensual_AsistenciaMensual_IdAndFechaGreaterThanEqual(Long asistenciaMensualId, LocalDate fecha);
 
     // Verifica si ya existen registros para un alumno en una planilla
     boolean existsByAsistenciaAlumnoMensual_Inscripcion_Alumno_IdAndAsistenciaAlumnoMensual_AsistenciaMensual_Id(Long alumnoId, Long planillaId);
 
-    // Elimina las asistencias diarias asociadas a un registro de alumno (AsistenciaAlumnoMensual) cuya fecha sea mayor o igual a la indicada
-    void deleteByAsistenciaAlumnoMensual_IdAndFechaGreaterThanEqual(Long asistenciaAlumnoMensualId, LocalDate fechaCambio);
+    List<AsistenciaDiaria> findByAsistenciaAlumnoMensual_IdAndFechaGreaterThanEqual(Long asistenciaAlumnoMensualId, LocalDate fechaCambio);
 
     boolean existsByAsistenciaAlumnoMensualId(Long id);
-
-    void deleteByAsistenciaAlumnoMensualIdAndFechaGreaterThanEqual(Long id, LocalDate fechaCambio);
 
     boolean existsByAsistenciaAlumnoMensualIdAndFecha(Long id, LocalDate fecha);
 

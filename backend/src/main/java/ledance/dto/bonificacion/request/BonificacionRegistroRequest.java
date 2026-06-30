@@ -1,17 +1,16 @@
 package ledance.dto.bonificacion.request;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 
-/**
- * Peticion para registrar una bonificacion.
- * - "activo" se asigna automaticamente en el servicio.
- */
+import java.math.BigDecimal;
+
 public record BonificacionRegistroRequest(
         @NotBlank String descripcion,
-        Integer porcentajeDescuento,
-        String observaciones,
-        // Nuevo campo: valor fijo (opcional)
-        Double valorFijo
-) {}
+        @NotNull @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal porcentajeDescuento,
+        @NotNull @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal valorFijo,
+        Boolean activo,
+        String observaciones
+) {
+}

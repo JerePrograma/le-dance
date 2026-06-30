@@ -72,10 +72,9 @@ public class ObservacionProfesorServicio {
      */
     @Transactional
     public void eliminarObservacion(Long observacionId) {
-        if (!observacionRepo.existsById(observacionId)) {
-            throw new RuntimeException("Observacion no encontrada con id: " + observacionId);
-        }
-        observacionRepo.deleteById(observacionId);
+        ObservacionProfesor observacion = observacionRepo.findById(observacionId)
+                .orElseThrow(() -> new RuntimeException("Observacion no encontrada con id: " + observacionId));
+        observacion.setActiva(false);
     }
 
     /**

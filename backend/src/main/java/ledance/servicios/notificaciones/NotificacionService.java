@@ -1,177 +1,122 @@
 package ledance.servicios.notificaciones;
 
-import jakarta.mail.MessagingException;
 import ledance.entidades.Alumno;
 import ledance.entidades.Notificacion;
-import ledance.entidades.ProcesoEjecutado;
-import ledance.entidades.Profesor;
 import ledance.repositorios.AlumnoRepositorio;
 import ledance.repositorios.NotificacionRepositorio;
-import ledance.repositorios.ProcesoEjecutadoRepositorio;
 import ledance.repositorios.ProfesorRepositorio;
 import ledance.servicios.email.EmailAsyncService;
-import ledance.servicios.email.IEmailService;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.io.InputStream;
+import java.time.Clock;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class NotificacionService {
+    private static final String TIPO = "CUMPLEANOS";
+    private final AlumnoRepositorio alumnos;
+    private final ProfesorRepositorio profesores;
+    private final NotificacionRepositorio notificaciones;
+    private final SimpMessagingTemplate websocket;
+    private final Environment environment;
+    private final EmailAsyncService email;
+    private final Clock clock;
 
-    private static final String PROCESO = "CUMPLEANOS";
-
-    private final AlumnoRepositorio alumnoRepository;
-    private final ProfesorRepositorio profesorRepository;
-    private final NotificacionRepositorio notificacionRepositorio;
-    private final ProcesoEjecutadoRepositorio procesoEjecutadoRepositorio;
-    private final SimpMessagingTemplate messagingTemplate;
-    private final Environment env;
-    private final EmailAsyncService emailAsyncService;
-
-    public NotificacionService(AlumnoRepositorio alumnoRepository,
-                               ProfesorRepositorio profesorRepository,
-                               NotificacionRepositorio notificacionRepositorio,
-                               ProcesoEjecutadoRepositorio procesoEjecutadoRepositorio,
-                               IEmailService emailService,              // <--- inyecta la interfaz
-                               SimpMessagingTemplate messagingTemplate, Environment env, EmailAsyncService emailAsyncService) {
-        this.alumnoRepository = alumnoRepository;
-        this.profesorRepository = profesorRepository;
-        this.notificacionRepositorio = notificacionRepositorio;
-        this.procesoEjecutadoRepositorio = procesoEjecutadoRepositorio;
-        this.messagingTemplate = messagingTemplate;
-        this.env = env;
-        this.emailAsyncService = emailAsyncService;
+    public NotificacionService(AlumnoRepositorio alumnos,
+                               ProfesorRepositorio profesores,
+                               NotificacionRepositorio notificaciones,
+                               SimpMessagingTemplate websocket,
+                               Environment environment,
+                               EmailAsyncService email,
+                               Clock clock) {
+        this.alumnos = alumnos;
+        this.profesores = profesores;
+        this.notificaciones = notificaciones;
+        this.websocket = websocket;
+        this.environment = environment;
+        this.email = email;
+        this.clock = clock;
     }
 
-    /**
-     * Genera y retorna los mensajes de cumpleaños del día,
-     * persiste notificaciones en la base y dispara el envío de
-     * e-mails de forma asíncrona (solo en producción).
-     */
+    @Transactional
     public List<String> generarYObtenerCumpleanerosDelDia() throws IOException {
-        LocalDateTime ahora = LocalDateTime.now();
-        LocalDate hoy = ahora.toLocalDate();
-        LocalDateTime inicioDelDia = hoy.atStartOfDay();
-        LocalDateTime inicioDelSiguienteDia = inicioDelDia.plusDays(1);
-
-        // Si ya se ejecutó hoy, devolvemos solo los mensajes persistidos
-        Optional<ProcesoEjecutado> procOpt =
-                procesoEjecutadoRepositorio.findByProceso(PROCESO);
-        if (procOpt.isPresent()
-                && procOpt.get().getUltimaEjecucion().isEqual(hoy)) {
-            return notificacionRepositorio
-                    .findByTipoAndFechaCreacionBetween(
-                            PROCESO, inicioDelDia, inicioDelSiguienteDia)
-                    .stream()
-                    .map(Notificacion::getMensaje)
-                    .toList();
-        }
-
+        LocalDate hoy = LocalDate.now(clock);
         List<String> mensajes = new ArrayList<>();
-        boolean isBisiesto = hoy.isLeapYear();
-        boolean isProd = env.acceptsProfiles(Profiles.of("prod"));
+        List<Runnable> efectos = new ArrayList<>();
+        boolean prod = environment.acceptsProfiles(Profiles.of("prod"));
+        byte[] firma = prod ? firma() : new byte[0];
 
-        // Leemos la firma solo una vez si vamos a enviar mails
-        byte[] firmaBytes = null;
-        if (isProd) {
-            String baseDir = System.getenv("LEDANCE_HOME");
-            if (baseDir == null || baseDir.isBlank()) {
-                throw new IllegalStateException(
-                        "Variable de entorno LEDANCE_HOME no definida");
-            }
-            Path firmaPath = Paths.get(baseDir, "imgs",
-                    "firma_mesa-de-trabajo-1.png");
-            firmaBytes = Files.readAllBytes(firmaPath);
-        }
-
-        // Alumnos
-        for (Alumno alumno : alumnoRepository.findAll()) {
-            LocalDate nacimiento = alumno.getFechaNacimiento();
-            if (nacimiento != null
-                    && cumpleHoy(nacimiento, hoy, isBisiesto)) {
-
-                String texto = "Alumno: "
-                        + alumno.getNombre() + " "
-                        + alumno.getApellido();
-                mensajes.add(texto);
-
-                Notificacion noti = new Notificacion();
-                noti.setUsuarioId(1L);
-                noti.setTipo(PROCESO);
-                noti.setMensaje(texto);
-                noti.setFechaCreacion(ahora);
-                noti.setLeida(false);
-                notificacionRepositorio.save(noti);
-
-                // Disparamos el mail en background
-                if (isProd && StringUtils.hasText(alumno.getEmail())) {
-                    emailAsyncService.enviarMailCumple(
-                            alumno, firmaBytes);
+        for (Alumno alumno : alumnos.findAll()) {
+            if (cumpleHoy(alumno.getFechaNacimiento(), hoy)) {
+                String mensaje = "Alumno: " + alumno.getNombre() + " " + alumno.getApellido();
+                mensajes.add(mensaje);
+                if (guardar("alumno:" + alumno.getId() + ":" + hoy, mensaje, hoy)
+                        && prod && alumno.getEmail() != null && !alumno.getEmail().isBlank()) {
+                    efectos.add(() -> email.enviarMailCumple(alumno, firma));
                 }
             }
         }
-
-        // Profesores (sin envío de mail)
-        for (Profesor prof : profesorRepository.findAll()) {
-            LocalDate nacimiento = prof.getFechaNacimiento();
-            if (nacimiento != null
-                    && cumpleHoy(nacimiento, hoy, isBisiesto)) {
-
-                String texto = "Profesor: "
-                        + prof.getNombre() + " "
-                        + prof.getApellido();
-                mensajes.add(texto);
-
-                Notificacion noti = new Notificacion();
-                noti.setUsuarioId(1L);
-                noti.setTipo(PROCESO);
-                noti.setMensaje(texto);
-                noti.setFechaCreacion(ahora);
-                noti.setLeida(false);
-                notificacionRepositorio.save(noti);
+        profesores.findAll().forEach(profesor -> {
+            if (cumpleHoy(profesor.getFechaNacimiento(), hoy)) {
+                String mensaje = "Profesor: " + profesor.getNombre() + " " + profesor.getApellido();
+                mensajes.add(mensaje);
+                guardar("profesor:" + profesor.getId() + ":" + hoy, mensaje, hoy);
             }
-        }
+        });
 
-        // Marcamos que ya ejecutamos hoy
-        if (procOpt.isPresent()) {
-            ProcesoEjecutado ejecutado = procOpt.get();
-            ejecutado.setUltimaEjecucion(hoy);
-            procesoEjecutadoRepositorio.save(ejecutado);
-        } else {
-            procesoEjecutadoRepositorio
-                    .save(new ProcesoEjecutado(PROCESO, hoy));
-        }
-
-        // Emitimos por WebSocket
-        messagingTemplate
-                .convertAndSend("/topic/notificaciones", mensajes);
-
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                efectos.forEach(Runnable::run);
+                websocket.convertAndSend("/topic/notificaciones", mensajes);
+            }
+        });
         return mensajes;
     }
 
-    private boolean cumpleHoy(LocalDate fechaNacimiento,
-                              LocalDate hoy,
-                              boolean isBisiesto) {
-        int mesNac = fechaNacimiento.getMonthValue();
-        int diaNac = fechaNacimiento.getDayOfMonth();
-        return (mesNac == hoy.getMonthValue()
-                && diaNac == hoy.getDayOfMonth())
-                || (!isBisiesto
-                && mesNac == 2 && diaNac == 29
-                && hoy.getMonthValue() == 2
-                && hoy.getDayOfMonth() == 28);
+    private boolean guardar(String key, String mensaje, LocalDate fecha) {
+        if (notificaciones.existsByDedupKey(key)) {
+            return false;
+        }
+        Notificacion notificacion = new Notificacion();
+        notificacion.setTipo(TIPO);
+        notificacion.setMensaje(mensaje);
+        notificacion.setFechaNegocio(fecha);
+        notificacion.setFechaCreacion(clock.instant());
+        notificacion.setDedupKey(key);
+        notificacion.setLeida(false);
+        notificaciones.save(notificacion);
+        return true;
     }
 
+    private static boolean cumpleHoy(LocalDate nacimiento, LocalDate hoy) {
+        if (nacimiento == null) {
+            return false;
+        }
+        if (nacimiento.getMonthValue() == hoy.getMonthValue()
+                && nacimiento.getDayOfMonth() == hoy.getDayOfMonth()) {
+            return true;
+        }
+        return !hoy.isLeapYear() && nacimiento.getMonthValue() == 2 && nacimiento.getDayOfMonth() == 29
+                && hoy.getMonthValue() == 2 && hoy.getDayOfMonth() == 28;
+    }
+
+    private byte[] firma() throws IOException {
+        try (InputStream entrada = getClass().getResourceAsStream("/firma_mesa-de-trabajo-1.png")) {
+            if (entrada == null) {
+                throw new IOException("Firma no disponible");
+            }
+            return entrada.readAllBytes();
+        }
+    }
 }
