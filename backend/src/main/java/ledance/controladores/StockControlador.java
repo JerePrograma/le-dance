@@ -6,6 +6,7 @@ import ledance.dto.stock.request.ReversionStockRequest;
 import ledance.dto.stock.request.StockRegistroRequest;
 import ledance.dto.stock.request.VentaStockRequest;
 import ledance.dto.stock.response.StockResponse;
+import ledance.dto.PageResponse;
 import ledance.entidades.Usuario;
 import ledance.servicios.stock.StockServicio;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -17,6 +18,8 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 
 import java.util.List;
 
@@ -36,8 +39,8 @@ public class StockControlador {
     }
 
     @GetMapping
-    public List<StockResponse> listar() {
-        return stocks.listarStocks();
+    public PageResponse<StockResponse> listar(@PageableDefault(size = 50, sort = "nombre") Pageable pageable) {
+        return PageResponse.from(stocks.listarStocks(pageable));
     }
 
     @GetMapping("/activos")

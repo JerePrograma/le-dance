@@ -4,6 +4,7 @@ import type {
   StockRegistroRequest,
   StockModificacionRequest,
   StockResponse,
+  Page,
 } from "../types/types";
 
 const registrarStock = async (
@@ -30,8 +31,8 @@ const eliminarStock = async (id: number): Promise<void> => {
   await api.delete(`/stocks/${id}`);
 };
 
-const listarStocks = async (): Promise<StockResponse[]> => {
-  const { data } = await api.get<StockResponse[]>("/stocks");
+const listarStocks = async (page = 0, size = 50): Promise<Page<StockResponse>> => {
+  const { data } = await api.get<Page<StockResponse>>(`/stocks?page=${page}&size=${size}`);
   return data;
 };
 

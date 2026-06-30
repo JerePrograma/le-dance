@@ -3,6 +3,7 @@ package ledance.controladores;
 import jakarta.validation.Valid;
 import ledance.dto.cargo.request.CargoConceptoRequest;
 import ledance.dto.cargo.response.CargoResponse;
+import ledance.dto.PageResponse;
 import ledance.servicios.cargo.CargoServicio;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,6 +13,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 
 import java.util.List;
 
@@ -35,12 +38,15 @@ public class CargoControlador {
     }
 
     @GetMapping("/alumno/{alumnoId}/pendientes")
-    public List<CargoResponse> listarPendientes(@PathVariable Long alumnoId) {
-        return cargos.listarPendientes(alumnoId);
+    public PageResponse<CargoResponse> listarPendientes(
+            @PathVariable Long alumnoId,
+            @PageableDefault(size = 50, sort = {"fechaVencimiento", "id"}) Pageable pageable) {
+        return PageResponse.from(cargos.listarPendientes(alumnoId, pageable));
     }
 
     @GetMapping("/vencidos")
-    public List<CargoResponse> listarVencidos() {
-        return cargos.listarVencidos();
+    public PageResponse<CargoResponse> listarVencidos(
+            @PageableDefault(size = 50, sort = {"fechaVencimiento", "id"}) Pageable pageable) {
+        return PageResponse.from(cargos.listarVencidos(pageable));
     }
 }

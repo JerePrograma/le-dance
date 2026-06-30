@@ -29,15 +29,6 @@ export interface Page<T> {
   number: number;
 }
 
-export interface PageResponse<T> {
-  observacion: string;
-  content: T[];
-  totalElements: number;
-  totalPages: number;
-  size: number;
-  number: number;
-}
-
 // ==========================================
 // ALUMNO
 // ==========================================
@@ -51,7 +42,6 @@ export interface AlumnoResponse {
   celular1: string;
   celular2: string;
   email: string;
-  email2: string;
   documento: string;
   fechaDeBaja: string | null; // puede ser null si no se dio de baja
   nombrePadres: string;
@@ -67,39 +57,19 @@ export interface AlumnoRegistroRequest {
   apellido: string;
   fechaNacimiento: string; // en formato ISO, ej. "2023-08-30"
   fechaIncorporacion: string; // en formato ISO
-  edad: number;
   celular1?: string;
   celular2?: string;
   email?: string;
-  email2?: string;
   documento?: string;
-  cuit?: string;
   fechaDeBaja?: string | null;
   nombrePadres?: string;
   autorizadoParaSalirSolo?: boolean;
   activo: boolean;
   otrasNotas?: string;
-  inscripciones: InscripcionRegistroRequest[]; // Asegúrate de que InscripcionRegistroRequest esté definido según tu DTO
+  inscripciones?: InscripcionRegistroRequest[];
 }
 
-export interface AlumnoRegistro {
-  id?: number;
-  nombre: string;
-  apellido: string;
-  fechaNacimiento: string; // en formato ISO, ej. "2023-08-30"
-  fechaIncorporacion: string; // en formato ISO
-  edad: number;
-  celular1?: string;
-  celular2?: string;
-  email?: string;
-  email2?: string;
-  documento?: string;
-  fechaDeBaja?: string | null;
-  nombrePadres?: string;
-  autorizadoParaSalirSolo?: boolean;
-  activo: boolean;
-  otrasNotas?: string;
-}
+export type AlumnoRegistro = AlumnoRegistroRequest;
 
 // ==========================================
 // PROFESOR
@@ -150,83 +120,56 @@ export interface DisciplinaHorarioRequest {
 export interface DisciplinaRegistroRequest {
   id?: number;
   nombre: string;
-  // Se elimina: diasSemana, horarioInicio y duracion
-  frecuenciaSemanal?: number;
   salonId: number;
   profesorId: number;
-  recargoId?: number;
-  valorCuota: number;
-  matricula: number;
-  claseSuelta?: number;
-  clasePrueba?: number;
-  // Nuevo campo: lista de horarios para cada dia de clase
+  valorCuota: string;
+  matricula: string;
+  claseSuelta?: string;
+  clasePrueba?: string;
   horarios: DisciplinaHorarioRequest[];
 }
 
 export interface DisciplinaModificacionRequest {
   nombre: string;
-  // Se elimina: diasSemana, horarioInicio y duracion
-  frecuenciaSemanal?: number;
   salonId: number;
   profesorId: number;
-  recargoId?: number;
-  valorCuota: number;
-  matricula: number;
-  claseSuelta?: number;
-  clasePrueba?: number;
+  valorCuota: string;
+  matricula: string;
+  claseSuelta?: string;
+  clasePrueba?: string;
   activo: boolean;
-  // Nuevo campo: lista de horarios actualizados
   horarios: DisciplinaHorarioRequest[];
 }
 
-export interface DisciplinaResponse {
-  salonId: number;
-  recargoId: number | undefined;
-  claseSuelta: number | undefined;
-  clasePrueba: number | undefined;
-  id: number;
-  nombre: string;
-  // Si se devuelve la lista de horarios, por ejemplo:
-  horarios: DisciplinaHorarioResponse[];
-  frecuenciaSemanal: number;
-  salon: string;
-  valorCuota: number;
-  matricula: number;
-  profesorId: number | null;
-  inscritos: number;
-  activo?: boolean;
-}
-
 export interface DisciplinaHorarioResponse {
-  // Define aqui las propiedades que tenga un horario, por ejemplo:
-  id?: number;
-  diaSemana: string;
+  id: number;
+  diaSemana: DiaSemana;
   horarioInicio: string;
   duracion: number;
 }
 
-export interface DisciplinaDetalleResponse {
+export interface DisciplinaResponse {
   id: number;
   nombre: string;
   salon: string;
   salonId: number; // Agregado
-  valorCuota: number;
-  matricula: number;
+  valorCuota: string;
+  matricula: string;
   profesorNombre: string;
   profesorApellido: string;
-  profesorId: number;
+  profesorId: number | null;
   inscritos: number;
   activo: boolean;
-  claseSuelta?: number;
-  clasePrueba?: number;
-  recargoId?: number; // Puedes marcarlo como opcional si puede ser undefined
-  horarios: DisciplinaHorarioResponse[]; // Agregado
+  claseSuelta?: string;
+  clasePrueba?: string;
+  horarios: DisciplinaHorarioResponse[];
 }
 
-export interface DisciplinaListadoResponse
-  extends DisciplinaDetalleResponse {
+export interface DisciplinaListadoResponse extends DisciplinaResponse {
   horarioInicio?: string;
 }
+
+export type DisciplinaDetalleResponse = DisciplinaResponse;
 
 // ==========================================
 // ASISTENCIA
@@ -286,12 +229,6 @@ export interface AsistenciaAlumnoMensualDetalleResponse {
   asistenciasDiarias: AsistenciaDiariaResponse[];
 }
 
-// Representación de la disciplina, de forma anidada
-export interface DisciplinaResponse {
-  id: number;
-  nombre: string;
-}
-
 // Respuesta detallada de la asistencia mensual (planilla)
 // Incluye la disciplina como objeto anidado y el listado de registros de alumno
 export interface AsistenciaMensualDetalleResponse {
@@ -335,56 +272,49 @@ export interface PageResponse<T> {
 
 // Tipo para la solicitud de inscripción
 export interface InscripcionRegistroRequest {
-  // Si en creación el id no se envía, puede ser opcional o null
   id?: number | null;
-  alumno: {
-    id: number;
-    nombre?: string;
-    apellido?: string;
-  };
-  disciplina: DisciplinaRegistroRequest;
+  alumnoId: number;
+  disciplinaId: number;
   bonificacionId?: number | null;
-  // Se espera una cadena ISO (por ejemplo, "2025-03-10")
   fechaInscripcion: string;
-  // La fecha de baja puede ser opcional
-  fechaBaja?: string;
-  // El costo particular es opcional (en caso de que se envíe)
-  costoParticular?: number;
+  costoParticular?: string;
 }
 // Tipo para la respuesta de inscripción
 export interface InscripcionResponse {
   id: number;
-  alumno: AlumnoResponse;
-  disciplina: DisciplinaListadoResponse;
+  alumnoId: number;
+  alumno: string;
+  disciplinaId: number;
+  disciplina: string;
+  bonificacionId?: number;
   fechaInscripcion: string;
+  fechaBaja?: string;
   estado: "ACTIVA" | "BAJA" | string;
-  costoCalculado: number;
-  bonificacion?: BonificacionResponse;
-  mensualidadEstado: string;
+  costoParticular?: string;
 }
 
 export interface BonificacionRegistroRequest {
   descripcion: string;
-  porcentajeDescuento?: number;
+  porcentajeDescuento?: string;
   observaciones?: string;
-  valorFijo?: number;
+  valorFijo?: string;
 }
 
 export interface BonificacionModificacionRequest {
   descripcion: string;
-  porcentajeDescuento?: number;
+  porcentajeDescuento?: string;
   activo: boolean;
   observaciones?: string;
-  valorFijo?: number;
+  valorFijo?: string;
 }
 
 export interface BonificacionResponse {
   id: number;
   descripcion: string;
-  porcentajeDescuento: number;
+  porcentajeDescuento: string;
   activo: boolean;
   observaciones?: string;
-  valorFijo?: number;
+  valorFijo?: string;
 }
 
 // ==========================================
@@ -394,8 +324,8 @@ export interface BonificacionResponse {
 /** Request para registrar un nuevo recargo */
 export interface RecargoRegistroRequest {
   descripcion: string;
-  porcentaje: number;
-  valorFijo?: number;
+  porcentaje: string;
+  valorFijo?: string;
   diaDelMesAplicacion: number; // ✅ Cambiado de fechaAplicacion a diaDelMesAplicacion
 }
 
@@ -406,8 +336,8 @@ export type RecargoModificacionRequest = Partial<RecargoRegistroRequest>;
 export interface RecargoResponse {
   id: number;
   descripcion: string;
-  porcentaje: number;
-  valorFijo?: number;
+  porcentaje: string;
+  valorFijo?: string;
   diaDelMesAplicacion: number; // ✅ Actualizado
 }
 
@@ -416,39 +346,26 @@ export interface RecargoResponse {
 // ==========================================
 export interface StockRegistroRequest {
   nombre: string;
-  precio: number;
+  precio: string;
   stock: number;
   requiereControlDeStock: boolean;
   codigoBarras?: string;
-  // Nuevos atributos
-  fechaIngreso: LocalDate; // Obligatorio en el registro
-  fechaEgreso?: LocalDate; // Opcional
+  activo?: boolean;
+  idempotencyKey: string;
 }
 
-export interface StockModificacionRequest {
-  nombre: string;
-  precio: number;
-  stock: number;
-  requiereControlDeStock: boolean;
-  codigoBarras?: string;
+export interface StockModificacionRequest extends StockRegistroRequest {
   activo: boolean;
-  // Nuevos atributos
-  fechaIngreso: LocalDate;
-  fechaEgreso?: LocalDate;
 }
 
 export interface StockResponse {
-  version: number;
   id: number;
   nombre: string;
-  precio: number;
+  precio: string;
   stock: number;
   requiereControlDeStock: boolean;
   codigoBarras?: string;
   activo: boolean;
-  // Nuevos atributos en la respuesta:
-  fechaIngreso: string;
-  fechaEgreso?: string;
 }
 
 // ==========================================
@@ -518,7 +435,7 @@ export interface ReporteResponse {
 // src/types/conceptosTypes.ts
 export interface ConceptoRegistroRequest {
   descripcion: string;
-  precio: number;
+  precio: string;
   subConcepto: SubConceptoResponse;
   activo?: boolean;
 }
@@ -527,7 +444,7 @@ export interface ConceptoResponse {
   version: number;
   id: number;
   descripcion: string;
-  precio: number;
+  precio: string;
   subConcepto: SubConceptoResponse;
   activo?: boolean;
 }
@@ -550,20 +467,20 @@ export interface SubConceptoResponse {
 
 export interface MetodoPagoRegistroRequest {
   descripcion: string;
-  recargo: number;
+  recargo: string;
 }
 
 export interface MetodoPagoModificacionRequest {
   descripcion: string;
   activo: boolean;
-  recargo: number;
+  recargo: string;
 }
 
 export interface MetodoPagoResponse {
   id: number;
   descripcion: string;
   activo: boolean;
-  recargo: number;
+  recargo: string;
 }
 
 export interface SalonRegistroRequest {
@@ -617,6 +534,13 @@ export interface PagoResponse {
   observaciones?: string;
   creditoGenerado: string;
   aplicaciones: AplicacionPagoResponse[];
+}
+
+export interface PagoResumenResponse {
+  id: number;
+  fecha: string;
+  montoRecibido: string;
+  estado: string;
 }
 
 export interface PagoAnulacionRequest {
@@ -703,7 +627,7 @@ export interface ResumenCajaResponse {
   totalIngresos: string;
   totalEgresos: string;
   saldo: string;
-  movimientos: MovimientoCajaResponse[];
+  movimientos: Page<MovimientoCajaResponse>;
 }
 
 export type ObservacionProfesorResponse = {

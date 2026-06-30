@@ -29,6 +29,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -96,8 +98,8 @@ public class StockServicio {
     }
 
     @Transactional(readOnly = true)
-    public List<StockResponse> listarStocks() {
-        return stocks.findAll().stream().map(this::respuesta).toList();
+    public Page<StockResponse> listarStocks(Pageable pageable) {
+        return stocks.findAll(pageable).map(this::respuesta);
     }
 
     @Transactional(readOnly = true)

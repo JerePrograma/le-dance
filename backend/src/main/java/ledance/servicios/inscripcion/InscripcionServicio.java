@@ -3,7 +3,6 @@ package ledance.servicios.inscripcion;
 import jakarta.persistence.EntityNotFoundException;
 import ledance.dto.inscripcion.request.InscripcionRegistroRequest;
 import ledance.dto.inscripcion.response.InscripcionResponse;
-import ledance.dto.response.EstadisticasInscripcionResponse;
 import ledance.entidades.Alumno;
 import ledance.entidades.Bonificacion;
 import ledance.entidades.Disciplina;
@@ -20,15 +19,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.YearMonth;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 @Service
 public class InscripcionServicio {
@@ -103,14 +102,9 @@ public class InscripcionServicio {
         return respuesta(inscripcion);
     }
 
-    @Transactional
-    public List<InscripcionResponse> crearInscripcionesMasivas(List<InscripcionRegistroRequest> requests) {
-        return requests.stream().map(this::crearInscripcion).toList();
-    }
-
     @Transactional(readOnly = true)
-    public List<InscripcionResponse> listarInscripciones() {
-        return inscripciones.findAllWithDetails().stream().map(this::respuesta).toList();
+    public Page<InscripcionResponse> listarInscripciones(Pageable pageable) {
+        return inscripciones.findAllWithDetails(pageable).map(this::respuesta);
     }
 
     @Transactional(readOnly = true)
@@ -119,20 +113,9 @@ public class InscripcionServicio {
     }
 
     @Transactional(readOnly = true)
-    public List<InscripcionResponse> listarPorDisciplina(Long disciplinaId) {
-        return inscripciones.findByDisciplinaId(disciplinaId).stream().map(this::respuesta).toList();
-    }
-
-    @Transactional(readOnly = true)
     public List<InscripcionResponse> listarPorAlumno(Long alumnoId) {
         return inscripciones.findAllByAlumno_IdAndEstado(alumnoId, EstadoInscripcion.ACTIVA).stream()
                 .map(this::respuesta).toList();
-    }
-
-    @Transactional(readOnly = true)
-    public InscripcionResponse obtenerInscripcionActiva(Long alumnoId) {
-        return respuesta(inscripciones.findFirstByAlumno_IdAndEstadoOrderByIdAsc(alumnoId, EstadoInscripcion.ACTIVA)
-                .orElseThrow(() -> new EntityNotFoundException("Inscripción activa no encontrada")));
     }
 
     @Transactional
@@ -143,15 +126,6 @@ public class InscripcionServicio {
             inscripcion.setEstado(EstadoInscripcion.INACTIVA);
             inscripcion.setFechaBaja(LocalDate.now(clock));
         }
-    }
-
-    @Transactional(readOnly = true)
-    public EstadisticasInscripcionResponse obtenerEstadisticas() {
-        Map<String, Long> porDisciplina = new LinkedHashMap<>();
-        inscripciones.countByDisciplinaGrouped().forEach(f -> porDisciplina.put((String) f[0], (Long) f[1]));
-        Map<Integer, Long> porMes = new LinkedHashMap<>();
-        inscripciones.countByMonthGrouped().forEach(f -> porMes.put(((Number) f[0]).intValue(), (Long) f[1]));
-        return new EstadisticasInscripcionResponse(inscripciones.count(), porDisciplina, porMes);
     }
 
     private InscripcionResponse respuesta(Inscripcion i) {

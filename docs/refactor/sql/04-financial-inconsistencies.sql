@@ -9,15 +9,15 @@ WITH pago_aplicado AS (
     WHERE m.tipo = 'CONSUMO' OR (m.tipo = 'REVERSO' AND original.tipo = 'CONSUMO')
     GROUP BY coalesce(m.cargo_id, original.cargo_id)
 ), saldo_credito AS (
-    SELECT alumno_id,
+    SELECT m.alumno_id,
            sum(CASE
-               WHEN tipo IN ('GENERACION','AJUSTE_CREDITO') THEN importe
-               WHEN tipo IN ('CONSUMO','AJUSTE_DEBITO') THEN -importe
-               WHEN original.tipo IN ('GENERACION','AJUSTE_CREDITO') THEN -importe
-               ELSE importe END) AS saldo
+               WHEN m.tipo IN ('GENERACION','AJUSTE_CREDITO') THEN m.importe
+               WHEN m.tipo IN ('CONSUMO','AJUSTE_DEBITO') THEN -m.importe
+               WHEN original.tipo IN ('GENERACION','AJUSTE_CREDITO') THEN -m.importe
+               ELSE m.importe END) AS saldo
     FROM public.movimientos_credito m
     LEFT JOIN public.movimientos_credito original ON original.id = m.movimiento_revertido_id
-    GROUP BY alumno_id
+    GROUP BY m.alumno_id
 )
 SELECT 'FIN-CARGO-SALDO-NEGATIVO' AS rule_id, count(*) AS affected_count
 FROM public.cargos c

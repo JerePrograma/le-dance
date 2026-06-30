@@ -6,13 +6,13 @@ import ledance.dto.pago.request.PagoAnulacionRequest;
 import ledance.dto.pago.request.PagoRegistroRequest;
 import ledance.dto.pago.response.AplicacionPagoResponse;
 import ledance.dto.pago.response.PagoResponse;
+import ledance.dto.pago.response.PagoResumenResponse;
 import ledance.entidades.Alumno;
 import ledance.entidades.AplicacionPago;
 import ledance.entidades.Cargo;
 import ledance.entidades.EstadoAplicacionPago;
 import ledance.entidades.EstadoCargo;
 import ledance.entidades.EstadoPago;
-import ledance.entidades.EstadoRecibo;
 import ledance.entidades.EstadoReciboPendiente;
 import ledance.entidades.MetodoPago;
 import ledance.entidades.MovimientoCaja;
@@ -40,6 +40,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -209,7 +211,6 @@ public class PagoServicio {
 
         Recibo recibo = new Recibo();
         recibo.setPago(pago);
-        recibo.setEstado(EstadoRecibo.PENDIENTE);
         recibos.save(recibo);
 
         ReciboPendiente pendiente = new ReciboPendiente();
@@ -263,7 +264,6 @@ public class PagoServicio {
             aplicacion.setMotivoReversion(request.motivo());
             aplicacion.setFechaReversion(clock.instant());
         }
-        aplicaciones.flush();
         for (Cargo cargo : cargosBloqueados) {
             cargoServicio.actualizarEstado(cargo);
         }
@@ -309,8 +309,9 @@ public class PagoServicio {
     }
 
     @Transactional(readOnly = true)
-    public List<PagoResponse> listarPagosPorAlumno(Long alumnoId) {
-        return pagos.findByAlumnoIdOrderByFechaDescIdDesc(alumnoId).stream().map(this::respuesta).toList();
+    public Page<PagoResumenResponse> listarPagosPorAlumno(Long alumnoId, Pageable pageable) {
+        return pagos.findByAlumnoId(alumnoId, pageable)
+                .map(p -> new PagoResumenResponse(p.getId(), p.getFecha(), decimal(p.getMontoRecibido()), p.getEstado().name()));
     }
 
     private Usuario usuarioActivo(Usuario principal) {

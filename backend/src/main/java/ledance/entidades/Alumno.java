@@ -46,9 +46,6 @@ public class Alumno {
 
     @Column(length = 30)
     private String documento;
-    @Column(length = 20)
-    private String cuit;
-
     @NotNull
     @Column(nullable = false)
     private LocalDate fechaIncorporacion;

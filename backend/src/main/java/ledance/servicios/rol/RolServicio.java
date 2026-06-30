@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-public class RolServicio implements IRolServicio {
+public class RolServicio {
 
     private static final Logger log = LoggerFactory.getLogger(RolServicio.class);
 
@@ -26,7 +26,6 @@ public class RolServicio implements IRolServicio {
         this.rolMapper = rolMapper;
     }
 
-    @Override
     @Transactional
     public RolResponse registrarRol(RolRegistroRequest request) {
         log.info("Registrando rol: {}", request.descripcion());
@@ -39,14 +38,12 @@ public class RolServicio implements IRolServicio {
         return rolMapper.toDTO(guardado);
     }
 
-    @Override
     public RolResponse obtenerRolPorId(Long id) {
         Rol rol = rolRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Rol no encontrado."));
         return rolMapper.toDTO(rol);
     }
 
-    @Override
     public List<RolResponse> listarRoles() {
         return rolRepositorio.findAll().stream()
                 .map(rolMapper::toDTO)

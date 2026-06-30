@@ -1,7 +1,7 @@
 package ledance.controladores;
 
 import ledance.dto.inscripcion.request.InscripcionRegistroRequest;
-import ledance.dto.response.EstadisticasInscripcionResponse;
+import ledance.dto.PageResponse;
 import ledance.dto.inscripcion.response.InscripcionResponse;
 import ledance.servicios.inscripcion.InscripcionServicio;
 import org.slf4j.Logger;
@@ -10,6 +10,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.data.domain.Sort;
 
 import java.util.List;
 
@@ -42,25 +45,10 @@ public class InscripcionControlador {
     }
 
 
-    @PostMapping("/bulk")
-    public ResponseEntity<List<InscripcionResponse>> crearInscripcionesMasivas(@RequestBody List<InscripcionRegistroRequest> requests) {
-        List<InscripcionResponse> responses = inscripcionServicio.crearInscripcionesMasivas(requests);
-        return ResponseEntity.status(HttpStatus.CREATED).body(responses);
-    }
-
-    @GetMapping("/estadisticas")
-    public ResponseEntity<EstadisticasInscripcionResponse> obtenerEstadisticas() {
-        EstadisticasInscripcionResponse estadisticas = inscripcionServicio.obtenerEstadisticas();
-        return ResponseEntity.ok(estadisticas);
-    }
-
     @GetMapping
-    public ResponseEntity<List<InscripcionResponse>> listar(@RequestParam(required = false) Long alumnoId) {
-        if (alumnoId != null) {
-            log.info("Listando inscripciones para el alumnoId: {}", alumnoId);
-            return ResponseEntity.ok(inscripcionServicio.listarPorAlumno(alumnoId));
-        }
-        return ResponseEntity.ok(inscripcionServicio.listarInscripciones());
+    public ResponseEntity<PageResponse<InscripcionResponse>> listar(
+            @PageableDefault(size = 50, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(PageResponse.from(inscripcionServicio.listarInscripciones(pageable)));
     }
 
     @GetMapping("/{id}")
@@ -74,15 +62,6 @@ public class InscripcionControlador {
         }
     }
 
-    @GetMapping("/disciplina/{disciplinaId}")
-    public ResponseEntity<List<InscripcionResponse>> listarPorDisciplina(@PathVariable Long disciplinaId) {
-        log.info("Listando inscripciones para la disciplinaId: {}", disciplinaId);
-        List<InscripcionResponse> inscripciones = inscripcionServicio.listarPorDisciplina(disciplinaId);
-        return inscripciones.isEmpty()
-                ? ResponseEntity.noContent().build()
-                : ResponseEntity.ok(inscripciones);
-    }
-
     @DeleteMapping("/{id}")
     public ResponseEntity<?> eliminar(@PathVariable Long id) {
         try {
@@ -93,12 +72,6 @@ public class InscripcionControlador {
             log.error("Error al eliminar inscripcion con id {}: {}", id, e.getMessage());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
-    }
-
-    @GetMapping("/alumno/{alumnoId}")
-    public ResponseEntity<InscripcionResponse> obtenerInscripcionActiva(@PathVariable Long alumnoId) {
-        InscripcionResponse response = inscripcionServicio.obtenerInscripcionActiva(alumnoId);
-        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/alumno/{alumnoId}/activas")

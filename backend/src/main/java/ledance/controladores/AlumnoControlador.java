@@ -2,15 +2,17 @@ package ledance.controladores;
 
 import jakarta.validation.Valid;
 import ledance.dto.alumno.request.AlumnoRegistroRequest;
-import ledance.dto.alumno.response.AlumnoDataResponse;
 import ledance.dto.alumno.response.AlumnoResponse;
 import ledance.dto.disciplina.response.DisciplinaResponse;
+import ledance.dto.PageResponse;
 import ledance.servicios.alumno.AlumnoServicio;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 
 import java.util.List;
 
@@ -34,9 +36,9 @@ public class AlumnoControlador {
     }
 
     @GetMapping
-    public ResponseEntity<List<AlumnoResponse>> listarAlumnos() {
-        List<AlumnoResponse> alumnos = alumnoServicio.listarAlumnos();
-        return ResponseEntity.ok(alumnos);
+    public ResponseEntity<PageResponse<AlumnoResponse>> listarAlumnos(
+            @PageableDefault(size = 50, sort = "id") Pageable pageable) {
+        return ResponseEntity.ok(PageResponse.from(alumnoServicio.listarAlumnos(pageable)));
     }
 
     @GetMapping("/{id}")
@@ -52,35 +54,24 @@ public class AlumnoControlador {
         return ResponseEntity.ok(alumno);
     }
 
-    @DeleteMapping({"/{id}", "/dar-baja/{id}"})
+    @DeleteMapping("/{id}")
     public ResponseEntity<Void> darBajaAlumno(@PathVariable Long id) {
         log.info("Dando de baja al alumno con id: {}", id);
         alumnoServicio.darBajaAlumno(id);
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/listado")
-    public ResponseEntity<List<AlumnoResponse>> obtenerListadoAlumnosSimplificado() {
-        List<AlumnoResponse> listado = alumnoServicio.listarAlumnosSimplificado();
-        return ResponseEntity.ok(listado);
-    }
-
     @GetMapping("/buscar")
-    public ResponseEntity<List<AlumnoResponse>> buscarPorNombre(@RequestParam String nombre) {
-        List<AlumnoResponse> resultado = alumnoServicio.buscarPorNombre(nombre);
-        return ResponseEntity.ok(resultado);
+    public ResponseEntity<PageResponse<AlumnoResponse>> buscarPorNombre(
+            @RequestParam String nombre,
+            @PageableDefault(size = 50, sort = {"apellido", "nombre"}) Pageable pageable) {
+        return ResponseEntity.ok(PageResponse.from(alumnoServicio.buscarPorNombre(nombre, pageable)));
     }
 
     @GetMapping("/{alumnoId}/disciplinas")
     public ResponseEntity<List<DisciplinaResponse>> obtenerDisciplinasDeAlumno(@PathVariable Long alumnoId) {
         List<DisciplinaResponse> disciplinas = alumnoServicio.obtenerDisciplinasDeAlumno(alumnoId);
         return ResponseEntity.ok(disciplinas);
-    }
-
-    @GetMapping("/{id}/datos")
-    public ResponseEntity<AlumnoDataResponse> obtenerDatosAlumno(@PathVariable Long id) {
-        AlumnoDataResponse response = alumnoServicio.obtenerAlumnoData(id);
-        return ResponseEntity.ok(response);
     }
 
 }

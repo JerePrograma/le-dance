@@ -84,6 +84,15 @@ jobs:
           VITE_APP_TIME_ZONE: America/Argentina/Buenos_Aires
         run: docker compose -f docker-compose.yml -f docker-compose.prod.yml config --quiet
 
+  build-images:
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout verified SHA
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
       - name: Build backend image gate
         run: docker build --pull -t le-dance-backend:${{ github.sha }} ./backend
 
@@ -97,7 +106,7 @@ jobs:
 
   build-and-deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: validate
+    needs: build-images
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: production

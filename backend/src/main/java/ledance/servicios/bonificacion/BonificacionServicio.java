@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-public class BonificacionServicio implements IBonificacionServicio {
+public class BonificacionServicio {
 
     private static final Logger log = LoggerFactory.getLogger(BonificacionServicio.class);
 
@@ -27,7 +27,6 @@ public class BonificacionServicio implements IBonificacionServicio {
         this.bonificacionMapper = bonificacionMapper;
     }
 
-    @Override
     @Transactional
     public BonificacionResponse crearBonificacion(BonificacionRegistroRequest requestDTO) {
         log.info("Creando bonificacion: {}", requestDTO.descripcion());
@@ -39,21 +38,18 @@ public class BonificacionServicio implements IBonificacionServicio {
         return bonificacionMapper.toDTO(guardada);
     }
 
-    @Override
     public List<BonificacionResponse> listarBonificaciones() {
         return bonificacionRepositorio.findByActivoTrue().stream()
                 .map(bonificacionMapper::toDTO)
                 .collect(Collectors.toList());
     }
 
-    @Override
     public BonificacionResponse obtenerBonificacionPorId(Long id) {
         Bonificacion bonificacion = bonificacionRepositorio.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Bonificacion no encontrada."));
         return bonificacionMapper.toDTO(bonificacion);
     }
 
-    @Override
     @Transactional
     public BonificacionResponse actualizarBonificacion(Long id, BonificacionModificacionRequest requestDTO) {
         log.info("Actualizando bonificacion con id: {}", id);
@@ -64,7 +60,6 @@ public class BonificacionServicio implements IBonificacionServicio {
         return bonificacionMapper.toDTO(actualizada);
     }
 
-    @Override
     @Transactional
     public void eliminarBonificacion(Long id) {
         log.info("Dando de baja la bonificacion con id: {}", id);

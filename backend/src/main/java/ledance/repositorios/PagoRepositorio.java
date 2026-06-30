@@ -4,6 +4,8 @@ import jakarta.persistence.LockModeType;
 import ledance.entidades.EstadoPago;
 import ledance.entidades.Pago;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -20,6 +22,6 @@ public interface PagoRepositorio extends JpaRepository<Pago, Long> {
     @Query("select p from Pago p where p.id = :id")
     Optional<Pago> findByIdForUpdate(@Param("id") Long id);
 
-    List<Pago> findByAlumnoIdOrderByFechaDescIdDesc(Long alumnoId);
+    Page<Pago> findByAlumnoId(Long alumnoId, Pageable pageable);
     List<Pago> findByFechaBetweenAndEstadoOrderByFechaAscIdAsc(LocalDate desde, LocalDate hasta, EstadoPago estado);
 }

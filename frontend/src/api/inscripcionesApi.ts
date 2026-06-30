@@ -3,6 +3,7 @@ import api from "./axiosConfig";
 import type {
   InscripcionRegistroRequest,
   InscripcionResponse,
+  Page,
 } from "../types/types";
 
 const crear = async (request: InscripcionRegistroRequest): Promise<InscripcionResponse> => {
@@ -10,19 +11,13 @@ const crear = async (request: InscripcionRegistroRequest): Promise<InscripcionRe
   return response.data;
 };
 
-const listar = async (alumnoId?: number): Promise<InscripcionResponse[]> => {
-  const url = alumnoId ? `/inscripciones?alumnoId=${alumnoId}` : "/inscripciones";
-  const response = await api.get(url);
+const listar = async (page = 0, size = 50): Promise<Page<InscripcionResponse>> => {
+  const response = await api.get(`/inscripciones?page=${page}&size=${size}`);
   return response.data;
 };
 
 const obtenerPorId = async (id: number): Promise<InscripcionResponse> => {
   const response = await api.get(`/inscripciones/${id}`);
-  return response.data;
-};
-
-const listarPorDisciplina = async (disciplinaId: number): Promise<InscripcionResponse[]> => {
-  const response = await api.get(`/inscripciones/disciplina/${disciplinaId}`);
   return response.data;
 };
 
@@ -38,11 +33,6 @@ const eliminar = async (id: number): Promise<void> => {
   await api.delete(`/inscripciones/${id}`);
 };
 
-const obtenerInscripcionActiva = async (alumnoId: number): Promise<InscripcionResponse> => {
-  const { data } = await api.get<InscripcionResponse>(`/inscripciones/alumno/${alumnoId}`);
-  return data;
-};
-
 const obtenerInscripcionesActivas = async (alumnoId: number): Promise<InscripcionResponse[]> => {
   const { data } = await api.get<InscripcionResponse[]>(`/inscripciones/alumno/${alumnoId}/activas`);
   return data;
@@ -52,10 +42,8 @@ const inscripcionesApi = {
   crear,
   listar,
   obtenerPorId,
-  listarPorDisciplina,
   actualizar,
   eliminar,
-  obtenerInscripcionActiva,
   obtenerInscripcionesActivas
 };
 

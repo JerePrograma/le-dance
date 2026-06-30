@@ -46,7 +46,13 @@ public class SecurityConfigurations {
                     req.requestMatchers(HttpMethod.GET, "/api/usuarios/perfil").authenticated();
                     req.requestMatchers("/api/usuarios/**", "/api/roles/**")
                             .hasRole("ADMINISTRADOR");
-                    req.anyRequest().hasRole("ADMINISTRADOR");
+                    req.requestMatchers(
+                                    "/api/cargos/**", "/api/pagos/**", "/api/creditos/**",
+                                    "/api/caja/**", "/api/egresos/**", "/api/stocks/**",
+                                    "/api/matriculas/**", "/api/mensualidades/**", "/api/reportes/**")
+                            .hasRole("ADMINISTRADOR");
+                    req.requestMatchers("/api/**").hasRole("ADMINISTRADOR");
+                    req.anyRequest().denyAll();
                 })
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();

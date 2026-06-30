@@ -135,6 +135,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\codex\validate.ps1
 
 El gate completo ejecuta `mvnw.cmd clean verify`, lint, tests frontend sólo si existe el script, build y `docker compose config`. Conserva el primer código de error y muestra todos los resultados.
 
+En CI, `clean verify` se ejecuta primero en el runner con acceso a Docker para que Testcontainers use PostgreSQL 15. La construcción de imágenes es un job posterior y el `Dockerfile` backend empaqueta con `-DskipTests`; no monta `docker.sock` ni intenta iniciar Testcontainers dentro de BuildKit. Ambas imágenes se etiquetan con el SHA verificado.
+
 ## Configuración local de Codex
 
 Script de configuración, pestaña Windows:

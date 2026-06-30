@@ -14,14 +14,14 @@ import type { ConceptoResponse, SubConceptoResponse } from "../../types/types";
 interface FormValues {
   id?: number;
   descripcion: string;
-  precio: number;
+  precio: string;
   subConceptoId: number;
   activo: boolean;
 }
 
 const initialConceptoValues: FormValues = {
   descripcion: "",
-  precio: 0,
+  precio: "0",
   subConceptoId: 0,
   activo: true,
 };

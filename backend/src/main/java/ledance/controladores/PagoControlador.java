@@ -4,6 +4,8 @@ import jakarta.validation.Valid;
 import ledance.dto.pago.request.PagoAnulacionRequest;
 import ledance.dto.pago.request.PagoRegistroRequest;
 import ledance.dto.pago.response.PagoResponse;
+import ledance.dto.pago.response.PagoResumenResponse;
+import ledance.dto.PageResponse;
 import ledance.entidades.Usuario;
 import ledance.infra.configuracion.AppProperties;
 import ledance.repositorios.ReciboRepositorio;
@@ -15,6 +17,9 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -60,8 +65,10 @@ public class PagoControlador {
     }
 
     @GetMapping("/alumno/{alumnoId}")
-    public List<PagoResponse> listarPorAlumno(@PathVariable Long alumnoId) {
-        return pagos.listarPagosPorAlumno(alumnoId);
+    public PageResponse<PagoResumenResponse> listarPorAlumno(
+            @PathVariable Long alumnoId,
+            @PageableDefault(size = 50, sort = {"fecha", "id"}, direction = Sort.Direction.DESC) Pageable pageable) {
+        return PageResponse.from(pagos.listarPagosPorAlumno(alumnoId, pageable));
     }
 
     @GetMapping("/recibo/{pagoId}")

@@ -47,7 +47,7 @@ public class DisciplinaHorarioServicio {
      * Actualiza los horarios de una disciplina en base a una lista de solicitudes de modificacion.
      * Se actualizan los horarios existentes, se crean nuevos y se eliminan los que no vienen en la solicitud.
      * Finalmente, se invoca la actualizacion de la planilla de asistencia (por cambio de horario)
-     * usando la fecha de cambio (puedes recibirla como parametro o usar LocalDate.now()).
+     * usando la fecha de cambio proporcionada por el caso de uso.
      *
      * @param disciplina   la disciplina a la cual se actualizaran los horarios
      * @param horariosRequest lista de solicitudes de modificacion de horarios

@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import ledance.dto.egreso.request.EgresoAnulacionRequest;
 import ledance.dto.egreso.request.EgresoRegistroRequest;
 import ledance.dto.egreso.response.EgresoResponse;
+import ledance.dto.PageResponse;
 import ledance.entidades.Usuario;
 import ledance.servicios.egreso.EgresoServicio;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -13,6 +14,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.data.domain.Sort;
 
 import java.util.List;
 
@@ -44,7 +48,8 @@ public class EgresoControlador {
     }
 
     @GetMapping
-    public List<EgresoResponse> listar() {
-        return egresos.listarEgresos();
+    public PageResponse<EgresoResponse> listar(
+            @PageableDefault(size = 50, sort = {"fecha", "id"}, direction = Sort.Direction.DESC) Pageable pageable) {
+        return PageResponse.from(egresos.listarEgresos(pageable));
     }
 }

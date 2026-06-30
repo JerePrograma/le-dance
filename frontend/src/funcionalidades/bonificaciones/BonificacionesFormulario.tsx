@@ -16,9 +16,9 @@ import type {
 const initialBonificacionValues: BonificacionRegistroRequest &
   Partial<BonificacionModificacionRequest> = {
   descripcion: "",
-  porcentajeDescuento: 0,
+  porcentajeDescuento: "0",
   observaciones: "",
-  valorFijo: 0, // Valor fijo por defecto
+  valorFijo: "0",
   activo: true,
 };
 
@@ -48,7 +48,7 @@ const BonificacionesFormulario: React.FC = () => {
         descripcion: bonificacion.descripcion,
         porcentajeDescuento: bonificacion.porcentajeDescuento,
         observaciones: bonificacion.observaciones || "",
-        valorFijo: bonificacion.valorFijo ?? 0,
+        valorFijo: bonificacion.valorFijo ?? "0",
         activo: bonificacion.activo,
       };
     },

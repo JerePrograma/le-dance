@@ -1,503 +1,154 @@
-// src/funcionalidades/disciplinas/DisciplinasFormulario.tsx
-import React, { useState, useEffect, useCallback } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Formik, Form, Field, FieldArray, ErrorMessage, type FieldProps } from "formik";
-import * as Yup from "yup";
 import { toast } from "react-toastify";
-import { Search } from "lucide-react";
-import Boton from "../../componentes/comunes/Boton";
-
-// APIs
 import disciplinasApi from "../../api/disciplinasApi";
-import salonesApi from "../../api/salonesApi";
 import profesoresApi from "../../api/profesoresApi";
-import conceptosApi from "../../api/conceptosApi";
-
-// Tipos
-import type {
-  DisciplinaRegistroRequest,
-  DisciplinaModificacionRequest,
-  SalonResponse,
-  ProfesorListadoResponse,
-  DisciplinaHorarioRequest,
-  DisciplinaDetalleResponse,
+import salonesApi from "../../api/salonesApi";
+import Boton from "../../componentes/comunes/Boton";
+import {
   DiaSemana,
+  type DisciplinaHorarioRequest,
+  type DisciplinaRegistroRequest,
+  type ProfesorListadoResponse,
+  type SalonResponse,
 } from "../../types/types";
-import NumberInputWithoutScroll from "../pagos/NumberInputWithoutScroll";
 
-// Usamos solo lunes a sábado para la selección
-const diasDisponibles: string[] = [
-  "LUNES",
-  "MARTES",
-  "MIERCOLES",
-  "JUEVES",
-  "VIERNES",
-  "SABADO",
-];
+type FormValues = DisciplinaRegistroRequest & { activo: boolean };
 
-const initialDisciplinaValues: DisciplinaRegistroRequest &
-  Partial<DisciplinaModificacionRequest> = {
+const emptyValues: FormValues = {
   nombre: "",
   salonId: 0,
   profesorId: 0,
-  recargoId: undefined,
-  valorCuota: 0,
-  matricula: 0,
-  claseSuelta: undefined,
-  clasePrueba: undefined,
+  valorCuota: "0",
+  matricula: "0",
+  claseSuelta: "0",
+  clasePrueba: "0",
   activo: true,
-  horarios: [] as DisciplinaHorarioRequest[],
+  horarios: [],
 };
 
-const disciplinaSchema = Yup.object().shape({
-  nombre: Yup.string().required("El nombre es obligatorio"),
-  salonId: Yup.number().positive().required("Debe seleccionar un salón"),
-  profesorId: Yup.number().positive().required("Debe seleccionar un profesor"),
-  // Puedes agregar validaciones adicionales según sea necesario
+const emptyHorario = (): DisciplinaHorarioRequest => ({
+  diaSemana: DiaSemana.LUNES,
+  horarioInicio: "18:00",
+  duracion: 60,
 });
 
-// Extendemos el type para incluir el campo ID (para edición) y que los horarios se gestionen vía checkboxes
-type FormValues = DisciplinaRegistroRequest &
-  Partial<DisciplinaModificacionRequest> & {
-    id?: number;
-  };
-
-const DisciplinasFormulario: React.FC = () => {
+const DisciplinasFormulario = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-
-  const [disciplinaId, setDisciplinaId] = useState<number | null>(null);
-  // Campo para mostrar el ID de la disciplina en el input de búsqueda
-  const [idBusqueda, setIdBusqueda] = useState("");
-  const [formValues, setFormValues] = useState<FormValues>({
-    ...initialDisciplinaValues,
-  });
-  const [mensaje, setMensaje] = useState("");
-
+  const id = Number(searchParams.get("id")) || null;
+  const [values, setValues] = useState<FormValues>(emptyValues);
   const [salones, setSalones] = useState<SalonResponse[]>([]);
   const [profesores, setProfesores] = useState<ProfesorListadoResponse[]>([]);
-  const [matricula, setMatricula] = useState<number>(0);
+  const [saving, setSaving] = useState(false);
 
-  const fetchSalones = useCallback(async () => {
-    try {
-      const response = await salonesApi.listarSalones();
-      setSalones(response.content);
-    } catch {
-      toast.error("Error al cargar salones");
-    }
-  }, []);
-
-  const fetchProfesores = useCallback(async () => {
-    try {
-      const response = await profesoresApi.listarProfesoresActivos();
-      setProfesores(response);
-    } catch {
-      toast.error("Error al cargar profesores");
-    }
+  useEffect(() => {
+    Promise.all([salonesApi.listarSalones(0, 200), profesoresApi.listarProfesoresActivos(true)])
+      .then(([salonesPage, profesoresData]) => {
+        setSalones(salonesPage.content);
+        setProfesores(profesoresData);
+      })
+      .catch(() => toast.error("No se pudieron cargar salones y profesores."));
   }, []);
 
   useEffect(() => {
-    fetchSalones();
-    fetchProfesores();
-  }, [fetchSalones, fetchProfesores]);
+    if (!id) return;
+    disciplinasApi
+      .obtenerDisciplinaPorId(id)
+      .then((disciplina) =>
+        setValues({
+          id: disciplina.id,
+          nombre: disciplina.nombre,
+          salonId: disciplina.salonId,
+          profesorId: disciplina.profesorId ?? 0,
+          valorCuota: disciplina.valorCuota,
+          matricula: disciplina.matricula,
+          claseSuelta: disciplina.claseSuelta ?? "0",
+          clasePrueba: disciplina.clasePrueba ?? "0",
+          activo: disciplina.activo,
+          horarios: disciplina.horarios.map((horario) => ({
+            id: horario.id,
+            diaSemana: horario.diaSemana,
+            horarioInicio: horario.horarioInicio,
+            duracion: horario.duracion,
+          })),
+        })
+      )
+      .catch(() => toast.error("No se pudo cargar la disciplina."));
+  }, [id]);
 
-  const fetchMatricula = useCallback(async () => {
+  const updateHorario = (index: number, patch: Partial<DisciplinaHorarioRequest>) =>
+    setValues((current) => ({
+      ...current,
+      horarios: current.horarios.map((horario, currentIndex) =>
+        currentIndex === index ? { ...horario, ...patch } : horario
+      ),
+    }));
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    setSaving(true);
     try {
-      const conceptos = await conceptosApi.listarConceptos();
-      const matriculaConcepto = conceptos.find(
-        (concepto) => concepto.descripcion.toUpperCase() === "MATRICULA"
-      );
-      if (matriculaConcepto) {
-        setMatricula(matriculaConcepto.precio);
+      if (id) {
+        await disciplinasApi.actualizarDisciplina(id, {
+          nombre: values.nombre,
+          salonId: values.salonId,
+          profesorId: values.profesorId,
+          valorCuota: values.valorCuota,
+          matricula: values.matricula,
+          claseSuelta: values.claseSuelta,
+          clasePrueba: values.clasePrueba,
+          activo: values.activo,
+          horarios: values.horarios,
+        });
       } else {
-        setMatricula(0);
+        await disciplinasApi.registrarDisciplina(values);
       }
+      toast.success("Disciplina guardada correctamente.");
+      navigate("/disciplinas");
     } catch {
-      toast.error("Error al obtener el concepto 'MATRICULA':");
+      toast.error("No se pudo guardar la disciplina.");
+    } finally {
+      setSaving(false);
     }
-  }, []);
-
-  const mapDetalleToFormValues = (
-    detalle: DisciplinaDetalleResponse
-  ): FormValues => ({
-    nombre: detalle.nombre,
-    salonId: detalle.salonId, // Asegúrate de que este campo exista en la respuesta
-    profesorId: detalle.profesorId ?? 0,
-    recargoId: detalle.recargoId,
-    valorCuota: detalle.valorCuota,
-    matricula: detalle.matricula,
-    claseSuelta: detalle.claseSuelta,
-    clasePrueba: detalle.clasePrueba,
-    activo: detalle.activo,
-    // Los horarios se mapearán al formato esperado para el formulario:
-    horarios: detalle.horarios.map((horario) => ({
-      diaSemana: horario.diaSemana as unknown as DiaSemana,
-      horarioInicio: horario.horarioInicio,
-      duracion: horario.duracion,
-      id: horario.id,
-    })),
-  });
-
-  useEffect(() => {
-    fetchMatricula();
-    const idParam = searchParams.get("id");
-    if (idParam) {
-      const fetchDisciplina = async () => {
-        try {
-          const detalle: DisciplinaDetalleResponse =
-            await disciplinasApi.obtenerDisciplinaPorId(Number(idParam));
-          const disciplinaForm = mapDetalleToFormValues(detalle);
-          setFormValues(disciplinaForm);
-          setDisciplinaId(detalle.id);
-          setIdBusqueda(String(detalle.id));
-          setMensaje("Disciplina encontrada.");
-        } catch {
-          toast.error("Error al buscar la disciplina:");
-          setMensaje("Disciplina no encontrada.");
-          setFormValues(initialDisciplinaValues);
-          setDisciplinaId(null);
-          setIdBusqueda("");
-        }
-      };
-      fetchDisciplina();
-    }
-  }, [searchParams, fetchMatricula]);
-
-  const handleSubmit = useCallback(
-    async (values: DisciplinaRegistroRequest) => {
-      try {
-        const payload: DisciplinaRegistroRequest &
-          Partial<DisciplinaModificacionRequest> = {
-          ...values,
-          matricula,
-        };
-        if (disciplinaId) {
-          await disciplinasApi.actualizarDisciplina(disciplinaId, {
-            ...payload,
-            activo: true,
-          } as DisciplinaModificacionRequest);
-          toast.success("Disciplina actualizada correctamente.");
-        } else {
-          const nuevo = await disciplinasApi.registrarDisciplina(payload);
-          setDisciplinaId(nuevo.id);
-          setIdBusqueda(String(nuevo.id));
-          toast.success("Disciplina creada correctamente.");
-        }
-        setMensaje("Disciplina guardada exitosamente.");
-        navigate("/disciplinas");
-      } catch {
-        toast.error("Error al guardar la disciplina.");
-        setMensaje("Error al guardar la disciplina.");
-      }
-    },
-    [disciplinaId, matricula, navigate]
-  );
+  };
 
   return (
     <div className="page-container">
-      <h1 className="page-title">Formulario de Disciplina</h1>
-
-      {/* Campo para mostrar el ID de la Disciplina */}
-      <div className="mb-4">
-        <label htmlFor="idBusqueda" className="auth-label">
-          ID de Disciplina:
-        </label>
-        <div className="flex gap-2">
-          <input
-            type="number"
-            id="idBusqueda"
-            value={idBusqueda}
-            onChange={(e) => setIdBusqueda(e.target.value)}
-            className="form-input flex-grow"
-            readOnly={disciplinaId !== null}
-          />
-          <Boton
-            onClick={() => {
-              /* Lógica de búsqueda manual si se requiere */
-            }}
-            className="page-button"
-          >
-            <Search className="w-5 h-5 mr-2" /> Buscar
-          </Boton>
+      <h1 className="page-title">{id ? "Editar disciplina" : "Nueva disciplina"}</h1>
+      <form onSubmit={submit} className="formulario max-w-5xl mx-auto">
+        <div className="form-grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <TextField label="Nombre" value={values.nombre} onChange={(value) => setValues({ ...values, nombre: value })} required />
+          <label className="auth-label">Salón<select className="form-input" required value={values.salonId} onChange={(event) => setValues({ ...values, salonId: Number(event.target.value) })}><option value={0}>Seleccione</option>{salones.map((salon) => <option key={salon.id} value={salon.id}>{salon.nombre}</option>)}</select></label>
+          <label className="auth-label">Profesor<select className="form-input" required value={values.profesorId} onChange={(event) => setValues({ ...values, profesorId: Number(event.target.value) })}><option value={0}>Seleccione</option>{profesores.map((profesor) => <option key={profesor.id} value={profesor.id}>{profesor.apellido}, {profesor.nombre}</option>)}</select></label>
+          <TextField label="Valor de cuota" value={values.valorCuota} onChange={(value) => setValues({ ...values, valorCuota: value })} required />
+          <TextField label="Matrícula" value={values.matricula} onChange={(value) => setValues({ ...values, matricula: value })} />
+          <TextField label="Clase suelta" value={values.claseSuelta ?? ""} onChange={(value) => setValues({ ...values, claseSuelta: value })} />
+          <TextField label="Clase de prueba" value={values.clasePrueba ?? ""} onChange={(value) => setValues({ ...values, clasePrueba: value })} />
+          {id && <label className="auth-label flex items-center gap-2"><input type="checkbox" checked={values.activo} onChange={(event) => setValues({ ...values, activo: event.target.checked })} />Activa</label>}
         </div>
-      </div>
-
-      {mensaje && (
-        <p
-          className={`form-mensaje ${
-            mensaje.includes("Error")
-              ? "form-mensaje-error"
-              : "form-mensaje-success"
-          }`}
-        >
-          {mensaje}
-        </p>
-      )}
-
-      <Formik
-        initialValues={{ ...formValues, matricula }}
-        validationSchema={disciplinaSchema}
-        onSubmit={handleSubmit}
-        enableReinitialize
-      >
-        {({ isSubmitting }) => (
-          <Form className="formulario max-w-4xl mx-auto">
-            <div className="form-grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Campos básicos */}
-              <div className="mb-4">
-                <label htmlFor="nombre" className="auth-label">
-                  Nombre:
-                </label>
-                <Field name="nombre" type="text" className="form-input" />
-                <ErrorMessage
-                  name="nombre"
-                  component="div"
-                  className="auth-error"
-                />
-              </div>
-              <div className="mb-4">
-                <label htmlFor="salonId" className="auth-label">
-                  Salón:
-                </label>
-                <Field as="select" name="salonId" className="form-input">
-                  <option value="">Seleccione un salón</option>
-                  {salones.map((salon) => (
-                    <option key={salon.id} value={salon.id}>
-                      {salon.nombre}
-                    </option>
-                  ))}
-                </Field>
-                <ErrorMessage
-                  name="salonId"
-                  component="div"
-                  className="auth-error"
-                />
-              </div>
-              <div className="mb-4">
-                <label htmlFor="profesorId" className="auth-label">
-                  Profesor:
-                </label>
-                <Field as="select" name="profesorId" className="form-input">
-                  <option value="">Seleccione un profesor</option>
-                  {profesores.map((profesor) => (
-                    <option key={profesor.id} value={profesor.id}>
-                      {profesor.nombre} {profesor.apellido}
-                    </option>
-                  ))}
-                </Field>
-                <ErrorMessage
-                  name="profesorId"
-                  component="div"
-                  className="auth-error"
-                />
-              </div>
-              {/* Valor de Cuota */}
-              <div className="mb-4">
-                <label htmlFor="valorCuota" className="auth-label">
-                  Valor de Cuota:
-                </label>
-                <Field name="valorCuota">
-                  {({ field }: FieldProps<number>) => (
-                    <NumberInputWithoutScroll
-                      {...field}
-                      id="valorCuota"
-                      step="0.01"
-                      className="w-full px-2 py-1 border rounded text-center no-spinner"
-                    />
-                  )}
-                </Field>
-                <ErrorMessage
-                  name="valorCuota"
-                  component="div"
-                  className="auth-error"
-                />
-              </div>
-
-              {/* Clase Suelta */}
-              <div className="mb-4">
-                <label htmlFor="claseSuelta" className="auth-label">
-                  Clase Suelta:
-                </label>
-                <Field name="claseSuelta">
-                  {({ field }: FieldProps<number>) => (
-                    <NumberInputWithoutScroll
-                      {...field}
-                      id="claseSuelta"
-                      step="0.01"
-                      className="w-full px-2 py-1 border rounded text-center no-spinner"
-                    />
-                  )}
-                </Field>
-                <ErrorMessage
-                  name="claseSuelta"
-                  component="div"
-                  className="auth-error"
-                />
-              </div>
-
-              {/* Clase de Prueba */}
-              <div className="mb-4">
-                <label htmlFor="clasePrueba" className="auth-label">
-                  Clase de Prueba:
-                </label>
-                <Field name="clasePrueba">
-                  {({ field }: FieldProps<number>) => (
-                    <NumberInputWithoutScroll
-                      {...field}
-                      id="clasePrueba"
-                      step="0.01"
-                      className="w-full px-2 py-1 border rounded text-center no-spinner"
-                    />
-                  )}
-                </Field>
-                <ErrorMessage
-                  name="clasePrueba"
-                  component="div"
-                  className="auth-error"
-                />
-              </div>
-
-              {/* Checkbox Activo (sin cambios) */}
-              {disciplinaId !== null && (
-                <div className="mb-4">
-                  <label className="flex items-center">
-                    <Field
-                      type="checkbox"
-                      name="activo"
-                      className="form-checkbox"
-                    />
-                    <span className="ml-2">Activo</span>
-                  </label>
-                  <ErrorMessage
-                    name="activo"
-                    component="div"
-                    className="auth-error"
-                  />
-                </div>
-              )}
-              {/* Sección de Horarios: fila de checkboxes para seleccionar días */}
-              <div className="mb-4 col-span-1 sm:col-span-2">
-                <label className="auth-label">Seleccionar Días de Clase:</label>
-                <FieldArray name="horarios">
-                  {({ push, remove, form }) => {
-                    const { values } = form;
-                    const horarios = values.horarios || [];
-                    return (
-                      <>
-                        <div className="flex gap-4">
-                          {diasDisponibles.map((dia) => {
-                            const isSelected = horarios.some(
-                              (h: DisciplinaHorarioRequest) =>
-                                h.diaSemana === dia
-                            );
-                            return (
-                              <label
-                                key={dia}
-                                className="flex items-center gap-1"
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={isSelected}
-                                  onChange={() => {
-                                    if (isSelected) {
-                                      // Remover el horario correspondiente
-                                      const index = horarios.findIndex(
-                                        (h: DisciplinaHorarioRequest) =>
-                                          h.diaSemana === dia
-                                      );
-                                      if (index >= 0) remove(index);
-                                    } else {
-                                      // Agregar un nuevo horario para ese día
-                                      push({
-                                        diaSemana: dia as unknown as DiaSemana,
-                                        horarioInicio: "",
-                                        duracion: 0,
-                                      });
-                                    }
-                                  }}
-                                />
-                                <span>{dia}</span>
-                              </label>
-                            );
-                          })}
-                        </div>
-
-                        {/* Mostrar campos para cada horario seleccionado */}
-                        {horarios.map(
-                          (
-                            horario: DisciplinaHorarioRequest,
-                            index: number
-                          ) => (
-                            <div
-                              key={index}
-                              className="horario-item border p-2 mt-4"
-                            >
-                              <Field
-                                name={`horarios.${index}.diaSemana`}
-                                type="hidden"
-                              />
-                              <div className="mb-2">
-                                <label>
-                                  Horario Inicio ({horario.diaSemana}):
-                                </label>
-                                <Field
-                                  name={`horarios.${index}.horarioInicio`}
-                                  type="time"
-                                  className="form-input"
-                                />
-                                <ErrorMessage
-                                  name={`horarios.${index}.horarioInicio`}
-                                  component="div"
-                                  className="auth-error"
-                                />
-                              </div>
-                              <div className="mb-2">
-                                <label>
-                                  Duración (horas) ({horario.diaSemana}):
-                                </label>
-                                <Field
-                                  name={`horarios.${index}.duracion`}
-                                  type="number"
-                                  step="0.1"
-                                  className="form-input"
-                                />
-                                <ErrorMessage
-                                  name={`horarios.${index}.duracion`}
-                                  component="div"
-                                  className="auth-error"
-                                />
-                              </div>
-                            </div>
-                          )
-                        )}
-                      </>
-                    );
-                  }}
-                </FieldArray>
-              </div>
+        <div className="mt-6 space-y-3">
+          <div className="flex justify-between items-center"><h2 className="text-lg font-semibold">Horarios</h2><Boton type="button" onClick={() => setValues({ ...values, horarios: [...values.horarios, emptyHorario()] })} className="page-button-secondary">Agregar horario</Boton></div>
+          {values.horarios.map((horario, index) => (
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3" key={horario.id ?? index}>
+              <select className="form-input" value={horario.diaSemana} onChange={(event) => updateHorario(index, { diaSemana: event.target.value as DiaSemana })}>{Object.values(DiaSemana).map((dia) => <option key={dia} value={dia}>{dia}</option>)}</select>
+              <input className="form-input" type="time" value={horario.horarioInicio} onChange={(event) => updateHorario(index, { horarioInicio: event.target.value })} />
+              <input className="form-input" type="number" min="1" value={horario.duracion} onChange={(event) => updateHorario(index, { duracion: Number(event.target.value) })} />
+              <Boton type="button" onClick={() => setValues({ ...values, horarios: values.horarios.filter((_, currentIndex) => currentIndex !== index) })} className="page-button-secondary">Quitar</Boton>
             </div>
-
-            <div className="form-acciones">
-              <Boton
-                type="submit"
-                className="page-button"
-                disabled={isSubmitting}
-              >
-                {disciplinaId ? "Actualizar" : "Crear"} Disciplina
-              </Boton>
-              <Boton
-                type="button"
-                onClick={() => navigate("/disciplinas")}
-                className="page-button-secondary"
-              >
-                Cancelar
-              </Boton>
-            </div>
-          </Form>
-        )}
-      </Formik>
+          ))}
+        </div>
+        <div className="form-acciones">
+          <Boton type="submit" disabled={saving || values.salonId === 0 || values.profesorId === 0} className="page-button">Guardar</Boton>
+          <Boton type="button" onClick={() => navigate("/disciplinas")} className="page-button-secondary">Cancelar</Boton>
+        </div>
+      </form>
     </div>
   );
 };
+
+const TextField = ({ label, value, onChange, required = false }: { label: string; value: string; onChange: (value: string) => void; required?: boolean }) => (
+  <label className="auth-label">{label}<input className="form-input" type="text" inputMode={label === "Nombre" ? undefined : "decimal"} value={value} required={required} onChange={(event) => onChange(event.target.value)} /></label>
+);
 
 export default DisciplinasFormulario;

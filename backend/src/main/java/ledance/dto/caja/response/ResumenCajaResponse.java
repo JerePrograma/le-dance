@@ -1,7 +1,7 @@
 package ledance.dto.caja.response;
 
 import java.time.LocalDate;
-import java.util.List;
+import ledance.dto.PageResponse;
 
 public record ResumenCajaResponse(
         LocalDate desde,
@@ -9,6 +9,6 @@ public record ResumenCajaResponse(
         String totalIngresos,
         String totalEgresos,
         String saldo,
-        List<MovimientoCajaResponse> movimientos
+        PageResponse<MovimientoCajaResponse> movimientos
 ) {
 }

@@ -21,6 +21,8 @@ public interface MensualidadMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "inscripcion", ignore = true)
+    @Mapping(target = "bonificacion", ignore = true)
+    @Mapping(target = "recargo", ignore = true)
     @Mapping(target = "fechaGeneracion", ignore = true)
     @Mapping(target = "fechaVencimiento", ignore = true)
     @Mapping(target = "descripcion", ignore = true)

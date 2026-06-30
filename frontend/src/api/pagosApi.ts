@@ -1,5 +1,5 @@
 import api from "./axiosConfig";
-import type { PagoAnulacionRequest, PagoRegistroRequest, PagoResponse } from "../types/types";
+import type { Page, PagoAnulacionRequest, PagoRegistroRequest, PagoResponse, PagoResumenResponse } from "../types/types";
 
 const registrarPago = async (request: PagoRegistroRequest): Promise<PagoResponse> =>
   (await api.post<PagoResponse>("/pagos", request)).data;
@@ -7,8 +7,8 @@ const registrarPago = async (request: PagoRegistroRequest): Promise<PagoResponse
 const obtenerPagoPorId = async (id: number): Promise<PagoResponse> =>
   (await api.get<PagoResponse>(`/pagos/${id}`)).data;
 
-const listarPagosPorAlumno = async (alumnoId: number): Promise<PagoResponse[]> =>
-  (await api.get<PagoResponse[]>(`/pagos/alumno/${alumnoId}`)).data;
+const listarPagosPorAlumno = async (alumnoId: number, page = 0, size = 50): Promise<Page<PagoResumenResponse>> =>
+  (await api.get<Page<PagoResumenResponse>>(`/pagos/alumno/${alumnoId}?page=${page}&size=${size}`)).data;
 
 const anularPago = async (id: number, request: PagoAnulacionRequest): Promise<PagoResponse> =>
   (await api.post<PagoResponse>(`/pagos/${id}/anulacion`, request)).data;

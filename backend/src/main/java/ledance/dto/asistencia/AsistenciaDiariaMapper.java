@@ -1,22 +1,21 @@
 package ledance.dto.asistencia;
 
-import ledance.dto.alumno.response.AlumnoResponse;
+import ledance.dto.alumno.AlumnoMapper;
 import ledance.dto.asistencia.request.AsistenciaDiariaRegistroRequest;
 import ledance.dto.asistencia.request.AsistenciaDiariaModificacionRequest;
 import ledance.dto.asistencia.response.AsistenciaDiariaDetalleResponse;
 import ledance.entidades.AsistenciaDiaria;
-import ledance.entidades.Inscripcion;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = AlumnoMapper.class)
 public interface AsistenciaDiariaMapper {
 
     @Mapping(target = "id", source = "id")
     @Mapping(target = "fecha", source = "fecha")
     @Mapping(target = "estado", source = "estado")
     // Se asigna el objeto AlumnoResponse a partir de la inscripcion del alumno
-    @Mapping(target = "alumno", source = "asistenciaAlumnoMensual.inscripcion")
+    @Mapping(target = "alumno", source = "asistenciaAlumnoMensual.inscripcion.alumno", qualifiedByName = "toResponse")
     // Se obtiene el id del registro mensual del alumno
     @Mapping(target = "asistenciaAlumnoMensualId", source = "asistenciaAlumnoMensual.id")
     @Mapping(target = "asistenciaMensualId", source = "asistenciaAlumnoMensual.asistenciaMensual.id")
@@ -26,10 +25,12 @@ public interface AsistenciaDiariaMapper {
     @Mapping(target = "id", ignore = false)
     // La relacion con asistenciaAlumnoMensual se establecera por separado en el servicio
     @Mapping(target = "asistenciaAlumnoMensual", ignore = true)
+    @Mapping(target = "vigente", constant = "true")
     AsistenciaDiaria toEntity(AsistenciaDiariaRegistroRequest request);
 
     @Mapping(target = "id", source = "id")
     @Mapping(target = "asistenciaAlumnoMensual", ignore = true)
+    @Mapping(target = "vigente", ignore = true)
     void updateEntityFromRequest(AsistenciaDiariaModificacionRequest request,
                                  @org.mapstruct.MappingTarget AsistenciaDiaria asistenciaDiaria);
 

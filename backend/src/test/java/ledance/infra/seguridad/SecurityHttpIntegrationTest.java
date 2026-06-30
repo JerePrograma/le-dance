@@ -52,6 +52,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.containsString;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @WebMvcTest(controllers = {
         AutenticacionControlador.class,
@@ -280,6 +281,41 @@ class SecurityHttpIntegrationTest {
                         .header(HttpHeaders.AUTHORIZATION, bearer(tokenService.generarAccessToken(operator)))
                         .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void matrizFinancieraExplicitaRechazaAnonimoYOperador() throws Exception {
+        Usuario operator = usuario(2L, "operator", "OPERADOR", true);
+        Usuario admin = usuario(1L, "admin", "ADMINISTRADOR", true);
+        String[] endpoints = {
+                "/api/cargos/1", "/api/pagos/1", "/api/creditos/alumno/1/saldo",
+                "/api/caja/resumen", "/api/egresos/1", "/api/stocks/1",
+                "/api/pagos/recibo/1", "/api/reportes/mensualidades"
+        };
+
+        for (String endpoint : endpoints) {
+            mockMvc.perform(get(endpoint)).andExpect(status().isUnauthorized());
+            when(usuarioRepositorio.findById(2L)).thenReturn(Optional.of(operator));
+            mockMvc.perform(get(endpoint).header(HttpHeaders.AUTHORIZATION, bearer(tokenService.generarAccessToken(operator))))
+                    .andExpect(status().isForbidden());
+            when(usuarioRepositorio.findById(1L)).thenReturn(Optional.of(admin));
+            mockMvc.perform(get(endpoint).header(HttpHeaders.AUTHORIZATION, bearer(tokenService.generarAccessToken(admin))))
+                    .andExpect(result -> assertThat(result.getResponse().getStatus()).isNotIn(401, 403));
+        }
+    }
+
+    @Test
+    void pagoConIdempotencyKeyInvalidaDevuelve400() throws Exception {
+        Usuario admin = usuario(1L, "admin", "ADMINISTRADOR", true);
+        when(usuarioRepositorio.findById(1L)).thenReturn(Optional.of(admin));
+        String body = """
+                {"alumnoId":1,"metodoPagoId":1,"montoRecibido":"10.00",
+                 "idempotencyKey":"","aplicaciones":[],"generarCredito":true}
+                """;
+        mockMvc.perform(post("/api/pagos")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenService.generarAccessToken(admin)))
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isBadRequest());
     }
 
     @Test

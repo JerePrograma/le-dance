@@ -17,7 +17,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 @Service
-public class UsuarioServicio implements IUsuarioServicio {
+public class UsuarioServicio {
 
     private static final Logger log = LoggerFactory.getLogger(UsuarioServicio.class);
 
@@ -36,7 +36,6 @@ public class UsuarioServicio implements IUsuarioServicio {
         this.usuarioMapper = usuarioMapper;
     }
 
-    @Override
     @Transactional
     public String registrarUsuario(UsuarioRegistroRequest datosRegistro) {
         log.info("Registrando usuario con nombre de usuario: {}", datosRegistro.nombreUsuario());
@@ -86,7 +85,6 @@ public class UsuarioServicio implements IUsuarioServicio {
         return convertirAUsuarioResponse(usuario);
     }
 
-    @Override
     public List<Usuario> listarUsuarios(String rolDescripcion, Boolean activo) {
         if (rolDescripcion != null && activo != null) {
             Rol rol = rolRepositorio.findByDescripcion(rolDescripcion)
@@ -103,7 +101,6 @@ public class UsuarioServicio implements IUsuarioServicio {
         }
     }
 
-    @Override
     public UsuarioResponse convertirAUsuarioResponse(Usuario usuario) {
         return usuarioMapper.toDTO(usuario);
     }

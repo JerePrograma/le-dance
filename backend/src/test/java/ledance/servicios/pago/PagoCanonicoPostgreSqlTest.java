@@ -10,10 +10,13 @@ import ledance.infra.errores.TratadorDeErrores.OperacionNoPermitidaException;
 import ledance.infra.persistencia.PostgreSqlIntegrationTest;
 import ledance.repositorios.UsuarioRepositorio;
 import ledance.servicios.credito.CreditoServicio;
+import ledance.servicios.caja.CajaServicio;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -30,6 +33,7 @@ class PagoCanonicoPostgreSqlTest extends PostgreSqlIntegrationTest {
 
     @Autowired private PagoServicio pagos;
     @Autowired private CreditoServicio creditos;
+    @Autowired private CajaServicio caja;
     @Autowired private UsuarioRepositorio usuarios;
     @Autowired private JdbcTemplate jdbc;
 
@@ -62,6 +66,8 @@ class PagoCanonicoPostgreSqlTest extends PostgreSqlIntegrationTest {
     void sobreaplicacionYSobrepagoImplicitoSeRechazanSinPersistenciaParcial() {
         Escenario escenario = escenario(new BigDecimal("100.00"), new BigDecimal("50.00"));
         int pagosAntes = total("pagos");
+        int recibosAntes = total("recibos");
+        int efectosAntes = total("recibos_pendientes");
 
         assertThatThrownBy(() -> pagos.registrarPago(pago(escenario, "120.00", false,
                 new AplicacionPagoRequest(escenario.cargo1(), "120.00")), escenario.usuario()))
@@ -73,6 +79,8 @@ class PagoCanonicoPostgreSqlTest extends PostgreSqlIntegrationTest {
                 .hasMessageContaining("generación explícita");
 
         assertThat(total("pagos")).isEqualTo(pagosAntes);
+        assertThat(total("recibos")).isEqualTo(recibosAntes);
+        assertThat(total("recibos_pendientes")).isEqualTo(efectosAntes);
         assertThat(estadoCargo(escenario.cargo1())).isEqualTo("PENDIENTE");
     }
 
@@ -87,6 +95,8 @@ class PagoCanonicoPostgreSqlTest extends PostgreSqlIntegrationTest {
         var repetido = pagos.registrarPago(request, escenario.usuario());
         assertThat(repetido.id()).isEqualTo(creado.id());
         assertThat(contar("pagos", "idempotency_key", key)).isOne();
+        assertThat(contar("recibos", "pago_id", creado.id())).isOne();
+        assertThat(contar("recibos_pendientes", "pago_id", creado.id())).isOne();
         assertThatThrownBy(() -> pagos.registrarPago(new PagoRegistroRequest(
                 escenario.alumno(), escenario.metodo(), "41.00", key, null,
                 List.of(new AplicacionPagoRequest(escenario.cargo1(), "41.00")), false), escenario.usuario()))
@@ -101,6 +111,11 @@ class PagoCanonicoPostgreSqlTest extends PostgreSqlIntegrationTest {
                 creado.id())).isEqualTo(2);
         assertThat(jdbc.queryForObject("SELECT sum(CASE WHEN tipo = 'REVERSO' THEN -importe ELSE importe END) " +
                 "FROM movimientos_caja WHERE pago_id = ?", BigDecimal.class, creado.id())).isEqualByComparingTo("0.00");
+        var resumen = caja.obtenerResumen(LocalDate.now(), LocalDate.now(),
+                PageRequest.of(0, 10, Sort.by("fecha", "id")));
+        assertThat(resumen.movimientos().totalElements()).isGreaterThanOrEqualTo(2);
+        assertThat(new BigDecimal(resumen.totalIngresos())).isNotNegative();
+        assertThat(new BigDecimal(resumen.totalEgresos())).isNotNegative();
         assertThat(pagos.anularPago(creado.id(), new PagoAnulacionRequest(reverseKey, "error de carga"),
                 escenario.usuario()).id()).isEqualTo(creado.id());
         assertThatThrownBy(() -> pagos.anularPago(creado.id(),

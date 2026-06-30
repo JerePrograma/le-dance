@@ -25,10 +25,16 @@ public interface DisciplinaMapper {
     DisciplinaResponse toResponse(Disciplina disciplina);
 
     @Mapping(target = "salon.id", source = "salonId")
+    @Mapping(target = "profesor", ignore = true)
+    @Mapping(target = "activo", constant = "true")
+    @Mapping(target = "version", ignore = true)
     Disciplina toEntity(DisciplinaRegistroRequest request);
 
+    @Mapping(target = "id", ignore = true)
     @Mapping(target = "salon", ignore = true)
+    @Mapping(target = "profesor", ignore = true)
     @Mapping(target = "horarios", ignore = true)
+    @Mapping(target = "version", ignore = true)
     void updateEntityFromRequest(DisciplinaModificacionRequest request, @org.mapstruct.MappingTarget Disciplina disciplina);
 
     default String mapSalonToString(Salon salon) {

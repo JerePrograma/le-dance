@@ -4,11 +4,12 @@ import type {
   AlumnoRegistro,
   DisciplinaListadoResponse,
   AlumnoResponse,
+  Page,
 } from "../types/types";
 
 const alumnosApi = {
-  listar: async (): Promise<AlumnoResponse[]> => {
-    const response = await api.get("/alumnos");
+  listar: async (page = 0, size = 50): Promise<Page<AlumnoResponse>> => {
+    const response = await api.get(`/alumnos?page=${page}&size=${size}`);
     return response.data;
   },
 
@@ -34,18 +35,9 @@ const alumnosApi = {
     await api.delete(`/alumnos/dar-baja/${id}`);
   },
 
-  eliminar: async (id: number): Promise<void> => {
-    await api.delete(`/alumnos/${id}`);
-  },
-
-  obtenerListadoSimplificado: async (): Promise<AlumnoResponse[]> => {
-    const response = await api.get("/alumnos/listado");
-    return response.data;
-  },
-
-  buscarPorNombre: async (nombre: string): Promise<AlumnoResponse[]> => {
+  buscarPorNombre: async (nombre: string, page = 0, size = 50): Promise<Page<AlumnoResponse>> => {
     const response = await api.get(
-      `/alumnos/buscar?nombre=${encodeURIComponent(nombre)}`
+      `/alumnos/buscar?nombre=${encodeURIComponent(nombre)}&page=${page}&size=${size}`
     );
     return response.data;
   },

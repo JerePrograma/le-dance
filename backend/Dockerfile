@@ -6,7 +6,9 @@ RUN mvn -B -ntp dependency:go-offline
 
 COPY src ./src
 ENV LEDANCE_HOME=/workspace
-RUN mvn -B -ntp clean package
+# CI executes clean verify with Docker access before this image gate. The image
+# build packages the same source without trying to launch Testcontainers inside BuildKit.
+RUN mvn -B -ntp -DskipTests clean package
 
 FROM eclipse-temurin:21.0.7_6-jre-alpine
 

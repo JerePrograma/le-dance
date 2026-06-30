@@ -2,20 +2,19 @@ package ledance.servicios.caja;
 
 import ledance.dto.caja.response.MovimientoCajaResponse;
 import ledance.dto.caja.response.ResumenCajaResponse;
+import ledance.dto.PageResponse;
 import ledance.entidades.MovimientoCaja;
-import ledance.entidades.TipoMovimientoCaja;
 import ledance.repositorios.MovimientoCajaRepositorio;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.util.List;
 
 @Service
 public class CajaServicio {
-    private static final BigDecimal CERO = new BigDecimal("0.00");
     private final MovimientoCajaRepositorio movimientos;
 
     public CajaServicio(MovimientoCajaRepositorio movimientos) {
@@ -23,25 +22,16 @@ public class CajaServicio {
     }
 
     @Transactional(readOnly = true)
-    public ResumenCajaResponse obtenerResumen(LocalDate desde, LocalDate hasta) {
+    public ResumenCajaResponse obtenerResumen(LocalDate desde, LocalDate hasta, Pageable pageable) {
         if (hasta.isBefore(desde)) {
             throw new IllegalArgumentException("La fecha hasta no puede ser anterior a desde");
         }
-        List<MovimientoCaja> lista = movimientos.findByFechaBetweenOrderByFechaAscIdAsc(desde, hasta);
-        BigDecimal ingresos = lista.stream().map(this::importeFirmado)
-                .filter(v -> v.signum() > 0).reduce(CERO, BigDecimal::add);
-        BigDecimal egresos = lista.stream().map(this::importeFirmado)
-                .filter(v -> v.signum() < 0).map(BigDecimal::abs).reduce(CERO, BigDecimal::add);
+        var totales = movimientos.totales(desde, hasta);
+        BigDecimal ingresos = totales.getTotalIngresos();
+        BigDecimal egresos = totales.getTotalEgresos();
+        var pagina = movimientos.findByFechaBetween(desde, hasta, pageable).map(this::respuesta);
         return new ResumenCajaResponse(desde, hasta, decimal(ingresos), decimal(egresos),
-                decimal(ingresos.subtract(egresos)), lista.stream().map(this::respuesta).toList());
-    }
-
-    private BigDecimal importeFirmado(MovimientoCaja movimiento) {
-        return switch (movimiento.getTipo()) {
-            case INGRESO_PAGO, AJUSTE_INGRESO -> movimiento.getImporte();
-            case EGRESO, AJUSTE_EGRESO -> movimiento.getImporte().negate();
-            case REVERSO -> importeFirmado(movimiento.getMovimientoRevertido()).negate();
-        };
+                decimal(ingresos.subtract(egresos)), PageResponse.from(pagina));
     }
 
     private MovimientoCajaResponse respuesta(MovimientoCaja movimiento) {

@@ -13,7 +13,7 @@ import { recargoEsquema } from "../../validaciones/recargoEsquema";
 // Valores iniciales
 const initialRecargoValues: RecargoRegistroRequest = {
   descripcion: "",
-  porcentaje: 0,
+  porcentaje: "0",
   valorFijo: undefined,
   diaDelMesAplicacion: 1, // ✅ Se inicializa en 1
 };

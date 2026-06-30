@@ -11,5 +11,6 @@ public interface ObservacionProfesorMapper {
     ObservacionProfesorDTO toDTO(ObservacionProfesor entity);
 
     @Mapping(target = "profesor", ignore = true)
+    @Mapping(target = "activa", constant = "true")
     ObservacionProfesor toEntity(ObservacionProfesorDTO dto);
 }

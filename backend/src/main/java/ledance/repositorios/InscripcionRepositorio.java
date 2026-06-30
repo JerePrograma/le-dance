@@ -11,21 +11,15 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 @Repository
 public interface InscripcionRepositorio extends JpaRepository<Inscripcion, Long> {
 
     @EntityGraph(attributePaths = {"alumno", "disciplina", "bonificacion"})
-    @Query("SELECT I FROM Inscripcion I")
-    List<Inscripcion> findAllWithDetails();
-
-    List<Inscripcion> findByDisciplinaId(Long disciplinaId);
-
-    @Query("SELECT I.disciplina.nombre as disciplina, COUNT(I) as count FROM Inscripcion I GROUP BY I.disciplina.nombre")
-    List<Object[]> countByDisciplinaGrouped();
-
-    @Query("SELECT FUNCTION('MONTH', I.fechaInscripcion) as month, COUNT(I) as count FROM Inscripcion I GROUP BY FUNCTION('MONTH', I.fechaInscripcion)")
-    List<Object[]> countByMonthGrouped();
+    @Query(value = "SELECT I FROM Inscripcion I", countQuery = "SELECT count(I) FROM Inscripcion I")
+    Page<Inscripcion> findAllWithDetails(Pageable pageable);
 
     List<Inscripcion> findAllByDisciplinaIdAndEstado(Long disciplinaId, EstadoInscripcion estado);
 
@@ -40,8 +34,6 @@ public interface InscripcionRepositorio extends JpaRepository<Inscripcion, Long>
     List<Object[]> obtenerRecaudacionPorDisciplina(@Param("disciplinaId") Long disciplinaId);
 
     Optional<Inscripcion> findByAlumno_IdAndEstado(Long alumnoId, EstadoInscripcion estado);
-
-    Optional<Inscripcion> findFirstByAlumno_IdAndEstadoOrderByIdAsc(Long alumnoId, EstadoInscripcion estado);
 
     Optional<Inscripcion> findByAlumnoIdAndDisciplinaIdAndEstado(Long alumnoId, Long disciplinaId, EstadoInscripcion estado);
 

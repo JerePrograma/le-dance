@@ -15,7 +15,7 @@ interface ReporteData {
   nombre?: string;
   disciplina?: string;
   cantidad?: number;
-  montoTotal?: number;
+  montoTotal?: string;
   fecha?: string;
 }
 

@@ -79,6 +79,12 @@ class PostgreSqlSchemaValidationTest extends PostgreSqlIntegrationTest {
                         """)).isZero();
                 assertThat(contar(connection, """
                         SELECT count(*)
+                        FROM information_schema.columns
+                        WHERE table_schema = 'public' AND table_name = 'recibos'
+                          AND column_name IN ('estado', 'intentos', 'ultimo_error', 'version')
+                        """)).as("el recibo historico no duplica estado tecnico de la outbox").isZero();
+                assertThat(contar(connection, """
+                        SELECT count(*)
                         FROM pg_constraint c
                         JOIN pg_class t ON t.oid = c.conrelid
                         JOIN pg_namespace n ON n.oid = t.relnamespace

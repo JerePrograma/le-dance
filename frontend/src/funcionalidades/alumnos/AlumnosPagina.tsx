@@ -1,242 +1,41 @@
-"use client";
-
-import React, {
-  useEffect,
-  useState,
-  useCallback,
-  useMemo,
-  useRef,
-} from "react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { CreditCard, Pencil, PlusCircle, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import Tabla from "../../componentes/comunes/Tabla";
+import { toast } from "react-toastify";
 import alumnosApi from "../../api/alumnosApi";
 import Boton from "../../componentes/comunes/Boton";
-import { PlusCircle, Pencil, CreditCard, Trash2 } from "lucide-react";
-import { toast } from "react-toastify";
-import ListaConInfiniteScroll from "../../componentes/comunes/ListaConInfiniteScroll";
+import Tabla from "../../componentes/comunes/Tabla";
 
-interface AlumnoListado {
-  id: number;
-  nombre: string;
-  apellido: string;
-  activo: boolean;
-}
-
-const itemsPerPage = 150;
-const estimatedRowHeight = 150;
-
-const Alumnos: React.FC = () => {
-  const [alumnos, setAlumnos] = useState<AlumnoListado[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [, setError] = useState<string | null>(null);
-  const [visibleCount, setVisibleCount] = useState<number>(itemsPerPage);
-
-  const [searchTerm, setSearchTerm] = useState("");
-  const [sortBy, setSortBy] = useState<"id" | "nombre">("id");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
-  const [filterActivo, setFilterActivo] = useState<
-    "todos" | "activos" | "inactivos"
-  >("todos");
-
-  const containerRef = useRef<HTMLDivElement>(null);
+const AlumnosPagina = () => {
   const navigate = useNavigate();
-
-  const fetchAlumnos = useCallback(async () => {
+  const queryClient = useQueryClient();
+  const [page, setPage] = useState(0);
+  const [search, setSearch] = useState("");
+  const alumnos = useQuery({
+    queryKey: ["alumnos", page, search],
+    queryFn: () => search.trim() ? alumnosApi.buscarPorNombre(search.trim(), page) : alumnosApi.listar(page),
+  });
+  const baja = async (id: number) => {
     try {
-      setLoading(true);
-      setError(null);
-      const response = await alumnosApi.listar();
-      setAlumnos(response);
-      setVisibleCount(itemsPerPage);
+      await alumnosApi.darBaja(id);
+      await queryClient.invalidateQueries({ queryKey: ["alumnos"] });
+      toast.success("Alumno dado de baja.");
     } catch {
-      toast.error("Error al cargar alumnos.");
-      setError("Error al cargar alumnos.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchAlumnos();
-  }, [fetchAlumnos]);
-
-  const alumnosFiltrados = useMemo(() => {
-    let filtrados = alumnos;
-
-    if (filterActivo !== "todos") {
-      filtrados = filtrados.filter(
-        (a) => a.activo === (filterActivo === "activos")
-      );
-    }
-
-    filtrados = filtrados.filter((alumno) =>
-      `${alumno.nombre} ${alumno.apellido}`
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase())
-    );
-
-    return filtrados.sort((a, b) => {
-      let aVal: string | number;
-      let bVal: string | number;
-
-      if (sortBy === "id") {
-        aVal = a.id;
-        bVal = b.id;
-      } else {
-        aVal = `${a.nombre} ${a.apellido}`.toLowerCase();
-        bVal = `${b.nombre} ${b.apellido}`.toLowerCase();
-      }
-
-      if (sortOrder === "asc") {
-        return aVal > bVal ? 1 : -1;
-      } else {
-        return aVal < bVal ? 1 : -1;
-      }
-    });
-  }, [alumnos, searchTerm, sortOrder, sortBy, filterActivo]);
-
-  const currentItems = useMemo(
-    () => alumnosFiltrados.slice(0, visibleCount),
-    [alumnosFiltrados, visibleCount]
-  );
-
-  const hasMore = visibleCount < alumnosFiltrados.length;
-
-  const loadMore = useCallback(() => {
-    setVisibleCount((prev) =>
-      Math.min(prev + itemsPerPage, alumnosFiltrados.length)
-    );
-  }, [alumnosFiltrados.length]);
-
-  useEffect(() => {
-    const adjustVisibleCount = () => {
-      if (containerRef.current) {
-        const containerHeight =
-          containerRef.current.getBoundingClientRect().height;
-        const itemsThatFit = Math.ceil(containerHeight / estimatedRowHeight);
-        setVisibleCount(itemsThatFit);
-      }
-    };
-
-    adjustVisibleCount();
-    window.addEventListener("resize", adjustVisibleCount);
-    return () => window.removeEventListener("resize", adjustVisibleCount);
-  }, []);
-
-  const eliminarAlumno = async (id: number) => {
-    try {
-      await alumnosApi.eliminar(id);
-      toast.success("Alumno eliminado correctamente.");
-      fetchAlumnos();
-    } catch {
-      toast.error("Error al eliminar alumno.");
+      toast.error("No se pudo dar de baja el alumno.");
     }
   };
 
-  return (
-    <div ref={containerRef} className="flex flex-col h-screen overflow-hidden">
-      <div className="flex-none p-6 pb-2 flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Alumnos</h1>
-          <p className="text-sm text-gray-600">
-            Total de alumnos: {alumnos.length}
-          </p>
-        </div>
-        <Boton
-          onClick={() => navigate("/alumnos/formulario")}
-          className="inline-flex gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
-        >
-          <PlusCircle className="w-5 h-5" />
-          Ficha de Alumnos
-        </Boton>
-      </div>
-
-      <div className="flex-none px-6 pb-4">
-        <div className="page-card flex gap-4 flex-wrap">
-          <input
-            type="text"
-            placeholder="Buscar por nombre..."
-            className="border rounded p-2"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-
-          <select
-            className="border rounded p-2"
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as "id" | "nombre")}
-          >
-            <option value="id">Ordenar por ID</option>
-            <option value="nombre">Ordenar por Nombre</option>
-          </select>
-
-          <select
-            className="border rounded p-2"
-            value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value as "asc" | "desc")}
-          >
-            <option value="asc">Ascendente</option>
-            <option value="desc">Descendente</option>
-          </select>
-
-          <select
-            className="border rounded p-2"
-            value={filterActivo}
-            onChange={(e) =>
-              setFilterActivo(
-                e.target.value as "todos" | "activos" | "inactivos"
-              )
-            }
-          >
-            <option value="todos">Todos</option>
-            <option value="activos">Activos</option>
-            <option value="inactivos">Inactivos</option>
-          </select>
-        </div>
-      </div>
-
-      <div className="flex-grow px-6 overflow-hidden">
-        <div className="page-card h-full">
-          <ListaConInfiniteScroll
-            onLoadMore={loadMore}
-            hasMore={hasMore}
-            loading={loading}
-            fillAvailable={true}
-          >
-            <Tabla
-              headers={["ID", "Nombre", "Apellido"]}
-              data={currentItems}
-              customRender={(fila) => [fila.id, fila.nombre, fila.apellido]}
-              actions={(fila) => (
-                <div className="flex gap-2">
-                  <Boton
-                    onClick={() =>
-                      navigate(`/alumnos/formulario?id=${fila.id}`)
-                    }
-                    className="bg-secondary"
-                  >
-                    <Pencil className="w-4 h-4" /> Editar
-                  </Boton>
-                  <Boton
-                    onClick={() => navigate(`/cobranza/${fila.id}`)}
-                    className="bg-secondary"
-                  >
-                    <CreditCard className="w-4 h-4" /> Cobranza
-                  </Boton>
-                  <Boton
-                    onClick={() => eliminarAlumno(fila.id)}
-                    className="bg-destructive"
-                  >
-                    <Trash2 className="w-4 h-4" /> Eliminar
-                  </Boton>
-                </div>
-              )}
-            />
-          </ListaConInfiniteScroll>
-        </div>
-      </div>
-    </div>
-  );
+  if (alumnos.isLoading) return <div className="text-center py-4">Cargando...</div>;
+  if (alumnos.isError) return <div className="text-center py-4 text-destructive">No se pudieron cargar alumnos.</div>;
+  return <div className="page-container">
+    <div className="flex justify-between"><div><h1 className="page-title">Alumnos</h1><p>{alumnos.data?.totalElements ?? 0} registros</p></div><Boton onClick={() => navigate("/alumnos/formulario")} className="page-button"><PlusCircle className="w-4 h-4" /> Nuevo</Boton></div>
+    <input className="form-input max-w-md my-4" placeholder="Buscar por nombre" value={search} onChange={(event) => { setPage(0); setSearch(event.target.value); }} />
+    <div className="page-card"><Tabla headers={["ID", "Nombre", "Apellido", "Estado"]} data={alumnos.data?.content ?? []}
+      customRender={(row) => [row.id, row.nombre, row.apellido, row.activo ? "Activo" : "Baja"]}
+      actions={(row) => <div className="flex gap-2"><Boton onClick={() => navigate(`/alumnos/formulario?id=${row.id}`)} className="page-button-secondary"><Pencil className="w-4 h-4" /> Editar</Boton><Boton onClick={() => navigate(`/cobranza/${row.id}`)} className="page-button-secondary"><CreditCard className="w-4 h-4" /> Cobranza</Boton>{row.activo && <Boton onClick={() => baja(row.id)} className="page-button-danger"><Trash2 className="w-4 h-4" /> Baja</Boton>}</div>} /></div>
+    <div className="mt-4"><Boton disabled={page === 0} onClick={() => setPage((value) => value - 1)} className="page-button-secondary">Anterior</Boton><span> Página {page + 1} de {Math.max(alumnos.data?.totalPages ?? 1, 1)} </span><Boton disabled={!alumnos.data || page + 1 >= alumnos.data.totalPages} onClick={() => setPage((value) => value + 1)} className="page-button-secondary">Siguiente</Boton></div>
+  </div>;
 };
 
-export default Alumnos;
+export default AlumnosPagina;

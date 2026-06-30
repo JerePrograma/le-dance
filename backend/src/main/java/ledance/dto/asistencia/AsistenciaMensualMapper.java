@@ -1,6 +1,7 @@
 package ledance.dto.asistencia;
 
 import ledance.dto.alumno.AlumnoMapper;
+import ledance.dto.disciplina.DisciplinaMapper;
 import ledance.dto.asistencia.request.AsistenciaMensualRegistroRequest;
 import ledance.dto.asistencia.request.AsistenciaMensualModificacionRequest;
 import ledance.dto.asistencia.response.*;
@@ -13,7 +14,7 @@ import org.mapstruct.MappingTarget;
 
 import java.util.List;
 
-@Mapper(componentModel = "spring", uses = {AsistenciaDiariaMapper.class, AlumnoMapper.class})
+@Mapper(componentModel = "spring", uses = {AsistenciaDiariaMapper.class, AlumnoMapper.class, DisciplinaMapper.class})
 public interface AsistenciaMensualMapper {
 
     // Mapea la planilla completa
@@ -32,6 +33,7 @@ public interface AsistenciaMensualMapper {
     @Mapping(target = "profesor", source = "disciplina.profesor.nombre")
     @Mapping(target = "mes", source = "mes")
     @Mapping(target = "anio", source = "anio")
+    @Mapping(target = "cantidadAlumnos", expression = "java(asistenciaMensual.getAsistenciasAlumnoMensual().size())")
     AsistenciaMensualListadoResponse toListadoDTO(AsistenciaMensual asistenciaMensual);
 
     // Para crear una nueva planilla (se ignora la relacion de alumnos, que se establecera posteriormente)

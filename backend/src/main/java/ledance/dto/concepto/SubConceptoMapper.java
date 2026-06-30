@@ -12,12 +12,16 @@ import org.mapstruct.Named;
 public interface SubConceptoMapper {
 
     @Mapping(target = "descripcion", source = "descripcion", qualifiedByName = "toUpperCase")
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "activo", constant = "true")
     SubConcepto toEntity(SubConceptoRegistroRequest request);
 
     @Mapping(target = "descripcion", source = "descripcion", qualifiedByName = "toUpperCase")
     SubConceptoResponse toResponse(SubConcepto subConcepto);
 
     @Mapping(target = "descripcion", source = "descripcion", qualifiedByName = "toUpperCase")
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "activo", ignore = true)
     void updateEntityFromRequest(SubConceptoRegistroRequest request, @MappingTarget SubConcepto subConcepto);
 
     @Named("toUpperCase")

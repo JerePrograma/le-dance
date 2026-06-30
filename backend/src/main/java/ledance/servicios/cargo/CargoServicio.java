@@ -20,6 +20,8 @@ import ledance.repositorios.ConceptoRepositorio;
 import ledance.repositorios.MovimientoCreditoRepositorio;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -114,17 +116,17 @@ public class CargoServicio {
     }
 
     @Transactional(readOnly = true)
-    public List<CargoResponse> listarPendientes(Long alumnoId) {
-        return cargos.findByAlumnoIdAndEstadoInOrderByFechaVencimientoAscIdAsc(
-                        alumnoId, List.of(EstadoCargo.PENDIENTE, EstadoCargo.PARCIAL))
-                .stream().map(this::respuesta).toList();
+    public Page<CargoResponse> listarPendientes(Long alumnoId, Pageable pageable) {
+        return cargos.findByAlumnoIdAndEstadoIn(
+                        alumnoId, List.of(EstadoCargo.PENDIENTE, EstadoCargo.PARCIAL), pageable)
+                .map(this::respuesta);
     }
 
     @Transactional(readOnly = true)
-    public List<CargoResponse> listarVencidos() {
-        return cargos.findByEstadoInAndFechaVencimientoBeforeOrderByFechaVencimientoAsc(
-                        List.of(EstadoCargo.PENDIENTE, EstadoCargo.PARCIAL), LocalDate.now(clock))
-                .stream().map(this::respuesta).toList();
+    public Page<CargoResponse> listarVencidos(Pageable pageable) {
+        return cargos.findByEstadoInAndFechaVencimientoBefore(
+                        List.of(EstadoCargo.PENDIENTE, EstadoCargo.PARCIAL), LocalDate.now(clock), pageable)
+                .map(this::respuesta);
     }
 
     @Transactional(readOnly = true)

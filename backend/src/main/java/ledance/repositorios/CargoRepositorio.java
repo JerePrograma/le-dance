@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -22,8 +24,8 @@ public interface CargoRepositorio extends JpaRepository<Cargo, Long> {
     @Query("select c from Cargo c where c.id = :id")
     Optional<Cargo> findByIdForUpdate(@Param("id") Long id);
 
-    List<Cargo> findByAlumnoIdAndEstadoInOrderByFechaVencimientoAscIdAsc(Long alumnoId, List<EstadoCargo> estados);
-    List<Cargo> findByEstadoInAndFechaVencimientoBeforeOrderByFechaVencimientoAsc(List<EstadoCargo> estados, LocalDate fecha);
+    Page<Cargo> findByAlumnoIdAndEstadoIn(Long alumnoId, List<EstadoCargo> estados, Pageable pageable);
+    Page<Cargo> findByEstadoInAndFechaVencimientoBefore(List<EstadoCargo> estados, LocalDate fecha, Pageable pageable);
     Optional<Cargo> findByMensualidadId(Long mensualidadId);
     Optional<Cargo> findByMatriculaId(Long matriculaId);
     Optional<Cargo> findByIdempotencyKey(String idempotencyKey);

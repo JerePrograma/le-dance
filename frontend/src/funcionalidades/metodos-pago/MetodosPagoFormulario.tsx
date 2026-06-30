@@ -13,12 +13,12 @@ import type { MetodoPagoResponse } from "../../types/types";
 interface MetodoPago {
   id?: number;
   descripcion: string;
-  recargo: number;
+  recargo: string;
 }
 
 const initialValues: MetodoPago = {
   descripcion: "",
-  recargo: 0,
+  recargo: "0",
 };
 
 const MetodosPagoFormulario: React.FC = () => {
@@ -37,7 +37,7 @@ const MetodosPagoFormulario: React.FC = () => {
         return;
       }
       const response = await api.get<MetodoPagoResponse>(`/metodos-pago/${idNum}`);
-      setFormValues(response.data);
+      setFormValues({ id: response.data.id, descripcion: response.data.descripcion, recargo: response.data.recargo });
       toast.success("Método de pago cargado correctamente.");
     } catch {
       toast.error("Error al cargar los datos del método de pago.");

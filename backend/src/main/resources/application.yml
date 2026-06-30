@@ -17,6 +17,11 @@ spring:
     baseline-version: ${SPRING_FLYWAY_BASELINE_VERSION:1}
   jackson:
     time-zone: ${APP_TIME_ZONE:America/Argentina/Buenos_Aires}
+  data:
+    web:
+      pageable:
+        default-page-size: 50
+        max-page-size: 200
   web:
     resources:
       chain:

@@ -1,6 +1,5 @@
 package ledance.servicios.pdfs;
 
-import ledance.entidades.EstadoRecibo;
 import ledance.entidades.EstadoReciboPendiente;
 import ledance.entidades.Recibo;
 import ledance.entidades.ReciboPendiente;
@@ -67,7 +66,6 @@ public class ReciboStorageService {
                 .orElseThrow(() -> new IllegalStateException("Outbox sin recibo"));
         trabajo.setEstado(EstadoReciboPendiente.PROCESANDO);
         trabajo.setIntentos(trabajo.getIntentos() + 1);
-        recibo.setIntentos(recibo.getIntentos() + 1);
         try {
             String nombre = "recibo_" + trabajo.getPago().getId() + ".pdf";
             Path raiz = properties.receiptsPath().toAbsolutePath().normalize();
@@ -80,7 +78,6 @@ public class ReciboStorageService {
             Files.write(destino, bytes);
             recibo.setStorageKey(nombre);
             recibo.setGeneradoAt(clock.instant());
-            recibo.setEstado(EstadoRecibo.GENERADO);
 
             String destinatario = trabajo.getPago().getAlumno().getEmail();
             if (destinatario != null && !destinatario.isBlank()) {
@@ -94,18 +91,14 @@ public class ReciboStorageService {
                         firma(),
                         "signature",
                         "image/png");
-                recibo.setEstado(EstadoRecibo.ENVIADO);
                 recibo.setEnviadoAt(clock.instant());
             }
-            recibo.setUltimoError(null);
             trabajo.setEstado(EstadoReciboPendiente.COMPLETADO);
             trabajo.setProcessedAt(clock.instant());
             trabajo.setUltimoError(null);
-            log.info("Recibo procesado pagoId={} estado={}", trabajo.getPago().getId(), recibo.getEstado());
+            log.info("Recibo procesado pagoId={} enviado={}", trabajo.getPago().getId(), recibo.getEnviadoAt() != null);
         } catch (Exception e) {
             String error = e.getClass().getSimpleName();
-            recibo.setEstado(EstadoRecibo.ERROR);
-            recibo.setUltimoError(error);
             trabajo.setUltimoError(error);
             if (trabajo.getIntentos() >= MAX_INTENTOS) {
                 trabajo.setEstado(EstadoReciboPendiente.ERROR);
