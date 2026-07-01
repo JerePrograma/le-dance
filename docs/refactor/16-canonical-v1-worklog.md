@@ -277,3 +277,39 @@
 - Frontend tras el primer lote: `npm ci` PASS, lint PASS, 6 archivos/15 tests PASS, build PASS, 2.264 módulos, Vite 9.52 s, pared total 65.862 s. Falta repetir después del último lote de dependencias y `apiError.test`.
 - CI ya no contiene job de deploy/push: valida backend/frontend/Compose y sólo construye imágenes SHA después de gates verdes.
 - Primer gate pendiente: `clean verify` integral después de todos estos cambios.
+
+## Cierre de reproducibilidad CI y Docker - 2026-07-01
+
+### Estado inicial
+
+- Rama obligatoria: `main`.
+- HEAD inicial y `origin/main`: `041a27fd74d9b73876da561e553b6c0a78487fd7`.
+- Ahead/behind: `0/0`; worktree inicial limpio.
+- Alcance: contrato no interactivo de Vitest, ejecución manual de CI, gates locales, Compose e imágenes; sin cambios de negocio, API, entidades ni Flyway V1.
+- Causa del gate frontend no reproducible: `npm test` resolvía a `vitest`, cuyo modo predeterminado queda observando archivos. Reenviar `--run` desde consumidores dejaba el contrato repartido y permitió una ejecución manual en modo watch.
+- Corrección: `test` pasa a `vitest run`, se agrega `test:watch` para uso interactivo y CI/`validate.ps1` ejecutan sólo `npm test`. El workflow agrega `workflow_dispatch` y conserva la validación con Docker disponible antes de construir imágenes.
+
+### Resultado final
+
+| Gate | Resultado |
+| --- | --- |
+| `backend\.\mvnw.cmd clean verify` | PASS; 70 tests, 0 failures, 0 errors, 0 skipped; PostgreSQL 15.12 Testcontainers, Flyway V1, Hibernate validate, JaCoCo sobre 221 clases y JAR generado |
+| `frontend\npm ci` | PASS; 434 paquetes |
+| `frontend\npm run lint` | PASS sin warnings |
+| `frontend\npm test` | PASS; `vitest run`, 7 archivos y 16 tests, 0 omitidos, código 0, sin `Waiting for file changes` |
+| `frontend\npm run build` | PASS; TypeScript y Vite, 2.264 módulos |
+| `scripts\codex\status.ps1` | PASS; JDK 21, Node 22.14.0, npm 10.9.2, Docker Engine 29.3.1 y Compose v5.1.1 |
+| `scripts\codex\setup.ps1` | PASS; dependencias solamente, sin iniciar servicios |
+| `scripts\codex\validate.ps1` | PASS; backend, frontend y Compose local |
+| `docker compose config --quiet` | PASS |
+| Compose productivo con placeholders no sensibles | PASS; PostgreSQL sin puertos host y aplicaciones sin `build` |
+| `docker build --pull -t le-dance-backend:canonical-ci-check .\backend` | PASS; tests omitidos dentro de BuildKit, sin Testcontainers; runtime de 132.203.461 bytes |
+| `docker build --pull ... -t le-dance-frontend:canonical-ci-check .\frontend` | PASS; `npm ci`, 0 vulnerabilidades y runtime estático de 21.077.547 bytes |
+
+- Testcontainers accedió al daemon por el socket del host y usó `postgres:15.12-alpine3.21` en puertos efímeros. No se conectó ni inspeccionó `localhost:5432`; `status.ps1` sólo informó que el puerto estaba ocupado.
+- El workflow conserva push a `main`, pull requests, Java 21, Node 22.14.0, caches Maven/npm, los gates backend/frontend/Compose, imágenes posteriores a `validate`, tags por SHA y ausencia de deploy; agrega ejecución manual con `workflow_dispatch`.
+- El runtime backend contiene sólo `app.jar`, el recurso de firma y directorios de recibos, y ejecuta como usuario `ledance`. El runtime frontend no contiene fuentes, `package.json`, `/app` ni `node_modules`.
+- No se encontraron los placeholders sensibles de CI en configuración, historial ni filesystem de las imágenes.
+- Advertencias no bloqueantes observadas: auto-attach de Mockito/Byte Buddy, dialecto PostgreSQL explícito, `open-in-view` predeterminado, aviso futuro de annotation processing de `javac`, puerto host 5432 ocupado y actualización mayor de npm disponible.
+- Archivos modificados: `.github/workflows/github.-actions-demo.yml`, `frontend/package.json`, `scripts/codex/validate.ps1`, `docs/refactor/15-performance-and-integrity-gates.md`, este worklog y `docs/development/local-development.md`.
+- Pendiente real: el workflow remoto sólo podrá confirmar el runner de GitHub después de publicar un commit; no se creó commit ni se hizo push en esta sesión. No quedan gates locales rojos.

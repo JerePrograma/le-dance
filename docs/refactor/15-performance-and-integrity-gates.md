@@ -15,3 +15,21 @@
 El plan de cargos se valida por propiedades semánticas: resultado correcto,
 ausencia de sequential scan, índice esperado o equivalente y orden correcto. No
 hay umbral absoluto de milisegundos.
+
+## Gate de reproducibilidad CI y Docker - 2026-07-01
+
+| Gate | Evidencia |
+| --- | --- |
+| Backend | `mvnw.cmd clean verify`: PASS; 70 tests, 0 failures, 0 errors, 0 skipped; PostgreSQL 15.12 Testcontainers, Flyway V1, Hibernate validate, JaCoCo y JAR |
+| Frontend | `npm ci`, lint, `npm test` y build: PASS; Vitest ejecutó una vez 7 archivos/16 tests y terminó sin modo watch |
+| Scripts raíz | `status.ps1`, `setup.ps1` y `validate.ps1`: PASS; setup no inició servicios y validate cerró todos sus gates |
+| Compose | Local y productivo con placeholders no sensibles: PASS; producción no publica PostgreSQL ni conserva builds de aplicación |
+| Imágenes | Backend y frontend con `--pull`: PASS; tests/Testcontainers fuera de BuildKit, frontend con `npm ci`, runtimes mínimos y sin placeholders sensibles |
+
+Advertencias no bloqueantes: auto-attach de Mockito/Byte Buddy, dialecto
+PostgreSQL explícito, `open-in-view` predeterminado, aviso futuro de annotation
+processing de `javac`, puerto host 5432 ocupado y nueva versión mayor de npm
+disponible. No se corrigieron porque no son fallos de este gate.
+
+Pendiente real: ejecutar el workflow remoto cuando estos cambios tengan un
+commit publicado; esta sesión no crea commit ni hace push.

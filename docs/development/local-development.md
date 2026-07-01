@@ -139,7 +139,23 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\codex\validate.ps1
 
 El gate completo ejecuta `mvnw.cmd clean verify`, lint, tests frontend sólo si existe el script, build y `docker compose config`. Conserva el primer código de error y muestra todos los resultados.
 
-En CI, `clean verify` se ejecuta primero en el runner con acceso a Docker para que Testcontainers use PostgreSQL 15. La construcción de imágenes es un job posterior y el `Dockerfile` backend empaqueta con `-DskipTests`; no monta `docker.sock` ni intenta iniciar Testcontainers dentro de BuildKit. Ambas imágenes se etiquetan con el SHA verificado. El workflow no publica imágenes ni despliega.
+El contrato frontend no interactivo es `npm test`, que ejecuta `vitest run` una
+sola vez y termina. El modo de desarrollo queda separado y explícito:
+
+```powershell
+Push-Location frontend
+npm test
+npm run test:watch
+Pop-Location
+```
+
+CI y `validate.ps1` usan únicamente `npm test`, sin reenviar argumentos.
+
+En CI, `clean verify` se ejecuta primero en el runner con acceso a Docker para que Testcontainers use PostgreSQL 15. La construcción de imágenes es un job posterior y el `Dockerfile` backend empaqueta con `-DskipTests`; no monta `docker.sock` ni intenta iniciar Testcontainers dentro de BuildKit. Ambas imágenes se etiquetan con el SHA verificado. El workflow acepta push a `main`, pull requests y ejecución manual mediante `workflow_dispatch`; no publica imágenes ni despliega.
+
+La baseline `041a27fd` se validó localmente el 2026-07-01 con 70 tests backend,
+16 tests frontend, ambos Compose y ambas imágenes en verde. La evidencia completa
+está en el [worklog canónico](../refactor/16-canonical-v1-worklog.md#cierre-de-reproducibilidad-ci-y-docker---2026-07-01).
 
 ## Configuración local de Codex
 

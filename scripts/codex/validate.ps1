@@ -72,7 +72,7 @@ if ($Scope -in "All", "Frontend") {
     if ($package.scripts.PSObject.Properties.Name -contains "test") {
         Invoke-Step "frontend test" {
             Push-Location (Join-Path $repoRoot "frontend")
-            try { & npm test -- --run }
+            try { & npm test }
             finally { Pop-Location }
         }
     }

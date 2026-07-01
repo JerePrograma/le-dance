@@ -1,6 +1,7 @@
 name: CI Le Dance
 
 on:
+  workflow_dispatch:
   pull_request:
   push:
     branches: [main]
@@ -53,7 +54,7 @@ jobs:
           VITE_APP_TIME_ZONE: America/Argentina/Buenos_Aires
         run: |
           npm run lint
-          npm test -- --run
+          npm test
           npm run build
 
       - name: Validate local Compose
