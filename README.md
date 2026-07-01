@@ -8,6 +8,10 @@ Monorepo de gestión para alumnos, inscripciones, disciplinas, asistencias, mens
 - Frontend: React 18, TypeScript, Vite 6, Node 22.14.0 y npm.
 - Desarrollo local: Windows PowerShell y Docker Compose.
 
+El repositorio está en etapa pre-productiva y soporta una sola baseline Flyway:
+`backend/src/main/resources/db/migration/V1__canonical_schema.sql`. No existe una
+ruta de upgrade desde el esquema heredado V1-V060.
+
 ## Inicio rápido en Windows
 
 Requisitos: Git, JDK 21, Node 22.14.0, npm 10 y Docker Desktop con Compose. Configurá `JAVA_HOME` para que apunte al JDK 21.
@@ -34,6 +38,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\codex\validate.ps1
 ```
 
 El setup sólo resuelve dependencias. No inicia Docker y no ejecuta la suite completa.
+
+Los pagos usan cargos y aplicaciones explícitas, ledgers compensatorios e
+idempotency keys con request hash. La generación, almacenamiento y entrega de
+recibos se procesa fuera de la transacción financiera mediante `ReciboPendiente`.
 
 ## Documentación
 

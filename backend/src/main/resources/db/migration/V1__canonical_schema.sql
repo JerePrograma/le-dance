@@ -293,11 +293,17 @@ CREATE TABLE public.ventas_stock (
     fecha DATE NOT NULL,
     estado VARCHAR(10) NOT NULL DEFAULT 'REGISTRADA',
     idempotency_key VARCHAR(100) NOT NULL,
+    request_hash VARCHAR(64) NOT NULL,
     reversal_idempotency_key VARCHAR(100),
+    reversal_request_hash VARCHAR(64),
     version BIGINT NOT NULL DEFAULT 0,
     CONSTRAINT ck_ventas_stock_cantidad CHECK (cantidad > 0),
     CONSTRAINT ck_ventas_stock_precio CHECK (precio_unitario >= 0),
     CONSTRAINT ck_ventas_stock_estado CHECK (estado IN ('REGISTRADA','ANULADA')),
+    CONSTRAINT ck_ventas_stock_reversion CHECK (
+        (estado = 'REGISTRADA' AND reversal_idempotency_key IS NULL AND reversal_request_hash IS NULL) OR
+        (estado = 'ANULADA' AND reversal_idempotency_key IS NOT NULL AND reversal_request_hash IS NOT NULL)
+    ),
     CONSTRAINT uq_ventas_stock_idempotency UNIQUE (idempotency_key),
     CONSTRAINT uq_ventas_stock_reversal UNIQUE (reversal_idempotency_key),
     CONSTRAINT fk_ventas_stock_alumno FOREIGN KEY (alumno_id) REFERENCES public.alumnos(id) ON DELETE RESTRICT,
@@ -365,6 +371,7 @@ CREATE TABLE public.pagos (
     idempotency_key VARCHAR(100) NOT NULL,
     request_hash VARCHAR(64) NOT NULL,
     reversal_idempotency_key VARCHAR(100),
+    reversal_request_hash VARCHAR(64),
     observaciones VARCHAR(500),
     motivo_anulacion VARCHAR(500),
     fecha_anulacion TIMESTAMPTZ,
@@ -372,7 +379,12 @@ CREATE TABLE public.pagos (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT ck_pagos_monto CHECK (monto_recibido > 0),
     CONSTRAINT ck_pagos_estado CHECK (estado IN ('REGISTRADO','ANULADO')),
-    CONSTRAINT ck_pagos_anulacion CHECK ((estado = 'REGISTRADO' AND fecha_anulacion IS NULL AND motivo_anulacion IS NULL) OR (estado = 'ANULADO' AND fecha_anulacion IS NOT NULL AND motivo_anulacion IS NOT NULL)),
+    CONSTRAINT ck_pagos_anulacion CHECK (
+        (estado = 'REGISTRADO' AND fecha_anulacion IS NULL AND motivo_anulacion IS NULL
+            AND reversal_idempotency_key IS NULL AND reversal_request_hash IS NULL) OR
+        (estado = 'ANULADO' AND fecha_anulacion IS NOT NULL AND motivo_anulacion IS NOT NULL
+            AND reversal_idempotency_key IS NOT NULL AND reversal_request_hash IS NOT NULL)
+    ),
     CONSTRAINT uq_pagos_idempotency UNIQUE (idempotency_key),
     CONSTRAINT uq_pagos_reversal_idempotency UNIQUE (reversal_idempotency_key),
     CONSTRAINT fk_pagos_alumno FOREIGN KEY (alumno_id) REFERENCES public.alumnos(id) ON DELETE RESTRICT,
@@ -420,12 +432,18 @@ CREATE TABLE public.egresos (
     idempotency_key VARCHAR(100) NOT NULL,
     request_hash VARCHAR(64) NOT NULL,
     reversal_idempotency_key VARCHAR(100),
+    reversal_request_hash VARCHAR(64),
     motivo_anulacion VARCHAR(500),
     fecha_anulacion TIMESTAMPTZ,
     version BIGINT NOT NULL DEFAULT 0,
     CONSTRAINT ck_egresos_monto CHECK (monto > 0),
     CONSTRAINT ck_egresos_estado CHECK (estado IN ('REGISTRADO','ANULADO')),
-    CONSTRAINT ck_egresos_anulacion CHECK ((estado = 'REGISTRADO' AND fecha_anulacion IS NULL AND motivo_anulacion IS NULL) OR (estado = 'ANULADO' AND fecha_anulacion IS NOT NULL AND motivo_anulacion IS NOT NULL)),
+    CONSTRAINT ck_egresos_anulacion CHECK (
+        (estado = 'REGISTRADO' AND fecha_anulacion IS NULL AND motivo_anulacion IS NULL
+            AND reversal_idempotency_key IS NULL AND reversal_request_hash IS NULL) OR
+        (estado = 'ANULADO' AND fecha_anulacion IS NOT NULL AND motivo_anulacion IS NOT NULL
+            AND reversal_idempotency_key IS NOT NULL AND reversal_request_hash IS NOT NULL)
+    ),
     CONSTRAINT uq_egresos_idempotency UNIQUE (idempotency_key),
     CONSTRAINT uq_egresos_reversal UNIQUE (reversal_idempotency_key),
     CONSTRAINT fk_egresos_metodo FOREIGN KEY (metodo_pago_id) REFERENCES public.metodo_pagos(id) ON DELETE RESTRICT,
@@ -482,6 +500,7 @@ CREATE TABLE public.movimientos_credito (
     movimiento_revertido_id BIGINT,
     usuario_id BIGINT NOT NULL,
     idempotency_key VARCHAR(120) NOT NULL,
+    request_hash VARCHAR(64) NOT NULL,
     motivo VARCHAR(500),
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT ck_movimientos_credito_tipo CHECK (tipo IN ('GENERACION','CONSUMO','REVERSO','AJUSTE_CREDITO','AJUSTE_DEBITO')),
@@ -554,18 +573,27 @@ CREATE TABLE public.recibos_pendientes (
     estado VARCHAR(12) NOT NULL DEFAULT 'PENDIENTE',
     intentos INTEGER NOT NULL DEFAULT 0,
     next_attempt_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    idempotency_key VARCHAR(120) NOT NULL,
+    claim_token UUID,
+    claimed_at TIMESTAMPTZ,
+    lease_until TIMESTAMPTZ,
     ultimo_error VARCHAR(500),
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     processed_at TIMESTAMPTZ,
     CONSTRAINT ck_recibos_pendientes_tipo CHECK (tipo IN ('GENERAR_Y_ENVIAR')),
     CONSTRAINT ck_recibos_pendientes_estado CHECK (estado IN ('PENDIENTE','PROCESANDO','COMPLETADO','ERROR')),
     CONSTRAINT ck_recibos_pendientes_intentos CHECK (intentos >= 0),
+    CONSTRAINT ck_recibos_pendientes_claim CHECK (
+        (estado = 'PROCESANDO' AND claim_token IS NOT NULL AND claimed_at IS NOT NULL AND lease_until IS NOT NULL) OR
+        (estado <> 'PROCESANDO' AND claim_token IS NULL AND claimed_at IS NULL AND lease_until IS NULL)
+    ),
     CONSTRAINT uq_recibos_pendientes_pago_tipo UNIQUE (pago_id, tipo),
+    CONSTRAINT uq_recibos_pendientes_idempotency UNIQUE (idempotency_key),
     CONSTRAINT fk_recibos_pendientes_pago FOREIGN KEY (pago_id) REFERENCES public.pagos(id) ON DELETE RESTRICT
 );
 
 CREATE INDEX ix_recibos_pendientes_worker
-    ON public.recibos_pendientes (estado, next_attempt_at);
+    ON public.recibos_pendientes (estado, next_attempt_at, lease_until);
 
 CREATE TABLE public.notificaciones (
     id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,

@@ -32,17 +32,12 @@ const eliminarStock = async (id: number): Promise<void> => {
 };
 
 const listarStocks = async (page = 0, size = 50): Promise<Page<StockResponse>> => {
-  const { data } = await api.get<Page<StockResponse>>(`/stocks?page=${page}&size=${size}`);
+  const { data } = await api.get<Page<StockResponse>>("/stocks", { params: { page, size } });
   return data;
 };
 
 const listarStocksActivos = async (): Promise<StockResponse[]> => {
   const { data } = await api.get<StockResponse[]>("/stocks/activos");
-  return data;
-};
-
-const listarStocksConceptos = async (): Promise<StockResponse[]> => {
-  const { data } = await api.get<StockResponse[]>("/stocks/conceptos");
   return data;
 };
 
@@ -53,7 +48,6 @@ const stocksApi = {
   listarStocksActivos,
   actualizarStock,
   eliminarStock,
-  listarStocksConceptos,
 };
 
 export default stocksApi;

@@ -5,12 +5,14 @@ import egresosApi from "../../api/egresosApi";
 import metodosPagoApi from "../../api/metodosPagoApi";
 import { queryKeys } from "../../hooks/queryKeys";
 
+const PAGE_SIZE = 50;
+
 export default function EgresosPagina() {
   const [monto, setMonto] = useState("");
   const [metodoPagoId, setMetodoPagoId] = useState(0);
   const [page, setPage] = useState(0);
   const queryClient = useQueryClient();
-  const egresos = useQuery({ queryKey: queryKeys.egresos(page), queryFn: () => egresosApi.listarEgresos(page) });
+  const egresos = useQuery({ queryKey: queryKeys.egresos(page, PAGE_SIZE), queryFn: () => egresosApi.listarEgresos(page, PAGE_SIZE) });
   const metodos = useQuery({ queryKey: queryKeys.metodosPago, queryFn: metodosPagoApi.listarMetodosPago });
   const alta = useMutation({
     mutationFn: () => egresosApi.registrarEgreso({ monto, metodoPagoId, idempotencyKey: crypto.randomUUID() }),

@@ -1,4 +1,7 @@
-# Fase 3 - Correcciones financieras P0 y preservación de historial
+# Fase 3 - Correcciones financieras P0 (snapshot histórico)
+
+> Caracterización previa al modelo Cargo/Pago/Aplicacion. Las clases, riesgos y
+> tipos aquí descritos fueron retirados; consultar 11-20 y el worklog 16.
 
 Fecha de cierre local: 2026-06-29.
 

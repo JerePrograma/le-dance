@@ -27,6 +27,8 @@ export interface Page<T> {
   totalPages: number;
   size: number;
   number: number;
+  first: boolean;
+  last: boolean;
 }
 
 // ==========================================
@@ -264,6 +266,8 @@ export interface PageResponse<T> {
   totalElements: number;
   size: number;
   number: number;
+  first: boolean;
+  last: boolean;
 }
 
 // ==========================================
@@ -406,29 +410,6 @@ export interface RolModificacionRequest {
 export interface RolResponse {
   id: number;
   descripcion: string;
-  activo: boolean;
-}
-
-// ==========================================
-// REPORTES
-// ==========================================
-export interface ReporteRegistroRequest {
-  tipo: string;
-  descripcion: string;
-  usuarioId?: number;
-}
-
-export interface ReporteModificacionRequest {
-  descripcion: string;
-  activo: boolean;
-}
-
-export interface ReporteResponse {
-  id: number;
-  tipo: string;
-  descripcion: string;
-  fechaGeneracion: string; // O LocalDate, segun prefieras
-  usuarioId?: number;
   activo: boolean;
 }
 
@@ -577,19 +558,6 @@ export interface MensualidadResponse {
   cargoId: number;
   importe: string;
 }
-export interface MatriculaRegistroRequest {
-  alumnoId: number;
-  anio: number;
-}
-
-export interface MatriculaResponse {
-  id: number;
-  anio: number;
-  fechaEmision: string;
-  estado: string;
-  alumnoId: number;
-}
-
 export interface EgresoRegistroRequest {
   fecha?: string;
   monto: string;
@@ -624,6 +592,12 @@ export interface MovimientoCajaResponse {
 export interface ResumenCajaResponse {
   desde: string;
   hasta: string;
+  ingresos: string;
+  egresos: string;
+  ajustesIngreso: string;
+  ajustesEgreso: string;
+  reversosIngreso: string;
+  reversosEgreso: string;
   totalIngresos: string;
   totalEgresos: string;
   saldo: string;

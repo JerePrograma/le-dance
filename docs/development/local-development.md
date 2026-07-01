@@ -41,6 +41,10 @@ No hay componente Python requerido.
 
 La configuración común vive en `backend/src/main/resources/application.yml`. No existe un perfil predeterminado: fuera de Compose, el script local o el IDE deben declarar `SPRING_PROFILES_ACTIVE=dev`. Los perfiles no contienen secretos reales.
 
+Flyway aplica exactamente una migración canónica V1 sobre un esquema vacío. El
+historial retirado V1-V060 no forma parte del runtime ni constituye una ruta de
+upgrade soportada.
+
 Los scripts no importan `.env`. Para ejecutar Maven/Vite con puertos distintos, exportá las variables en la misma terminal; las rutas con espacios se asignan como strings normales de PowerShell:
 
 ```powershell
@@ -135,7 +139,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\codex\validate.ps1
 
 El gate completo ejecuta `mvnw.cmd clean verify`, lint, tests frontend sólo si existe el script, build y `docker compose config`. Conserva el primer código de error y muestra todos los resultados.
 
-En CI, `clean verify` se ejecuta primero en el runner con acceso a Docker para que Testcontainers use PostgreSQL 15. La construcción de imágenes es un job posterior y el `Dockerfile` backend empaqueta con `-DskipTests`; no monta `docker.sock` ni intenta iniciar Testcontainers dentro de BuildKit. Ambas imágenes se etiquetan con el SHA verificado.
+En CI, `clean verify` se ejecuta primero en el runner con acceso a Docker para que Testcontainers use PostgreSQL 15. La construcción de imágenes es un job posterior y el `Dockerfile` backend empaqueta con `-DskipTests`; no monta `docker.sock` ni intenta iniciar Testcontainers dentro de BuildKit. Ambas imágenes se etiquetan con el SHA verificado. El workflow no publica imágenes ni despliega.
 
 ## Configuración local de Codex
 

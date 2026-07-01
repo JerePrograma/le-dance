@@ -1,6 +1,9 @@
 package ledance.controladores;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.PositiveOrZero;
 import ledance.dto.cargo.response.CargoResponse;
 import ledance.dto.stock.request.ReversionStockRequest;
 import ledance.dto.stock.request.StockRegistroRequest;
@@ -18,13 +21,16 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/stocks")
+@Validated
 public class StockControlador {
     private final StockServicio stocks;
 
@@ -39,8 +45,11 @@ public class StockControlador {
     }
 
     @GetMapping
-    public PageResponse<StockResponse> listar(@PageableDefault(size = 50, sort = "nombre") Pageable pageable) {
-        return PageResponse.from(stocks.listarStocks(pageable));
+    public PageResponse<StockResponse> listar(
+            @RequestParam(defaultValue = "0") @PositiveOrZero int page,
+            @RequestParam(defaultValue = "50") @Min(1) @Max(200) int size) {
+        return PageResponse.from(stocks.listarStocks(
+                PageRequest.of(page, size, Sort.by("nombre", "id"))));
     }
 
     @GetMapping("/activos")

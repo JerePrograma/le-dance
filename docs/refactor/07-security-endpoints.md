@@ -1,112 +1,63 @@
-# Fase 2 - Inventario y política de endpoints
+# Inventario y política de endpoints
 
-Estado del inventario: 2026-06-28.
+Estado: 2026-07-01. La política se evalúa en este orden:
 
-## Política
+1. `OPTIONS /**`, `POST /api/login` y `POST /api/login/refresh`: públicos.
+2. `GET /api/usuarios/perfil`: cualquier usuario autenticado y activo.
+3. Todo otro `/api/**`: `ROLE_ADMINISTRADOR`.
+4. Cualquier otra ruta: denegada.
 
-La base V1 crea un único rol conocido: `ADMINISTRADOR`. La política implementada evita inventar permisos que el modelo actual no representa:
+No hay matchers de deuda, email de prueba, detalle-pago, factura heredada ni
+aliases de inscripción retirados. Un endpoint nuevo bajo `/api` queda cerrado a
+administrador, no abierto por omisión.
 
-- `PÚBLICO`: únicamente login, refresh y preflight CORS;
-- `AUTENTICADO`: operaciones ordinarias del monolito;
-- `ADMINISTRADOR`: gestión de usuarios/roles y descarga de documentos financieros;
-- cualquier endpoint nuevo no listado cae en `authenticated()` por defecto.
+Leyenda: `S` datos personales/sensibles; `F` escritura o lectura financiera;
+`I` idempotencia explícita (`key+hash`), natural (`unique`) o no aplicable.
+Cada entrada de la tabla es un endpoint HTTP actual.
 
-El frontend no participa de la autorización. Las rutas de usuarios y roles continúan ocultas para otros roles, pero el backend es la autoridad.
+| Base | Endpoints actuales | Política | S/F/I |
+| --- | --- | --- | --- |
+| `/api/login` | `POST /`; `POST /refresh` | Público | S sí; F no; I n/a |
+| `/api/usuarios` | `POST /registro`; `PUT /{id}`; `GET /{id}`; `GET /`; `DELETE /{id}` | Admin | S sí; F no; I n/a |
+| `/api/usuarios` | `GET /perfil` | Autenticado | S sí; F no; I n/a |
+| `/api/roles` | `POST /`; `GET /{id}`; `GET /` | Admin | S no; F no; I n/a |
+| `/api/alumnos` | `POST /`; `GET /`; `GET /{id}`; `PUT /{id}`; `DELETE /{id}`; `GET /buscar`; `GET /{alumnoId}/disciplinas` | Admin | S sí; F indirecto; I n/a |
+| `/api/inscripciones` | `POST /`; `PUT /{id}`; `GET /`; `GET /{id}`; `DELETE /{id}`; `GET /alumno/{alumnoId}/activas` | Admin | S sí; F origina cargos; I natural |
+| `/api/cargos` | `POST /concepto`; `GET /{id}`; `GET /alumno/{alumnoId}/pendientes`; `GET /vencidos` | Admin | S sí; F sí; I key en POST |
+| `/api/pagos` | `POST /`; `POST /{id}/anulacion`; `GET /{id}`; `GET /alumno/{alumnoId}`; `GET /recibo/{pagoId}` | Admin | S sí; F sí; I key+hash en escrituras |
+| `/api/creditos` | `POST /consumos`; `POST /consumos/{id}/reversion`; `POST /ajustes`; `GET /alumno/{alumnoId}/saldo` | Admin | S sí; F sí; I key+hash |
+| `/api/caja` | `GET /resumen` | Admin | S no; F sí; I n/a |
+| `/api/egresos` | `POST /`; `POST /{id}/anulacion`; `GET /{id}`; `GET /` | Admin | S no; F sí; I key+hash en escrituras |
+| `/api/stocks` | `POST /`; `GET /`; `GET /activos`; `GET /{id}`; `PUT /{id}`; `DELETE /{id}`; `POST /ventas`; `POST /ventas/{id}/reversion` | Admin | S venta/alumno; F sí; I key+hash en venta/reverso |
+| `/api/matriculas` | `POST /alumno/{alumnoId}`; `GET /alumno/{alumnoId}`; `POST /{id}/anulacion` | Admin | S sí; F sí; I unique alumno/año |
+| `/api/mensualidades` | `POST /`; `GET /{id}`; `GET /inscripcion/{inscripcionId}`; `DELETE /{id}`; `POST /generar-mensualidades` | Admin | S sí; F sí; I unique inscripción/período |
+| `/api/reportes` | `GET /mensualidades`; `POST /mensualidades/exportar` | Admin | S sí; F sí; I n/a |
+| `/api/disciplinas` | `POST /`; `GET /`; `GET /{id}`; `PUT /{id}`; `DELETE /dar-baja/{id}`; `DELETE /{id}`; `GET /listado`; `GET /por-fecha`; `GET /{disciplinaId}/alumnos`; `GET /{disciplinaId}/profesor`; `GET /por-horario`; `GET /buscar`; `GET /{disciplinaId}/alumnos/pdf` | Admin | S en alumnos/PDF; F catálogo; I n/a |
+| `/api/profesores` | `POST /`; `GET /{id}`; `GET /`; `GET /activos`; `PUT /{id}`; `DELETE /{id}`; `GET /{profesorId}/disciplinas`; `GET /buscar`; `GET /{profesorId}/alumnos` | Admin | S sí; F no; I n/a |
+| `/api/salones` | `POST /`; `GET /`; `GET /{id}`; `PUT /{id}`; `DELETE /{id}` | Admin | S no; F no; I n/a |
+| `/api/asistencias-diarias` | `PUT /registrar`; `PUT /{id}`; `GET /por-asistencia-mensual/{asistenciaMensualId}`; `DELETE /{id}`; `GET /por-disciplina-y-fecha` | Admin | S sí; F no; I natural fecha/alumno |
+| `/api/asistencias-mensuales` | `GET /`; `POST /`; `PUT /{id}`; `GET /por-disciplina/detalle`; `POST /crear-asistencias-activos-detallado` | Admin | S sí; F no; I uniques de período |
+| `/api/observaciones-profesores` | `POST /`; `DELETE /{id}`; `GET /{id}`; `GET /`; `GET /profesor/{profesorId}`; `GET /fechas`; `GET /profesor/{profesorId}/mes` | Admin | S sí; F no; I n/a |
+| `/api/bonificaciones` | `POST /`; `GET /`; `GET /{id}`; `PUT /{id}`; `DELETE /{id}` | Admin | S no; F catálogo; I n/a |
+| `/api/recargos` | `GET /`; `GET /{id}`; `POST /`; `PUT /{id}`; `DELETE /{id}` | Admin | S no; F catálogo; I n/a |
+| `/api/metodos-pago` | `POST /`; `GET /`; `GET /{id}`; `PUT /{id}`; `DELETE /{id}`; `DELETE /baja/{id}` | Admin | S no; F catálogo; I n/a |
+| `/api/conceptos` | `POST /`; `GET /`; `GET /{id}`; `PUT /{id}`; `DELETE /{id}`; `GET /sub-concepto/{subConceptoDesc}` | Admin | S no; F catálogo; I n/a |
+| `/api/sub-conceptos` | `GET /{id}`; `POST /`; `GET /`; `PUT /{id}`; `DELETE /{id}`; `GET /buscar` | Admin | S no; F catálogo; I n/a |
+| `/api/notificaciones` | `GET /cumpleaneros` | Admin | S sí; F no; I n/a |
 
-## Endpoints públicos
+## Evidencia HTTP
 
-| Método | Ruta | Motivo |
-| --- | --- | --- |
-| `POST` | `/api/login` | Intercambio de credenciales por tokens. |
-| `POST` | `/api/login/refresh` | Renovación usando exclusivamente un refresh token Bearer. |
-| `OPTIONS` | `/**` | Preflight CORS; no ejecuta casos de uso. |
+`SecurityHttpIntegrationTest` prueba la cadena real para:
 
-`POST /api/usuarios/registro`, `/api/roles` y `/api/pagos/recibo/{id}` dejaron de ser públicos.
+- login/refresh válidos e inválidos;
+- access vs refresh, expiración, firma, issuer, usuario/rol inactivo;
+- 401 anónimo y contrato JSON;
+- 403 de rol incorrecto sin cerrar sesión;
+- acceso administrador a usuarios y matriz financiera;
+- recibo protegido y no enumerable anónimamente;
+- validación 400, recurso inexistente y 500 sanitizado sin stack trace;
+- preflight CORS.
 
-## Endpoints de administrador
-
-| Métodos | Rutas | Regla |
-| --- | --- | --- |
-| `GET` | `/api/usuarios/perfil` | Cualquier usuario autenticado; se evalúa antes del matcher administrativo. |
-| `POST` | `/api/usuarios/registro` | `ROLE_ADMINISTRADOR`. |
-| `GET`, `PUT`, `DELETE` | `/api/usuarios`, `/api/usuarios/{id}` | `ROLE_ADMINISTRADOR`. La baja es lógica. |
-| `GET`, `POST` | `/api/roles`, `/api/roles/{id}` | `ROLE_ADMINISTRADOR`. |
-| `GET` | `/api/pagos/recibo/{pagoId}` | `ROLE_ADMINISTRADOR`. |
-| `GET` | `/api/pagos/factura/{facturaId}` | `ROLE_ADMINISTRADOR`. |
-
-El sistema no tiene una identidad autenticable de alumno ni una relación usuario-alumno. Por eso se eligió la opción administrativa para recibos y facturas; no se simuló una autorización por propietario inexistente.
-
-## Endpoints autenticados de negocio
-
-Todos los endpoints siguientes exigen un access token válido y un usuario persistido, activo, con rol activo y coherente con el token.
-
-### Alumnos e inscripciones
-
-| Base | Endpoints |
-| --- | --- |
-| `/api/alumnos` | `POST /`, `GET /`, `GET /{id}`, `PUT /{id}`, `DELETE /{id}`, `DELETE /dar-baja/{id}`, `GET /listado`, `GET /buscar`, `GET /{alumnoId}/disciplinas`, `GET /{id}/datos` |
-| `/api/inscripciones` | `POST /`, `PUT /{id}`, `POST /bulk`, `GET /estadisticas`, `GET /`, `GET /{id}`, `GET /disciplina/{disciplinaId}`, `DELETE /{id}`, `GET /alumno/{alumnoId}`, `GET /alumno/{alumnoId}/activas` |
-| `/api/matriculas` | `GET /{alumnoId}`, `PUT /{matriculaId}` |
-| `/api/mensualidades` | `POST /`, `GET /{id}`, `GET /inscripcion/{inscripcionId}`, `DELETE /{id}`, `POST /generar-mensualidades` |
-
-### Disciplinas, profesores, salones y asistencia
-
-| Base | Endpoints |
-| --- | --- |
-| `/api/disciplinas` | `POST /`, `GET /`, `GET /{id}`, `PUT /{id}`, `DELETE /dar-baja/{id}`, `DELETE /{id}`, `GET /listado`, `GET /por-fecha`, `GET /{disciplinaId}/alumnos`, `GET /{disciplinaId}/profesor`, `GET /por-horario`, `GET /buscar`, `GET /{disciplinaId}/alumnos/pdf` |
-| `/api/profesores` | `POST /`, `GET /{id}`, `GET /`, `GET /activos`, `PUT /{id}`, `DELETE /{id}`, `GET /{profesorId}/disciplinas`, `GET /buscar`, `GET /{profesorId}/alumnos` |
-| `/api/salones` | `POST /`, `GET /`, `GET /{id}`, `PUT /{id}`, `DELETE /{id}` |
-| `/api/asistencias-diarias` | `PUT /registrar`, `PUT /{id}`, `GET /por-asistencia-mensual/{asistenciaMensualId}`, `DELETE /{id}`, `GET /por-disciplina-y-fecha` |
-| `/api/asistencias-mensuales` | `GET /`, `POST /`, `PUT /{id}`, `GET /por-disciplina/detalle`, `POST /crear-asistencias-activos-detallado` |
-| `/api/observaciones-profesores` | `POST /`, `DELETE /{id}`, `GET /{id}`, `GET /`, `GET /profesor/{profesorId}`, `GET /fechas`, `GET /profesor/{profesorId}/mes` |
-
-### Pagos, caja y configuración comercial
-
-| Base | Endpoints |
-| --- | --- |
-| `/api/pagos` | `POST /`, `PUT /{id}`, `GET /{id}`, `GET /`, `GET /alumno/{alumnoId}`, `GET /alumno/{alumnoId}/facturas`, `GET /vencidos`, `DELETE /{id}`, `PUT /{id}/quitar-recargo`, `GET /alumno/{alumnoId}/cobranza`, `GET /alumno/{alumnoId}/ultimo`, `GET /filtrar`, `POST /verificar`, `GET /datos-unificados/{alumnoId}` |
-| `/api/detalle-pago` | `POST /`, `GET /{id}`, `PUT /{id}`, `PUT /anular/{id}`, `DELETE /{id}`, `GET /fecha`, `GET /alumno/{alumnoId}` |
-| `/api/caja` | `GET /planilla`, `GET /dia/{fecha}`, `GET /dia/{fecha}/imprimir`, `GET /mes`, `GET /datos-unificados`, `GET /rendicion/imprimir` |
-| `/api/egresos` | `POST /`, `PUT /{id}`, `DELETE /{id}`, `GET /{id}`, `GET /`, `GET /debito`, `GET /efectivo` |
-| `/api/metodos-pago` | `POST /`, `GET /`, `GET /{id}`, `PUT /{id}`, `DELETE /{id}`, `DELETE /baja/{id}` |
-| `/api/bonificaciones` | `POST /`, `GET /`, `GET /{id}`, `PUT /{id}`, `DELETE /{id}` |
-| `/api/recargos` | `GET /`, `GET /{id}`, `POST /`, `PUT /{id}`, `DELETE /{id}` |
-| `/api/conceptos` | `POST /`, `GET /`, `GET /{id}`, `PUT /{id}`, `DELETE /{id}`, `GET /sub-concepto/{subConceptoDesc}` |
-| `/api/sub-conceptos` | `GET /{id}`, `POST /`, `GET /`, `PUT /{id}`, `DELETE /{id}`, `GET /buscar` |
-| `/api/stocks` | `POST /`, `GET /`, `GET /activos`, `GET /{id}`, `PUT /{id}`, `DELETE /{id}` |
-
-### Reportes y notificaciones
-
-| Base | Endpoints |
-| --- | --- |
-| `/api/reportes` | `POST /mensualidades/exportar`, `GET /mensualidades/buscar`, `GET /mensualidades/buscar-mensualidades-alumno-por-mes` |
-| `/api/notificaciones` | `GET /cumpleaneros` |
-
-`DeudaControlador` y `EmailControlador` no publican operaciones HTTP activas en la línea base.
-
-## JWT y estado de usuario
-
-- Cada JWT se verifica una vez y produce `VerifiedToken(subject, userId, role, tokenType, issuedAt, expiresAt)`.
-- Access y refresh son tipos cerrados y no intercambiables.
-- Firma, expiración, issuer, formato o claims inválidos producen 401 sin detalle interno.
-- El filtro vuelve a buscar por `userId` y exige coincidencia de subject y rol.
-- Usuario inactivo, rol ausente, rol inactivo o cambio de rol invalidan el token existente.
-- Falta de autenticación produce 401; autenticación válida sin rol requerido produce 403.
-
-Cada emisión incluye `jti` y refresh devuelve un par nuevo. El modelo actual no persiste sesiones ni familias de refresh tokens, por lo que todavía no puede detectar de forma durable la reutilización de un refresh anterior entre procesos o reinicios. No se agregó un denylist en memoria porque daría una garantía falsa. La detección durable queda ligada a una migración forward-only y operación atómica en base de datos antes de considerarla completa.
-
-## Bootstrap del primer administrador
-
-El bootstrap está deshabilitado por defecto. Sólo se activa con:
-
-- `APP_BOOTSTRAP_ADMIN_ENABLED=true`;
-- `APP_BOOTSTRAP_ADMIN_USERNAME` explícito;
-- `APP_BOOTSTRAP_ADMIN_PASSWORD` explícito, entre 12 y 72 bytes UTF-8.
-
-Sólo funciona si no existe ningún usuario y si el rol `ADMINISTRADOR` está activo. Después de crear el usuario, un reinicio con la opción todavía habilitada falla cerrado y exige deshabilitarla. La contraseña se codifica con el `PasswordEncoder`, no se registra y no existe una contraseña fija en código o configuración.
-
-## Riesgos y decisiones pendientes
-
-- No existe todavía un catálogo de permisos de negocio más granular que roles. Crear autoridades nominales sin modelo persistido sería ceremonial y no demostraría aislamiento real.
-- La reutilización durable de refresh requiere persistencia y concurrencia PostgreSQL; queda abierta como riesgo explícito para las fases de migraciones/idempotencia.
-- Los endpoints de negocio permanecen disponibles para cualquier rol autenticado existente. El único rol creado por las migraciones auditadas es `ADMINISTRADOR`; cualquier rol adicional presente en una base debe inventariarse antes de producción.
+La cobertura de todos los endpoints deriva del matcher único `/api/**` y no de
+una lista parcial susceptible de quedar obsoleta. La prueba de arquitectura
+impide que controladores retornen entidades JPA.

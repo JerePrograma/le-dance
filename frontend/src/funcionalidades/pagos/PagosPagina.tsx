@@ -5,14 +5,16 @@ import pagosApi from "../../api/pagosApi";
 import { queryKeys } from "../../hooks/queryKeys";
 import type { PagoResumenResponse } from "../../types/types";
 
+const PAGE_SIZE = 50;
+
 export default function PagosPagina() {
   const [alumnoId, setAlumnoId] = useState("");
   const [consultaId, setConsultaId] = useState(0);
   const [page, setPage] = useState(0);
   const queryClient = useQueryClient();
   const pagos = useQuery({
-    queryKey: queryKeys.pagos(consultaId, page),
-    queryFn: () => pagosApi.listarPagosPorAlumno(consultaId, page),
+    queryKey: queryKeys.pagos(consultaId, page, PAGE_SIZE),
+    queryFn: () => pagosApi.listarPagosPorAlumno(consultaId, page, PAGE_SIZE),
     enabled: consultaId > 0,
   });
   const anulacion = useMutation({

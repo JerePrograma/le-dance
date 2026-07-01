@@ -18,6 +18,7 @@ import ledance.entidades.Usuario;
 import ledance.entidades.VentaStock;
 import ledance.infra.errores.SinStockException;
 import ledance.infra.errores.TratadorDeErrores.OperacionNoPermitidaException;
+import ledance.infra.idempotencia.RequestHash;
 import ledance.repositorios.AlumnoRepositorio;
 import ledance.repositorios.CargoRepositorio;
 import ledance.repositorios.MovimientoStockRepositorio;
@@ -133,13 +134,25 @@ public class StockServicio {
 
     @Transactional
     public CargoResponse vender(VentaStockRequest request, Usuario principal) {
+        String requestHash = RequestHash.sha256("VENDER_STOCK", request.alumnoId().toString(),
+                request.stockId().toString(), request.cantidad().toString(), request.fechaVencimiento().toString());
         VentaStock previa = ventas.findByIdempotencyKey(request.idempotencyKey()).orElse(null);
         if (previa != null) {
+            if (!requestHash.equals(previa.getRequestHash())) {
+                throw new OperacionNoPermitidaException("La idempotency key ya fue usada con otro contenido");
+            }
+            return cargoServicio.obtener(cargos.findByVentaStockId(previa.getId()).orElseThrow().getId());
+        }
+        Alumno alumno = alumnos.findActivoByIdForUpdate(request.alumnoId())
+                .orElseThrow(() -> new OperacionNoPermitidaException("El alumno no existe o está inactivo"));
+        previa = ventas.findByIdempotencyKey(request.idempotencyKey()).orElse(null);
+        if (previa != null) {
+            if (!requestHash.equals(previa.getRequestHash())) {
+                throw new OperacionNoPermitidaException("La idempotency key ya fue usada con otro contenido");
+            }
             return cargoServicio.obtener(cargos.findByVentaStockId(previa.getId()).orElseThrow().getId());
         }
         Usuario usuario = usuarioActivo(principal);
-        Alumno alumno = alumnos.findActivoByIdForUpdate(request.alumnoId())
-                .orElseThrow(() -> new OperacionNoPermitidaException("El alumno no existe o está inactivo"));
         Stock stock = stocks.findActivoByIdForUpdate(request.stockId())
                 .orElseThrow(() -> new EntityNotFoundException("Stock no encontrado"));
         if (Boolean.TRUE.equals(stock.getRequiereControlDeStock()) && stock.getStock() < request.cantidad()) {
@@ -153,6 +166,7 @@ public class StockServicio {
         venta.setFecha(LocalDate.now(clock));
         venta.setEstado(EstadoVentaStock.REGISTRADA);
         venta.setIdempotencyKey(request.idempotencyKey());
+        venta.setRequestHash(requestHash);
         ventas.save(venta);
 
         if (Boolean.TRUE.equals(stock.getRequiereControlDeStock())) {
@@ -175,9 +189,14 @@ public class StockServicio {
 
     @Transactional
     public CargoResponse revertirVenta(Long ventaId, ReversionStockRequest request, Usuario principal) {
-        VentaStock venta = ventas.findById(ventaId).orElseThrow(() -> new EntityNotFoundException("Venta no encontrada"));
+        String reversalHash = RequestHash.sha256("REVERTIR_VENTA_STOCK", ventaId.toString(), request.motivo());
+        VentaStock venta = ventas.findByIdForUpdate(ventaId)
+                .orElseThrow(() -> new EntityNotFoundException("Venta no encontrada"));
         if (venta.getEstado() == EstadoVentaStock.ANULADA) {
             if (request.idempotencyKey().equals(venta.getReversalIdempotencyKey())) {
+                if (!reversalHash.equals(venta.getReversalRequestHash())) {
+                    throw new OperacionNoPermitidaException("La idempotency key ya fue usada con otro contenido");
+                }
                 return cargoServicio.obtener(cargos.findByVentaStockId(ventaId).orElseThrow().getId());
             }
             throw new OperacionNoPermitidaException("La venta ya fue anulada");
@@ -206,6 +225,7 @@ public class StockServicio {
         }
         venta.setEstado(EstadoVentaStock.ANULADA);
         venta.setReversalIdempotencyKey(request.idempotencyKey());
+        venta.setReversalRequestHash(reversalHash);
         cargo.setEstado(EstadoCargo.ANULADO);
         return cargoServicio.obtener(cargo.getId());
     }

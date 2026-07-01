@@ -8,7 +8,7 @@ import Boton from "../../componentes/comunes/Boton";
 import { PlusCircle, Pencil, Trash2 } from "lucide-react";
 import { toast } from "react-toastify";
 import type { MetodoPagoResponse } from "../../types/types";
-import ListaConInfiniteScroll from "../../componentes/comunes/ListaConInfiniteScroll";
+import ListaConCargaManual from "../../componentes/comunes/ListaConCargaManual";
 
 const itemsPerPage = 25;
 
@@ -118,14 +118,14 @@ const MetodosPagoPagina = () => {
         />
       </div>
       {hasMore && (
-        <ListaConInfiniteScroll
+        <ListaConCargaManual
           onLoadMore={onLoadMore}
           hasMore={hasMore}
           loading={loading}
           className="mt-4"
         >
           {loading && <div className="text-center py-2">Cargando más...</div>}
-        </ListaConInfiniteScroll>
+        </ListaConCargaManual>
       )}
     </div>
   );

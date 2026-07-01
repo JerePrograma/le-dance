@@ -12,6 +12,7 @@ import ledance.entidades.MovimientoCredito;
 import ledance.entidades.TipoMovimientoCredito;
 import ledance.entidades.Usuario;
 import ledance.infra.errores.TratadorDeErrores.OperacionNoPermitidaException;
+import ledance.infra.idempotencia.RequestHash;
 import ledance.repositorios.AlumnoRepositorio;
 import ledance.repositorios.CargoRepositorio;
 import ledance.repositorios.MovimientoCreditoRepositorio;
@@ -42,12 +43,19 @@ public class CreditoServicio {
 
     @Transactional
     public MovimientoCreditoResponse consumir(CreditoConsumoRequest request, Usuario principal) {
+        String requestHash = RequestHash.sha256("CONSUMIR_CREDITO", request.alumnoId().toString(),
+                request.cargoId().toString(), decimal(monedaPositiva(request.importe())));
         MovimientoCredito previo = movimientos.findByIdempotencyKey(request.idempotencyKey()).orElse(null);
         if (previo != null) {
-            validarReintentoConsumo(previo, request);
+            validarReintento(previo, requestHash);
             return respuesta(previo);
         }
         Alumno alumno = alumnoBloqueado(request.alumnoId());
+        previo = movimientos.findByIdempotencyKey(request.idempotencyKey()).orElse(null);
+        if (previo != null) {
+            validarReintento(previo, requestHash);
+            return respuesta(previo);
+        }
         Cargo cargo = cargos.findByIdForUpdate(request.cargoId())
                 .orElseThrow(() -> new EntityNotFoundException("Cargo no encontrado"));
         Usuario usuario = usuarioActivo(principal);
@@ -72,6 +80,7 @@ public class CreditoServicio {
         movimiento.setImporte(importe);
         movimiento.setUsuario(usuario);
         movimiento.setIdempotencyKey(request.idempotencyKey());
+        movimiento.setRequestHash(requestHash);
         movimientos.saveAndFlush(movimiento);
         cargoServicio.actualizarEstado(cargo);
         return respuesta(movimiento);
@@ -80,18 +89,21 @@ public class CreditoServicio {
     @Transactional
     public MovimientoCreditoResponse revertirConsumo(Long movimientoId, CreditoReversionRequest request,
                                                       Usuario principal) {
+        String requestHash = RequestHash.sha256(
+                "REVERTIR_CONSUMO_CREDITO", movimientoId.toString(), request.motivo());
         MovimientoCredito previo = movimientos.findByIdempotencyKey(request.idempotencyKey()).orElse(null);
         if (previo != null) {
-            if (previo.getTipo() != TipoMovimientoCredito.REVERSO
-                    || previo.getMovimientoRevertido() == null
-                    || !previo.getMovimientoRevertido().getId().equals(movimientoId)) {
-                throw new OperacionNoPermitidaException("La idempotency key ya fue usada con otro contenido");
-            }
+            validarReintento(previo, requestHash);
             return respuesta(previo);
         }
         MovimientoCredito referencia = movimientos.findById(movimientoId)
                 .orElseThrow(() -> new EntityNotFoundException("Movimiento de crédito no encontrado"));
         Alumno alumno = alumnoBloqueado(referencia.getAlumno().getId());
+        previo = movimientos.findByIdempotencyKey(request.idempotencyKey()).orElse(null);
+        if (previo != null) {
+            validarReintento(previo, requestHash);
+            return respuesta(previo);
+        }
         MovimientoCredito original = movimientos.findByIdForUpdate(movimientoId)
                 .orElseThrow(() -> new EntityNotFoundException("Movimiento de crédito no encontrado"));
         if (original.getTipo() != TipoMovimientoCredito.CONSUMO || original.getCargo() == null) {
@@ -109,6 +121,7 @@ public class CreditoServicio {
         reverso.setMovimientoRevertido(original);
         reverso.setUsuario(usuarioActivo(principal));
         reverso.setIdempotencyKey(request.idempotencyKey());
+        reverso.setRequestHash(requestHash);
         reverso.setMotivo(request.motivo());
         movimientos.saveAndFlush(reverso);
         cargoServicio.actualizarEstado(cargo);
@@ -117,11 +130,19 @@ public class CreditoServicio {
 
     @Transactional
     public MovimientoCreditoResponse ajustar(CreditoAjusteRequest request, Usuario principal) {
+        String requestHash = RequestHash.sha256("AJUSTAR_CREDITO", request.alumnoId().toString(),
+                decimal(monedaPositiva(request.importe())), request.direccion(), request.motivo());
         MovimientoCredito previo = movimientos.findByIdempotencyKey(request.idempotencyKey()).orElse(null);
         if (previo != null) {
+            validarReintento(previo, requestHash);
             return respuesta(previo);
         }
         Alumno alumno = alumnoBloqueado(request.alumnoId());
+        previo = movimientos.findByIdempotencyKey(request.idempotencyKey()).orElse(null);
+        if (previo != null) {
+            validarReintento(previo, requestHash);
+            return respuesta(previo);
+        }
         BigDecimal importe = monedaPositiva(request.importe());
         TipoMovimientoCredito tipo = request.direccion().equals("CREDITO")
                 ? TipoMovimientoCredito.AJUSTE_CREDITO : TipoMovimientoCredito.AJUSTE_DEBITO;
@@ -135,6 +156,7 @@ public class CreditoServicio {
         ajuste.setImporte(importe);
         ajuste.setUsuario(usuarioActivo(principal));
         ajuste.setIdempotencyKey(request.idempotencyKey());
+        ajuste.setRequestHash(requestHash);
         ajuste.setMotivo(request.motivo());
         movimientos.saveAndFlush(ajuste);
         return respuesta(ajuste);
@@ -158,11 +180,8 @@ public class CreditoServicio {
                 .orElseThrow(() -> new OperacionNoPermitidaException("El usuario está inactivo"));
     }
 
-    private void validarReintentoConsumo(MovimientoCredito previo, CreditoConsumoRequest request) {
-        if (previo.getTipo() != TipoMovimientoCredito.CONSUMO || previo.getCargo() == null
-                || !previo.getAlumno().getId().equals(request.alumnoId())
-                || !previo.getCargo().getId().equals(request.cargoId())
-                || previo.getImporte().compareTo(monedaPositiva(request.importe())) != 0) {
+    private void validarReintento(MovimientoCredito previo, String requestHash) {
+        if (!requestHash.equals(previo.getRequestHash())) {
             throw new OperacionNoPermitidaException("La idempotency key ya fue usada con otro contenido");
         }
     }

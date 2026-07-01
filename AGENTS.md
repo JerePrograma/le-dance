@@ -96,10 +96,13 @@ class unless an interface provides measurable value.
 
 PostgreSQL and Flyway migrations are the persisted source of truth.
 
-Assume migrations V1 through V060 may already be applied in real environments.
+The project is pre-production. The only supported baseline is
+`V1__canonical_schema.sql`; the retired V1-V060 history is not a supported
+upgrade source and must not be restored to the active migration directory.
 
-- Never edit, rename, reorder, delete, or reuse an applied Flyway migration.
-- Add a new forward-only migration using the next available version.
+- Keep exactly one canonical V1 until a production baseline is declared.
+- Do not add V2 for refactor corrections while this pre-production reset remains
+  the explicit project contract; update V1 together with JPA and PostgreSQL tests.
 - Inspect all existing migrations before choosing a version.
 - Never use `ddl-auto=update` as a replacement for Flyway.
 - Prefer `ddl-auto=validate`.
@@ -429,10 +432,9 @@ Known high-risk areas
 Treat these areas as requiring evidence and regression coverage:
 
 PagoServicio;
-PaymentProcessor;
-DetallePagoServicio;
-PaymentCalculationServicio;
-DetallePagoResolver;
+AplicacionPago;
+MovimientoCaja, MovimientoCredito y MovimientoStock;
+Recibo y ReciboPendiente;
 MensualidadServicio;
 JPA collections using orphanRemoval;
 JWT validation and refresh;

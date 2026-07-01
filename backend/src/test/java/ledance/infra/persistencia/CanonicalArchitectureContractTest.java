@@ -1,10 +1,14 @@
 package ledance.infra.persistencia;
 
+import jakarta.persistence.Entity;
 import org.junit.jupiter.api.Test;
+import org.springframework.web.bind.annotation.RequestMapping;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -48,8 +52,38 @@ class CanonicalArchitectureContractTest {
                 .containsExactly("backend/src/main/java/ledance/servicios/pdfs/PdfService.java");
         assertThat(UNCONTROLLED_TIME.matcher(backend).find()).as("reloj del sistema sin Clock").isFalse();
         assertThat(backend).doesNotContain("printStackTrace(", "@Data", "/api/deudas", "/api/email");
+        assertThat(backend).doesNotContain("/api/detalle-pago", "saldo_credito");
+        assertThat(frontend).doesNotContain("IntersectionObserver", "InfiniteScroll");
         assertThat(TYPESCRIPT_MONEY_NUMBER.matcher(frontend).find())
                 .as("contrato monetario TypeScript declarado como number").isFalse();
+    }
+
+    @Test
+    void losControladoresNoExponenEntidadesJpa() throws Exception {
+        Path controllers = root.resolve("backend/src/main/java/ledance/controladores");
+        try (Stream<Path> paths = Files.list(controllers)) {
+            for (Path path : paths.filter(file -> file.toString().endsWith("Controlador.java")).toList()) {
+                Class<?> controller = Class.forName("ledance.controladores."
+                        + path.getFileName().toString().replace(".java", ""));
+                for (var method : controller.getDeclaredMethods()) {
+                    if (method.isAnnotationPresent(RequestMapping.class)
+                            || Stream.of(method.getDeclaredAnnotations())
+                            .anyMatch(annotation -> annotation.annotationType().isAnnotationPresent(RequestMapping.class))) {
+                        assertThat(containsEntity(method.getGenericReturnType()))
+                                .as("retorno JPA en %s#%s", controller.getSimpleName(), method.getName()).isFalse();
+                    }
+                }
+            }
+        }
+    }
+
+    private boolean containsEntity(Type type) {
+        if (type instanceof Class<?> clazz) return clazz.isAnnotationPresent(Entity.class);
+        if (type instanceof ParameterizedType parameterized) {
+            return containsEntity(parameterized.getRawType())
+                    || Stream.of(parameterized.getActualTypeArguments()).anyMatch(this::containsEntity);
+        }
+        return false;
     }
 
     private String source(Path sourceRoot) throws IOException {

@@ -1,348 +1,118 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
-import Tabla from "../componentes/comunes/Tabla";
-import Boton from "../componentes/comunes/Boton";
-import api from "../api/axiosConfig";
-import { saveAs } from "file-saver";
-import { Bar } from "react-chartjs-2";
+import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
-import ListaConInfiniteScroll from "../componentes/comunes/ListaConInfiniteScroll";
+import api from "../api/axiosConfig";
+import disciplinasApi from "../api/disciplinasApi";
+import profesoresApi from "../api/profesoresApi";
+import Boton from "../componentes/comunes/Boton";
+import Tabla from "../componentes/comunes/Tabla";
+import type { DisciplinaListadoResponse, ProfesorListadoResponse } from "../types/types";
+import { compareMoney, isMoney, normalizeMoneyInput } from "../utils/money";
 
-// Interfaces de datos
-interface ReporteData {
-  id: number;
-  nombre?: string;
-  disciplina?: string;
-  cantidad?: number;
-  montoTotal?: string;
-  fecha?: string;
-}
-
-interface Disciplina {
-  id: number;
-  nombre: string;
-}
-
-interface Alumno {
-  id: number;
-  nombre: string;
-  apellido: string;
-}
-
-interface PaginatedResponse<T> {
-  content: T[];
-  totalPages: number;
-  // otros campos si son necesarios
+interface ReporteMensualidad {
+  cargoId: number;
+  fechaEmision: string;
+  alumno: string;
+  disciplina: string;
+  profesor: string;
+  importeOriginal: string;
+  importeCobrado: string;
+  saldo: string;
+  estado: string;
 }
 
 const Reportes = () => {
-  const [tipoReporte, setTipoReporte] = useState("");
-  const [datos, setDatos] = useState<ReporteData[]>([]);
-  const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
-  const [alumnos, setAlumnos] = useState<Alumno[]>([]);
-  const [filtroDisciplina, setFiltroDisciplina] = useState("");
-  const [filtroAlumno, setFiltroAlumno] = useState("");
+  const [desde, setDesde] = useState("");
+  const [hasta, setHasta] = useState("");
+  const [disciplinaId, setDisciplinaId] = useState("");
+  const [profesorId, setProfesorId] = useState("");
+  const [porcentajeEscuela, setPorcentajeEscuela] = useState("0.00");
+  const [disciplinas, setDisciplinas] = useState<DisciplinaListadoResponse[]>([]);
+  const [profesores, setProfesores] = useState<ProfesorListadoResponse[]>([]);
+  const [datos, setDatos] = useState<ReporteMensualidad[]>([]);
   const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
-  const [busqueda, setBusqueda] = useState("");
-  // Estado para llevar el control de la página actual y total de páginas
-  const [paginaActual, setPaginaActual] = useState(0);
-  const [totalPaginas, setTotalPaginas] = useState(0);
 
-  // Carga de disciplinas y alumnos al montar el componente
   useEffect(() => {
-    const fetchDisciplinas = async () => {
-      try {
-        const response = await api.get<Disciplina[]>("/disciplinas");
-        setDisciplinas(response.data);
-      } catch {
-        toast.error("Error al cargar disciplinas:");
-      }
-    };
-    const fetchAlumnos = async () => {
-      try {
-        const response = await api.get<Alumno[]>("/alumnos");
-        setAlumnos(response.data);
-      } catch {
-        toast.error("Error al cargar alumnos:");
-      }
-    };
-    fetchDisciplinas();
-    fetchAlumnos();
+    Promise.all([
+      disciplinasApi.listarDisciplinasSimplificadas(),
+      profesoresApi.listarProfesoresActivos(true),
+    ]).then(([disciplinasResponse, profesoresResponse]) => {
+      setDisciplinas(disciplinasResponse);
+      setProfesores(profesoresResponse);
+    }).catch(() => toast.error("No se pudieron cargar los filtros del reporte"));
   }, []);
 
-  /**
-   * Función para cargar los datos del reporte.
-   * Si reset es true se reemplaza la lista (por ejemplo, al generar o refrescar el reporte);
-   * de lo contrario, se concatenan los datos.
-   */
-  const cargarReportes = useCallback(
-    async (pagina = 0, reset: boolean = false) => {
-      if (!tipoReporte) return;
-      setLoading(true);
-      setErrorMsg("");
-      let endpoint = "";
-      const params: Record<string, string | number> = { page: pagina };
-      switch (tipoReporte) {
-        case "Recaudacion por Disciplina":
-          endpoint = "/reportes/recaudacion-disciplina";
-          if (filtroDisciplina) {
-            params.disciplinaId = filtroDisciplina;
-          }
-          break;
-        case "Asistencias por Alumno":
-          endpoint = "/reportes/asistencias-alumno";
-          if (filtroAlumno) {
-            params.alumnoId = filtroAlumno;
-          }
-          break;
-        case "Asistencias por Disciplina":
-          endpoint = "/reportes/asistencias-disciplina";
-          if (filtroDisciplina) {
-            params.disciplinaId = filtroDisciplina;
-          }
-          break;
-        case "Asistencias por Disciplina y Alumno":
-          endpoint = "/reportes/asistencias-disciplina-alumno";
-          if (filtroDisciplina) {
-            params.disciplinaId = filtroDisciplina;
-          }
-          if (filtroAlumno) {
-            params.alumnoId = filtroAlumno;
-          }
-          break;
-        default:
-          toast.error("Tipo de reporte no válido");
-          setLoading(false);
-          return;
-      }
-      try {
-        const response = await api.get<PaginatedResponse<ReporteData>>(
-          endpoint,
-          { params }
-        );
-        if (reset) {
-          setDatos(response.data.content);
-        } else {
-          setDatos((prev) => [...prev, ...response.data.content]);
-        }
-        setTotalPaginas(response.data.totalPages);
-        setPaginaActual(pagina);
-      } catch {
-        toast.error("Error al obtener el reporte:");
-        setErrorMsg(
-          "Ocurrió un error al obtener el reporte. Por favor, intenta de nuevo."
-        );
-      } finally {
-        setLoading(false);
-      }
-    },
-    [tipoReporte, filtroDisciplina, filtroAlumno]
-  );
+  const filtrosValidos = () => {
+    if (!desde || !hasta || hasta < desde) {
+      toast.error("Ingresá un rango de fechas válido");
+      return false;
+    }
+    return true;
+  };
 
-  // Función para exportar a Excel
-  const exportarAExcel = async () => {
+  const buscar = async () => {
+    if (!filtrosValidos()) return;
+    setLoading(true);
     try {
-      const response = await api.get("/reportes/exportar/excel", {
-        responseType: "blob",
+      const { data } = await api.get<ReporteMensualidad[]>("/reportes/mensualidades", {
+        params: {
+          desde,
+          hasta,
+          disciplinaId: disciplinaId || undefined,
+          profesorId: profesorId || undefined,
+        },
       });
-      saveAs(response.data, "reportes.xlsx");
+      setDatos(data);
     } catch {
-      toast.error("Error exportando a Excel:");
+      toast.error("No se pudo generar el reporte");
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Filtrado local de los datos mediante el campo de búsqueda
-  const datosFiltrados = useMemo(
-    () =>
-      datos.filter((dato) =>
-        Object.values(dato)
-          .join(" ")
-          .toLowerCase()
-          .includes(busqueda.toLowerCase())
-      ),
-    [datos, busqueda]
-  );
-
-  // Datos para el gráfico (por ejemplo, monto total)
-  const chartData = {
-    labels: datos.map((d) => d.nombre || "Sin nombre"),
-    datasets: [
-      {
-        label: "Monto Total",
-        data: datos.map((d) => d.montoTotal || 0),
-        backgroundColor: "rgba(75, 192, 192, 0.6)",
-      },
-    ],
+  const exportar = async () => {
+    if (!filtrosValidos()) return;
+    if (!isMoney(porcentajeEscuela) || compareMoney(porcentajeEscuela, "100.00") > 0) {
+      toast.error("El porcentaje de la escuela debe tener hasta dos decimales");
+      return;
+    }
+    setLoading(true);
+    try {
+      const { data } = await api.post<Blob>("/reportes/mensualidades/exportar", {
+        fechaInicio: desde,
+        fechaFin: hasta,
+        disciplinaId: disciplinaId ? Number(disciplinaId) : null,
+        profesorId: profesorId ? Number(profesorId) : null,
+        porcentajeEscuela: normalizeMoneyInput(porcentajeEscuela),
+      }, { responseType: "blob" });
+      const url = URL.createObjectURL(data);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "liquidacion.pdf";
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error("No se pudo exportar la liquidación");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="page-container">
-      <h1 className="page-title">Generación de Reportes</h1>
-
-      <div className="space-y-4 mb-6">
-        {/* Selección del tipo de reporte */}
-        <div>
-          <label
-            htmlFor="tipoReporte"
-            className="block text-sm font-medium text-foreground mb-1"
-          >
-            Selecciona el Tipo de Reporte:
-          </label>
-          <select
-            id="tipoReporte"
-            value={tipoReporte}
-            onChange={(e) => setTipoReporte(e.target.value)}
-            className="form-input w-full"
-          >
-            <option value="">-- Seleccionar --</option>
-            <option value="Recaudacion por Disciplina">
-              Recaudación por Disciplina
-            </option>
-            <option value="Asistencias por Alumno">
-              Asistencias por Alumno
-            </option>
-            <option value="Asistencias por Disciplina">
-              Asistencias por Disciplina
-            </option>
-            <option value="Asistencias por Disciplina y Alumno">
-              Asistencias por Disciplina y Alumno
-            </option>
-          </select>
-        </div>
-
-        {/* Filtros condicionales según el tipo de reporte */}
-        {(tipoReporte.includes("Disciplina") ||
-          tipoReporte === "Recaudacion por Disciplina") && (
-          <div>
-            <label
-              htmlFor="disciplina"
-              className="block text-sm font-medium text-foreground mb-1"
-            >
-              Selecciona la Disciplina:
-            </label>
-            <select
-              id="disciplina"
-              value={filtroDisciplina}
-              onChange={(e) => setFiltroDisciplina(e.target.value)}
-              className="form-input w-full"
-            >
-              <option value="">-- Seleccionar --</option>
-              {disciplinas.map((disc) => (
-                <option key={disc.id} value={disc.id}>
-                  {disc.nombre}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {tipoReporte.includes("Alumno") && (
-          <div>
-            <label
-              htmlFor="alumno"
-              className="block text-sm font-medium text-foreground mb-1"
-            >
-              Selecciona el Alumno:
-            </label>
-            <select
-              id="alumno"
-              value={filtroAlumno}
-              onChange={(e) => setFiltroAlumno(e.target.value)}
-              className="form-input w-full"
-            >
-              <option value="">-- Seleccionar --</option>
-              {alumnos.map((alumno) => (
-                <option key={alumno.id} value={alumno.id}>
-                  {alumno.nombre} {alumno.apellido}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {/* Campo de búsqueda para filtrar localmente */}
-        <div>
-          <label
-            htmlFor="busqueda"
-            className="block text-sm font-medium text-foreground mb-1"
-          >
-            Buscar en Reporte:
-          </label>
-          <input
-            id="busqueda"
-            type="text"
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            className="form-input w-full"
-            placeholder="Buscar..."
-          />
-        </div>
-
-        {/* Botones de acción */}
-        <div className="flex space-x-4">
-          <Boton onClick={() => cargarReportes(0, true)} disabled={loading}>
-            Generar Reporte
-          </Boton>
-          <Boton onClick={exportarAExcel} disabled={loading}>
-            Exportar a Excel
-          </Boton>
-          <Boton
-            onClick={() => cargarReportes(paginaActual, true)}
-            disabled={loading}
-          >
-            Refrescar Reporte
-          </Boton>
-        </div>
+      <h1 className="page-title">Reporte de mensualidades</h1>
+      <div className="page-card grid gap-4 md:grid-cols-2">
+        <label>Desde<input className="form-input w-full" type="date" value={desde} onChange={(event) => setDesde(event.target.value)} /></label>
+        <label>Hasta<input className="form-input w-full" type="date" value={hasta} onChange={(event) => setHasta(event.target.value)} /></label>
+        <label>Disciplina<select className="form-input w-full" value={disciplinaId} onChange={(event) => setDisciplinaId(event.target.value)}><option value="">Todas</option>{disciplinas.map((disciplina) => <option key={disciplina.id} value={disciplina.id}>{disciplina.nombre}</option>)}</select></label>
+        <label>Profesor<select className="form-input w-full" value={profesorId} onChange={(event) => setProfesorId(event.target.value)}><option value="">Todos</option>{profesores.map((profesor) => <option key={profesor.id} value={profesor.id}>{profesor.nombre} {profesor.apellido}</option>)}</select></label>
+        <label>Porcentaje escuela<input className="form-input w-full" inputMode="decimal" value={porcentajeEscuela} onChange={(event) => setPorcentajeEscuela(event.target.value)} /></label>
+        <div className="page-button-group items-end"><Boton onClick={buscar} disabled={loading}>Consultar</Boton><Boton onClick={exportar} disabled={loading}>Exportar PDF</Boton></div>
       </div>
-
-      {/* Mensaje de error y loading */}
-      {errorMsg && <p className="text-center text-red-600 py-4">{errorMsg}</p>}
-      {loading && <p className="text-center py-4">Cargando...</p>}
-
-      {/* Renderizado de resultados, tabla, infinite scroll y gráfico */}
-      {datosFiltrados.length > 0 && (
-        <>
-          <div className="page-table-container">
-            <Tabla
-              headers={[
-                "ID",
-                "Nombre",
-                "Disciplina",
-                "Cantidad",
-                "Monto Total",
-                "Fecha",
-              ]}
-              data={datosFiltrados}
-              customRender={(fila) => [
-                fila.id,
-                fila.nombre || "-",
-                fila.disciplina || "-",
-                fila.cantidad || "-",
-                fila.montoTotal ? `$${fila.montoTotal}` : "-",
-                fila.fecha || "-",
-              ]}
-            />
-          </div>
-          <div className="mt-4">
-            <ListaConInfiniteScroll
-              onLoadMore={() => {
-                if (paginaActual + 1 < totalPaginas) {
-                  cargarReportes(paginaActual + 1);
-                }
-              }}
-              hasMore={paginaActual + 1 < totalPaginas}
-              loading={loading}
-              className="justify-center w-full"
-              children={undefined}
-            ></ListaConInfiniteScroll>
-          </div>
-          <div className="mt-6">
-            <Bar data={chartData} />
-          </div>
-        </>
-      )}
+      {loading && <p>Cargando...</p>}
+      {!loading && datos.length === 0 && <p>No hay resultados para el rango consultado.</p>}
+      {datos.length > 0 && <div className="page-card"><p>Total informado por backend: {datos.length}</p><Tabla headers={["Cargo", "Fecha", "Alumno", "Disciplina", "Profesor", "Original", "Cobrado", "Saldo", "Estado"]} data={datos} customRender={(fila) => [fila.cargoId, fila.fechaEmision, fila.alumno, fila.disciplina, fila.profesor, fila.importeOriginal, fila.importeCobrado, fila.saldo, fila.estado]} /></div>}
     </div>
   );
 };

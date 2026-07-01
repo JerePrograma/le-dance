@@ -27,8 +27,11 @@ import java.math.RoundingMode;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.Year;
-import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class MatriculaServicio {
@@ -96,11 +99,30 @@ public class MatriculaServicio {
     @Transactional
     public void generarMatriculasAnioVigente() {
         int anio = Year.now(clock).getValue();
-        LinkedHashSet<Long> alumnosActivos = new LinkedHashSet<>();
-        inscripciones.findByEstado(EstadoInscripcion.ACTIVA)
-                .forEach(i -> alumnosActivos.add(i.getAlumno().getId()));
-        alumnosActivos.forEach(id -> obtenerOMarcarPendienteMatricula(id, anio));
-        log.info("Matrículas generadas año={} alumnos={}", anio, alumnosActivos.size());
+        List<Long> ids = inscripciones.lockActiveIdsForScheduler();
+        List<Inscripcion> activas = ids.isEmpty() ? List.of() : inscripciones.findAllForScheduler(ids);
+        Map<Long, List<Inscripcion>> porAlumno = activas.stream().collect(Collectors.groupingBy(
+                        inscripcion -> inscripcion.getAlumno().getId(), LinkedHashMap::new, Collectors.toList()));
+        Map<Long, Matricula> existentes = porAlumno.isEmpty() ? Map.of()
+                : matriculas.findByAlumnoIdInAndAnio(porAlumno.keySet(), anio).stream()
+                        .collect(Collectors.toMap(matricula -> matricula.getAlumno().getId(), Function.identity()));
+        int creadas = 0;
+        for (var entry : porAlumno.entrySet()) {
+            if (existentes.containsKey(entry.getKey())) continue;
+            List<Inscripcion> inscripcionesAlumno = entry.getValue();
+            Matricula nueva = new Matricula();
+            nueva.setAlumno(inscripcionesAlumno.getFirst().getAlumno());
+            nueva.setAnio(anio);
+            nueva.setFechaEmision(LocalDate.now(clock));
+            nueva.setEstado(EstadoOrigenCargo.EMITIDA);
+            matriculas.save(nueva);
+            BigDecimal importe = inscripcionesAlumno.stream().map(Inscripcion::getDisciplina)
+                    .map(disciplina -> disciplina.getMatricula() == null ? BigDecimal.ZERO : disciplina.getMatricula())
+                    .max(BigDecimal::compareTo).orElse(BigDecimal.ZERO).setScale(2, RoundingMode.UNNECESSARY);
+            cargoServicio.crearParaMatricula(nueva, importe, LocalDate.of(anio, 1, 31));
+            creadas++;
+        }
+        log.info("Matrículas procesadas año={} alumnos={} creadas={}", anio, porAlumno.size(), creadas);
     }
 
     @Transactional(readOnly = true)

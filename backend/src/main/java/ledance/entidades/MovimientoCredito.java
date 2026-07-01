@@ -51,6 +51,8 @@ public class MovimientoCredito {
     private Usuario usuario;
     @Column(name = "idempotency_key", length = 120, nullable = false, updatable = false)
     private String idempotencyKey;
+    @Column(name = "request_hash", length = 64, nullable = false, updatable = false)
+    private String requestHash;
     @Column(length = 500, updatable = false)
     private String motivo;
     @CreationTimestamp

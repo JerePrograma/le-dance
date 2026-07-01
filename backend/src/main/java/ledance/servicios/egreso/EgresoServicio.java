@@ -11,6 +11,7 @@ import ledance.entidades.MovimientoCaja;
 import ledance.entidades.TipoMovimientoCaja;
 import ledance.entidades.Usuario;
 import ledance.infra.errores.TratadorDeErrores.OperacionNoPermitidaException;
+import ledance.infra.idempotencia.RequestHash;
 import ledance.repositorios.EgresoRepositorio;
 import ledance.repositorios.MetodoPagoRepositorio;
 import ledance.repositorios.MovimientoCajaRepositorio;
@@ -24,12 +25,8 @@ import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.LocalDate;
-import java.util.HexFormat;
 import java.util.List;
 
 @Service
@@ -60,7 +57,14 @@ public class EgresoServicio {
             }
             return respuesta(previo);
         }
-        Usuario usuario = usuarioActivo(principal);
+        Usuario usuario = usuarioActivoForUpdate(principal);
+        previo = egresos.findByIdempotencyKey(request.idempotencyKey()).orElse(null);
+        if (previo != null) {
+            if (!previo.getRequestHash().equals(hash)) {
+                throw new OperacionNoPermitidaException("La idempotency key ya fue usada con otro contenido");
+            }
+            return respuesta(previo);
+        }
         MetodoPago metodo = metodos.findById(request.metodoPagoId())
                 .filter(m -> Boolean.TRUE.equals(m.getActivo()))
                 .orElseThrow(() -> new OperacionNoPermitidaException("Método de pago inexistente o inactivo"));
@@ -91,9 +95,13 @@ public class EgresoServicio {
 
     @Transactional
     public EgresoResponse anular(Long id, EgresoAnulacionRequest request, Usuario principal) {
+        String reversalHash = RequestHash.sha256("ANULAR_EGRESO", id.toString(), request.motivo());
         Egreso egreso = egresos.findByIdForUpdate(id).orElseThrow(() -> new EntityNotFoundException("Egreso no encontrado"));
         if (egreso.getEstado() == EstadoPago.ANULADO) {
             if (request.idempotencyKey().equals(egreso.getReversalIdempotencyKey())) {
+                if (!reversalHash.equals(egreso.getReversalRequestHash())) {
+                    throw new OperacionNoPermitidaException("La idempotency key ya fue usada con otro contenido");
+                }
                 return respuesta(egreso);
             }
             throw new OperacionNoPermitidaException("El egreso ya fue anulado");
@@ -116,6 +124,7 @@ public class EgresoServicio {
         egreso.setMotivoAnulacion(request.motivo());
         egreso.setFechaAnulacion(clock.instant());
         egreso.setReversalIdempotencyKey(request.idempotencyKey());
+        egreso.setReversalRequestHash(reversalHash);
         log.info("Egreso anulado id={}", id);
         return respuesta(egreso);
     }
@@ -135,6 +144,14 @@ public class EgresoServicio {
             throw new OperacionNoPermitidaException("Usuario autenticado requerido");
         }
         return usuarios.findById(principal.getId()).filter(u -> Boolean.TRUE.equals(u.getActivo()))
+                .orElseThrow(() -> new OperacionNoPermitidaException("El usuario está inactivo"));
+    }
+
+    private Usuario usuarioActivoForUpdate(Usuario principal) {
+        if (principal == null || principal.getId() == null) {
+            throw new OperacionNoPermitidaException("Usuario autenticado requerido");
+        }
+        return usuarios.findByIdForUpdate(principal.getId()).filter(u -> Boolean.TRUE.equals(u.getActivo()))
                 .orElseThrow(() -> new OperacionNoPermitidaException("El usuario está inactivo"));
     }
 
@@ -158,11 +175,6 @@ public class EgresoServicio {
     private static String hash(EgresoRegistroRequest request) {
         String canonico = request.fecha() + "|" + monedaPositiva(request.monto()).toPlainString() + "|"
                 + request.metodoPagoId() + "|" + (request.observaciones() == null ? "" : request.observaciones());
-        try {
-            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
-                    .digest(canonico.getBytes(StandardCharsets.UTF_8)));
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 no disponible", e);
-        }
+        return RequestHash.sha256("REGISTRAR_EGRESO", canonico);
     }
 }

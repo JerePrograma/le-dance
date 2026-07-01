@@ -7,7 +7,7 @@ import api from "../../api/axiosConfig";
 import Boton from "../../componentes/comunes/Boton";
 import { PlusCircle, Pencil, Trash2 } from "lucide-react";
 import { toast } from "react-toastify";
-import ListaConInfiniteScroll from "../../componentes/comunes/ListaConInfiniteScroll";
+import ListaConCargaManual from "../../componentes/comunes/ListaConCargaManual";
 
 interface Rol {
   id: number;
@@ -103,14 +103,14 @@ const RolesPagina = () => {
         />
       </div>
       {hasMore && (
-        <ListaConInfiniteScroll
+        <ListaConCargaManual
           onLoadMore={onLoadMore}
           hasMore={hasMore}
           loading={loading}
           className="mt-4"
         >
           {loading && <div className="text-center py-2">Cargando más...</div>}
-        </ListaConInfiniteScroll>
+        </ListaConCargaManual>
       )}
     </div>
   );

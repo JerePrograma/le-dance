@@ -25,6 +25,7 @@ import ledance.entidades.TipoMovimientoCaja;
 import ledance.entidades.TipoMovimientoCredito;
 import ledance.entidades.Usuario;
 import ledance.infra.errores.TratadorDeErrores.OperacionNoPermitidaException;
+import ledance.infra.idempotencia.RequestHash;
 import ledance.repositorios.AlumnoRepositorio;
 import ledance.repositorios.AplicacionPagoRepositorio;
 import ledance.repositorios.CargoRepositorio;
@@ -45,15 +46,11 @@ import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
-import java.util.HexFormat;
 import java.util.List;
 
 @Service
@@ -206,6 +203,7 @@ public class PagoServicio {
             credito.setPago(pago);
             credito.setUsuario(usuario);
             credito.setIdempotencyKey("credito:" + request.idempotencyKey());
+            credito.setRequestHash(RequestHash.sha256("PAGO_CREDITO", request.idempotencyKey(), decimal(excedente)));
             movimientosCredito.save(credito);
         }
 
@@ -218,6 +216,7 @@ public class PagoServicio {
         pendiente.setTipo(TipoEfectoRecibo.GENERAR_Y_ENVIAR);
         pendiente.setEstado(EstadoReciboPendiente.PENDIENTE);
         pendiente.setNextAttemptAt(clock.instant());
+        pendiente.setIdempotencyKey("recibo:" + pago.getId() + ":GENERAR_Y_ENVIAR");
         recibosPendientes.save(pendiente);
 
         log.info("Pago registrado id={} alumnoId={} aplicaciones={} credito={}",
@@ -227,10 +226,14 @@ public class PagoServicio {
 
     @Transactional
     public PagoResponse anularPago(Long pagoId, PagoAnulacionRequest request, Usuario principal) {
+        String reversalHash = RequestHash.sha256("ANULAR_PAGO", pagoId.toString(), request.motivo());
         Pago pago = pagos.findByIdForUpdate(pagoId)
                 .orElseThrow(() -> new EntityNotFoundException("Pago no encontrado"));
         if (pago.getEstado() == EstadoPago.ANULADO) {
             if (request.idempotencyKey().equals(pago.getReversalIdempotencyKey())) {
+                if (!reversalHash.equals(pago.getReversalRequestHash())) {
+                    throw new OperacionNoPermitidaException("La idempotency key ya fue usada con otro contenido");
+                }
                 return respuesta(pago);
             }
             throw new OperacionNoPermitidaException("El pago ya fue anulado");
@@ -291,6 +294,8 @@ public class PagoServicio {
             reversoCredito.setMovimientoRevertido(originalCredito);
             reversoCredito.setUsuario(usuario);
             reversoCredito.setIdempotencyKey("anulacion-credito:" + request.idempotencyKey());
+            reversoCredito.setRequestHash(RequestHash.sha256(
+                    "ANULAR_CREDITO_PAGO", originalCredito.getId().toString(), request.motivo()));
             reversoCredito.setMotivo(request.motivo());
             movimientosCredito.save(reversoCredito);
         }
@@ -299,6 +304,7 @@ public class PagoServicio {
         pago.setMotivoAnulacion(request.motivo());
         pago.setFechaAnulacion(clock.instant());
         pago.setReversalIdempotencyKey(request.idempotencyKey());
+        pago.setReversalRequestHash(reversalHash);
         log.info("Pago anulado id={} alumnoId={}", pago.getId(), pago.getAlumno().getId());
         return respuesta(pago);
     }
@@ -382,11 +388,6 @@ public class PagoServicio {
                 + monedaPositiva(request.montoRecibido(), "montoRecibido").toPlainString() + "|"
                 + aplicaciones + "|" + request.generarCredito() + "|"
                 + (request.observaciones() == null ? "" : request.observaciones());
-        try {
-            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
-                    .digest(canonico.getBytes(StandardCharsets.UTF_8)));
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 no disponible", e);
-        }
+        return RequestHash.sha256("REGISTRAR_PAGO", canonico);
     }
 }

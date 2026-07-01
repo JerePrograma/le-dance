@@ -1,6 +1,9 @@
 package ledance.controladores;
 
 import ledance.dto.inscripcion.request.InscripcionRegistroRequest;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.PositiveOrZero;
 import ledance.dto.PageResponse;
 import ledance.dto.inscripcion.response.InscripcionResponse;
 import ledance.servicios.inscripcion.InscripcionServicio;
@@ -10,8 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 
 import java.util.List;
@@ -47,8 +49,11 @@ public class InscripcionControlador {
 
     @GetMapping
     public ResponseEntity<PageResponse<InscripcionResponse>> listar(
-            @PageableDefault(size = 50, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(PageResponse.from(inscripcionServicio.listarInscripciones(pageable)));
+            @RequestParam(defaultValue = "") String filtro,
+            @RequestParam(defaultValue = "0") @PositiveOrZero int page,
+            @RequestParam(defaultValue = "50") @Min(1) @Max(200) int size) {
+        return ResponseEntity.ok(PageResponse.from(inscripcionServicio.listarInscripciones(filtro,
+                PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id")))));
     }
 
     @GetMapping("/{id}")

@@ -27,11 +27,19 @@ public class CajaServicio {
             throw new IllegalArgumentException("La fecha hasta no puede ser anterior a desde");
         }
         var totales = movimientos.totales(desde, hasta);
-        BigDecimal ingresos = totales.getTotalIngresos();
-        BigDecimal egresos = totales.getTotalEgresos();
+        BigDecimal ingresos = totales.getIngresos();
+        BigDecimal egresos = totales.getEgresos();
+        BigDecimal ajustesIngreso = totales.getAjustesIngreso();
+        BigDecimal ajustesEgreso = totales.getAjustesEgreso();
+        BigDecimal reversosIngreso = totales.getReversosIngreso();
+        BigDecimal reversosEgreso = totales.getReversosEgreso();
+        BigDecimal totalIngresos = ingresos.add(ajustesIngreso).add(reversosEgreso);
+        BigDecimal totalEgresos = egresos.add(ajustesEgreso).add(reversosIngreso);
         var pagina = movimientos.findByFechaBetween(desde, hasta, pageable).map(this::respuesta);
         return new ResumenCajaResponse(desde, hasta, decimal(ingresos), decimal(egresos),
-                decimal(ingresos.subtract(egresos)), PageResponse.from(pagina));
+                decimal(ajustesIngreso), decimal(ajustesEgreso), decimal(reversosIngreso), decimal(reversosEgreso),
+                decimal(totalIngresos), decimal(totalEgresos), decimal(totalIngresos.subtract(totalEgresos)),
+                PageResponse.from(pagina));
     }
 
     private MovimientoCajaResponse respuesta(MovimientoCaja movimiento) {

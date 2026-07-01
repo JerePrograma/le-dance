@@ -9,7 +9,7 @@ import type {
 
 const alumnosApi = {
   listar: async (page = 0, size = 50): Promise<Page<AlumnoResponse>> => {
-    const response = await api.get(`/alumnos?page=${page}&size=${size}`);
+    const response = await api.get("/alumnos", { params: { page, size } });
     return response.data;
   },
 
@@ -32,13 +32,11 @@ const alumnosApi = {
   },
 
   darBaja: async (id: number): Promise<void> => {
-    await api.delete(`/alumnos/dar-baja/${id}`);
+    await api.delete(`/alumnos/${id}`);
   },
 
   buscarPorNombre: async (nombre: string, page = 0, size = 50): Promise<Page<AlumnoResponse>> => {
-    const response = await api.get(
-      `/alumnos/buscar?nombre=${encodeURIComponent(nombre)}&page=${page}&size=${size}`
-    );
+    const response = await api.get("/alumnos/buscar", { params: { nombre, page, size } });
     return response.data;
   },
 

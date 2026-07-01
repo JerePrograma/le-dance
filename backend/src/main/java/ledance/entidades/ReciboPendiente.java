@@ -17,6 +17,7 @@ import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.Instant;
+import java.util.UUID;
 
 @Entity
 @Getter
@@ -41,6 +42,11 @@ public class ReciboPendiente {
     private Integer intentos = 0;
     @Column(nullable = false)
     private Instant nextAttemptAt;
+    @Column(length = 120, nullable = false, updatable = false)
+    private String idempotencyKey;
+    private UUID claimToken;
+    private Instant claimedAt;
+    private Instant leaseUntil;
     @Column(length = 500)
     private String ultimoError;
     @CreationTimestamp

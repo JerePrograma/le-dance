@@ -8,7 +8,7 @@ import Boton from "../../componentes/comunes/Boton"
 import { PlusCircle, Pencil, Trash2 } from "lucide-react"
 import type { ProfesorListadoResponse } from "../../types/types"
 import { toast } from "react-toastify"
-import ListaConInfiniteScroll from "../../componentes/comunes/ListaConInfiniteScroll"
+import ListaConCargaManual from "../../componentes/comunes/ListaConCargaManual"
 
 const itemsPerPage = 25
 
@@ -186,14 +186,14 @@ const Profesores = () => {
 
         {hasMore && (
           <div className="py-4 border-t">
-            <ListaConInfiniteScroll
+            <ListaConCargaManual
               onLoadMore={onLoadMore}
               hasMore={hasMore}
               loading={loading}
               className="justify-center w-full"
             >
               {loading && <div className="text-center py-2">Cargando más...</div>}
-            </ListaConInfiniteScroll>
+            </ListaConCargaManual>
           </div>
         )}
       </div>

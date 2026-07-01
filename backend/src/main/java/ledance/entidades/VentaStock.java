@@ -46,8 +46,12 @@ public class VentaStock {
     private EstadoVentaStock estado = EstadoVentaStock.REGISTRADA;
     @Column(name = "idempotency_key", length = 100, nullable = false, updatable = false)
     private String idempotencyKey;
+    @Column(name = "request_hash", length = 64, nullable = false, updatable = false)
+    private String requestHash;
     @Column(name = "reversal_idempotency_key", length = 100)
     private String reversalIdempotencyKey;
+    @Column(name = "reversal_request_hash", length = 64)
+    private String reversalRequestHash;
     @Version
     @Column(nullable = false)
     private Long version;

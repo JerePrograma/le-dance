@@ -12,11 +12,11 @@ public class NoOpEmailService implements IEmailService {
 
     @Override
     public void sendEmailWithInlineImage(String from, String to, String subject, String htmlText, byte[] inlineData, String contentId, String inlineMimeType) {
-        log.info("[MAIL SKIPPED en dev] to={} subject={}", to, subject);
+        log.info("Envío de email omitido por configuración local");
     }
 
     @Override
     public void sendEmailWithAttachmentAndInlineImage(String from, String to, String subject, String htmlText, byte[] attachmentData, String attachmentFilename, byte[] inlineData, String contentId, String inlineMimeType) {
-        log.info("[MAIL SKIPPED en dev] to={} subject={}", to, subject);
+        log.info("Envío de email con adjunto omitido por configuración local");
     }
 }

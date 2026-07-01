@@ -8,7 +8,7 @@ const obtenerPagoPorId = async (id: number): Promise<PagoResponse> =>
   (await api.get<PagoResponse>(`/pagos/${id}`)).data;
 
 const listarPagosPorAlumno = async (alumnoId: number, page = 0, size = 50): Promise<Page<PagoResumenResponse>> =>
-  (await api.get<Page<PagoResumenResponse>>(`/pagos/alumno/${alumnoId}?page=${page}&size=${size}`)).data;
+  (await api.get<Page<PagoResumenResponse>>(`/pagos/alumno/${alumnoId}`, { params: { page, size } })).data;
 
 const anularPago = async (id: number, request: PagoAnulacionRequest): Promise<PagoResponse> =>
   (await api.post<PagoResponse>(`/pagos/${id}/anulacion`, request)).data;

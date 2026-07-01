@@ -1,4 +1,7 @@
-# Fase 1 - Estabilización de configuración y CI
+# Fase 1 - Estabilización de configuración y CI (snapshot histórico)
+
+> Evidencia previa al reset canónico. No describe el runtime actual; consultar
+> 00-05 y 11-20.
 
 Fecha de cierre local: 2026-06-28.
 

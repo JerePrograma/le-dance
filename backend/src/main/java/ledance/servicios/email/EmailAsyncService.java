@@ -39,7 +39,7 @@ public class EmailAsyncService {
             );
         } catch (Exception ex) {
             // logueá el error y seguí
-            log.warn("No pude enviar mail de cumple a {}: {}", alumno.getEmail(), ex.getMessage());
+            log.warn("Falló el email de cumpleaños alumnoId={} type={}", alumno.getId(), ex.getClass().getSimpleName());
         }
     }
 }

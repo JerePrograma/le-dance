@@ -8,6 +8,8 @@ import type { CargoResponse, MetodoPagoResponse, Page } from "../../types/types"
 import { queryKeys } from "../../hooks/queryKeys";
 import { isPositiveMoney } from "../../utils/money";
 
+const PAGE_SIZE = 50;
+
 export default function PagosFormulario() {
   const queryClient = useQueryClient();
   const metodos = useQuery<MetodoPagoResponse[]>({
@@ -23,8 +25,8 @@ export default function PagosFormulario() {
   const [enviando, setEnviando] = useState(false);
 
   const cargos = useQuery<Page<CargoResponse>>({
-    queryKey: queryKeys.cargosPendientes(alumnoId, cargoPage),
-    queryFn: () => cargosApi.listarPendientes(alumnoId, cargoPage),
+    queryKey: queryKeys.cargosPendientes(alumnoId, cargoPage, PAGE_SIZE),
+    queryFn: () => cargosApi.listarPendientes(alumnoId, cargoPage, PAGE_SIZE),
     enabled: alumnoId > 0,
   });
 

@@ -176,3 +176,104 @@
 - Backend `clean verify`: PASS, 57 tests, 0 failures/errors/skipped, 1:46 min. Flyway exactly V1, Hibernate validate, schema/data audits, security, finance, concurrency, performance and receipt worker passed on Testcontainers PostgreSQL 15.
 - Targeted payment/caja integration test after the native aggregate assertion: PASS, 5 tests, 1:25 min.
 - Last coherent unit completed: bounded list payloads and ledger-side caja summary validated end to end.
+
+## Continuación posterior a c53f754c
+
+### Estado inicial - 2026-07-01 09:47 ART
+
+- SHA local: `c53f754c1738e7877c7819a701125888797510d4` (`main`).
+- SHA remoto después de `git fetch origin`: `8519ef3996b5edb3f16379cf1da99f0b6e36ce7d`.
+- Ahead/behind (`origin/main...HEAD`): `0 1`; el commit canónico local sigue exactamente uno adelante y no fue descartado ni publicado desde esta sesión.
+- Estado inicial: worktree y staging limpios; no se creó otra rama y no se ejecutó pull, rebase, reset, commit, push, merge, tag ni deploy.
+- Docker: Docker Desktop estaba instalado pero detenido; se inició sin borrar imágenes, volúmenes, contenedores ni caches. Engine `29.3.1` disponible.
+- `JAVA_HOME` usado por proceso: `C:\Program Files\Java\corretto-21.0.7`; `java 21.0.7` y `javac 21.0.7`.
+- PostgreSQL: sólo Testcontainers `15.12-alpine3.21`, con puertos host aleatorios (`51770` y `51924` observados). No se abrió conexión a `localhost:5432`; `status.ps1` únicamente informó que ese puerto estaba ocupado.
+
+### Baseline posterior al commit
+
+| Gate | Resultado |
+| --- | --- |
+| `backend\mvnw.cmd -DskipTests compile` | PASS; 267 fuentes; Maven 14.511 s, pared 16.776 s |
+| `backend\mvnw.cmd -DskipTests test-compile` | PASS; 267 fuentes y 15 fuentes de test; Maven 14.437 s, pared 16.107 s |
+| `backend\mvnw.cmd clean verify` | PASS; 57 tests, 0 failures, 0 errors, 0 skipped; Maven 1:10 min, pared 1:12.639 |
+| Flyway/Hibernate/PostgreSQL | PASS; una migración, versión V1, Hibernate validate, PostgreSQL 15.12 Testcontainers |
+| JaCoCo | PASS; reporte generado sobre 222 clases |
+| `frontend\npm ci` | PASS; 557 paquetes; 23.426 s |
+| `frontend\npm run lint` | PASS sin warnings; 5.077 s |
+| `frontend\npm test -- --run` | PASS; 4 archivos, 9 tests, 0 omitidos; 4.646 s |
+| `frontend\npm run build` | PASS; TypeScript y Vite, 2.272 módulos; Vite 7.44 s, pared 14.257 s |
+| `scripts\codex\status.ps1` | PASS; 6.065 s |
+| `scripts\codex\setup.ps1` | PASS; dependencias solamente, sin servicios; 37.854 s |
+| `scripts\codex\validate.ps1` | PASS completo; 1:26.826 |
+| `docker compose config` | PASS; 0.130 s |
+| Compose productivo con placeholders no sensibles | PASS; 0.154 s |
+
+- Plan representativo de cargos: `Index Only Scan using ix_cargos_alumno_pendientes`, 32 filas reales, 0 heap fetches, 6 buffers; tiempos observados 0.065 ms y 0.057 ms en las dos ejecuciones baseline.
+- Advertencias no bloqueantes observadas: auto-attach de Mockito/Byte Buddy y dialecto PostgreSQL configurado explícitamente. No hubo SQLState de error ni stack trace de fallo; los stack traces de `SecurityHttpIntegrationTest` corresponden al escenario deliberado que verifica sanitización de errores 500.
+- Primer gate rojo: ninguno en el baseline posterior a `c53f754c`.
+- Último gate verde: Compose productivo con placeholders.
+- Siguiente acción concreta: auditar los contratos exigidos que no están demostrados por los 57 tests actuales, empezando por paginación, agregación de caja, seguridad y outbox, y agregar únicamente la cobertura o corrección faltante.
+
+### Bloque 1 - contratos de paginación
+
+- Gate dirigido backend: GREEN.
+- La prueba nueva `CanonicalPaginationPostgreSqlTest` reprodujo primero 3 fallos: `PageResponse` no exponía `first/last` y `page=-1` se normalizaba a 0 con HTTP 200.
+- Corrección: `page >= 0`, `1 <= size <= 200` se validan en el borde HTTP; cada endpoint canónico usa orden fijo con ID como desempate; `PageResponse.totalElements` y `totalPages` son `long` y expone `first/last` sin serializar `Page`.
+- Endpoints ajustados: alumnos, inscripciones, cargos pendientes/vencidos, pagos por alumno, egresos, stock y movimientos del resumen de caja.
+- Inscripciones dejó de filtrar sólo la página visible: el filtro alumno/disciplina se ejecuta en la consulta paginada PostgreSQL y vuelve a página 0 en frontend.
+- Frontend: las query keys canónicas incluyen recurso, página, tamaño, filtro y orden; Caja usa React Query como estado remoto y ya no copia la respuesta completa a estado local.
+- Rutas residuales corregidas: baja de alumno ahora llama `DELETE /api/alumnos/{id}`; se eliminó el cliente sin consumidor para el inexistente `/api/stocks/conceptos`.
+- `backend\.\mvnw.cmd -DskipTests test-compile`: PASS, 267 fuentes y 16 fuentes de test.
+- Primera ejecución dirigida de paginación: FAIL esperado, 4 tests, 3 failures; confirmó el contrato faltante.
+- Ejecución dirigida final: PASS, 4 tests, 0 failures/errors/skipped, 52.955 s. Cubre primera/intermedia/última/fuera de rango, vacío, orden estable, límite 200, parámetros inválidos, 401 y máximo dos sentencias preparadas para la página consultada.
+- Frontend: lint PASS; primera ejecución de tests FAIL sólo por dos selectores de la prueba nueva; causa: estado de carga intermedio y tabla responsive duplicada. Selectores corregidos.
+- Frontend final del bloque: 6 archivos, 12 tests PASS, 0 omitidos; build PASS, 2.272 módulos, 8.88 s.
+- Primer gate pendiente: `backend\.\mvnw.cmd clean verify` completo con la nueva cobertura.
+
+### Bloque 2 - cierre de paginación y agregación canónica de caja
+
+- `backend\.\mvnw.cmd clean verify`: PASS después del bloque de paginación; 61 tests, 0 failures, 0 errors, 0 skipped; Maven 1:42 min, pared 1:44.535.
+- La agregación de caja se ejecuta en PostgreSQL con `FILTER`, sin cargar el ledger para sumar. La ecuación implementada es `ingresos efectivos = INGRESO + AJUSTE_INGRESO + reversos de EGRESO/AJUSTE_EGRESO`, `egresos efectivos = EGRESO + AJUSTE_EGRESO + reversos de INGRESO/AJUSTE_INGRESO`, `neto = ingresos efectivos - egresos efectivos`.
+- `CajaCanonicaPostgreSqlTest` usa orígenes financieros válidos y cubre ingreso, egreso, ambos ajustes, ambos reversos, dos métodos, rango inclusivo, movimientos fuera del rango, día vacío y rechazo de idempotency key duplicada.
+- Primer gate dirigido de caja: FAIL del fixture porque intentó insertar movimientos de ingreso/egreso sin `Pago`/`Egreso`, violando las precondiciones deliberadas de V1. Se corrigió el fixture; no se relajó el catálogo.
+- Gate dirigido final de caja: PASS, 2 tests, 0 failures/errors/skipped, Maven 1:01 min.
+- Frontend después del cambio de caja: lint PASS; 6 archivos y 12 tests PASS; build PASS, 2.272 módulos, 13.57 s.
+- Último gate verde del bloque: frontend build.
+
+### Bloque 3 - recibos y outbox recuperable
+
+- Se eliminó la transacción larga del worker: el claim, las renovaciones de lease y el cierre/error usan transacciones cortas; PDF, filesystem y email se ejecutan sin retener locks de base.
+- `recibos_pendientes` es la única fuente de estado técnico y ahora tiene idempotency key única, token de claim, timestamps de claim/lease, constraint de coherencia e índice de trabajo. `recibos` conserva sólo hechos históricos del documento.
+- El claim usa PostgreSQL `FOR UPDATE SKIP LOCKED`; un lease vencido permite recuperación. El archivo existente y `enviado_at` evitan repetir efectos ya confirmados.
+- El pago crea `Recibo`, `ReciboPendiente` y su key determinista dentro de la misma transacción financiera; el rollback de pago no deja trabajo pendiente.
+- Primer gate dirigido del grupo: FAIL, 11 tests, 1 error. Causa: el fixture JDBC enlazó `Instant` sin tipo SQL explícito al preparar `TIMESTAMPTZ`; PostgreSQL informó que no podía inferir el tipo. Corrección: el fixture usa `OffsetDateTime` UTC.
+- Test mínimo `ReciboOutboxPostgreSqlTest`: PASS, 2 tests, 0 failures/errors/skipped, pared 50.324 s.
+- Grupo final `ReciboStorageServiceTest,ReciboOutboxPostgreSqlTest,PagoCanonicoPostgreSqlTest,PostgreSqlSchemaValidationTest`: PASS, 11 tests, 0 failures/errors/skipped, Maven 1:08 min, pared 70.935 s; PostgreSQL 15.12 en puerto aleatorio, Flyway exactamente V1 y Hibernate validate verdes.
+- Riesgo externo explícito: SMTP no ofrece en este código una clave idempotente confirmable; el worker evita duplicados concurrentes y reintentos después de confirmación local, pero una caída entre aceptación SMTP y persistencia de `enviado_at` no puede demostrar entrega exactamente una vez. No se oculta este límite como garantía transaccional.
+- Último gate verde: grupo completo de recibos/Flyway/finanzas.
+- Primer gate pendiente: contratos uniformes de request hash e idempotencia para operaciones financieras restantes.
+
+### Bloque 4 - seguridad, errores, idempotencia y schedulers
+
+- `RequestHash` centraliza SHA-256 UTF-8 con encuadre por longitud. Pago, egreso, venta de stock y movimientos de crédito almacenan hash; las reversiones de pago/egreso/venta almacenan hash separado. V1 exige las combinaciones key/hash coherentes.
+- Se cerraron ventanas concurrentes con una segunda lectura de key después del lock estable: alumno para venta/crédito, usuario para egreso y venta bloqueada para reversión.
+- Primer gate de la prueba outbox anterior: FAIL sólo por binding JDBC de `Instant`; ya documentado en bloque 3. En este bloque, `RequestHashTest,PagoCanonicoPostgreSqlTest,PostgreSqlSchemaValidationTest`: PASS, 7 tests, 0 failures/errors/skipped, Maven 1:02 min.
+- `IdempotenciaCanonicaPostgreSqlTest,PostgreSqlSchemaValidationTest`: PASS, 2 tests, 0 failures/errors/skipped, Maven 52.648 s. Dos llamadas simultáneas de egreso, venta, ajuste de crédito y reversiones retornan el mismo resultado sin duplicar; misma key/payload distinto produce conflicto.
+- Seguridad usa sólo tres reglas: login/refresh/preflight públicos, perfil autenticado y catch-all `/api/**` administrador. Se eliminaron matchers parciales susceptibles de quedar obsoletos.
+- `ApiErrorResponse` unifica timestamp/status/code/message/fieldErrors. Los handlers de la cadena de seguridad también devuelven JSON; constraints e optimistic lock se traducen sin SQL, clases internas ni stack trace. Frontend puede categorizar 400/401/403/404/409/5xx.
+- `SecurityHttpIntegrationTest`: PASS, 14 tests. El grupo final scheduler/arquitectura/seguridad pasó 18 tests, 0 failures/errors/skipped, Maven 1:39 min.
+- El primer intento de ese grupo falló al compilar porque la refactorización de matrícula reutilizó el nombre local `activas`; se renombró, sin cambio funcional.
+- Mensualidades y matrículas bloquean IDs activos ordenados mediante una consulta PostgreSQL y cargan detalles en batch. `SchedulerIdempotencyPostgreSqlTest` ejecuta dos workers simultáneos y una repetición posterior: una mensualidad/cargo por inscripción/período y una matrícula/cargo por alumno/año.
+- `MatriculaScheduler` no se restauró: la capacidad real está en `ScheduledTasks` y en el caso de uso manual.
+- Último gate verde: idempotencia PostgreSQL + schema validate.
+
+### Bloque 5 - contrato frontend, dependencias y CI
+
+- Salones dejó de concatenar páginas y ahora reemplaza la página visible. Reportes dejó de llamar endpoints retirados y usa `GET /reportes/mensualidades` y `POST /reportes/mensualidades/exportar`.
+- Se eliminaron `IntersectionObserver` y los componentes de infinite scroll; las listas locales restantes exigen botón `Mostrar más`. No existe request automático para reconstruir una colección completa.
+- `money.ts` valida, normaliza coma/punto, compara importes grandes y formatea sin `Number`; 0, 0.01, inválidos, negativos, más de dos decimales, ceros finales, vacío, coma y valores fuera del safe integer están cubiertos.
+- Dependencias eliminadas por falta de consumidores: Chart.js, react-chartjs-2, file-saver, sus tipos, dos plugins Tailwind 4 no configurados, user-event, parser/plugin TypeScript duplicados, eslint-plugin-react y picomatch.
+- DTOs/código eliminados por ausencia confirmada de ruta/servicio/consumidor: mapper/request de matrícula, dos requests de reporte heredados, cliente frontend de matrícula y tipos asociados.
+- Frontend tras el primer lote: `npm ci` PASS, lint PASS, 6 archivos/15 tests PASS, build PASS, 2.264 módulos, Vite 9.52 s, pared total 65.862 s. Falta repetir después del último lote de dependencias y `apiError.test`.
+- CI ya no contiene job de deploy/push: valida backend/frontend/Compose y sólo construye imágenes SHA después de gates verdes.
+- Primer gate pendiente: `clean verify` integral después de todos estos cambios.

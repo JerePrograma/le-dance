@@ -8,7 +8,7 @@ import Boton from "../../componentes/comunes/Boton";
 import { PlusCircle, Pencil, Trash2 } from "lucide-react";
 import type { BonificacionResponse } from "../../types/types";
 import { toast } from "react-toastify";
-import InfiniteScroll from "../../componentes/comunes/InfiniteScroll";
+import ListaConCargaManual from "../../componentes/comunes/ListaConCargaManual";
 
 const Bonificaciones = () => {
   const [bonificaciones, setBonificaciones] = useState<BonificacionResponse[]>(
@@ -117,7 +117,7 @@ const Bonificaciones = () => {
         />
       </div>
       {hasMore && (
-        <InfiniteScroll
+        <ListaConCargaManual
           onLoadMore={loadMore}
           hasMore={hasMore}
           loading={loading}

@@ -1,6 +1,9 @@
 package ledance.controladores;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.PositiveOrZero;
 import ledance.dto.egreso.request.EgresoAnulacionRequest;
 import ledance.dto.egreso.request.EgresoRegistroRequest;
 import ledance.dto.egreso.response.EgresoResponse;
@@ -14,14 +17,16 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/egresos")
+@Validated
 public class EgresoControlador {
     private final EgresoServicio egresos;
 
@@ -49,7 +54,9 @@ public class EgresoControlador {
 
     @GetMapping
     public PageResponse<EgresoResponse> listar(
-            @PageableDefault(size = 50, sort = {"fecha", "id"}, direction = Sort.Direction.DESC) Pageable pageable) {
-        return PageResponse.from(egresos.listarEgresos(pageable));
+            @RequestParam(defaultValue = "0") @PositiveOrZero int page,
+            @RequestParam(defaultValue = "50") @Min(1) @Max(200) int size) {
+        return PageResponse.from(egresos.listarEgresos(
+                PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "fecha", "id"))));
     }
 }

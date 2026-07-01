@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Pencil, PlusCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -7,19 +7,17 @@ import Boton from "../../componentes/comunes/Boton";
 import Tabla from "../../componentes/comunes/Tabla";
 import { queryKeys } from "../../hooks/queryKeys";
 
+const PAGE_SIZE = 50;
+
 const InscripcionesPagina = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
   const { data, isLoading, isError } = useQuery({
-    queryKey: queryKeys.inscripciones(page),
-    queryFn: () => inscripcionesApi.listar(page),
+    queryKey: queryKeys.inscripciones(page, PAGE_SIZE, search),
+    queryFn: () => inscripcionesApi.listar(page, PAGE_SIZE, search.trim()),
   });
-  const rows = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    const content = data?.content ?? [];
-    return term ? content.filter((item) => `${item.alumno} ${item.disciplina}`.toLowerCase().includes(term)) : content;
-  }, [data, search]);
+  const rows = data?.content ?? [];
 
   if (isLoading) return <div className="text-center py-4">Cargando...</div>;
   if (isError) return <div className="text-center py-4 text-destructive">No se pudieron cargar las inscripciones.</div>;
@@ -27,10 +25,10 @@ const InscripcionesPagina = () => {
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <div><h1 className="text-3xl font-bold tracking-tight">Inscripciones</h1><p className="text-sm text-gray-600">{rows.length} registros</p></div>
+        <div><h1 className="text-3xl font-bold tracking-tight">Inscripciones</h1><p className="text-sm text-gray-600">{data?.totalElements ?? 0} registros</p></div>
         <Boton onClick={() => navigate("/inscripciones/formulario")} className="page-button"><PlusCircle className="w-4 h-4" /> Nueva</Boton>
       </div>
-      <input className="form-input max-w-md" placeholder="Buscar alumno o disciplina" value={search} onChange={(event) => setSearch(event.target.value)} />
+      <input className="form-input max-w-md" placeholder="Buscar alumno o disciplina" value={search} onChange={(event) => { setPage(0); setSearch(event.target.value); }} />
       <div className="page-card overflow-x-auto">
         <Tabla
           headers={["ID", "Alumno", "Disciplina", "Fecha", "Estado", "Costo particular"]}

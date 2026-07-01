@@ -8,11 +8,13 @@ import Boton from "../../componentes/comunes/Boton";
 import Tabla from "../../componentes/comunes/Tabla";
 import { queryKeys } from "../../hooks/queryKeys";
 
+const PAGE_SIZE = 50;
+
 const StocksPagina = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(0);
-  const stocks = useQuery({ queryKey: queryKeys.stocks(page), queryFn: () => stocksApi.listarStocks(page) });
+  const stocks = useQuery({ queryKey: queryKeys.stocks(page, PAGE_SIZE), queryFn: () => stocksApi.listarStocks(page, PAGE_SIZE) });
   const eliminar = async (id: number) => {
     try {
       await stocksApi.eliminarStock(id);

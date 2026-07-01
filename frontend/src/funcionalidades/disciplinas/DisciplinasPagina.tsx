@@ -8,7 +8,7 @@ import Boton from "../../componentes/comunes/Boton";
 import { PlusCircle, Pencil, Trash2 } from "lucide-react";
 import disciplinasApi from "../../api/disciplinasApi";
 import { toast } from "react-toastify";
-import ListaConInfiniteScroll from "../../componentes/comunes/ListaConInfiniteScroll";
+import ListaConCargaManual from "../../componentes/comunes/ListaConCargaManual";
 
 interface Disciplina {
   id: number;
@@ -194,7 +194,7 @@ const Disciplinas = () => {
 
         {hasMore && (
           <div className="py-4 border-t">
-            <ListaConInfiniteScroll
+            <ListaConCargaManual
               onLoadMore={onLoadMore}
               hasMore={hasMore}
               loading={loading}
@@ -203,7 +203,7 @@ const Disciplinas = () => {
               {loading && (
                 <div className="text-center py-2">Cargando más...</div>
               )}
-            </ListaConInfiniteScroll>
+            </ListaConCargaManual>
           </div>
         )}
       </div>

@@ -6,6 +6,9 @@ import { toast } from "react-toastify";
 import alumnosApi from "../../api/alumnosApi";
 import Boton from "../../componentes/comunes/Boton";
 import Tabla from "../../componentes/comunes/Tabla";
+import { queryKeys } from "../../hooks/queryKeys";
+
+const PAGE_SIZE = 50;
 
 const AlumnosPagina = () => {
   const navigate = useNavigate();
@@ -13,8 +16,8 @@ const AlumnosPagina = () => {
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState("");
   const alumnos = useQuery({
-    queryKey: ["alumnos", page, search],
-    queryFn: () => search.trim() ? alumnosApi.buscarPorNombre(search.trim(), page) : alumnosApi.listar(page),
+    queryKey: queryKeys.alumnos(page, PAGE_SIZE, search),
+    queryFn: () => search.trim() ? alumnosApi.buscarPorNombre(search.trim(), page, PAGE_SIZE) : alumnosApi.listar(page, PAGE_SIZE),
   });
   const baja = async (id: number) => {
     try {

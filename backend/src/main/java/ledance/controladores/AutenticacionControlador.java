@@ -40,9 +40,6 @@ public class AutenticacionControlador {
 
     @PostMapping
     public ResponseEntity<LoginResponseDTO> realizarLogin(@RequestBody @Valid LoginRequest datos) {
-        log.info("Intento de login para nombreUsuario: {}", datos.nombreUsuario());
-
-
         var authToken = new UsernamePasswordAuthenticationToken(datos.nombreUsuario(), datos.contrasena());
         var usuarioAutenticado = authManager.authenticate(authToken);
         var user = (Usuario) usuarioAutenticado.getPrincipal();

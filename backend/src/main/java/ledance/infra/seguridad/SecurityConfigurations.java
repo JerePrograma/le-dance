@@ -1,5 +1,7 @@
 package ledance.infra.seguridad;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import ledance.infra.errores.ApiErrorResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -13,18 +15,25 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.http.HttpStatus;
+
+import java.io.IOException;
+import java.time.Clock;
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfigurations {
 
     private final SecurityFilter securityFilter;
+    private final ObjectMapper objectMapper;
+    private final Clock clock;
 
-    public SecurityConfigurations(SecurityFilter securityFilter) {
+    public SecurityConfigurations(SecurityFilter securityFilter, ObjectMapper objectMapper, Clock clock) {
         this.securityFilter = securityFilter;
+        this.objectMapper = objectMapper;
+        this.clock = clock;
     }
 
     @Bean
@@ -36,26 +45,29 @@ public class SecurityConfigurations {
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(errors -> errors
-                        .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
+                        .authenticationEntryPoint((request, response, exception) ->
+                                writeError(response, HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Autenticación requerida"))
                         .accessDeniedHandler((request, response, exception) ->
-                                response.setStatus(HttpStatus.FORBIDDEN.value())))
+                                writeError(response, HttpStatus.FORBIDDEN, "FORBIDDEN", "Permisos insuficientes")))
                 .authorizeHttpRequests(req -> {
                     req.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll();
                     req.requestMatchers(HttpMethod.POST, "/api/login").permitAll();
                     req.requestMatchers(HttpMethod.POST, "/api/login/refresh").permitAll();
                     req.requestMatchers(HttpMethod.GET, "/api/usuarios/perfil").authenticated();
-                    req.requestMatchers("/api/usuarios/**", "/api/roles/**")
-                            .hasRole("ADMINISTRADOR");
-                    req.requestMatchers(
-                                    "/api/cargos/**", "/api/pagos/**", "/api/creditos/**",
-                                    "/api/caja/**", "/api/egresos/**", "/api/stocks/**",
-                                    "/api/matriculas/**", "/api/mensualidades/**", "/api/reportes/**")
-                            .hasRole("ADMINISTRADOR");
                     req.requestMatchers("/api/**").hasRole("ADMINISTRADOR");
                     req.anyRequest().denyAll();
                 })
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
+    }
+
+    private void writeError(jakarta.servlet.http.HttpServletResponse response, HttpStatus status,
+                            String code, String message) throws IOException {
+        response.setStatus(status.value());
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        objectMapper.writeValue(response.getWriter(),
+                new ApiErrorResponse(clock.instant(), status.value(), code, message, List.of()));
     }
 
     @Bean

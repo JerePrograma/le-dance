@@ -10,6 +10,7 @@ import jakarta.persistence.LockModeType;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import java.util.List;
+import java.util.Collection;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -18,14 +19,37 @@ import org.springframework.data.domain.Pageable;
 public interface InscripcionRepositorio extends JpaRepository<Inscripcion, Long> {
 
     @EntityGraph(attributePaths = {"alumno", "disciplina", "bonificacion"})
-    @Query(value = "SELECT I FROM Inscripcion I", countQuery = "SELECT count(I) FROM Inscripcion I")
-    Page<Inscripcion> findAllWithDetails(Pageable pageable);
+    @Query(value = """
+            SELECT I FROM Inscripcion I
+            WHERE :filtro = ''
+               OR LOWER(CONCAT(I.alumno.nombre, ' ', I.alumno.apellido, ' ', I.disciplina.nombre))
+                  LIKE LOWER(CONCAT('%', :filtro, '%'))
+            """, countQuery = """
+            SELECT count(I) FROM Inscripcion I
+            WHERE :filtro = ''
+               OR LOWER(CONCAT(I.alumno.nombre, ' ', I.alumno.apellido, ' ', I.disciplina.nombre))
+                  LIKE LOWER(CONCAT('%', :filtro, '%'))
+            """)
+    Page<Inscripcion> findAllWithDetails(@Param("filtro") String filtro, Pageable pageable);
 
     List<Inscripcion> findAllByDisciplinaIdAndEstado(Long disciplinaId, EstadoInscripcion estado);
 
     List<Inscripcion> findAllByAlumno_IdAndEstado(Long alumnoId, EstadoInscripcion estado);
 
     List<Inscripcion> findByEstado(EstadoInscripcion estado);
+
+    @Query(value = """
+            SELECT i.id FROM inscripciones i
+            JOIN alumnos a ON a.id = i.alumno_id
+            WHERE i.estado = 'ACTIVA' AND a.activo = true
+            ORDER BY i.id
+            FOR UPDATE OF i
+            """, nativeQuery = true)
+    List<Long> lockActiveIdsForScheduler();
+
+    @EntityGraph(attributePaths = {"alumno", "disciplina", "bonificacion"})
+    @Query("select i from Inscripcion i where i.id in :ids order by i.id")
+    List<Inscripcion> findAllForScheduler(@Param("ids") Collection<Long> ids);
 
     @Query("SELECT I.disciplina.nombre, SUM(I.disciplina.valorCuota) " +
             "FROM Inscripcion I " +

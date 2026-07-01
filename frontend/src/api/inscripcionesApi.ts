@@ -11,8 +11,8 @@ const crear = async (request: InscripcionRegistroRequest): Promise<InscripcionRe
   return response.data;
 };
 
-const listar = async (page = 0, size = 50): Promise<Page<InscripcionResponse>> => {
-  const response = await api.get(`/inscripciones?page=${page}&size=${size}`);
+const listar = async (page = 0, size = 50, filtro = ""): Promise<Page<InscripcionResponse>> => {
+  const response = await api.get("/inscripciones", { params: { page, size, filtro } });
   return response.data;
 };
 

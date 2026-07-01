@@ -1,92 +1,38 @@
-# Plantilla de ejecución de auditoría de datos
+# Plantilla de ejecución de auditoría canónica
 
-Estado de esta Fase 4A: no existe snapshot anonimizado autorizado y no se ejecutó ninguna auditoría sobre datos reales.
+Esta plantilla sólo se ejecuta contra PostgreSQL 15 desechable. No usar
+`localhost:5432` ni una base externa.
 
-## Autorización y trazabilidad
+## Identificación
 
-| Campo | Valor |
-| --- | --- |
-| Identificador de ejecución | `[completar]` |
-| Responsable de ejecución | `[completar]` |
-| Fecha/hora y zona | `[completar]` |
-| Origen del snapshot | `[completar]` |
-| Propietario/autorizante del origen | `[completar]` |
-| Evidencia de autorización | `[completar]` |
-| Método de anonimización | `[completar]` |
-| Responsable de anonimización | `[completar]` |
-| Verificación de anonimización | `[completar]` |
-| Archivo/imagen restaurada | `[completar]` |
-| Algoritmo de checksum | `[completar]` |
-| Checksum del snapshot | `[completar]` |
-| PostgreSQL | `[completar; objetivo 15.x]` |
-| Versión Flyway inicial/final | `[completar]` |
-| Host/puerto aislado | `[completar; nunca localhost:5432]` |
-| Contenedor/proyecto efímero | `[completar]` |
-| Evidencia de modo read-only | `[completar]` |
+- fecha/hora:
+- commit:
+- imagen PostgreSQL:
+- puerto aleatorio:
+- versión Flyway esperada: `1`:
+- cantidad de migraciones esperada: `1`:
 
-## Gates previos
+## Gates
 
-- [ ] El snapshot está anonimizado y autorizado por escrito.
-- [ ] El checksum fue calculado antes de restaurar.
-- [ ] El destino es efímero, aislado y no publica el puerto 5432 del host.
-- [ ] No se reutilizan credenciales ni URLs de ambientes externos.
-- [ ] Flyway informa la versión esperada y checksums válidos.
-- [ ] Los seis SQL coinciden con la revisión aprobada.
-- [ ] La sesión que ejecuta las auditorías está en modo read-only.
+1. Flyway sobre esquema vacío: resultado y duración.
+2. `ddl-auto=validate`: resultado.
+3. Catálogo: columnas, NUMERIC, FKs RESTRICT, uniques y checks.
+4. Reconciliación sintética: cargos sin origen, aplicaciones sobreaplicadas,
+   reversos duplicados, movimientos sin origen, recibos/outbox duplicados.
+5. Plan de cargos: dataset, query, nodo, índice, sort, buffers, filas y tiempo.
+6. Concurrencia: pagos, schedulers y claims outbox.
 
-## Conteos e inventario
+## Consultas mínimas
 
-| Resultado | Valor |
-| --- | --- |
-| Filas totales inventariadas | NO EJECUTADO — REQUIERE SNAPSHOT ANONIMIZADO AUTORIZADO |
-| Tablas con filas | NO EJECUTADO — REQUIERE SNAPSHOT ANONIMIZADO AUTORIZADO |
-| Registros activos | NO EJECUTADO — REQUIERE SNAPSHOT ANONIMIZADO AUTORIZADO |
-| Registros inactivos | NO EJECUTADO — REQUIERE SNAPSHOT ANONIMIZADO AUTORIZADO |
-| Claves relevantes nulas | NO EJECUTADO — REQUIERE SNAPSHOT ANONIMIZADO AUTORIZADO |
-| Migraciones Flyway exitosas | NO EJECUTADO — REQUIERE SNAPSHOT ANONIMIZADO AUTORIZADO |
-| Migraciones Flyway fallidas | NO EJECUTADO — REQUIERE SNAPSHOT ANONIMIZADO AUTORIZADO |
+```sql
+SELECT version, success FROM flyway_schema_history ORDER BY installed_rank;
+SELECT count(*) FROM flyway_schema_history WHERE success;
+SELECT cargo_id, sum(importe_aplicado) FROM aplicaciones_pago
+WHERE estado = 'APLICADA' GROUP BY cargo_id;
+SELECT pago_id, count(*) FROM recibos GROUP BY pago_id HAVING count(*) > 1;
+SELECT pago_id, tipo, count(*) FROM recibos_pendientes
+GROUP BY pago_id, tipo HAVING count(*) > 1;
+```
 
-Adjuntar la salida completa de `01-counts.sql`; no copiar conteos manualmente sin conservar el artefacto original.
-
-## Hallazgos
-
-| Archivo | Reglas con hallazgos | Filas/grupos afectados | Evidencia adjunta |
-| --- | --- | --- | --- |
-| `02-duplicates.sql` | NO EJECUTADO — REQUIERE SNAPSHOT ANONIMIZADO AUTORIZADO | NO EJECUTADO — REQUIERE SNAPSHOT ANONIMIZADO AUTORIZADO | `[completar]` |
-| `03-orphans.sql` | NO EJECUTADO — REQUIERE SNAPSHOT ANONIMIZADO AUTORIZADO | NO EJECUTADO — REQUIERE SNAPSHOT ANONIMIZADO AUTORIZADO | `[completar]` |
-| `04-financial-inconsistencies.sql` | NO EJECUTADO — REQUIERE SNAPSHOT ANONIMIZADO AUTORIZADO | NO EJECUTADO — REQUIERE SNAPSHOT ANONIMIZADO AUTORIZADO | `[completar]` |
-| `05-state-inconsistencies.sql` | NO EJECUTADO — REQUIERE SNAPSHOT ANONIMIZADO AUTORIZADO | NO EJECUTADO — REQUIERE SNAPSHOT ANONIMIZADO AUTORIZADO | `[completar]` |
-
-Por cada `rule_id` con `affected_count > 0`, registrar clasificación, IDs de ejemplo acotados, impacto y reparabilidad sin inferir una corrección.
-
-## Reconciliación financiera
-
-| Dimensión | Filas/grupos | Diferencia balance | Diferencia detalles | Diferencia caja |
-| --- | --- | --- | --- | --- |
-| Alumno | NO EJECUTADO — REQUIERE SNAPSHOT ANONIMIZADO AUTORIZADO | NO EJECUTADO — REQUIERE SNAPSHOT ANONIMIZADO AUTORIZADO | NO EJECUTADO — REQUIERE SNAPSHOT ANONIMIZADO AUTORIZADO | NO EJECUTADO — REQUIERE SNAPSHOT ANONIMIZADO AUTORIZADO |
-| Fecha | NO EJECUTADO — REQUIERE SNAPSHOT ANONIMIZADO AUTORIZADO | NO EJECUTADO — REQUIERE SNAPSHOT ANONIMIZADO AUTORIZADO | NO EJECUTADO — REQUIERE SNAPSHOT ANONIMIZADO AUTORIZADO | NO EJECUTADO — REQUIERE SNAPSHOT ANONIMIZADO AUTORIZADO |
-| Período | NO EJECUTADO — REQUIERE SNAPSHOT ANONIMIZADO AUTORIZADO | NO EJECUTADO — REQUIERE SNAPSHOT ANONIMIZADO AUTORIZADO | NO EJECUTADO — REQUIERE SNAPSHOT ANONIMIZADO AUTORIZADO | NO EJECUTADO — REQUIERE SNAPSHOT ANONIMIZADO AUTORIZADO |
-| Pago | NO EJECUTADO — REQUIERE SNAPSHOT ANONIMIZADO AUTORIZADO | NO EJECUTADO — REQUIERE SNAPSHOT ANONIMIZADO AUTORIZADO | NO EJECUTADO — REQUIERE SNAPSHOT ANONIMIZADO AUTORIZADO | NO EJECUTADO — REQUIERE SNAPSHOT ANONIMIZADO AUTORIZADO |
-| Mensualidad | NO EJECUTADO — REQUIERE SNAPSHOT ANONIMIZADO AUTORIZADO | NO EJECUTADO — REQUIERE SNAPSHOT ANONIMIZADO AUTORIZADO | NO EJECUTADO — REQUIERE SNAPSHOT ANONIMIZADO AUTORIZADO | NO EJECUTADO — REQUIERE SNAPSHOT ANONIMIZADO AUTORIZADO |
-| Método de pago | NO EJECUTADO — REQUIERE SNAPSHOT ANONIMIZADO AUTORIZADO | NO EJECUTADO — REQUIERE SNAPSHOT ANONIMIZADO AUTORIZADO | NO EJECUTADO — REQUIERE SNAPSHOT ANONIMIZADO AUTORIZADO | NO EJECUTADO — REQUIERE SNAPSHOT ANONIMIZADO AUTORIZADO |
-
-Adjuntar la salida completa de `06-reconciliation-baseline.sql`. Conservar separadas las fuentes contradictorias; una diferencia no autoriza a elegir una como verdad.
-
-## Decisiones
-
-| ID | Hallazgo/regla | Decisión | Responsable | Fecha | Evidencia/aprobación |
-| --- | --- | --- | --- | --- | --- |
-| `[completar]` | `[completar]` | `[completar]` | `[completar]` | `[completar]` | `[completar]` |
-
-Las opciones válidas son: reparar inequívocamente en una migración futura, requerir decisión de negocio, conservar como excepción aprobada o bloquear la migración. Esta plantilla no autoriza ninguna escritura.
-
-## Cierre y aprobación
-
-| Rol | Nombre | Resultado | Fecha | Firma/evidencia |
-| --- | --- | --- | --- | --- |
-| Dueño de datos | `[completar]` | `[APROBADO / RECHAZADO]` | `[completar]` | `[completar]` |
-| Responsable financiero | `[completar]` | `[APROBADO / RECHAZADO]` | `[completar]` | `[completar]` |
-| Responsable técnico | `[completar]` | `[APROBADO / RECHAZADO]` | `[completar]` | `[completar]` |
-| Seguridad/privacidad | `[completar]` | `[APROBADO / RECHAZADO]` | `[completar]` | `[completar]` |
-
-Resultado global actual: **NO EJECUTADO — REQUIERE SNAPSHOT ANONIMIZADO AUTORIZADO**.
+Registrar filas devueltas; no reemplazar cero resultados por una afirmación sin
+salida. Adjuntar el reporte Surefire del gate que materializa estas consultas.

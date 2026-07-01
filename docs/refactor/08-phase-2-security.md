@@ -1,4 +1,7 @@
-# Fase 2 - Seguridad crítica
+# Fase 2 - Seguridad crítica (snapshot histórico)
+
+> Evidencia anterior a la política catch-all administrativa. El inventario
+> vigente es `07-security-endpoints.md`.
 
 Fecha de cierre local: 2026-06-28.
 

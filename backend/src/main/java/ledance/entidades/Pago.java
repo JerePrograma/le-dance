@@ -60,6 +60,8 @@ public class Pago {
     private String requestHash;
     @Column(name = "reversal_idempotency_key", length = 100)
     private String reversalIdempotencyKey;
+    @Column(name = "reversal_request_hash", length = 64)
+    private String reversalRequestHash;
 
     @Column(length = 500)
     private String observaciones;

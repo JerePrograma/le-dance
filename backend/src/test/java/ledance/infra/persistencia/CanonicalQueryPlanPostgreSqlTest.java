@@ -58,9 +58,18 @@ class CanonicalQueryPlanPostgreSqlTest extends PostgreSqlIntegrationTest {
                 }
                 String text = String.join(System.lineSeparator(), plan);
                 System.out.println("CARGO_PENDING_QUERY_PLAN" + System.lineSeparator() + text);
-                assertThat(text)
-                        .contains("Index Only Scan using ix_cargos_alumno_pendientes", "rows=32 loops=1")
-                        .doesNotContain("Sort  ");
+                assertThat(text).contains("Index Only Scan using ix_cargos_alumno_pendientes")
+                        .doesNotContain("Seq Scan on cargos", "Sort  ");
+                List<String> ordered = new ArrayList<>();
+                try (ResultSet result = statement.executeQuery("""
+                        SELECT id, fecha_vencimiento
+                        FROM cargos
+                        WHERE alumno_id = 250 AND estado IN ('PENDIENTE','PARCIAL')
+                        ORDER BY fecha_vencimiento, id
+                        """)) {
+                    while (result.next()) ordered.add(result.getDate(2) + ":" + String.format("%020d", result.getLong(1)));
+                }
+                assertThat(ordered).hasSize(32).isSorted();
             }
         } finally {
             try (Connection admin = POSTGRESQL.createConnection(""); Statement statement = admin.createStatement()) {

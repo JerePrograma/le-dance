@@ -20,6 +20,7 @@ import org.springframework.data.domain.Sort;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.Clock;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -36,6 +37,7 @@ class PagoCanonicoPostgreSqlTest extends PostgreSqlIntegrationTest {
     @Autowired private CajaServicio caja;
     @Autowired private UsuarioRepositorio usuarios;
     @Autowired private JdbcTemplate jdbc;
+    @Autowired private Clock clock;
 
     @Test
     void pagoParcialYTotalDistribuidoMantienenUnaSolaDeudaOriginal() {
@@ -111,13 +113,16 @@ class PagoCanonicoPostgreSqlTest extends PostgreSqlIntegrationTest {
                 creado.id())).isEqualTo(2);
         assertThat(jdbc.queryForObject("SELECT sum(CASE WHEN tipo = 'REVERSO' THEN -importe ELSE importe END) " +
                 "FROM movimientos_caja WHERE pago_id = ?", BigDecimal.class, creado.id())).isEqualByComparingTo("0.00");
-        var resumen = caja.obtenerResumen(LocalDate.now(), LocalDate.now(),
+        var resumen = caja.obtenerResumen(LocalDate.now(clock), LocalDate.now(clock),
                 PageRequest.of(0, 10, Sort.by("fecha", "id")));
         assertThat(resumen.movimientos().totalElements()).isGreaterThanOrEqualTo(2);
         assertThat(new BigDecimal(resumen.totalIngresos())).isNotNegative();
         assertThat(new BigDecimal(resumen.totalEgresos())).isNotNegative();
         assertThat(pagos.anularPago(creado.id(), new PagoAnulacionRequest(reverseKey, "error de carga"),
                 escenario.usuario()).id()).isEqualTo(creado.id());
+        assertThatThrownBy(() -> pagos.anularPago(creado.id(),
+                new PagoAnulacionRequest(reverseKey, "payload distinto"), escenario.usuario()))
+                .isInstanceOf(OperacionNoPermitidaException.class).hasMessageContaining("otro contenido");
         assertThatThrownBy(() -> pagos.anularPago(creado.id(),
                 new PagoAnulacionRequest(key("other"), "segunda reversión"), escenario.usuario()))
                 .isInstanceOf(OperacionNoPermitidaException.class).hasMessageContaining("ya fue anulado");
@@ -131,10 +136,16 @@ class PagoCanonicoPostgreSqlTest extends PostgreSqlIntegrationTest {
         assertThat(pago.creditoGenerado()).isEqualTo("30.00");
         assertThat(creditos.saldo(escenario.alumno())).isEqualTo("30.00");
 
-        var consumo = creditos.consumir(new CreditoConsumoRequest(escenario.alumno(), escenario.cargo2(),
-                "20.00", key("consume")), escenario.usuario());
+        String consumoKey = key("consume");
+        var consumoRequest = new CreditoConsumoRequest(
+                escenario.alumno(), escenario.cargo2(), "20.00", consumoKey);
+        var consumo = creditos.consumir(consumoRequest, escenario.usuario());
         assertThat(consumo.saldoCredito()).isEqualTo("10.00");
         assertThat(consumo.saldoCargo()).isEqualTo("30.00");
+        assertThat(creditos.consumir(consumoRequest, escenario.usuario()).id()).isEqualTo(consumo.id());
+        assertThatThrownBy(() -> creditos.consumir(new CreditoConsumoRequest(
+                escenario.alumno(), escenario.cargo2(), "19.00", consumoKey), escenario.usuario()))
+                .isInstanceOf(OperacionNoPermitidaException.class).hasMessageContaining("otro contenido");
 
         var reverso = creditos.revertirConsumo(consumo.id(),
                 new CreditoReversionRequest(key("credit-reverse"), "aplicación equivocada"), escenario.usuario());

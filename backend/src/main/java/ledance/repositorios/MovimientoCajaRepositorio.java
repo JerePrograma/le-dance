@@ -19,25 +19,28 @@ public interface MovimientoCajaRepositorio extends JpaRepository<MovimientoCaja,
     Page<MovimientoCaja> findByFechaBetween(LocalDate desde, LocalDate hasta, Pageable pageable);
 
     @Query(value = """
-            WITH importes AS (
-                SELECT CASE
-                    WHEN m.tipo IN ('INGRESO_PAGO','AJUSTE_INGRESO') THEN m.importe
-                    WHEN m.tipo IN ('EGRESO','AJUSTE_EGRESO') THEN -m.importe
-                    WHEN o.tipo IN ('INGRESO_PAGO','AJUSTE_INGRESO') THEN -m.importe
-                    ELSE m.importe
-                END AS firmado
-                FROM movimientos_caja m
-                LEFT JOIN movimientos_caja o ON o.id = m.movimiento_revertido_id
-                WHERE m.fecha BETWEEN :desde AND :hasta
-            )
-            SELECT coalesce(sum(greatest(firmado, 0)), 0) AS "totalIngresos",
-                   coalesce(sum(greatest(-firmado, 0)), 0) AS "totalEgresos"
-            FROM importes
+            SELECT coalesce(sum(m.importe) FILTER (WHERE m.tipo = 'INGRESO_PAGO'), 0) AS "ingresos",
+                   coalesce(sum(m.importe) FILTER (WHERE m.tipo = 'EGRESO'), 0) AS "egresos",
+                   coalesce(sum(m.importe) FILTER (WHERE m.tipo = 'AJUSTE_INGRESO'), 0) AS "ajustesIngreso",
+                   coalesce(sum(m.importe) FILTER (WHERE m.tipo = 'AJUSTE_EGRESO'), 0) AS "ajustesEgreso",
+                   coalesce(sum(m.importe) FILTER (
+                       WHERE m.tipo = 'REVERSO' AND o.tipo IN ('INGRESO_PAGO','AJUSTE_INGRESO')
+                   ), 0) AS "reversosIngreso",
+                   coalesce(sum(m.importe) FILTER (
+                       WHERE m.tipo = 'REVERSO' AND o.tipo IN ('EGRESO','AJUSTE_EGRESO')
+                   ), 0) AS "reversosEgreso"
+            FROM movimientos_caja m
+            LEFT JOIN movimientos_caja o ON o.id = m.movimiento_revertido_id
+            WHERE m.fecha BETWEEN :desde AND :hasta
             """, nativeQuery = true)
     CajaTotales totales(@Param("desde") LocalDate desde, @Param("hasta") LocalDate hasta);
 
     interface CajaTotales {
-        BigDecimal getTotalIngresos();
-        BigDecimal getTotalEgresos();
+        BigDecimal getIngresos();
+        BigDecimal getEgresos();
+        BigDecimal getAjustesIngreso();
+        BigDecimal getAjustesEgreso();
+        BigDecimal getReversosIngreso();
+        BigDecimal getReversosEgreso();
     }
 }

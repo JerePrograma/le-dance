@@ -103,8 +103,8 @@ public class InscripcionServicio {
     }
 
     @Transactional(readOnly = true)
-    public Page<InscripcionResponse> listarInscripciones(Pageable pageable) {
-        return inscripciones.findAllWithDetails(pageable).map(this::respuesta);
+    public Page<InscripcionResponse> listarInscripciones(String filtro, Pageable pageable) {
+        return inscripciones.findAllWithDetails(filtro == null ? "" : filtro.trim(), pageable).map(this::respuesta);
     }
 
     @Transactional(readOnly = true)

@@ -1,10 +1,15 @@
 export const queryKeys = {
-  alumnos: ["alumnos"] as const,
-  cargosPendientes: (alumnoId: number, page = 0) => ["cargos", "pendientes", alumnoId, page] as const,
-  caja: (desde: string, hasta: string) => ["caja", desde, hasta] as const,
-  egresos: (page: number) => ["egresos", page] as const,
+  alumnos: (page: number, size: number, filtro: string) =>
+    ["alumnos", page, size, filtro.trim(), "id,asc"] as const,
+  cargosPendientes: (alumnoId: number, page: number, size: number) =>
+    ["cargos", "pendientes", alumnoId, page, size, "fechaVencimiento,asc;id,asc"] as const,
+  caja: (desde: string, hasta: string, page: number, size: number) =>
+    ["caja", desde, hasta, page, size, "fecha,asc;id,asc"] as const,
+  egresos: (page: number, size: number) => ["egresos", page, size, "fecha,desc;id,desc"] as const,
   metodosPago: ["metodos-pago"] as const,
-  pagos: (alumnoId: number, page = 0) => ["pagos", alumnoId, page] as const,
-  inscripciones: (page: number) => ["inscripciones", page] as const,
-  stocks: (page: number) => ["stocks", page] as const,
+  pagos: (alumnoId: number, page: number, size: number) =>
+    ["pagos", alumnoId, page, size, "fecha,desc;id,desc"] as const,
+  inscripciones: (page: number, size: number, filtro: string) =>
+    ["inscripciones", page, size, filtro.trim(), "id,desc"] as const,
+  stocks: (page: number, size: number) => ["stocks", page, size, "nombre,asc;id,asc"] as const,
 };

@@ -1,6 +1,9 @@
 package ledance.controladores;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.PositiveOrZero;
 import ledance.dto.alumno.request.AlumnoRegistroRequest;
 import ledance.dto.alumno.response.AlumnoResponse;
 import ledance.dto.disciplina.response.DisciplinaResponse;
@@ -11,8 +14,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 import java.util.List;
 
@@ -37,8 +40,10 @@ public class AlumnoControlador {
 
     @GetMapping
     public ResponseEntity<PageResponse<AlumnoResponse>> listarAlumnos(
-            @PageableDefault(size = 50, sort = "id") Pageable pageable) {
-        return ResponseEntity.ok(PageResponse.from(alumnoServicio.listarAlumnos(pageable)));
+            @RequestParam(defaultValue = "0") @PositiveOrZero int page,
+            @RequestParam(defaultValue = "50") @Min(1) @Max(200) int size) {
+        return ResponseEntity.ok(PageResponse.from(alumnoServicio.listarAlumnos(
+                PageRequest.of(page, size, Sort.by("id")))));
     }
 
     @GetMapping("/{id}")
@@ -64,8 +69,10 @@ public class AlumnoControlador {
     @GetMapping("/buscar")
     public ResponseEntity<PageResponse<AlumnoResponse>> buscarPorNombre(
             @RequestParam String nombre,
-            @PageableDefault(size = 50, sort = {"apellido", "nombre"}) Pageable pageable) {
-        return ResponseEntity.ok(PageResponse.from(alumnoServicio.buscarPorNombre(nombre, pageable)));
+            @RequestParam(defaultValue = "0") @PositiveOrZero int page,
+            @RequestParam(defaultValue = "50") @Min(1) @Max(200) int size) {
+        return ResponseEntity.ok(PageResponse.from(alumnoServicio.buscarPorNombre(nombre,
+                PageRequest.of(page, size, Sort.by("apellido", "nombre", "id")))));
     }
 
     @GetMapping("/{alumnoId}/disciplinas")

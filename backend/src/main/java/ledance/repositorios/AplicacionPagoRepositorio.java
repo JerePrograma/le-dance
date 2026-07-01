@@ -4,12 +4,14 @@ import ledance.entidades.AplicacionPago;
 import ledance.entidades.EstadoAplicacionPago;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
 import java.util.List;
 
 public interface AplicacionPagoRepositorio extends JpaRepository<AplicacionPago, Long> {
+    @EntityGraph(attributePaths = "cargo")
     List<AplicacionPago> findByPagoIdOrderById(Long pagoId);
     List<AplicacionPago> findByPagoIdAndEstadoOrderById(Long pagoId, EstadoAplicacionPago estado);
 

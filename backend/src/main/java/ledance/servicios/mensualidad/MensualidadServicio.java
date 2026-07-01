@@ -32,6 +32,9 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class MensualidadServicio {
@@ -98,10 +101,20 @@ public class MensualidadServicio {
     @Transactional
     public List<MensualidadResponse> generarMensualidadesParaMesVigente() {
         YearMonth periodo = YearMonth.now(clock);
+        List<Long> ids = inscripciones.lockActiveIdsForScheduler();
+        List<Inscripcion> activas = ids.isEmpty() ? List.of() : inscripciones.findAllForScheduler(ids);
+        Map<Long, Mensualidad> existentes = ids.isEmpty() ? Map.of()
+                : mensualidades.findByInscripcionIdInAndAnioAndMes(
+                                ids, periodo.getYear(), periodo.getMonthValue()).stream()
+                        .collect(Collectors.toMap(mensualidad -> mensualidad.getInscripcion().getId(),
+                                Function.identity()));
         List<MensualidadResponse> resultado = new ArrayList<>();
-        for (Inscripcion inscripcion : inscripciones.findByEstado(EstadoInscripcion.ACTIVA)) {
-            Inscripcion bloqueada = inscripciones.findByIdForUpdate(inscripcion.getId()).orElseThrow();
-            resultado.add(respuesta(generar(bloqueada, periodo.getYear(), periodo.getMonthValue(), null, null)));
+        for (Inscripcion inscripcion : activas) {
+            Mensualidad mensualidad = existentes.get(inscripcion.getId());
+            if (mensualidad == null) {
+                mensualidad = generarNueva(inscripcion, periodo.getYear(), periodo.getMonthValue(), null, null);
+            }
+            resultado.add(respuesta(mensualidad));
         }
         log.info("Mensualidades generadas período={} cantidad={}", periodo, resultado.size());
         return resultado;
@@ -115,6 +128,11 @@ public class MensualidadServicio {
         if (previa != null) {
             return previa;
         }
+        return generarNueva(inscripcion, anio, mes, bonificacionId, recargoId);
+    }
+
+    private Mensualidad generarNueva(Inscripcion inscripcion, int anio, int mes,
+                                      Long bonificacionId, Long recargoId) {
         Bonificacion bonificacion = bonificacionId == null ? inscripcion.getBonificacion()
                 : bonificaciones.findById(bonificacionId).orElseThrow(() -> new EntityNotFoundException("Bonificación no encontrada"));
         Recargo recargo = recargoId == null ? null

@@ -143,7 +143,9 @@ class SecurityHttpIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(loginJson))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.detalle").value("Credenciales inválidas"));
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"))
+                .andExpect(jsonPath("$.message").value("Credenciales inválidas"));
     }
 
     @Test
@@ -273,7 +275,8 @@ class SecurityHttpIntegrationTest {
                  "idempotencyKey":"security-test","aplicaciones":[],"generarCredito":true}
                 """;
         mockMvc.perform(post("/api/pagos").contentType(MediaType.APPLICATION_JSON).content(body))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
 
         Usuario operator = usuario(2L, "operator", "OPERADOR", true);
         when(usuarioRepositorio.findById(2L)).thenReturn(Optional.of(operator));
@@ -338,7 +341,10 @@ class SecurityHttpIntegrationTest {
                         .header(HttpHeaders.AUTHORIZATION,
                                 bearer(tokenService.generarAccessToken(admin))))
                 .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$.detalle").value("Ocurrió un error inesperado"))
+                .andExpect(jsonPath("$.status").value(500))
+                .andExpect(jsonPath("$.code").value("INTERNAL_ERROR"))
+                .andExpect(jsonPath("$.message").value("Ocurrió un error inesperado"))
+                .andExpect(jsonPath("$.fieldErrors").isEmpty())
                 .andExpect(content().string(not(containsString("cadena interna sensible"))));
     }
 

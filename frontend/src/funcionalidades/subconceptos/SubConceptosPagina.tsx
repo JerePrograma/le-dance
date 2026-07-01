@@ -8,7 +8,7 @@ import Boton from "../../componentes/comunes/Boton";
 import { PlusCircle, Pencil, Trash2 } from "lucide-react";
 import type { SubConceptoResponse } from "../../types/types";
 import { toast } from "react-toastify";
-import ListaConInfiniteScroll from "../../componentes/comunes/ListaConInfiniteScroll";
+import ListaConCargaManual from "../../componentes/comunes/ListaConCargaManual";
 
 const ITEMS_PER_LOAD = 5;
 
@@ -118,7 +118,7 @@ const SubConceptos = () => {
       </div>
       {hasMore && (
         <div className="mt-4">
-          <ListaConInfiniteScroll
+          <ListaConCargaManual
             onLoadMore={loadMore}
             hasMore={hasMore}
             loading={loading}

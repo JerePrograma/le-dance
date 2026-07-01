@@ -1,14 +1,17 @@
 package ledance.infra.errores;
 
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -17,8 +20,8 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 
 import java.time.Clock;
-import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Locale;
 import java.util.NoSuchElementException;
 
 @RestControllerAdvice
@@ -31,168 +34,175 @@ public class TratadorDeErrores {
         this.clock = clock;
     }
 
-    private LocalDateTime ahora() {
-        return LocalDateTime.now(clock);
+    @ExceptionHandler({EntityNotFoundException.class, RecursoNoEncontradoException.class,
+            DisciplinaNotFoundException.class, ProfesorNotFoundException.class,
+            NoSuchElementException.class, ResourceNotFoundException.class, NoResourceFoundException.class})
+    public ResponseEntity<ApiErrorResponse> notFound(Exception exception) {
+        log.warn("Recurso no encontrado type={}", exception.getClass().getSimpleName());
+        return response(HttpStatus.NOT_FOUND, "NOT_FOUND", safeMessage(exception, "Recurso no encontrado"));
     }
 
-    // ✅ 404: Recurso no encontrado (entidad de JPA)
-    @ExceptionHandler(EntityNotFoundException.class)
-    public ResponseEntity<DatosErrorGeneral> tratarError404(EntityNotFoundException e) {
-        log.warn("Error 404 - Recurso no encontrado: {}", e.getMessage());
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new DatosErrorGeneral("404_NOT_FOUND", "Recurso no encontrado", e.getMessage(), ahora()));
-    }
-
-    // ✅ 404: Recurso no encontrado (cuando se lance una excepcion personalizada)
-    @ExceptionHandler({DisciplinaNotFoundException.class, ProfesorNotFoundException.class, NoSuchElementException.class, ResourceNotFoundException.class})
-    public ResponseEntity<DatosErrorGeneral> manejarRecursoNoEncontrado(RuntimeException e) {
-        log.warn("Error 404 - Elemento no encontrado: {}", e.getMessage());
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new DatosErrorGeneral("404_NOT_FOUND", "Elemento no encontrado", e.getMessage(), ahora()));
-    }
-
-    // ✅ 400: Validacion de datos de entrada
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<List<DatosErrorValidacion>> tratarError400(MethodArgumentNotValidException e) {
-        log.warn("Error 400 - Validacion de datos fallida");
-        var errores = e.getFieldErrors().stream().map(DatosErrorValidacion::new).toList();
-        return ResponseEntity.badRequest().body(errores);
+    public ResponseEntity<ApiErrorResponse> validation(MethodArgumentNotValidException exception) {
+        List<ApiErrorResponse.FieldViolation> fields = exception.getFieldErrors().stream()
+                .map(error -> new ApiErrorResponse.FieldViolation(error.getField(), error.getDefaultMessage()))
+                .toList();
+        return response(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "La solicitud contiene campos inválidos", fields);
     }
 
-    // ✅ 400: Parametro faltante en la solicitud
     @ExceptionHandler(MissingServletRequestParameterException.class)
-    public ResponseEntity<DatosErrorGeneral> manejarParametroFaltante(MissingServletRequestParameterException e) {
-        log.warn("Error 400 - Falta un parametro requerido: {}", e.getParameterName());
-        return ResponseEntity.badRequest()
-                .body(new DatosErrorGeneral("400_BAD_REQUEST", "Falta un parametro requerido", e.getParameterName(), ahora()));
+    public ResponseEntity<ApiErrorResponse> missingParameter(MissingServletRequestParameterException exception) {
+        return response(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Falta un parámetro requerido",
+                List.of(new ApiErrorResponse.FieldViolation(exception.getParameterName(), "es requerido")));
     }
 
-    // ✅ 403: Acceso denegado
-    @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<DatosErrorGeneral> tratarError403(AccessDeniedException e) {
-        log.warn("Error 403 - Acceso denegado: {}", e.getMessage());
-        return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(new DatosErrorGeneral("403_FORBIDDEN", "Acceso denegado", "Permisos insuficientes", ahora()));
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ApiErrorResponse> constraintValidation(ConstraintViolationException exception) {
+        List<ApiErrorResponse.FieldViolation> fields = exception.getConstraintViolations().stream()
+                .map(violation -> new ApiErrorResponse.FieldViolation(
+                        violation.getPropertyPath().toString(), violation.getMessage()))
+                .toList();
+        return response(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "La solicitud contiene parámetros inválidos", fields);
     }
 
-    // ✅ 401: Error de autenticacion (caso especial)
-    @ExceptionHandler(ErrorDeAutenticacionException.class)
-    public ResponseEntity<DatosErrorGeneral> manejarErrorDeAutenticacion(ErrorDeAutenticacionException e) {
-        log.warn("Error 401 - Autenticacion fallida: {}", e.getMessage());
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(new DatosErrorGeneral("401_UNAUTHORIZED", "Autenticacion fallida", "Credenciales inválidas", ahora()));
-    }
-
-    @ExceptionHandler(AuthenticationException.class)
-    public ResponseEntity<DatosErrorGeneral> manejarAuthenticationException(AuthenticationException e) {
-        log.warn("Error 401 - Autenticacion rechazada: {}", e.getClass().getSimpleName());
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(new DatosErrorGeneral("401_UNAUTHORIZED", "Autenticacion fallida", "Credenciales inválidas", ahora()));
-    }
-
-    // ✅ 405: Metodo HTTP no permitido
-    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-    public ResponseEntity<DatosErrorGeneral> manejarMetodoNoPermitido(HttpRequestMethodNotSupportedException e) {
-        log.warn("Error 405 - Metodo HTTP no permitido: {}", e.getMethod());
-        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
-                .body(new DatosErrorGeneral("405_METHOD_NOT_ALLOWED", "Metodo no permitido", e.getMessage(), ahora()));
-    }
-
-    // ✅ 409: Error de negocio o logica de la aplicacion
-    @ExceptionHandler(OperacionNoPermitidaException.class)
-    public ResponseEntity<DatosErrorGeneral> manejarOperacionNoPermitida(OperacionNoPermitidaException e) {
-        log.warn("Error 409 - Operacion no permitida: {}", e.getMessage());
-        return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(new DatosErrorGeneral("409_CONFLICT", "Operacion no permitida", e.getMessage(), ahora()));
-    }
-
-    // ✅ 400: Argumento invalido en la solicitud
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<DatosErrorGeneral> manejarErrorDeArgumentoInvalido(IllegalArgumentException e) {
-        log.warn("Error 400 - Argumento invalido: {}", e.getMessage());
-        return ResponseEntity.badRequest()
-                .body(new DatosErrorGeneral("400_BAD_REQUEST", "Argumento invalido", e.getMessage(), ahora()));
+    public ResponseEntity<ApiErrorResponse> invalidArgument(IllegalArgumentException exception) {
+        return response(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", safeMessage(exception, "Solicitud inválida"));
     }
 
-    // ✅ 500: Error interno del servidor
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<DatosErrorGeneral> manejarErrorInterno(Exception e) {
-        log.error("Error 500 - Error interno del servidor: {}", e.getMessage(), e);
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new DatosErrorGeneral("500_INTERNAL_SERVER_ERROR", "Error interno del servidor", "Ocurrió un error inesperado", ahora()));
+    @ExceptionHandler({ErrorDeAutenticacionException.class, AuthenticationException.class})
+    public ResponseEntity<ApiErrorResponse> unauthorized(RuntimeException exception) {
+        log.warn("Autenticación rechazada type={}", exception.getClass().getSimpleName());
+        return response(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Credenciales inválidas");
     }
 
-    // ✅ 502: Error en la comunicacion con otro servidor (APIs externas)
-    @ExceptionHandler({HttpClientErrorException.class, HttpServerErrorException.class})
-    public ResponseEntity<DatosErrorGeneral> manejarErrorDeCliente(Exception e) {
-        log.error("Error 502 - Fallo en comunicacion con API externa: {}", e.getMessage());
-        return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
-                .body(new DatosErrorGeneral("502_BAD_GATEWAY", "Error en API externa", e.getMessage(), ahora()));
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiErrorResponse> forbidden(AccessDeniedException exception) {
+        return response(HttpStatus.FORBIDDEN, "FORBIDDEN", "Permisos insuficientes");
     }
 
-    // 🔹 **📌 Clases para respuestas de error** 🔹
-
-    // Estructura para errores de validacion
-    private record DatosErrorValidacion(String codigo, String campo, String mensaje) {
-        public DatosErrorValidacion(FieldError error) {
-            this("400_VALIDATION_ERROR", error.getField(), error.getDefaultMessage());
-        }
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ApiErrorResponse> methodNotAllowed(HttpRequestMethodNotSupportedException exception) {
+        return response(HttpStatus.METHOD_NOT_ALLOWED, "METHOD_NOT_ALLOWED", "Método HTTP no permitido");
     }
 
-    // Estructura para errores generales
-    private record DatosErrorGeneral(String codigo, String tipo, String detalle, LocalDateTime timestamp) {
-    }
-
-    // 🔹 **Excepciones Personalizadas** 🔹
-
-    public static class RecursoNoEncontradoException extends RuntimeException {
-        public RecursoNoEncontradoException(String mensaje) {
-            super(mensaje);
-        }
-    }
-
-    public static class OperacionNoPermitidaException extends RuntimeException {
-        public OperacionNoPermitidaException(String mensaje) {
-            super(mensaje);
-        }
-    }
-
-    public static class ErrorDeAutenticacionException extends RuntimeException {
-        public ErrorDeAutenticacionException(String mensaje) {
-            super(mensaje);
-        }
-    }
-
-    public static class ResourceNotFoundException extends RuntimeException {
-        public ResourceNotFoundException(String mensaje) {
-            super(mensaje);
-        }
-    }
-
-    public static class InvalidInscripcionException extends RuntimeException {
-        public InvalidInscripcionException(String mensaje) {
-            super(mensaje);
-        }
-    }
-
-    // Excepciones adicionales para la gestion de disciplinas y profesores
-    public static class DisciplinaNotFoundException extends RuntimeException {
-        public DisciplinaNotFoundException(Long id) {
-            super("No se encontro la disciplina con id=" + id);
-        }
-    }
-
-    public static class ProfesorNotFoundException extends RuntimeException {
-        public ProfesorNotFoundException(Long id) {
-            super("No se encontro el profesor con id=" + id);
-        }
+    @ExceptionHandler(OperacionNoPermitidaException.class)
+    public ResponseEntity<ApiErrorResponse> businessConflict(OperacionNoPermitidaException exception) {
+        return response(HttpStatus.CONFLICT, businessCode(exception.getMessage()),
+                safeMessage(exception, "La operación entra en conflicto con el estado actual"));
     }
 
     @ExceptionHandler(SinStockException.class)
-    public ResponseEntity<DatosErrorGeneral> manejarSinStock(SinStockException e) {
-        log.warn("Error de stock: {}", e.getMessage());
-        return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(new DatosErrorGeneral("409_SIN_STOCK", "Stock insuficiente", e.getMessage(), ahora()));
+    public ResponseEntity<ApiErrorResponse> insufficientStock(SinStockException exception) {
+        return response(HttpStatus.CONFLICT, "INSUFFICIENT_STOCK", safeMessage(exception, "Stock insuficiente"));
     }
 
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiErrorResponse> dataConflict(DataIntegrityViolationException exception) {
+        String detail = rootMessage(exception).toLowerCase(Locale.ROOT);
+        String code = constraintCode(detail);
+        log.warn("Conflicto de integridad code={}", code);
+        return response(HttpStatus.CONFLICT, code, conflictMessage(code));
+    }
+
+    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    public ResponseEntity<ApiErrorResponse> optimisticConflict(ObjectOptimisticLockingFailureException exception) {
+        return response(HttpStatus.CONFLICT, "OPTIMISTIC_LOCK_CONFLICT",
+                "El recurso fue modificado por otra operación; vuelva a cargarlo");
+    }
+
+    @ExceptionHandler({HttpClientErrorException.class, HttpServerErrorException.class})
+    public ResponseEntity<ApiErrorResponse> externalFailure(Exception exception) {
+        log.error("Fallo de dependencia externa type={}", exception.getClass().getSimpleName());
+        return response(HttpStatus.BAD_GATEWAY, "EXTERNAL_SERVICE_ERROR", "Falló una dependencia externa");
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiErrorResponse> internalError(Exception exception) {
+        log.error("Error interno type={}", exception.getClass().getSimpleName());
+        return response(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", "Ocurrió un error inesperado");
+    }
+
+    private ResponseEntity<ApiErrorResponse> response(HttpStatus status, String code, String message) {
+        return response(status, code, message, List.of());
+    }
+
+    private ResponseEntity<ApiErrorResponse> response(HttpStatus status, String code, String message,
+                                                       List<ApiErrorResponse.FieldViolation> fields) {
+        return ResponseEntity.status(status).body(new ApiErrorResponse(
+                clock.instant(), status.value(), code, message, fields));
+    }
+
+    private static String businessCode(String message) {
+        String normalized = message == null ? "" : message.toLowerCase(Locale.ROOT);
+        if (normalized.contains("idempotency")) return "IDEMPOTENCY_CONFLICT";
+        if (normalized.contains("inscripción activa")) return "DUPLICATE_ACTIVE_ENROLLMENT";
+        if (normalized.contains("sobrepago") || normalized.contains("supera el saldo")) return "OVERAPPLICATION";
+        if (normalized.contains("crédito") && (normalized.contains("insuficiente") || normalized.contains("negativo"))) {
+            return "INSUFFICIENT_CREDIT";
+        }
+        return "BUSINESS_CONFLICT";
+    }
+
+    private static String constraintCode(String detail) {
+        if (detail.contains("idempotency")) return "IDEMPOTENCY_CONFLICT";
+        if (detail.contains("uq_inscripciones_activas")) return "DUPLICATE_ACTIVE_ENROLLMENT";
+        if (detail.contains("uq_mensualidades_periodo")) return "DUPLICATE_MONTHLY_FEE";
+        if (detail.contains("uq_matriculas_periodo")) return "DUPLICATE_REGISTRATION";
+        if (detail.contains("ck_aplicaciones") || detail.contains("ck_pagos_monto")) return "OVERAPPLICATION";
+        if (detail.contains("ck_movimientos_credito")) return "INSUFFICIENT_CREDIT";
+        if (detail.contains("ck_stocks") || detail.contains("ck_movimientos_stock")) return "INSUFFICIENT_STOCK";
+        return "DATA_CONFLICT";
+    }
+
+    private static String conflictMessage(String code) {
+        return switch (code) {
+            case "IDEMPOTENCY_CONFLICT" -> "La clave de idempotencia ya fue utilizada";
+            case "DUPLICATE_ACTIVE_ENROLLMENT" -> "Ya existe una inscripción activa equivalente";
+            case "DUPLICATE_MONTHLY_FEE" -> "La mensualidad del período ya existe";
+            case "DUPLICATE_REGISTRATION" -> "La matrícula del período ya existe";
+            case "OVERAPPLICATION" -> "La aplicación excede el importe disponible";
+            case "INSUFFICIENT_CREDIT" -> "El crédito disponible es insuficiente";
+            case "INSUFFICIENT_STOCK" -> "El stock disponible es insuficiente";
+            default -> "La operación viola una restricción de datos";
+        };
+    }
+
+    private static String rootMessage(Throwable throwable) {
+        Throwable current = throwable;
+        while (current.getCause() != null) current = current.getCause();
+        return current.getMessage() == null ? "" : current.getMessage();
+    }
+
+    private static String safeMessage(Throwable exception, String fallback) {
+        return exception.getMessage() == null || exception.getMessage().isBlank() ? fallback : exception.getMessage();
+    }
+
+    public static class RecursoNoEncontradoException extends RuntimeException {
+        public RecursoNoEncontradoException(String message) { super(message); }
+    }
+
+    public static class OperacionNoPermitidaException extends RuntimeException {
+        public OperacionNoPermitidaException(String message) { super(message); }
+    }
+
+    public static class ErrorDeAutenticacionException extends RuntimeException {
+        public ErrorDeAutenticacionException(String message) { super(message); }
+    }
+
+    public static class ResourceNotFoundException extends RuntimeException {
+        public ResourceNotFoundException(String message) { super(message); }
+    }
+
+    public static class InvalidInscripcionException extends RuntimeException {
+        public InvalidInscripcionException(String message) { super(message); }
+    }
+
+    public static class DisciplinaNotFoundException extends RuntimeException {
+        public DisciplinaNotFoundException(Long id) { super("No se encontró la disciplina con id=" + id); }
+    }
+
+    public static class ProfesorNotFoundException extends RuntimeException {
+        public ProfesorNotFoundException(Long id) { super("No se encontró el profesor con id=" + id); }
+    }
 }
