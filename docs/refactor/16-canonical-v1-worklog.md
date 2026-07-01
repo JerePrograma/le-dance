@@ -313,3 +313,23 @@
 - Advertencias no bloqueantes observadas: auto-attach de Mockito/Byte Buddy, dialecto PostgreSQL explícito, `open-in-view` predeterminado, aviso futuro de annotation processing de `javac`, puerto host 5432 ocupado y actualización mayor de npm disponible.
 - Archivos modificados: `.github/workflows/github.-actions-demo.yml`, `frontend/package.json`, `scripts/codex/validate.ps1`, `docs/refactor/15-performance-and-integrity-gates.md`, este worklog y `docs/development/local-development.md`.
 - Pendiente real: el workflow remoto sólo podrá confirmar el runner de GitHub después de publicar un commit; no se creó commit ni se hizo push en esta sesión. No quedan gates locales rojos.
+
+## Aislamiento PostgreSQL y cierre acotado de concurrencia - 2026-07-01
+
+- Estado inicial: rama `main`, HEAD y `origin/main` en `01000e53eb92afc9e1a1371858d4e5e1e607aac5`, ahead/behind `0/0` y worktree limpio.
+- Evidencia remota: run `28539600117`, job `84609701111`, agotó 30 minutos en `Verify backend`.
+- Causa FK: `PostgreSqlIntegrationTest` comparte un contenedor/base entre clases; `CanonicalPaginationPostgreSqlTest.seed()` ejecutaba `alumnos.deleteAll()`, pero datos persistidos por pruebas anteriores incluían `cargos.alumno_id`, protegidos por `fk_cargos_alumno`. El test dependía del orden de clases.
+- Corrección de aislamiento: paginación ejecuta `TRUNCATE TABLE alumnos RESTART IDENTITY CASCADE` antes del seed, dentro de su transacción, conserva `roles` y crea exactamente 205 alumnos. Outbox trunca `recibos_pendientes` antes de crear su única fila identificable.
+- Causa del bloqueo: el primer claim retenía el lock esperando un latch sin timeout; si el segundo claim encontraba una fila antigua, la aserción fallaba antes de `release.countDown()` y el cierre implícito del executor esperaba indefinidamente al primer hilo.
+- Corrección de concurrencia: `release.countDown()` está en `finally`; latch, futures y terminación del executor tienen límites; ante fallo se cancelan los futures y se usa `shutdownNow`; el camino normal usa `shutdown`. El test outbox tiene `@Timeout(15)`. Se aplicó el mismo cierre acotado a los tres tests concurrentes equivalentes encontrados en la revisión focalizada.
+- No cambiaron código productivo, API, entidades, Flyway V1, lógica financiera, `findClaimableForUpdate` ni `timeout-minutes`.
+
+| Gate | Resultado |
+| --- | --- |
+| `mvnw.cmd -Dtest=CanonicalPaginationPostgreSqlTest test` | PASS; 4 tests, 0 failures/errors/skipped; Maven 01:24 |
+| `mvnw.cmd -Dtest=ReciboOutboxPostgreSqlTest test` | PASS; 2 tests, 0 failures/errors/skipped; Maven 01:03 |
+| `mvnw.cmd "-Dtest=PagoCanonicoPostgreSqlTest,CanonicalPaginationPostgreSqlTest,ReciboOutboxPostgreSqlTest" test` | PASS; 11 tests, 0 failures/errors/skipped; Maven 01:10 |
+| Primer `mvnw.cmd clean verify` | PASS; 70 tests, 0 failures/errors/skipped; PostgreSQL 15.12 Testcontainers, Flyway V1, JaCoCo sobre 221 clases y JAR; Maven 01:33 |
+| Segundo `mvnw.cmd clean verify` consecutivo | PASS; 70 tests, 0 failures/errors/skipped; PostgreSQL 15.12 Testcontainers, Flyway V1, JaCoCo sobre 221 clases y JAR; Maven 01:36 |
+
+- Pendiente real: confirmar el workflow remoto cuando exista un commit publicado; esta sesión no crea commit ni hace push.

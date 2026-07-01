@@ -12,6 +12,7 @@ import ledance.repositorios.UsuarioRepositorio;
 import ledance.servicios.credito.CreditoServicio;
 import ledance.servicios.caja.CajaServicio;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -24,7 +25,10 @@ import java.time.Clock;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -154,16 +158,30 @@ class PagoCanonicoPostgreSqlTest extends PostgreSqlIntegrationTest {
     }
 
     @Test
+    @Timeout(30)
     void dosPagosConcurrentesNoPuedenSobreaplicarElMismoCargo() throws Exception {
         Escenario escenario = escenario(new BigDecimal("100.00"), new BigDecimal("50.00"));
         CountDownLatch start = new CountDownLatch(1);
-        try (var executor = Executors.newFixedThreadPool(2)) {
-            var first = executor.submit(() -> registrarAlLiberar(start, escenario, key("concurrent-a")));
-            var second = executor.submit(() -> registrarAlLiberar(start, escenario, key("concurrent-b")));
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        Future<Object> first = executor.submit(() -> registrarAlLiberar(start, escenario, key("concurrent-a")));
+        Future<Object> second = executor.submit(() -> registrarAlLiberar(start, escenario, key("concurrent-b")));
+        boolean completed = false;
+        try {
             start.countDown();
-            List<Object> results = List.of(first.get(), second.get());
+            List<Object> results = List.of(first.get(10, TimeUnit.SECONDS), second.get(10, TimeUnit.SECONDS));
             assertThat(results.stream().filter(r -> r instanceof Long).toList()).hasSize(1);
             assertThat(results.stream().filter(r -> r instanceof OperacionNoPermitidaException).toList()).hasSize(1);
+            completed = true;
+        } finally {
+            start.countDown();
+            if (completed) {
+                executor.shutdown();
+            } else {
+                first.cancel(true);
+                second.cancel(true);
+                executor.shutdownNow();
+            }
+            assertThat(executor.awaitTermination(5, TimeUnit.SECONDS)).isTrue();
         }
         assertThat(jdbc.queryForObject("""
                 SELECT coalesce(sum(importe_aplicado), 0) FROM aplicaciones_pago
@@ -174,7 +192,9 @@ class PagoCanonicoPostgreSqlTest extends PostgreSqlIntegrationTest {
 
     private Object registrarAlLiberar(CountDownLatch start, Escenario escenario, String key) {
         try {
-            start.await();
+            if (!start.await(5, TimeUnit.SECONDS)) {
+                throw new IllegalStateException("Timeout esperando inicio concurrente");
+            }
             return pagos.registrarPago(new PagoRegistroRequest(escenario.alumno(), escenario.metodo(), "80.00",
                     key, null, List.of(new AplicacionPagoRequest(escenario.cargo1(), "80.00")), false),
                     escenario.usuario()).id();

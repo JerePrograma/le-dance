@@ -12,6 +12,7 @@ import ledance.servicios.credito.CreditoServicio;
 import ledance.servicios.egreso.EgresoServicio;
 import ledance.servicios.stock.StockServicio;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -21,7 +22,10 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -36,6 +40,7 @@ class IdempotenciaCanonicaPostgreSqlTest extends PostgreSqlIntegrationTest {
     @Autowired private JdbcTemplate jdbc;
 
     @Test
+    @Timeout(30)
     void mismaKeyConcurrenteNoDuplicaYUnPayloadDistintoEntraEnConflicto() throws Exception {
         Fixture fixture = fixture();
 
@@ -89,12 +94,33 @@ class IdempotenciaCanonicaPostgreSqlTest extends PostgreSqlIntegrationTest {
 
     private List<Long> concurrentes(Callable<Long> operation) throws Exception {
         CountDownLatch start = new CountDownLatch(1);
-        try (var executor = Executors.newFixedThreadPool(2)) {
-            var first = executor.submit(() -> { start.await(); return operation.call(); });
-            var second = executor.submit(() -> { start.await(); return operation.call(); });
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        Future<Long> first = executor.submit(() -> ejecutarAlLiberar(start, operation));
+        Future<Long> second = executor.submit(() -> ejecutarAlLiberar(start, operation));
+        boolean completed = false;
+        try {
             start.countDown();
-            return List.of(first.get(), second.get());
+            List<Long> results = List.of(first.get(10, TimeUnit.SECONDS), second.get(10, TimeUnit.SECONDS));
+            completed = true;
+            return results;
+        } finally {
+            start.countDown();
+            if (completed) {
+                executor.shutdown();
+            } else {
+                first.cancel(true);
+                second.cancel(true);
+                executor.shutdownNow();
+            }
+            assertThat(executor.awaitTermination(5, TimeUnit.SECONDS)).isTrue();
         }
+    }
+
+    private static Long ejecutarAlLiberar(CountDownLatch start, Callable<Long> operation) throws Exception {
+        if (!start.await(5, TimeUnit.SECONDS)) {
+            throw new IllegalStateException("Timeout esperando inicio concurrente");
+        }
+        return operation.call();
     }
 
     private Fixture fixture() {

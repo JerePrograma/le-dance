@@ -5,6 +5,7 @@ import ledance.repositorios.ReciboPendienteRepositorio;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -19,7 +20,9 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -41,6 +44,7 @@ class ReciboOutboxPostgreSqlTest extends PostgreSqlIntegrationTest {
 
     @BeforeEach
     void seed() {
+        jdbc.execute("TRUNCATE TABLE recibos_pendientes RESTART IDENTITY");
         String suffix = UUID.randomUUID().toString();
         metodo = id("INSERT INTO metodo_pagos(descripcion, activo, recargo) VALUES (?, true, 0) RETURNING id",
                 "Outbox " + suffix);
@@ -76,12 +80,17 @@ class ReciboOutboxPostgreSqlTest extends PostgreSqlIntegrationTest {
     }
 
     @Test
+    @Timeout(15)
     void skipLockedEvitaDobleClaimYElLeaseVencidoEsRecuperable() throws Exception {
         TransactionTemplate tx = new TransactionTemplate(transactionManager);
         CountDownLatch locked = new CountDownLatch(1);
         CountDownLatch release = new CountDownLatch(1);
-        try (var executor = Executors.newFixedThreadPool(2)) {
-            var first = executor.submit(() -> tx.execute(status -> {
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        Future<List<Long>> first = null;
+        Future<List<Long>> second = null;
+        boolean completed = false;
+        try {
+            first = executor.submit(() -> tx.execute(status -> {
                 var rows = pendientes.findClaimableForUpdate(Instant.now(), 1);
                 var trabajo = rows.getFirst();
                 trabajo.setEstado(EstadoReciboPendiente.PROCESANDO);
@@ -95,11 +104,22 @@ class ReciboOutboxPostgreSqlTest extends PostgreSqlIntegrationTest {
             }));
 
             assertThat(locked.await(5, TimeUnit.SECONDS)).isTrue();
-            var second = executor.submit(() -> tx.execute(status -> pendientes
+            second = executor.submit(() -> tx.execute(status -> pendientes
                     .findClaimableForUpdate(Instant.now(), 1).stream().map(r -> r.getId()).toList()));
             assertThat(second.get(3, TimeUnit.SECONDS)).isEmpty();
             release.countDown();
             assertThat(first.get(5, TimeUnit.SECONDS)).containsExactly(pendiente);
+            completed = true;
+        } finally {
+            release.countDown();
+            if (completed) {
+                executor.shutdown();
+            } else {
+                cancel(first);
+                cancel(second);
+                executor.shutdownNow();
+            }
+            assertThat(executor.awaitTermination(5, TimeUnit.SECONDS)).isTrue();
         }
 
         jdbc.update("""
@@ -130,10 +150,16 @@ class ReciboOutboxPostgreSqlTest extends PostgreSqlIntegrationTest {
 
     private static void await(CountDownLatch latch) {
         try {
-            latch.await();
+            if (!latch.await(5, TimeUnit.SECONDS)) {
+                throw new IllegalStateException("Timeout esperando liberacion del claim");
+            }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException(e);
         }
+    }
+
+    private static void cancel(Future<?> future) {
+        if (future != null) future.cancel(true);
     }
 }

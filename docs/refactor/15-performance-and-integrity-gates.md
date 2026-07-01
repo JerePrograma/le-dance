@@ -33,3 +33,13 @@ disponible. No se corrigieron porque no son fallos de este gate.
 
 Pendiente real: ejecutar el workflow remoto cuando estos cambios tengan un
 commit publicado; esta sesión no crea commit ni hace push.
+
+## Gate de aislamiento PostgreSQL y concurrencia - 2026-07-01
+
+El run `28539600117` demostró contaminación entre clases: paginación intentó
+borrar alumnos referenciados por cargos y outbox podía dejar un claim esperando
+si una aserción ocurría antes de liberar el latch. Los fixtures ahora truncan
+sus datos reclamables/dependientes antes del seed y todos los waits, futures y
+executors concurrentes tienen cierre acotado. La combinación problemática pasó
+11/11 tests y dos `clean verify` consecutivos pasaron 70/70, sin errores,
+omitidos ni aumento de `timeout-minutes`.

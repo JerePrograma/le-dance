@@ -3,6 +3,7 @@ package ledance.infra.persistencia;
 import ledance.servicios.matricula.MatriculaServicio;
 import ledance.servicios.mensualidad.MensualidadServicio;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -12,7 +13,10 @@ import java.time.Year;
 import java.time.YearMonth;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -25,6 +29,7 @@ class SchedulerIdempotencyPostgreSqlTest extends PostgreSqlIntegrationTest {
     @Autowired private Clock clock;
 
     @Test
+    @Timeout(30)
     void dosEjecucionesSimultaneasNoDuplicanMensualidadesMatriculasNiCargos() throws Exception {
         String suffix = UUID.randomUUID().toString();
         Long profesor = id("""
@@ -69,18 +74,33 @@ class SchedulerIdempotencyPostgreSqlTest extends PostgreSqlIntegrationTest {
 
     private void ejecutarDosVecesEnParalelo(Runnable proceso) throws Exception {
         CountDownLatch start = new CountDownLatch(1);
-        try (var executor = Executors.newFixedThreadPool(2)) {
-            var first = executor.submit(() -> ejecutar(start, proceso));
-            var second = executor.submit(() -> ejecutar(start, proceso));
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        Future<?> first = executor.submit(() -> ejecutar(start, proceso));
+        Future<?> second = executor.submit(() -> ejecutar(start, proceso));
+        boolean completed = false;
+        try {
             start.countDown();
-            first.get();
-            second.get();
+            first.get(10, TimeUnit.SECONDS);
+            second.get(10, TimeUnit.SECONDS);
+            completed = true;
+        } finally {
+            start.countDown();
+            if (completed) {
+                executor.shutdown();
+            } else {
+                first.cancel(true);
+                second.cancel(true);
+                executor.shutdownNow();
+            }
+            assertThat(executor.awaitTermination(5, TimeUnit.SECONDS)).isTrue();
         }
     }
 
     private static void ejecutar(CountDownLatch start, Runnable proceso) {
         try {
-            start.await();
+            if (!start.await(5, TimeUnit.SECONDS)) {
+                throw new IllegalStateException("Timeout esperando inicio concurrente");
+            }
             proceso.run();
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
